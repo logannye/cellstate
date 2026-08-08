@@ -23,7 +23,9 @@ jobs:
       - run: uv sync --extra dev --no-editable
       - run: uv run --no-editable ruff format --check .
       - run: uv run --no-editable ruff check .
-      - run: uv run --no-editable mypy src
+      - name: Type check on minimum supported Python
+        if: matrix.python-version == '3.11'
+        run: uv run --no-editable mypy src
       - run: uv run --no-editable pytest
       - run: uv run --no-editable python scripts/export_schemas.py
       - run: git diff --exit-code -- schemas
