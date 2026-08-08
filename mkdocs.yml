@@ -1,0 +1,22 @@
+site_name: cellstate
+site_description: Belief-state contracts for virtual-cell modeling
+theme:
+  name: readthedocs
+nav:
+  - Home: index.md
+  - Concepts:
+      - Belief state: concepts/belief-state.md
+      - Predictive sufficiency: concepts/predictive-sufficiency.md
+  - Architecture:
+      - Overview: architecture/overview.md
+      - Data contracts: architecture/data-contracts.md
+      - Inference pipeline: architecture/inference-pipeline.md
+  - Guides:
+      - Add a backend: guides/add-a-backend.md
+  - Validation: validation/scientific-validation.md
+  - Decisions:
+      - Belief distributions: adr/0001-belief-state.md
+      - Event histories: adr/0002-event-history.md
+      - Backend-neutral contracts: adr/0003-backend-neutral-contracts.md
+  - Roadmap: roadmap.md
+strict: true

@@ -1,0 +1,22 @@
+__pycache__/
+*.py[cod]
+*.egg-info/
+.coverage
+.hypothesis/
+.mypy_cache/
+.pytest_cache/
+.ruff_cache/
+.venv/
+build/
+dist/
+htmlcov/
+site/
+.DS_Store
+
+# Large biological/model artifacts do not belong in Git.
+*.h5ad
+*.loom
+*.zarr/
+*.ckpt
+*.pt
+*.safetensors

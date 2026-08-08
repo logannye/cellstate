@@ -1,0 +1,318 @@
+{
+  "$defs": {
+    "CandidateEvaluation": {
+      "additionalProperties": false,
+      "properties": {
+        "expected_utility": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Expected Utility"
+        },
+        "notes": {
+          "default": [],
+          "items": {
+            "type": "string"
+          },
+          "title": "Notes",
+          "type": "array"
+        },
+        "scenario_id": {
+          "minLength": 1,
+          "title": "Scenario Id",
+          "type": "string"
+        },
+        "selection_score": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Selection Score"
+        },
+        "supported": {
+          "title": "Supported",
+          "type": "boolean"
+        },
+        "uncertainty_penalty": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Uncertainty Penalty"
+        }
+      },
+      "required": [
+        "scenario_id",
+        "supported"
+      ],
+      "title": "CandidateEvaluation",
+      "type": "object"
+    },
+    "ProvenanceRecord": {
+      "additionalProperties": false,
+      "description": "Minimum audit trail attached to every produced belief or forecast.",
+      "properties": {
+        "calibration_data_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Calibration Data Id"
+        },
+        "code_revision": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Code Revision"
+        },
+        "context_fingerprint": {
+          "pattern": "^[a-fA-F0-9]{64}$",
+          "title": "Context Fingerprint",
+          "type": "string"
+        },
+        "generated_at": {
+          "format": "date-time",
+          "title": "Generated At",
+          "type": "string"
+        },
+        "history_fingerprint": {
+          "pattern": "^[a-fA-F0-9]{64}$",
+          "title": "History Fingerprint",
+          "type": "string"
+        },
+        "history_structure_fingerprint": {
+          "pattern": "^[a-fA-F0-9]{64}$",
+          "title": "History Structure Fingerprint",
+          "type": "string"
+        },
+        "model_fingerprint": {
+          "pattern": "^[a-fA-F0-9]{64}$",
+          "title": "Model Fingerprint",
+          "type": "string"
+        },
+        "model_id": {
+          "minLength": 1,
+          "title": "Model Id",
+          "type": "string"
+        },
+        "model_version": {
+          "minLength": 1,
+          "title": "Model Version",
+          "type": "string"
+        },
+        "posterior_schema_id": {
+          "minLength": 1,
+          "title": "Posterior Schema Id",
+          "type": "string"
+        },
+        "query_fingerprint": {
+          "pattern": "^[a-fA-F0-9]{64}$",
+          "title": "Query Fingerprint",
+          "type": "string"
+        },
+        "schema_version": {
+          "const": "1.0",
+          "default": "1.0",
+          "title": "Schema Version",
+          "type": "string"
+        },
+        "seed": {
+          "minimum": 0,
+          "title": "Seed",
+          "type": "integer"
+        },
+        "source_event_fingerprints": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "title": "Source Event Fingerprints",
+          "type": "object"
+        },
+        "source_event_ids": {
+          "default": [],
+          "items": {
+            "type": "string"
+          },
+          "title": "Source Event Ids",
+          "type": "array"
+        },
+        "training_support_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Training Support Id"
+        },
+        "warnings": {
+          "default": [],
+          "items": {
+            "type": "string"
+          },
+          "title": "Warnings",
+          "type": "array"
+        }
+      },
+      "required": [
+        "model_id",
+        "model_version",
+        "model_fingerprint",
+        "posterior_schema_id",
+        "query_fingerprint",
+        "history_fingerprint",
+        "history_structure_fingerprint",
+        "context_fingerprint",
+        "seed"
+      ],
+      "title": "ProvenanceRecord",
+      "type": "object"
+    },
+    "ScenarioReference": {
+      "additionalProperties": false,
+      "properties": {
+        "fingerprint": {
+          "pattern": "^[a-fA-F0-9]{64}$",
+          "title": "Fingerprint",
+          "type": "string"
+        },
+        "scenario_id": {
+          "minLength": 1,
+          "title": "Scenario Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "scenario_id",
+        "fingerprint"
+      ],
+      "title": "ScenarioReference",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "candidates": {
+      "items": {
+        "$ref": "#/$defs/ScenarioReference"
+      },
+      "minItems": 1,
+      "title": "Candidates",
+      "type": "array"
+    },
+    "evaluations": {
+      "items": {
+        "$ref": "#/$defs/CandidateEvaluation"
+      },
+      "title": "Evaluations",
+      "type": "array"
+    },
+    "horizon_name": {
+      "minLength": 1,
+      "title": "Horizon Name",
+      "type": "string"
+    },
+    "objective_fingerprint": {
+      "pattern": "^[a-fA-F0-9]{64}$",
+      "title": "Objective Fingerprint",
+      "type": "string"
+    },
+    "objective_id": {
+      "minLength": 1,
+      "title": "Objective Id",
+      "type": "string"
+    },
+    "parent_belief_id": {
+      "format": "uuid",
+      "title": "Parent Belief Id",
+      "type": "string"
+    },
+    "plan_id": {
+      "minLength": 1,
+      "title": "Plan Id",
+      "type": "string"
+    },
+    "provenance": {
+      "$ref": "#/$defs/ProvenanceRecord"
+    },
+    "query_fingerprint": {
+      "pattern": "^[a-fA-F0-9]{64}$",
+      "title": "Query Fingerprint",
+      "type": "string"
+    },
+    "rationale": {
+      "minLength": 1,
+      "title": "Rationale",
+      "type": "string"
+    },
+    "schema_version": {
+      "const": "1.0",
+      "default": "1.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "seed": {
+      "minimum": 0,
+      "title": "Seed",
+      "type": "integer"
+    },
+    "selected_scenario_id": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "Selected Scenario Id"
+    }
+  },
+  "required": [
+    "plan_id",
+    "parent_belief_id",
+    "query_fingerprint",
+    "horizon_name",
+    "objective_id",
+    "objective_fingerprint",
+    "candidates",
+    "selected_scenario_id",
+    "evaluations",
+    "rationale",
+    "seed",
+    "provenance"
+  ],
+  "title": "InterventionPlan",
+  "type": "object"
+}

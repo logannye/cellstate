@@ -1,0 +1,357 @@
+{
+  "$defs": {
+    "AssaySpec": {
+      "additionalProperties": false,
+      "properties": {
+        "assay_id": {
+          "minLength": 1,
+          "title": "Assay Id",
+          "type": "string"
+        },
+        "cost": {
+          "default": 1.0,
+          "minimum": 0,
+          "title": "Cost",
+          "type": "number"
+        },
+        "modality": {
+          "$ref": "#/$defs/OntologyTerm"
+        },
+        "turnaround_seconds": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Turnaround Seconds"
+        }
+      },
+      "required": [
+        "assay_id",
+        "modality"
+      ],
+      "title": "AssaySpec",
+      "type": "object"
+    },
+    "EnvironmentVariableSpec": {
+      "additionalProperties": false,
+      "properties": {
+        "required": {
+          "default": false,
+          "title": "Required",
+          "type": "boolean"
+        },
+        "units": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Units"
+        },
+        "variable": {
+          "$ref": "#/$defs/OntologyTerm"
+        }
+      },
+      "required": [
+        "variable"
+      ],
+      "title": "EnvironmentVariableSpec",
+      "type": "object"
+    },
+    "InterventionSpec": {
+      "additionalProperties": false,
+      "properties": {
+        "dose_units": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Dose Units"
+        },
+        "kind": {
+          "$ref": "#/$defs/OntologyTerm"
+        },
+        "mechanisms": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/OntologyTerm"
+          },
+          "title": "Mechanisms",
+          "type": "array"
+        },
+        "target": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/OntologyTerm"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        }
+      },
+      "required": [
+        "kind"
+      ],
+      "title": "InterventionSpec",
+      "type": "object"
+    },
+    "OntologyTerm": {
+      "additionalProperties": false,
+      "description": "An extensible biological term, optionally grounded in an ontology.",
+      "properties": {
+        "identifier": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Identifier"
+        },
+        "label": {
+          "minLength": 1,
+          "title": "Label",
+          "type": "string"
+        },
+        "namespace": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Namespace"
+        }
+      },
+      "required": [
+        "label"
+      ],
+      "title": "OntologyTerm",
+      "type": "object"
+    },
+    "OutputSpec": {
+      "additionalProperties": false,
+      "properties": {
+        "functional": {
+          "default": true,
+          "title": "Functional",
+          "type": "boolean"
+        },
+        "term": {
+          "$ref": "#/$defs/OntologyTerm"
+        },
+        "units": {
+          "minLength": 1,
+          "title": "Units",
+          "type": "string"
+        },
+        "weight": {
+          "default": 1.0,
+          "exclusiveMinimum": 0,
+          "title": "Weight",
+          "type": "number"
+        }
+      },
+      "required": [
+        "term",
+        "units"
+      ],
+      "title": "OutputSpec",
+      "type": "object"
+    },
+    "PrecisionRequirement": {
+      "additionalProperties": false,
+      "properties": {
+        "confidence": {
+          "anyOf": [
+            {
+              "exclusiveMinimum": 0,
+              "maximum": 1,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Confidence"
+        },
+        "horizon_name": {
+          "minLength": 1,
+          "title": "Horizon Name",
+          "type": "string"
+        },
+        "maximum_error": {
+          "exclusiveMinimum": 0,
+          "title": "Maximum Error",
+          "type": "number"
+        },
+        "metric": {
+          "minLength": 1,
+          "title": "Metric",
+          "type": "string"
+        },
+        "target": {
+          "$ref": "#/$defs/OntologyTerm"
+        },
+        "units": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Units"
+        }
+      },
+      "required": [
+        "target",
+        "horizon_name",
+        "metric",
+        "maximum_error"
+      ],
+      "title": "PrecisionRequirement",
+      "type": "object"
+    },
+    "PredictionHorizon": {
+      "additionalProperties": false,
+      "properties": {
+        "duration_seconds": {
+          "exclusiveMinimum": 0,
+          "title": "Duration Seconds",
+          "type": "number"
+        },
+        "name": {
+          "minLength": 1,
+          "title": "Name",
+          "type": "string"
+        },
+        "timescale": {
+          "$ref": "#/$defs/Timescale"
+        }
+      },
+      "required": [
+        "name",
+        "duration_seconds",
+        "timescale"
+      ],
+      "title": "PredictionHorizon",
+      "type": "object"
+    },
+    "SystemBoundary": {
+      "enum": [
+        "isolated_cell",
+        "cell_and_soluble_environment",
+        "cell_and_neighbors",
+        "clone",
+        "population",
+        "spatial_tissue_niche"
+      ],
+      "title": "SystemBoundary",
+      "type": "string"
+    },
+    "Timescale": {
+      "enum": [
+        "fast",
+        "intermediate",
+        "slow"
+      ],
+      "title": "Timescale",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "description": "A task-specific definition of predictive and interventional sufficiency.",
+  "properties": {
+    "available_assays": {
+      "default": [],
+      "items": {
+        "$ref": "#/$defs/AssaySpec"
+      },
+      "title": "Available Assays",
+      "type": "array"
+    },
+    "environment_space": {
+      "default": [],
+      "items": {
+        "$ref": "#/$defs/EnvironmentVariableSpec"
+      },
+      "title": "Environment Space",
+      "type": "array"
+    },
+    "intervention_space": {
+      "default": [],
+      "items": {
+        "$ref": "#/$defs/InterventionSpec"
+      },
+      "title": "Intervention Space",
+      "type": "array"
+    },
+    "precision_requirements": {
+      "default": [],
+      "items": {
+        "$ref": "#/$defs/PrecisionRequirement"
+      },
+      "title": "Precision Requirements",
+      "type": "array"
+    },
+    "prediction_horizons": {
+      "items": {
+        "$ref": "#/$defs/PredictionHorizon"
+      },
+      "minItems": 1,
+      "title": "Prediction Horizons",
+      "type": "array"
+    },
+    "schema_version": {
+      "const": "1.0",
+      "default": "1.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "system_boundary": {
+      "$ref": "#/$defs/SystemBoundary"
+    },
+    "target_outputs": {
+      "items": {
+        "$ref": "#/$defs/OutputSpec"
+      },
+      "minItems": 1,
+      "title": "Target Outputs",
+      "type": "array"
+    }
+  },
+  "required": [
+    "system_boundary",
+    "prediction_horizons",
+    "target_outputs"
+  ],
+  "title": "StateQuery",
+  "type": "object"
+}

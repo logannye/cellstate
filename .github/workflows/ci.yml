@@ -1,0 +1,41 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.11", "3.12", "3.13"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        with:
+          python-version: ${{ matrix.python-version }}
+          enable-cache: true
+      - run: uv sync --extra dev --no-editable
+      - run: uv run --no-editable ruff format --check .
+      - run: uv run --no-editable ruff check .
+      - run: uv run --no-editable mypy src
+      - run: uv run --no-editable pytest
+      - run: uv run --no-editable python scripts/export_schemas.py
+      - run: git diff --exit-code -- schemas
+      - run: uv build
+
+  docs:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        with:
+          python-version: "3.11"
+          enable-cache: true
+      - run: uv sync --extra docs --no-editable
+      - run: uv run --no-editable mkdocs build --strict

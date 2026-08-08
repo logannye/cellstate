@@ -1,0 +1,80 @@
+[build-system]
+requires = ["hatchling>=1.27"]
+build-backend = "hatchling.build"
+
+[project]
+name = "cellstate"
+version = "0.1.0"
+description = "Query-conditioned belief-state contracts and reference models for virtual-cell research"
+readme = "README.md"
+requires-python = ">=3.11"
+authors = [{ name = "Cell State contributors" }]
+keywords = ["single-cell", "virtual-cell", "state-estimation", "bayesian-filtering"]
+classifiers = [
+  "Development Status :: 2 - Pre-Alpha",
+  "Intended Audience :: Science/Research",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
+  "Typing :: Typed",
+]
+dependencies = [
+  "numpy>=1.26",
+  "pydantic>=2.10,<3",
+  "scipy>=1.11",
+]
+
+[project.optional-dependencies]
+dev = [
+  "build>=1.2",
+  "hypothesis>=6.100",
+  "mypy>=1.13",
+  "pre-commit>=4.0",
+  "pytest>=8.3",
+  "pytest-cov>=6.0",
+  "ruff>=0.9",
+]
+docs = [
+  "mkdocs>=1.6,<2",
+]
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/cellstate"]
+
+[tool.pytest.ini_options]
+addopts = "-ra --strict-config --strict-markers --cov=cellstate --cov-report=term-missing --cov-fail-under=85"
+pythonpath = ["src"]
+testpaths = ["tests"]
+
+[tool.coverage.run]
+branch = true
+source = ["cellstate"]
+
+[tool.coverage.report]
+exclude_also = [
+  "if TYPE_CHECKING:",
+  '\.\.\.',
+  "raise NotImplementedError",
+]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP", "RUF", "SIM", "PTH"]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**/*.py" = ["S101"]
+
+[tool.mypy]
+python_version = "3.11"
+strict = true
+plugins = ["pydantic.mypy"]
+packages = ["cellstate"]
+warn_unused_ignores = true
+
+[[tool.mypy.overrides]]
+module = ["scipy.*"]
+ignore_missing_imports = true
