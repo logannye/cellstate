@@ -1,0 +1,1431 @@
+{
+  "$comment": "Experimental structural schema. Cross-field scientific eligibility requires validation with the cellstate.data.DatasetManifest Python model.",
+  "$defs": {
+    "AccessMode": {
+      "description": "Public access may be direct or require registration, but not approval.",
+      "enum": [
+        "open_download",
+        "registration_required"
+      ],
+      "title": "AccessMode",
+      "type": "string"
+    },
+    "AssignmentMechanism": {
+      "enum": [
+        "none",
+        "observational",
+        "assigned_nonrandom",
+        "quasi_experimental",
+        "randomized"
+      ],
+      "title": "AssignmentMechanism",
+      "type": "string"
+    },
+    "ClaimEligibility": {
+      "additionalProperties": false,
+      "properties": {
+        "assumptions": {
+          "default": [],
+          "items": {
+            "type": "string"
+          },
+          "title": "Assumptions",
+          "type": "array"
+        },
+        "blockers": {
+          "default": [],
+          "items": {
+            "type": "string"
+          },
+          "title": "Blockers",
+          "type": "array"
+        },
+        "claim": {
+          "$ref": "#/$defs/ScientificClaim"
+        },
+        "evidence_notes": {
+          "default": [],
+          "items": {
+            "type": "string"
+          },
+          "title": "Evidence Notes",
+          "type": "array"
+        },
+        "evidence_source_ids": {
+          "default": [],
+          "items": {
+            "type": "string"
+          },
+          "title": "Evidence Source Ids",
+          "type": "array"
+        },
+        "identification_basis": {
+          "$ref": "#/$defs/IdentificationBasis"
+        },
+        "scope": {
+          "$ref": "#/$defs/ClaimScope"
+        },
+        "status": {
+          "$ref": "#/$defs/ClaimStatus"
+        }
+      },
+      "required": [
+        "claim",
+        "status",
+        "identification_basis",
+        "scope"
+      ],
+      "title": "ClaimEligibility",
+      "type": "object"
+    },
+    "ClaimScope": {
+      "additionalProperties": false,
+      "properties": {
+        "biological_systems": {
+          "items": {
+            "$ref": "#/$defs/OntologyTerm"
+          },
+          "minItems": 1,
+          "title": "Biological Systems",
+          "type": "array"
+        },
+        "environment_variables": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/OntologyTerm"
+          },
+          "title": "Environment Variables",
+          "type": "array"
+        },
+        "functional_outputs": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/OntologyTerm"
+          },
+          "title": "Functional Outputs",
+          "type": "array"
+        },
+        "horizons_seconds": {
+          "default": [],
+          "items": {
+            "type": "number"
+          },
+          "title": "Horizons Seconds",
+          "type": "array"
+        },
+        "inference_cutoff_field": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Inference Cutoff Field"
+        },
+        "inference_cutoff_seconds": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Inference Cutoff Seconds"
+        },
+        "intervention_kinds": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/OntologyTerm"
+          },
+          "title": "Intervention Kinds",
+          "type": "array"
+        },
+        "modalities": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/OntologyTerm"
+          },
+          "title": "Modalities",
+          "type": "array"
+        },
+        "subject_kind": {
+          "$ref": "#/$defs/SamplingSubjectKind"
+        },
+        "system_boundary": {
+          "$ref": "#/$defs/SystemBoundary"
+        }
+      },
+      "required": [
+        "subject_kind",
+        "system_boundary",
+        "biological_systems"
+      ],
+      "title": "ClaimScope",
+      "type": "object"
+    },
+    "ClaimStatus": {
+      "enum": [
+        "eligible",
+        "conditionally_eligible",
+        "ineligible",
+        "not_assessed"
+      ],
+      "title": "ClaimStatus",
+      "type": "string"
+    },
+    "DataUseCase": {
+      "enum": [
+        "research_model_training",
+        "commercial_model_training",
+        "benchmark_evaluation",
+        "source_data_redistribution",
+        "derived_model_distribution",
+        "derived_model_publication"
+      ],
+      "title": "DataUseCase",
+      "type": "string"
+    },
+    "DataUsePolicy": {
+      "additionalProperties": false,
+      "properties": {
+        "attribution_requirements": {
+          "default": [],
+          "items": {
+            "type": "string"
+          },
+          "title": "Attribution Requirements",
+          "type": "array"
+        },
+        "license_name": {
+          "minLength": 1,
+          "title": "License Name",
+          "type": "string"
+        },
+        "permissions": {
+          "items": {
+            "$ref": "#/$defs/UsePermission"
+          },
+          "minItems": 1,
+          "title": "Permissions",
+          "type": "array"
+        },
+        "policy_id": {
+          "minLength": 1,
+          "title": "Policy Id",
+          "type": "string"
+        },
+        "reviewed_on": {
+          "format": "date",
+          "title": "Reviewed On",
+          "type": "string"
+        },
+        "source_ids": {
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Source Ids",
+          "type": "array"
+        },
+        "spdx_identifier": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Spdx Identifier"
+        },
+        "terms_url": {
+          "minLength": 1,
+          "title": "Terms Url",
+          "type": "string"
+        }
+      },
+      "required": [
+        "policy_id",
+        "source_ids",
+        "license_name",
+        "terms_url",
+        "reviewed_on",
+        "permissions"
+      ],
+      "title": "DataUsePolicy",
+      "type": "object"
+    },
+    "DatasetCapabilities": {
+      "additionalProperties": false,
+      "properties": {
+        "environment": {
+          "$ref": "#/$defs/EnvironmentCapability"
+        },
+        "functional": {
+          "$ref": "#/$defs/FunctionalCapability"
+        },
+        "interventions": {
+          "$ref": "#/$defs/InterventionCapability"
+        },
+        "lineage": {
+          "$ref": "#/$defs/LineageCapability"
+        },
+        "modalities": {
+          "items": {
+            "$ref": "#/$defs/ModalitySpec"
+          },
+          "minItems": 1,
+          "title": "Modalities",
+          "type": "array"
+        },
+        "spatial": {
+          "$ref": "#/$defs/SpatialCapability"
+        },
+        "timing": {
+          "$ref": "#/$defs/TimingCapability"
+        }
+      },
+      "required": [
+        "modalities"
+      ],
+      "title": "DatasetCapabilities",
+      "type": "object"
+    },
+    "EnvironmentCapability": {
+      "additionalProperties": false,
+      "properties": {
+        "variables": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/EnvironmentVariable"
+          },
+          "title": "Variables",
+          "type": "array"
+        }
+      },
+      "title": "EnvironmentCapability",
+      "type": "object"
+    },
+    "EnvironmentVariable": {
+      "additionalProperties": false,
+      "properties": {
+        "assigned": {
+          "title": "Assigned",
+          "type": "boolean"
+        },
+        "measured": {
+          "title": "Measured",
+          "type": "boolean"
+        },
+        "source_ids": {
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Source Ids",
+          "type": "array"
+        },
+        "time_resolved": {
+          "default": false,
+          "title": "Time Resolved",
+          "type": "boolean"
+        },
+        "units": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Units"
+        },
+        "variable": {
+          "$ref": "#/$defs/OntologyTerm"
+        }
+      },
+      "required": [
+        "variable",
+        "source_ids",
+        "measured",
+        "assigned"
+      ],
+      "title": "EnvironmentVariable",
+      "type": "object"
+    },
+    "ExperimentalDesign": {
+      "additionalProperties": false,
+      "properties": {
+        "batch_fields": {
+          "default": [],
+          "items": {
+            "type": "string"
+          },
+          "title": "Batch Fields",
+          "type": "array"
+        },
+        "biological_replicate_unit": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ExperimentalUnitLevel"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "default_split_unit": {
+          "$ref": "#/$defs/ExperimentalUnitLevel"
+        },
+        "matched_control_field": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Matched Control Field"
+        },
+        "randomization_unit": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ExperimentalUnitLevel"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "sampling": {
+          "$ref": "#/$defs/SamplingDesign"
+        },
+        "units": {
+          "items": {
+            "$ref": "#/$defs/ExperimentalUnitSpec"
+          },
+          "minItems": 1,
+          "title": "Units",
+          "type": "array"
+        }
+      },
+      "required": [
+        "units",
+        "sampling",
+        "default_split_unit"
+      ],
+      "title": "ExperimentalDesign",
+      "type": "object"
+    },
+    "ExperimentalUnitLevel": {
+      "enum": [
+        "organism",
+        "donor",
+        "tissue",
+        "clone",
+        "culture",
+        "organoid",
+        "plate",
+        "well",
+        "sample",
+        "cell",
+        "spatial_region"
+      ],
+      "title": "ExperimentalUnitLevel",
+      "type": "string"
+    },
+    "ExperimentalUnitSpec": {
+      "additionalProperties": false,
+      "properties": {
+        "id_field": {
+          "minLength": 1,
+          "title": "Id Field",
+          "type": "string"
+        },
+        "level": {
+          "$ref": "#/$defs/ExperimentalUnitLevel"
+        },
+        "parent_level": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ExperimentalUnitLevel"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "source_ids": {
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Source Ids",
+          "type": "array"
+        }
+      },
+      "required": [
+        "level",
+        "id_field",
+        "source_ids"
+      ],
+      "title": "ExperimentalUnitSpec",
+      "type": "object"
+    },
+    "FunctionalCapability": {
+      "additionalProperties": false,
+      "properties": {
+        "outputs": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/FunctionalReadout"
+          },
+          "title": "Outputs",
+          "type": "array"
+        }
+      },
+      "title": "FunctionalCapability",
+      "type": "object"
+    },
+    "FunctionalReadout": {
+      "additionalProperties": false,
+      "properties": {
+        "aggregation_level": {
+          "$ref": "#/$defs/ExperimentalUnitLevel"
+        },
+        "alignment_group": {
+          "minLength": 1,
+          "title": "Alignment Group",
+          "type": "string"
+        },
+        "alignment_key_field": {
+          "minLength": 1,
+          "title": "Alignment Key Field",
+          "type": "string"
+        },
+        "measurement_time_field": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Measurement Time Field"
+        },
+        "measurement_time_seconds": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Measurement Time Seconds"
+        },
+        "output": {
+          "$ref": "#/$defs/OntologyTerm"
+        },
+        "source_ids": {
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Source Ids",
+          "type": "array"
+        },
+        "status": {
+          "$ref": "#/$defs/ReadoutStatus"
+        },
+        "subject_alignment": {
+          "$ref": "#/$defs/SubjectAlignment"
+        },
+        "units": {
+          "minLength": 1,
+          "title": "Units",
+          "type": "string"
+        }
+      },
+      "required": [
+        "output",
+        "source_ids",
+        "units",
+        "aggregation_level",
+        "subject_alignment",
+        "alignment_group",
+        "alignment_key_field",
+        "status"
+      ],
+      "title": "FunctionalReadout",
+      "type": "object"
+    },
+    "IdentificationBasis": {
+      "enum": [
+        "none",
+        "descriptive",
+        "associational",
+        "randomized_within_study",
+        "quasi_experimental",
+        "transported_under_assumptions"
+      ],
+      "title": "IdentificationBasis",
+      "type": "string"
+    },
+    "InterventionCapability": {
+      "additionalProperties": false,
+      "properties": {
+        "assignment": {
+          "$ref": "#/$defs/AssignmentMechanism",
+          "default": "none"
+        },
+        "assignment_probabilities_recorded": {
+          "default": false,
+          "title": "Assignment Probabilities Recorded",
+          "type": "boolean"
+        },
+        "combinations_present": {
+          "default": false,
+          "title": "Combinations Present",
+          "type": "boolean"
+        },
+        "doses_recorded": {
+          "default": false,
+          "title": "Doses Recorded",
+          "type": "boolean"
+        },
+        "durations_recorded": {
+          "default": false,
+          "title": "Durations Recorded",
+          "type": "boolean"
+        },
+        "kinds": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/OntologyTerm"
+          },
+          "title": "Kinds",
+          "type": "array"
+        },
+        "matched_controls_present": {
+          "default": false,
+          "title": "Matched Controls Present",
+          "type": "boolean"
+        },
+        "realization_evidence": {
+          "$ref": "#/$defs/RealizationEvidence",
+          "default": "none"
+        },
+        "source_ids": {
+          "default": [],
+          "items": {
+            "type": "string"
+          },
+          "title": "Source Ids",
+          "type": "array"
+        },
+        "start_stop_recorded": {
+          "default": false,
+          "title": "Start Stop Recorded",
+          "type": "boolean"
+        },
+        "targets_recorded": {
+          "default": false,
+          "title": "Targets Recorded",
+          "type": "boolean"
+        },
+        "washout_recorded": {
+          "default": false,
+          "title": "Washout Recorded",
+          "type": "boolean"
+        }
+      },
+      "title": "InterventionCapability",
+      "type": "object"
+    },
+    "LineageCapability": {
+      "additionalProperties": false,
+      "properties": {
+        "confidence_recorded": {
+          "default": false,
+          "title": "Confidence Recorded",
+          "type": "boolean"
+        },
+        "division_times_recorded": {
+          "default": false,
+          "title": "Division Times Recorded",
+          "type": "boolean"
+        },
+        "lineage_ids_recorded": {
+          "default": false,
+          "title": "Lineage Ids Recorded",
+          "type": "boolean"
+        },
+        "resolution": {
+          "$ref": "#/$defs/LineageResolution",
+          "default": "none"
+        },
+        "source_ids": {
+          "default": [],
+          "items": {
+            "type": "string"
+          },
+          "title": "Source Ids",
+          "type": "array"
+        }
+      },
+      "title": "LineageCapability",
+      "type": "object"
+    },
+    "LineageResolution": {
+      "enum": [
+        "none",
+        "clone",
+        "sibling",
+        "parent_child",
+        "full_tree"
+      ],
+      "title": "LineageResolution",
+      "type": "string"
+    },
+    "ModalitySpec": {
+      "additionalProperties": false,
+      "properties": {
+        "alignment_group": {
+          "anyOf": [
+            {
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Alignment Group"
+        },
+        "alignment_key_field": {
+          "anyOf": [
+            {
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Alignment Key Field"
+        },
+        "destructive": {
+          "title": "Destructive",
+          "type": "boolean"
+        },
+        "feature_identifier_namespace": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Feature Identifier Namespace"
+        },
+        "modality": {
+          "$ref": "#/$defs/OntologyTerm"
+        },
+        "processed_available": {
+          "default": false,
+          "title": "Processed Available",
+          "type": "boolean"
+        },
+        "raw_available": {
+          "default": false,
+          "title": "Raw Available",
+          "type": "boolean"
+        },
+        "source_ids": {
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Source Ids",
+          "type": "array"
+        },
+        "subject_alignment": {
+          "$ref": "#/$defs/SubjectAlignment"
+        }
+      },
+      "required": [
+        "modality",
+        "source_ids",
+        "subject_alignment",
+        "destructive"
+      ],
+      "title": "ModalitySpec",
+      "type": "object"
+    },
+    "OntologyTerm": {
+      "additionalProperties": false,
+      "description": "An extensible biological term, optionally grounded in an ontology.",
+      "properties": {
+        "identifier": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Identifier"
+        },
+        "label": {
+          "minLength": 1,
+          "title": "Label",
+          "type": "string"
+        },
+        "namespace": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Namespace"
+        }
+      },
+      "required": [
+        "label"
+      ],
+      "title": "OntologyTerm",
+      "type": "object"
+    },
+    "PermissionStatus": {
+      "enum": [
+        "permitted",
+        "prohibited",
+        "conditional",
+        "unknown"
+      ],
+      "title": "PermissionStatus",
+      "type": "string"
+    },
+    "PublicRealDataOrigin": {
+      "additionalProperties": false,
+      "properties": {
+        "biological_systems": {
+          "items": {
+            "$ref": "#/$defs/OntologyTerm"
+          },
+          "minItems": 1,
+          "title": "Biological Systems",
+          "type": "array"
+        },
+        "kind": {
+          "const": "public_real",
+          "default": "public_real",
+          "title": "Kind",
+          "type": "string"
+        },
+        "publication_doi": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Publication Doi"
+        },
+        "publicly_downloadable": {
+          "const": true,
+          "default": true,
+          "title": "Publicly Downloadable",
+          "type": "boolean"
+        },
+        "release": {
+          "minLength": 1,
+          "title": "Release",
+          "type": "string"
+        },
+        "repository": {
+          "minLength": 1,
+          "title": "Repository",
+          "type": "string"
+        },
+        "species": {
+          "items": {
+            "$ref": "#/$defs/OntologyTerm"
+          },
+          "minItems": 1,
+          "title": "Species",
+          "type": "array"
+        },
+        "study_accession": {
+          "minLength": 1,
+          "title": "Study Accession",
+          "type": "string"
+        }
+      },
+      "required": [
+        "repository",
+        "study_accession",
+        "release",
+        "species",
+        "biological_systems"
+      ],
+      "title": "PublicRealDataOrigin",
+      "type": "object"
+    },
+    "ReadoutStatus": {
+      "enum": [
+        "direct",
+        "derived"
+      ],
+      "title": "ReadoutStatus",
+      "type": "string"
+    },
+    "RealizationEvidence": {
+      "enum": [
+        "none",
+        "assignment_only",
+        "inferred",
+        "measured"
+      ],
+      "title": "RealizationEvidence",
+      "type": "string"
+    },
+    "SamplingDesign": {
+      "additionalProperties": false,
+      "properties": {
+        "attrition_field": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Attrition Field"
+        },
+        "canonical_time_units": {
+          "const": "s",
+          "default": "s",
+          "title": "Canonical Time Units",
+          "type": "string"
+        },
+        "linkage": {
+          "$ref": "#/$defs/SubjectLinkage"
+        },
+        "mode": {
+          "$ref": "#/$defs/SamplingMode"
+        },
+        "source_ids": {
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Source Ids",
+          "type": "array"
+        },
+        "source_time_units": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Source Time Units"
+        },
+        "subject_id_field": {
+          "minLength": 1,
+          "title": "Subject Id Field",
+          "type": "string"
+        },
+        "subject_kind": {
+          "$ref": "#/$defs/SamplingSubjectKind"
+        },
+        "subject_unit": {
+          "$ref": "#/$defs/ExperimentalUnitLevel"
+        },
+        "time_field": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Time Field"
+        }
+      },
+      "required": [
+        "subject_kind",
+        "subject_unit",
+        "subject_id_field",
+        "source_ids",
+        "mode",
+        "linkage"
+      ],
+      "title": "SamplingDesign",
+      "type": "object"
+    },
+    "SamplingMode": {
+      "enum": [
+        "endpoint_destructive",
+        "repeated_population_destructive",
+        "lineage_linked_endpoint",
+        "partial_nondestructive",
+        "longitudinal_nondestructive"
+      ],
+      "title": "SamplingMode",
+      "type": "string"
+    },
+    "SamplingSubjectKind": {
+      "enum": [
+        "individual_cell",
+        "clone",
+        "sample",
+        "population",
+        "spatial_region"
+      ],
+      "title": "SamplingSubjectKind",
+      "type": "string"
+    },
+    "ScientificClaim": {
+      "enum": [
+        "assay_measurement_model",
+        "snapshot_state_prior",
+        "same_cell_multimodal_fusion",
+        "sample_level_multimodal_fusion",
+        "population_dynamics",
+        "individual_longitudinal_dynamics",
+        "intervention_effect",
+        "counterfactual_generalization",
+        "lineage_fate",
+        "spatial_context",
+        "functional_outcome",
+        "retrospective_intervention_selection"
+      ],
+      "title": "ScientificClaim",
+      "type": "string"
+    },
+    "SourceArtifact": {
+      "additionalProperties": false,
+      "properties": {
+        "access_mode": {
+          "$ref": "#/$defs/AccessMode",
+          "default": "open_download"
+        },
+        "accession": {
+          "minLength": 1,
+          "title": "Accession",
+          "type": "string"
+        },
+        "byte_count": {
+          "exclusiveMinimum": 0,
+          "title": "Byte Count",
+          "type": "integer"
+        },
+        "kind": {
+          "$ref": "#/$defs/SourceKind"
+        },
+        "media_type": {
+          "minLength": 1,
+          "title": "Media Type",
+          "type": "string"
+        },
+        "parent_study_accession": {
+          "anyOf": [
+            {
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Parent Study Accession"
+        },
+        "parent_study_release": {
+          "anyOf": [
+            {
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Parent Study Release"
+        },
+        "release": {
+          "minLength": 1,
+          "title": "Release",
+          "type": "string"
+        },
+        "retrieved_at": {
+          "format": "date-time",
+          "title": "Retrieved At",
+          "type": "string"
+        },
+        "sha256": {
+          "pattern": "^[a-fA-F0-9]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        },
+        "source_id": {
+          "minLength": 1,
+          "title": "Source Id",
+          "type": "string"
+        },
+        "uri": {
+          "minLength": 1,
+          "title": "Uri",
+          "type": "string"
+        }
+      },
+      "required": [
+        "source_id",
+        "kind",
+        "uri",
+        "sha256",
+        "media_type",
+        "accession",
+        "release",
+        "byte_count",
+        "retrieved_at"
+      ],
+      "title": "SourceArtifact",
+      "type": "object"
+    },
+    "SourceKind": {
+      "enum": [
+        "raw",
+        "processed",
+        "metadata",
+        "documentation"
+      ],
+      "title": "SourceKind",
+      "type": "string"
+    },
+    "SpatialCapability": {
+      "additionalProperties": false,
+      "properties": {
+        "alignment_group": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Alignment Group"
+        },
+        "alignment_key_field": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Alignment Key Field"
+        },
+        "contacts_recorded": {
+          "default": false,
+          "title": "Contacts Recorded",
+          "type": "boolean"
+        },
+        "coordinate_dimensions": {
+          "anyOf": [
+            {
+              "enum": [
+                2,
+                3
+              ],
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Coordinate Dimensions"
+        },
+        "distances_recorded": {
+          "default": false,
+          "title": "Distances Recorded",
+          "type": "boolean"
+        },
+        "regions_recorded": {
+          "default": false,
+          "title": "Regions Recorded",
+          "type": "boolean"
+        },
+        "resolution": {
+          "$ref": "#/$defs/SpatialResolution",
+          "default": "none"
+        },
+        "source_ids": {
+          "default": [],
+          "items": {
+            "type": "string"
+          },
+          "title": "Source Ids",
+          "type": "array"
+        },
+        "subject_alignment": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/SubjectAlignment"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        }
+      },
+      "title": "SpatialCapability",
+      "type": "object"
+    },
+    "SpatialResolution": {
+      "enum": [
+        "none",
+        "sample_region",
+        "cell_coordinates",
+        "neighbor_graph",
+        "image_volume"
+      ],
+      "title": "SpatialResolution",
+      "type": "string"
+    },
+    "SubjectAlignment": {
+      "enum": [
+        "same_cell",
+        "same_sample",
+        "same_clone",
+        "same_population",
+        "same_spatial_region",
+        "unpaired"
+      ],
+      "title": "SubjectAlignment",
+      "type": "string"
+    },
+    "SubjectLinkage": {
+      "enum": [
+        "none",
+        "same_population",
+        "same_clone",
+        "lineage",
+        "same_cell",
+        "same_spatial_region"
+      ],
+      "title": "SubjectLinkage",
+      "type": "string"
+    },
+    "SystemBoundary": {
+      "enum": [
+        "isolated_cell",
+        "cell_and_soluble_environment",
+        "cell_and_neighbors",
+        "clone",
+        "population",
+        "spatial_tissue_niche"
+      ],
+      "title": "SystemBoundary",
+      "type": "string"
+    },
+    "TimingCapability": {
+      "additionalProperties": false,
+      "properties": {
+        "environment_times_recorded": {
+          "default": false,
+          "title": "Environment Times Recorded",
+          "type": "boolean"
+        },
+        "event_ordering_recorded": {
+          "default": false,
+          "title": "Event Ordering Recorded",
+          "type": "boolean"
+        },
+        "intervention_times_recorded": {
+          "default": false,
+          "title": "Intervention Times Recorded",
+          "type": "boolean"
+        },
+        "observation_times_recorded": {
+          "default": false,
+          "title": "Observation Times Recorded",
+          "type": "boolean"
+        },
+        "source_ids": {
+          "default": [],
+          "items": {
+            "type": "string"
+          },
+          "title": "Source Ids",
+          "type": "array"
+        },
+        "timepoints_seconds": {
+          "default": [],
+          "items": {
+            "type": "number"
+          },
+          "title": "Timepoints Seconds",
+          "type": "array"
+        }
+      },
+      "title": "TimingCapability",
+      "type": "object"
+    },
+    "UsePermission": {
+      "additionalProperties": false,
+      "properties": {
+        "conditions": {
+          "default": [],
+          "items": {
+            "type": "string"
+          },
+          "title": "Conditions",
+          "type": "array"
+        },
+        "status": {
+          "$ref": "#/$defs/PermissionStatus"
+        },
+        "use_case": {
+          "$ref": "#/$defs/DataUseCase"
+        }
+      },
+      "required": [
+        "use_case",
+        "status"
+      ],
+      "title": "UsePermission",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "capabilities": {
+      "$ref": "#/$defs/DatasetCapabilities"
+    },
+    "claim_eligibility": {
+      "items": {
+        "$ref": "#/$defs/ClaimEligibility"
+      },
+      "minItems": 1,
+      "title": "Claim Eligibility",
+      "type": "array"
+    },
+    "dataset_id": {
+      "minLength": 1,
+      "title": "Dataset Id",
+      "type": "string"
+    },
+    "description": {
+      "minLength": 1,
+      "title": "Description",
+      "type": "string"
+    },
+    "experimental_design": {
+      "$ref": "#/$defs/ExperimentalDesign"
+    },
+    "notes": {
+      "default": [],
+      "items": {
+        "type": "string"
+      },
+      "title": "Notes",
+      "type": "array"
+    },
+    "origin": {
+      "$ref": "#/$defs/PublicRealDataOrigin"
+    },
+    "schema_version": {
+      "const": "0.1-experimental",
+      "default": "0.1-experimental",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "sources": {
+      "items": {
+        "$ref": "#/$defs/SourceArtifact"
+      },
+      "minItems": 1,
+      "title": "Sources",
+      "type": "array"
+    },
+    "title": {
+      "minLength": 1,
+      "title": "Title",
+      "type": "string"
+    },
+    "use_policies": {
+      "items": {
+        "$ref": "#/$defs/DataUsePolicy"
+      },
+      "minItems": 1,
+      "title": "Use Policies",
+      "type": "array"
+    },
+    "version": {
+      "minLength": 1,
+      "title": "Version",
+      "type": "string"
+    }
+  },
+  "required": [
+    "dataset_id",
+    "version",
+    "title",
+    "description",
+    "origin",
+    "sources",
+    "use_policies",
+    "experimental_design",
+    "capabilities",
+    "claim_eligibility"
+  ],
+  "title": "DatasetManifest",
+  "type": "object"
+}

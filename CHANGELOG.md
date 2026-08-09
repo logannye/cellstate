@@ -9,3 +9,7 @@
   fingerprints.
 - Add unit-aware target predictions and objectives, explicit sample-axis contracts, and strict
   abstention for unsupported biological or measurement semantics.
+- Establish the public-real-data roadmap, evidence policy, biological verticals, and scientific
+  graduation gates as durable project documentation and repository memory.
+- Add an experimental typed dataset-manifest scaffold for source hashes, use restrictions,
+  experimental units, sampling linkage, modality alignment, and scoped capability assessment.

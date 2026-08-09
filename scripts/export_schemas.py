@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
+from cellstate.data import DatasetManifest
 from cellstate.domain import (
     CellHistory,
     CellStateBelief,
@@ -16,23 +17,24 @@ from cellstate.domain import (
     StateQuery,
 )
 
-OUTPUT_DIRECTORY = Path(__file__).resolve().parents[1] / "schemas" / "v1"
+OUTPUT_ROOT = Path(__file__).resolve().parents[1] / "schemas"
 MODELS = {
-    "state-query.schema.json": StateQuery,
-    "cell-history.schema.json": CellHistory,
-    "estimate-cell-state-request.schema.json": EstimateCellStateRequest,
-    "cell-state-belief.schema.json": CellStateBelief,
-    "evolution-scenario.schema.json": EvolutionScenario,
-    "state-forecast.schema.json": StateForecast,
-    "intervention-objective.schema.json": InterventionObjective,
-    "intervention-plan.schema.json": InterventionPlan,
+    Path("experimental/dataset-manifest.schema.json"): DatasetManifest,
+    Path("v1/state-query.schema.json"): StateQuery,
+    Path("v1/cell-history.schema.json"): CellHistory,
+    Path("v1/estimate-cell-state-request.schema.json"): EstimateCellStateRequest,
+    Path("v1/cell-state-belief.schema.json"): CellStateBelief,
+    Path("v1/evolution-scenario.schema.json"): EvolutionScenario,
+    Path("v1/state-forecast.schema.json"): StateForecast,
+    Path("v1/intervention-objective.schema.json"): InterventionObjective,
+    Path("v1/intervention-plan.schema.json"): InterventionPlan,
 }
 
 
 def main() -> None:
-    OUTPUT_DIRECTORY.mkdir(parents=True, exist_ok=True)
-    for filename, model in MODELS.items():
-        destination = OUTPUT_DIRECTORY / filename
+    for relative_path, model in MODELS.items():
+        destination = OUTPUT_ROOT / relative_path
+        destination.parent.mkdir(parents=True, exist_ok=True)
         content = json.dumps(model.model_json_schema(), indent=2, sort_keys=True) + "\n"
         destination.write_text(content, encoding="utf-8")
 
