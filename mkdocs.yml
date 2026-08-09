@@ -9,8 +9,11 @@ nav:
       - Predictive sufficiency: concepts/predictive-sufficiency.md
   - Architecture:
       - Overview: architecture/overview.md
+      - Full buildout: architecture/full-buildout.md
       - Data contracts: architecture/data-contracts.md
       - Inference pipeline: architecture/inference-pipeline.md
+  - Data:
+      - Evidence inventory: data/evidence-inventory.md
   - Guides:
       - Add a backend: guides/add-a-backend.md
   - Validation: validation/scientific-validation.md
@@ -18,5 +21,7 @@ nav:
       - Belief distributions: adr/0001-belief-state.md
       - Event histories: adr/0002-event-history.md
       - Backend-neutral contracts: adr/0003-backend-neutral-contracts.md
+      - Public-real evidence: adr/0004-query-scoped-public-real-evidence.md
+      - Belief-subject semantics (proposed): adr/0005-belief-subject-semantics.md
   - Roadmap: roadmap.md
 strict: true
