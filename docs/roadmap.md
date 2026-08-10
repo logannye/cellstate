@@ -281,11 +281,13 @@ pass. Its executable scoring, leakage, baseline, and performance gates remain de
 incomplete, so it is `COMPONENT_BENCHMARK`, not scientifically admitted. Step 9 approved an
 exhaustive biological support-port map and bound a non-runnable direct population assay-response
 scaffold to the exact artifacts. The component is intentionally separate from hidden-state
-estimation and exposes none of the four public operations. Contract v0.1 keeps every bundle at
-`SCAFFOLD`: declared hashes and entry-point strings cannot substitute for resolved bytes, verified
-interfaces, validated results, or query-derived prerequisites. The next implementation gate is that
-trusted verifier boundary, followed by executable training, calibration, baselines, and locked
-evaluation; it must not present unrun performance as a validated biological belief.
+estimation and exposes none of the four public operations. Step 10 completed the trusted admission
+boundary around contract v0.1 declarations: exact bytes, loaded interfaces, semantic results, and
+query-derived prerequisites can now be authenticated and rebound without turning a serialized
+receipt into runtime authority. That infrastructure does not supply a trained model, run a metric,
+or pass a scientific gate. The sci-Plex3 artifact therefore remains a non-executable `SCAFFOLD`.
+The next implementation gate is its immutable data loader and mandatory baseline suite; it must not
+present unrun performance as a validated biological belief.
 
 The next development work proceeds in this order:
 
@@ -327,15 +329,29 @@ The next development work proceeds in this order:
    receipts. The sci-Plex3 scaffold remains at `SCAFFOLD`, exposes no estimator, evolution,
    planning, or measurement operation, and cannot emit either a response distribution or
    `CellStateBelief` until trusted verification and the component's scientific gates pass.
+10. **Completed 2026-08-10:** implement the trusted, scope-bound admission boundary. Artifact
+    verification incrementally hashes byte streams and requires closed-world one-to-one coverage.
+    Real-data execution inputs come only from a capability-scoped, HMAC-authenticated workflow
+    selection whose typed resolution artifacts are themselves byte-covered. Application-owned
+    isolated loaders authenticate bounded observations of exact code and loaded objects; a separate
+    verifier checks those objects against an application-owned interface registry. Typed result
+    manifests bind exact evidence roles, partitions, cases, model and implementation scope, and
+    supporting bytes, while readiness records semantic verification separately from scientific
+    pass/fail. The deterministic prerequisite compiler derives and fingerprints conditional ports
+    from the exact query, envelope, and target surface. External secrets and live interface objects
+    remain nonserialized. Execution guards seal one reacquired code stream, verify and load that
+    same immutable snapshot through the registry-owned trusted loader, repeat interface checks,
+    and return operation-scoped nonserialized handles for only those checked objects. Missing trust, stale
+    scope, forged attestations, failed results, or omitted/extra receipts remain blockers. The
+    sci-Plex3 component remains at `SCAFFOLD` because it still has no trained artifact, executable
+    evaluation, mandatory baseline results, or admitted benchmark.
 
-The immediate next work is to implement a trusted artifact resolver and admission-receipt boundary:
-resolve and hash-check every consumed byte, load and verify each declared interface, validate typed
-result semantics, and derive conditional prerequisites from the exact query. Then implement the
-immutable data loader and mandatory baseline suite, followed by the first candidate distribution
-model, using `p1` for parameter fitting, `p2` for calibration, `p3` for model selection and freezing,
-and `p4` only for untouched evaluation. Passing that component lifecycle would authorize only the
-exact assay-response API; a hidden-state backend still requires its own observation/prior,
-inference, dynamics, sufficiency, identifiability, and operation-specific evidence.
+The immediate next work is to implement the immutable sci-Plex3 data loader and mandatory baseline
+suite, followed by the first candidate distribution model, using `p1` for parameter fitting, `p2`
+for calibration, `p3` for model selection and freezing, and `p4` only for untouched evaluation.
+Passing that component lifecycle would authorize only the exact assay-response API; a hidden-state
+backend still requires its own observation/prior, inference, dynamics, sufficiency,
+identifiability, and operation-specific evidence.
 
 This sequence corrects the semantic spine before adapters or models depend on it. It preserves the
 existing manifest work while ensuring the first implementation cannot satisfy software contracts by

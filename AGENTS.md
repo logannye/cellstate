@@ -80,11 +80,18 @@ run, so it is not scientifically admitted. The experimental biological-bundle co
 population assay-response scaffold are now in place. The scaffold exhaustively maps all original
 model stages, exposes no public cell-state operation, contains no trained weights, and rejects
 execution. Its direct context-and-assignment to 24-hour assay response is not a hidden-state belief.
-Contract v0.1 cannot authorize execution from declarations: exact bytes, loaded interfaces,
-validation-result semantics, and query-derived prerequisites still require trusted verifiers. That
-verifier boundary is the active gate, followed by a provenance-bound training, calibration,
-baseline, and locked-test evaluation path. No biological runtime or validated belief may be
-registered before its separate operation-specific admission gates pass.
+Contract v0.1 now implements the trusted admission boundary around those declarations. It streams
+exact-byte verification, accepts real-data execution sources only from an authenticated typed-
+workflow selection, authenticates isolated loader and semantic-evaluator observations against
+external nonserialized HMAC trust roots, checks loaded objects against an application-owned
+interface registry, distinguishes verified validation semantics from passed results, recompiles
+query-dependent prerequisites, and returns only just-in-time reverified runtime handles. Persisted
+receipts never authorize execution by themselves; one immutable code snapshot is both hashed and
+loaded by the registry-owned trusted JIT loader, so independently supplied objects cannot borrow
+admitted bytes. The sci-Plex3 artifact remains a non-executable
+`SCAFFOLD`; the active milestone is its immutable loader and mandatory baselines. No biological
+runtime or validated belief may be registered before its separate operation-specific admission
+and scientific gates pass.
 
 `docs/roadmap.md` is the sole authority for sequence and status. The full target architecture lives
 in `docs/architecture/full-buildout.md`; accepted rationale lives in ADRs. The sanitized local audit

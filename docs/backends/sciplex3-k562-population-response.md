@@ -81,8 +81,8 @@ Regenerate and verify the two canonical component artifacts with:
 PYTHONPATH=src uv run --no-sync python scripts/build_sciplex3_k562_component_scaffold.py --check
 ```
 
-The next implementation step is the trusted artifact, loaded-interface, result-semantic, and
-query-prerequisite verifier boundary required by bundle contract v0.1. After that comes the immutable
+Bundle contract v0.1 now has its trusted artifact, loaded-interface, result-semantic, and
+query-prerequisite verifier boundary. The next implementation step is the immutable
 partition-aware loader and mandatory baseline suite, followed by a distribution model, p2
 calibration, p3 freeze, and one locked p4 evaluation. Passing those gates could authorize only this
 direct component surface; it would not authorize a hidden-state estimator.
