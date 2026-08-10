@@ -248,6 +248,7 @@ def test_component_scaffold_is_exact_but_cannot_register_or_execute(
     assert not readiness.component_evaluation_complete
     assert not readiness.component_executable
     assert not readiness.scientifically_admitted
+    assert "one or more public runtime operations are specification-only" not in readiness.blockers
     assert not readiness.runtime_registration_allowed
     assert not readiness.runnable
     assert "bound benchmark is not scientifically admitted" in readiness.blockers
@@ -651,13 +652,14 @@ def test_complete_looking_declarations_remain_nonexecutable_in_v01(
     assert readiness.validation_evidence_semantics_verified
     assert readiness.implementation_scope_binding_verified
     assert readiness.required_ports_provided
-    assert readiness.required_ports_evidenced
+    assert not readiness.required_ports_evidenced
     assert readiness.runtime_operations_bound
-    assert readiness.runtime_operations_evidenced
+    assert not readiness.runtime_operations_evidenced
     assert readiness.benchmark_admission_ready
     assert not readiness.artifact_bytes_resolved
     assert not readiness.implementation_interfaces_verified
     assert not readiness.validation_results_verified
+    assert not readiness.validation_results_passed
     assert not readiness.query_derived_prerequisites_verified
     assert not readiness.required_ports_executable
     assert not readiness.runtime_operations_executable
@@ -667,21 +669,60 @@ def test_complete_looking_declarations_remain_nonexecutable_in_v01(
     assert not readiness.scientifically_admitted
     assert not readiness.runtime_registration_allowed
     assert not readiness.runnable
-    assert set(readiness.admission_blocker_codes) == set(BundleAdmissionBlockerCode)
-    with pytest.raises(BiologicalExecutionBlockedError, match=r"v0\.1"):
+    assert set(readiness.admission_blocker_codes) == {
+        BundleAdmissionBlockerCode.ARTIFACT_BYTES_UNRESOLVED,
+        BundleAdmissionBlockerCode.IMPLEMENTATION_INTERFACES_UNVERIFIED,
+        BundleAdmissionBlockerCode.QUERY_DERIVED_OPERATION_PREREQUISITES_UNVERIFIED,
+        BundleAdmissionBlockerCode.VALIDATION_RESULTS_UNVERIFIED,
+    }
+    with pytest.raises(BiologicalExecutionBlockedError, match="trusted"):
         require_biological_execution(
             bundle,
             operation=ModelOperation.EVOLVE_CELL_STATE,
             **kwargs,
         )
-    with pytest.raises(BiologicalExecutionBlockedError, match=r"v0\.1"):
+    with pytest.raises(BiologicalExecutionBlockedError, match="trusted"):
         require_biological_execution(
             bundle,
             operation=ModelOperation.ESTIMATE_CELL_STATE,
             **kwargs,
         )
-    with pytest.raises(BiologicalExecutionBlockedError, match=r"v0\.1"):
+    with pytest.raises(BiologicalExecutionBlockedError, match="trusted"):
         build_admitted_estimator_descriptor(bundle, **kwargs)
+
+
+def test_model_selected_lifecycle_can_precede_semantic_validation_results(
+    query: StateQuery,
+    benchmark: BenchmarkArtifact,
+    manifest: DatasetManifest,
+) -> None:
+    envelope, bundle = component_contracts(query, benchmark)
+    readiness = assess_biological_model_bundle(
+        bundle,
+        query=query,
+        benchmark=benchmark,
+        manifests={
+            binding.binding_id: manifest for binding in benchmark.definition.evidence_bindings
+        },
+        support_envelope=envelope,
+    )
+    payload = readiness.model_dump(mode="python")
+    payload.update(
+        {
+            "artifact_bytes_resolved": True,
+            "implementation_interfaces_verified": True,
+            "query_derived_prerequisites_verified": True,
+            "training_binding_verified": True,
+            "calibration_binding_verified": True,
+            "model_selection_binding_verified": True,
+            "admission_blocker_codes": (BundleAdmissionBlockerCode.VALIDATION_RESULTS_UNVERIFIED,),
+            "lifecycle_stage": ComponentLifecycleStage.MODEL_SELECTED_FROZEN,
+        }
+    )
+
+    candidate = type(readiness).model_validate(payload)
+    assert candidate.lifecycle_stage is ComponentLifecycleStage.MODEL_SELECTED_FROZEN
+    assert not candidate.validation_results_verified
 
 
 @pytest.mark.parametrize("drift", ("port_code", "posterior_schema"))

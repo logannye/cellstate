@@ -49,11 +49,13 @@ utility. Posterior covariance reduction alone is not EVSI.
 > deliberately non-admitted: metric implementations, leakage audit, mandatory baselines, and
 > performance thresholds have not passed. The complete biological support-port map and a
 > content-addressed population assay-response scaffold are now checked in. That scaffold is not a
-> hidden-state estimator and rejects every prediction call. Contract version 0.1 also refuses to
-> treat declared hashes or Python entry-point strings as execution receipts: exact bytes, loaded
-> interfaces, validation-result semantics, and query-derived prerequisites still need trusted
-> verifiers. The active gate is that verifier boundary, followed by a provenance-bound training,
-> calibration, baseline, and evaluation path for the exact component.
+> hidden-state estimator and rejects every prediction call. Contract version 0.1 now implements a
+> trusted admission boundary around its declarations: streamed bytes, authenticated execution-
+> source selection, externally loaded interfaces, typed validation results, and query-derived
+> prerequisites are rebound to exact bundle scope. Persisted receipts still are not execution
+> tokens; the guards require external trust roots and just-in-time reload/reverification. The
+> sci-Plex3 artifact remains `SCAFFOLD` because it has no trained model or completed scientific
+> gates. The active milestone is its immutable data loader and mandatory baseline suite.
 
 ## Scientific thesis
 
@@ -241,11 +243,13 @@ estimands. The corrected sci-Plex3 K562 24-hour component benchmark now freezes 
 population query, physical splits, authoritative cases, metric semantics, mandatory baselines, and
 acceptance policy without pretending those planned implementations have run. The biological-bundle
 contract now exhaustively classifies the original model stages and keeps the first direct population
-assay-response scaffold outside all four public cell-state operations. Its v0.1 admission path is
-intentionally hard-closed until exact artifact resolution, interface conformance, result validation,
-and query-dependent prerequisites become executable checks. The next milestone is to implement that
-trusted verifier boundary and then evaluate the component behind it, starting with its mandatory
-baselines; it is not yet a biological runtime.
+assay-response scaffold outside all four public cell-state operations. Its v0.1 trusted admission
+boundary incrementally hashes every consumed byte, authenticates workflow-derived data sources,
+checks objects loaded outside the receipt issuer against an application-owned interface registry,
+verifies typed result semantics separately from result pass/fail, and recompiles query-dependent
+prerequisites. Execution guards then reload and reverify the exact object immediately before use.
+This infrastructure does not graduate the component: sci-Plex3 remains a non-executable
+`SCAFFOLD`. The next milestone is its immutable loader and mandatory baseline suite.
 
 The [project roadmap](docs/roadmap.md) is the sole authority for implementation order and graduation
 status. The [full buildout architecture](docs/architecture/full-buildout.md) defines the target
@@ -289,6 +293,10 @@ evidence.
   bindings, and a derived component lifecycle. The first sci-Plex3 population assay-response
   scaffold binds the exact benchmark but contains no weights, exposes no public cell-state
   operation, and cannot emit a prediction or belief.
+- An experimental trusted-admission boundary with streaming exact-byte receipts, authenticated
+  workflow-derived execution sources, isolated loaded-interface observations, capability-scoped
+  external HMAC trust roots, closed-world typed validation-result receipts, deterministic query-
+  derived prerequisites, and nonserialized just-in-time runtime handles.
 - Generated JSON Schemas, documentation, strict typing, linting, and CI across supported Python
   versions.
 

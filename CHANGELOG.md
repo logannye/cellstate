@@ -56,10 +56,16 @@
   component lifecycle. Add a non-runnable sci-Plex3 K562 direct population assay-response scaffold
   that enforces partition roles and exact scope while exposing no hidden-state estimator, evolution,
   planner, or measurement policy.
-- Keep bundle contract v0.1 hard-closed: declarations cannot authorize execution until trusted
-  byte resolution, loaded-interface conformance, validation-result semantics, and query-derived
-  prerequisites exist. Reject caller-constructed biological descriptors at every public operation;
-  retain a separately labeled synthetic-test artifact kind only for software-boundary tests.
+- Keep bundle contract v0.1 declarations hard-closed: they cannot authorize execution without an
+  exact external admission context and just-in-time object reverification. Reject caller-
+  constructed biological descriptors at every public operation; retain a separately labeled
+  synthetic-test artifact kind only for software-boundary tests.
+- Add scope-bound biological admission verification: streaming exact-byte receipts, authenticated
+  workflow-derived execution sources, isolated loaded-interface observations, capability-scoped
+  external HMAC trust roots, typed validation-result verification with separate verified/passed
+  state, deterministic query-derived prerequisites, and just-in-time reverified runtime handles.
+  These checks advance infrastructure only; the sci-Plex3 component remains a non-runnable
+  `SCAFFOLD` pending its immutable loader and mandatory baseline suite.
 
 ## 0.1.0 - Unreleased
 

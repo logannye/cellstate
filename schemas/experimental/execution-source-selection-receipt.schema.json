@@ -1,0 +1,321 @@
+{
+  "$defs": {
+    "AccessMode": {
+      "description": "Public access may be direct or require registration, but not approval.",
+      "enum": [
+        "open_download",
+        "registration_required"
+      ],
+      "title": "AccessMode",
+      "type": "string"
+    },
+    "AdmissionVerifierCapability": {
+      "description": "Exact observation class a verifier implementation is trusted to attest.",
+      "enum": [
+        "artifact_byte_resolution",
+        "execution_source_selection",
+        "loaded_interface_verification",
+        "validation_result_semantics"
+      ],
+      "title": "AdmissionVerifierCapability",
+      "type": "string"
+    },
+    "AdmissionVerifierIdentity": {
+      "additionalProperties": false,
+      "description": "Exact versioned identity of the code that issued an admission receipt.",
+      "properties": {
+        "capabilities": {
+          "items": {
+            "$ref": "#/$defs/AdmissionVerifierCapability"
+          },
+          "minItems": 1,
+          "title": "Capabilities",
+          "type": "array"
+        },
+        "code_artifact": {
+          "$ref": "#/$defs/ContentAddressedArtifact"
+        },
+        "entrypoint": {
+          "minLength": 1,
+          "title": "Entrypoint",
+          "type": "string"
+        },
+        "runtime": {
+          "minLength": 1,
+          "title": "Runtime",
+          "type": "string"
+        },
+        "verifier_id": {
+          "minLength": 1,
+          "title": "Verifier Id",
+          "type": "string"
+        },
+        "verifier_version": {
+          "minLength": 1,
+          "title": "Verifier Version",
+          "type": "string"
+        }
+      },
+      "required": [
+        "verifier_id",
+        "verifier_version",
+        "code_artifact",
+        "entrypoint",
+        "runtime",
+        "capabilities"
+      ],
+      "title": "AdmissionVerifierIdentity",
+      "type": "object"
+    },
+    "ContentAddressedArtifact": {
+      "additionalProperties": false,
+      "properties": {
+        "artifact_id": {
+          "minLength": 1,
+          "title": "Artifact Id",
+          "type": "string"
+        },
+        "byte_count": {
+          "exclusiveMinimum": 0,
+          "title": "Byte Count",
+          "type": "integer"
+        },
+        "media_type": {
+          "minLength": 1,
+          "title": "Media Type",
+          "type": "string"
+        },
+        "sha256": {
+          "pattern": "^[a-fA-F0-9]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        },
+        "uri": {
+          "minLength": 1,
+          "title": "Uri",
+          "type": "string"
+        }
+      },
+      "required": [
+        "artifact_id",
+        "uri",
+        "sha256",
+        "byte_count",
+        "media_type"
+      ],
+      "title": "ContentAddressedArtifact",
+      "type": "object"
+    },
+    "ReceiptAttestation": {
+      "additionalProperties": false,
+      "description": "Keyed authentication of a receipt payload by an external verifier trust root.",
+      "properties": {
+        "algorithm": {
+          "const": "hmac-sha256-v1",
+          "default": "hmac-sha256-v1",
+          "title": "Algorithm",
+          "type": "string"
+        },
+        "attested_payload_fingerprint": {
+          "pattern": "^[a-fA-F0-9]{64}$",
+          "title": "Attested Payload Fingerprint",
+          "type": "string"
+        },
+        "authentication_tag": {
+          "pattern": "^[a-fA-F0-9]{64}$",
+          "title": "Authentication Tag",
+          "type": "string"
+        },
+        "key_id": {
+          "minLength": 1,
+          "title": "Key Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "key_id",
+        "attested_payload_fingerprint",
+        "authentication_tag"
+      ],
+      "title": "ReceiptAttestation",
+      "type": "object"
+    },
+    "SourceArtifact": {
+      "additionalProperties": false,
+      "properties": {
+        "access_mode": {
+          "$ref": "#/$defs/AccessMode",
+          "default": "open_download"
+        },
+        "accession": {
+          "minLength": 1,
+          "title": "Accession",
+          "type": "string"
+        },
+        "byte_count": {
+          "exclusiveMinimum": 0,
+          "title": "Byte Count",
+          "type": "integer"
+        },
+        "kind": {
+          "$ref": "#/$defs/SourceKind"
+        },
+        "media_type": {
+          "minLength": 1,
+          "title": "Media Type",
+          "type": "string"
+        },
+        "parent_study_accession": {
+          "anyOf": [
+            {
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Parent Study Accession"
+        },
+        "parent_study_release": {
+          "anyOf": [
+            {
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Parent Study Release"
+        },
+        "release": {
+          "minLength": 1,
+          "title": "Release",
+          "type": "string"
+        },
+        "retrieved_at": {
+          "format": "date-time",
+          "title": "Retrieved At",
+          "type": "string"
+        },
+        "sha256": {
+          "pattern": "^[a-fA-F0-9]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        },
+        "source_id": {
+          "minLength": 1,
+          "title": "Source Id",
+          "type": "string"
+        },
+        "uri": {
+          "minLength": 1,
+          "title": "Uri",
+          "type": "string"
+        }
+      },
+      "required": [
+        "source_id",
+        "kind",
+        "uri",
+        "sha256",
+        "media_type",
+        "accession",
+        "release",
+        "byte_count",
+        "retrieved_at"
+      ],
+      "title": "SourceArtifact",
+      "type": "object"
+    },
+    "SourceKind": {
+      "enum": [
+        "raw",
+        "processed",
+        "metadata",
+        "documentation"
+      ],
+      "title": "SourceKind",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Authenticated legal/scientific selection of exact real-data execution bytes.\n\nThe selection is external to a bundle because a bundle contains only the content-addressed\nbenchmark declaration.  An application-owned workflow resolver must derive ``sources`` from\ntyped dataset-assessment resolutions.  Its exact resolution artifacts are included in byte\ncoverage; arbitrary manifest review sources are never inferred as execution inputs.",
+  "properties": {
+    "attestation": {
+      "$ref": "#/$defs/ReceiptAttestation"
+    },
+    "bundle_fingerprint": {
+      "pattern": "^[a-fA-F0-9]{64}$",
+      "title": "Bundle Fingerprint",
+      "type": "string"
+    },
+    "issued_at": {
+      "format": "date-time",
+      "title": "Issued At",
+      "type": "string"
+    },
+    "receipt_kind": {
+      "const": "execution_source_selection",
+      "default": "execution_source_selection",
+      "title": "Receipt Kind",
+      "type": "string"
+    },
+    "schema_version": {
+      "const": "0.1-experimental",
+      "default": "0.1-experimental",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "selection_fingerprint": {
+      "pattern": "^[a-fA-F0-9]{64}$",
+      "title": "Selection Fingerprint",
+      "type": "string"
+    },
+    "selection_id": {
+      "minLength": 1,
+      "title": "Selection Id",
+      "type": "string"
+    },
+    "selector": {
+      "$ref": "#/$defs/AdmissionVerifierIdentity"
+    },
+    "selector_fingerprint": {
+      "pattern": "^[a-fA-F0-9]{64}$",
+      "title": "Selector Fingerprint",
+      "type": "string"
+    },
+    "sources": {
+      "items": {
+        "$ref": "#/$defs/SourceArtifact"
+      },
+      "minItems": 1,
+      "title": "Sources",
+      "type": "array"
+    },
+    "workflow_resolution_artifacts": {
+      "items": {
+        "$ref": "#/$defs/ContentAddressedArtifact"
+      },
+      "minItems": 1,
+      "title": "Workflow Resolution Artifacts",
+      "type": "array"
+    }
+  },
+  "required": [
+    "selection_id",
+    "bundle_fingerprint",
+    "workflow_resolution_artifacts",
+    "sources",
+    "selector",
+    "selector_fingerprint",
+    "issued_at",
+    "attestation",
+    "selection_fingerprint"
+  ],
+  "title": "ExecutionSourceSelectionReceipt",
+  "type": "object"
+}

@@ -8,13 +8,21 @@ from pathlib import Path
 from pydantic import BaseModel
 
 from cellstate.backends import (
+    AdmissionReceiptBatchReport,
+    ArtifactResolutionReceipt,
     BiologicalModelBundleContract,
     BiologicalSupportEnvelope,
     BundleReadiness,
+    ExecutionSourceSelectionReceipt,
+    LoadedInterfaceReceipt,
     PopulationAssayResponsePreflight,
     PopulationAssayResponseTask,
+    QueryDerivedPrerequisiteReport,
     TrainingRunBinding,
     ValidationEvidenceBinding,
+    ValidationResultManifest,
+    ValidationResultReceiptBatch,
+    ValidationResultVerificationReceipt,
 )
 from cellstate.data import BenchmarkArtifact, DatasetManifest, RepresentabilityProof
 from cellstate.domain import (
@@ -35,18 +43,32 @@ from cellstate.domain import (
 
 OUTPUT_ROOT = Path(__file__).resolve().parents[1] / "schemas"
 MODELS: dict[Path, type[BaseModel]] = {
+    Path("experimental/admission-receipt-batch.schema.json"): AdmissionReceiptBatchReport,
+    Path("experimental/artifact-resolution-receipt.schema.json"): ArtifactResolutionReceipt,
     Path("experimental/benchmark-artifact.schema.json"): BenchmarkArtifact,
     Path("experimental/biological-model-bundle.schema.json"): BiologicalModelBundleContract,
     Path("experimental/biological-support-envelope.schema.json"): BiologicalSupportEnvelope,
     Path("experimental/bundle-readiness.schema.json"): BundleReadiness,
     Path("experimental/dataset-manifest.schema.json"): DatasetManifest,
+    Path("experimental/execution-source-selection-receipt.schema.json"): (
+        ExecutionSourceSelectionReceipt
+    ),
+    Path("experimental/loaded-interface-receipt.schema.json"): LoadedInterfaceReceipt,
     Path("experimental/population-assay-response-preflight.schema.json"): (
         PopulationAssayResponsePreflight
     ),
     Path("experimental/population-assay-response-task.schema.json"): PopulationAssayResponseTask,
+    Path("experimental/query-derived-prerequisites.schema.json"): (QueryDerivedPrerequisiteReport),
     Path("experimental/representability-proof.schema.json"): RepresentabilityProof,
     Path("experimental/training-run-binding.schema.json"): TrainingRunBinding,
     Path("experimental/validation-evidence-binding.schema.json"): ValidationEvidenceBinding,
+    Path("experimental/validation-result-manifest.schema.json"): ValidationResultManifest,
+    Path("experimental/validation-result-receipt.schema.json"): (
+        ValidationResultVerificationReceipt
+    ),
+    Path("experimental/validation-result-receipt-batch.schema.json"): (
+        ValidationResultReceiptBatch
+    ),
     Path("v2/belief-subject.schema.json"): BeliefSubject,
     Path("v2/subject-specification.schema.json"): SubjectSpecification,
     Path("v2/state-query.schema.json"): StateQuery,

@@ -8,13 +8,21 @@ from pydantic import BaseModel, TypeAdapter
 
 import cellstate
 from cellstate.backends import (
+    AdmissionReceiptBatchReport,
+    ArtifactResolutionReceipt,
     BiologicalModelBundleContract,
     BiologicalSupportEnvelope,
     BundleReadiness,
+    ExecutionSourceSelectionReceipt,
+    LoadedInterfaceReceipt,
     PopulationAssayResponsePreflight,
     PopulationAssayResponseTask,
+    QueryDerivedPrerequisiteReport,
     TrainingRunBinding,
     ValidationEvidenceBinding,
+    ValidationResultManifest,
+    ValidationResultReceiptBatch,
+    ValidationResultVerificationReceipt,
 )
 from cellstate.data import BenchmarkArtifact, DatasetManifest, RepresentabilityProof
 from cellstate.domain import (
@@ -143,16 +151,24 @@ def test_checked_in_v2_schemas_are_current() -> None:
 
 def test_checked_in_experimental_schemas_are_current_and_warn_consumers() -> None:
     models: dict[str, type[BaseModel]] = {
+        "admission-receipt-batch.schema.json": AdmissionReceiptBatchReport,
+        "artifact-resolution-receipt.schema.json": ArtifactResolutionReceipt,
         "benchmark-artifact.schema.json": BenchmarkArtifact,
         "biological-model-bundle.schema.json": BiologicalModelBundleContract,
         "biological-support-envelope.schema.json": BiologicalSupportEnvelope,
         "bundle-readiness.schema.json": BundleReadiness,
         "dataset-manifest.schema.json": DatasetManifest,
+        "execution-source-selection-receipt.schema.json": ExecutionSourceSelectionReceipt,
+        "loaded-interface-receipt.schema.json": LoadedInterfaceReceipt,
         "population-assay-response-preflight.schema.json": PopulationAssayResponsePreflight,
         "population-assay-response-task.schema.json": PopulationAssayResponseTask,
+        "query-derived-prerequisites.schema.json": QueryDerivedPrerequisiteReport,
         "representability-proof.schema.json": RepresentabilityProof,
         "training-run-binding.schema.json": TrainingRunBinding,
         "validation-evidence-binding.schema.json": ValidationEvidenceBinding,
+        "validation-result-manifest.schema.json": ValidationResultManifest,
+        "validation-result-receipt-batch.schema.json": ValidationResultReceiptBatch,
+        "validation-result-receipt.schema.json": ValidationResultVerificationReceipt,
     }
     experimental_root = SCHEMA_ROOT / "experimental"
     assert {path.name for path in experimental_root.glob("*.schema.json")} == set(models)

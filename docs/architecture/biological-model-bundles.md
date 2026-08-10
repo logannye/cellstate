@@ -1,9 +1,11 @@
 # Biological model bundles and support ports
 
-Biological execution is authorized by an exact collection of artifacts, never by a model name or
-a caller-set `validated` flag. The experimental contract in `cellstate.backends` binds a query,
-benchmark, support envelope, training run, model artifact, validation evidence, every internal
-stage port, and every public-operation implementation by content hash.
+Biological execution is authorized by an exact collection of artifacts and runtime observations,
+never by a model name, a caller-set `validated` flag, or a serialized receipt alone. The
+experimental contracts in `cellstate.backends` bind a query, benchmark, support envelope, training
+run, model artifact, validation evidence, every internal stage port, and every public-operation
+implementation by content hash. The trusted admission boundary then rebinds those declarations to
+the bytes and objects actually observed.
 
 An incomplete artifact is valid to serialize. It remains non-runnable. This is how the first
 sci-Plex3 implementation can exist honestly as a scaffold without creating a biological
@@ -19,7 +21,7 @@ Every `BiologicalModelBundleContract` classifies all stages in the original prop
   transport models;
 - functional decoders and soft mechanistic constraints;
 - posterior inference and model ensemble;
-- uncertainty calibration, OOD detection, sufficiency, and identifiability;
+- uncertainty calibration, OOD detection, sufficiency, and identifiability; and
 - value of information.
 
 It also classifies the infrastructure needed by a narrow direct population-response component:
@@ -38,71 +40,132 @@ Each port has exactly one disposition:
 | `UNSUPPORTED` | Relevant family that this artifact explicitly refuses |
 
 A required port can execute only after it is `PROVIDED`, its content-addressed bytes have been
-resolved, its loaded entry point has passed interface verification, and exact validation results
-cover it. A `PYTHON_ENTRY_POINT` string is only a declaration. It never makes a port executable,
-and a specification-only implementation cannot pass the gate.
+resolved, its loaded entry point has passed interface verification, and exact typed validation
+results cover and pass it. A `PYTHON_ENTRY_POINT` string is only a declaration. It never makes a
+port executable, and a specification-only implementation cannot pass the gate.
+
+## Trusted admission boundary
+
+The admission context contains persisted audit records plus runtime-only trust material. Its
+`TrustedAdmissionVerifier` entries bind a versioned verifier identity and capability to an external
+HMAC-SHA256 key. Its `TrustedRuntimeInterface` entries bind interface declarations to
+application-owned live interface classes. Secrets and live classes are dataclass fields excluded
+from every Pydantic model, JSON payload, fingerprint, and receipt. A report submitter therefore
+cannot create authority by copying or editing a serialized receipt.
+
+### Execution sources and exact bytes
+
+Real-data sources are not inferred from every source mentioned in a review manifest. An
+application-owned science-and-permission resolver derives the exact execution sources from typed
+dataset-assessment resolutions and emits an authenticated `ExecutionSourceSelectionReceipt`. The
+selection binds the bundle, sources, resolver identity, and the workflow-resolution artifacts that
+justify the selection. Those workflow artifacts and selected sources are themselves part of exact
+byte coverage.
+
+Artifact resolution hashes concrete byte streams incrementally, so large sources need not be
+materialized in memory. Each receipt binds the complete declaration, observed URI, SHA-256, byte
+count, verifier identity, audit evidence, and keyed attestation. Coverage is closed-world and
+one-to-one across contract artifacts, selected dataset sources, nested benchmark and run artifacts,
+validation artifacts, implementation code, and trusted interface definitions. Missing, extra,
+duplicate, truncated, or digest-mismatched inputs fail.
+
+### Isolated loaded interfaces
+
+Loading untrusted implementation code beside a verifier secret would collapse the trust boundary.
+An application-owned isolated loader therefore acquires the exact code, loads the declared entry
+point outside the receipt issuer, and authenticates a bounded observation of the loaded object and
+its interface members. A separate verifier authenticates that observation, compares it with the
+exact implementation requirement and application-owned interface registry, and issues a
+`LoadedInterfaceReceipt`.
+
+The receipt binds the port or public operation, implementation scope, code artifact, entry point,
+loaded-object identity, interface artifact, required member signatures, conformance observation,
+loader identity, and verifier identity. Specification-only declarations, import failures, stale
+code, substituted registries, inherited protocol stubs, abstract implementations, or mismatched
+signatures fail.
+
+### Typed validation results
+
+A validation evidence filename or generic `passed` Boolean has no authority. A canonical
+`ValidationResultManifest` binds the evidence role, exact query, benchmark and support envelope,
+training/model and implementation scope, partition roles, authoritative case IDs, covered ports and
+operations, required semantic criteria, and supporting result artifacts. Semantic evaluator
+receipts reuse the authoritative exact-byte receipts for the manifest and every support artifact,
+and are authenticated against a capability-scoped external trust root.
+
+Admission records two separate states: `validation_results_verified` means the complete typed
+semantics were authenticated and rebound; `validation_results_passed` means every required
+criterion actually passed. A well-formed failed evaluation is therefore verified but still receives
+`VALIDATION_RESULTS_FAILED` and cannot authorize execution. This distinction also lets the derived
+lifecycle record that evaluation occurred without relabeling failure as scientific admission.
+
+### Query-derived prerequisites
+
+Fixed operation-port maps remain conservative floors. A deterministic compiler additionally
+derives conditional ports from the exact query, support envelope, bundle, and requested component
+or public-operation surface. Observation channels, evidence-transfer roles, intervention
+realization, environments and transport, spatial context, uncertainty, planning, and
+measurement-value requirements therefore cannot be hidden behind a smaller static declaration.
+
+The compiled report binds compiler identity and fingerprint, query, envelope, bundle, per-target
+reasons, the required-port union, missing or extra envelope ports, unavailable dispositions, and
+scope issues. Admission recompiles the report from source objects and requires structural
+satisfaction; a stale or caller-edited report fails.
+
+### Just-in-time execution authority
+
+`assess_biological_model_bundle` accepts an optional runtime-only `AdmissionVerificationContext`.
+Without it, all four trust-bearing readiness gates remain false. With it, assessment authenticates
+the source selection and every receipt, re-derives exact coverage and prerequisites, and separates
+semantic verification from scientific pass/fail. It never accepts a caller-created readiness
+object as authority.
+
+The execution guards repeat assessment from source artifacts. After admission passes, a code-only
+provider reacquires the admitted code inside the isolated execution worker. The guard consumes that
+stream once into an immutable snapshot, checks its exact byte count and hash, and passes that same
+snapshot—not a caller-supplied object—to the registry-owned `TrustedJITLoader` bound to the
+authenticated admission loader identity and key. It then repeats object-identity and interface
+checks immediately before invocation. The guard returns a nonserialized
+`BiologicalExecutionAuthorization` containing
+`VerifiedRuntimeHandle` objects for the exact checked objects. Persisted receipts, stale loaded
+objects, and unverified replacements are not invocable authority.
 
 ## Public-operation floor
 
-Declaring a public operation adds a fixed minimum port set. For example, estimation requires query
-compilation, a prior, posterior inference, calibration, OOD, sufficiency, and identifiability;
-evolution requires transition, target decoding, calibration, and OOD. Planning includes the
-evolution stack. Measurement selection additionally requires observation outcomes, hypothetical
-posterior inference, counterfactual evolution/replanning, and value-of-information support.
+Declaring a public operation adds a fixed minimum port set. Estimation requires query compilation,
+a prior, posterior inference, calibration, OOD, sufficiency, and identifiability. Evolution
+requires transition, target decoding, calibration, and OOD. Planning includes the evolution stack.
+Measurement selection additionally requires observation outcomes, hypothetical posterior
+inference, counterfactual evolution/replanning, and value-of-information support.
 
 The bundle must also declare one exact high-level implementation for every operation in the
-support envelope. A future admission verifier must resolve its code bytes and validate its loaded
-interface. Internal ports alone cannot silently register `estimate_cell_state`,
-`evolve_cell_state`, `choose_intervention`, or `recommend_next_measurement`.
+support envelope. Internal ports alone cannot silently register `estimate_cell_state`,
+`evolve_cell_state`, `choose_intervention`, or `recommend_next_measurement`. Admission and the
+just-in-time guard are operation-specific: a component authorization cannot invoke a public belief
+operation, and evolution or planning evidence cannot mint an estimator descriptor.
 
-The fixed minimum port sets are only a conservative floor. Query-sensitive conditional
-prerequisites are not implemented in contract version 0.1, so any declared public operation also
-receives the typed `QUERY_DERIVED_OPERATION_PREREQUISITES_UNVERIFIED` blocker.
+## Derived admission and lifecycle
 
-## Derived admission
+`assess_biological_model_bundle` revalidates exact query, benchmark, support, training, model,
+implementation, validation, and benchmark-admission bindings. Its implementation-scope fingerprint
+is noncircular: it covers the model artifact, posterior schema, every port disposition and code
+declaration, and every high-level operation without hashing the validation evidence back into
+itself. Any model, schema, code, interface, entry-point, query, split, case, receipt, trust-root, or
+compiler drift invalidates the corresponding gate.
 
-`assess_biological_model_bundle` revalidates and derives:
+The ordered lifecycle is derived rather than declared: `SCAFFOLD`, `TRAINED_CANDIDATE`,
+`CALIBRATED_CANDIDATE`, `MODEL_SELECTED_FROZEN`, `COMPONENT_EVALUATED`, and
+`COMPONENT_GATES_PASSED`. Trusted admission infrastructure alone advances nothing. Progress also
+requires the exact training/model bindings, calibrator and selection evidence, complete typed
+evaluation, executable benchmark results, mandatory baselines, acceptance-policy pass, and
+benchmark admission appropriate to each stage. A verified failed evaluation can reach the
+evaluated stage but never the gates-passed stage.
 
-1. exact query, benchmark, and support-envelope binding;
-2. exact model/training binding to the benchmark's train and calibration partitions;
-3. typed validation roles, exact partitions and evaluation cases, and port/operation coverage;
-4. a noncircular implementation-scope fingerprint over the bundle kind, posterior schema, model
-   artifact, every port disposition/code hash/interface/entry point, and every high-level
-   operation implementation;
-5. required-port provision and declarative implementation coverage;
-6. benchmark admission via `verify_benchmark_artifact`; and
-7. eligibility to register a public runtime surface.
-
-Validation evidence names carry no authority. The support envelope assigns every required result a
-typed kind and benchmark partition role. Each evidence binding must name exactly those partition
-IDs and all corresponding frozen evaluation-case IDs. Its implementation-scope fingerprint makes
-any bundle-kind, posterior-schema, model-weight, port code, interface, entry-point, or
-operation-code change invalidate the old evidence without hashing the evidence back into itself.
-
-Contract version 0.1 deliberately has no trusted resolver/receipt boundary, loaded-interface
-verifier, or validation-result semantics verifier. Assessment therefore derives
-`artifact_bytes_resolved=false`, `implementation_interfaces_verified=false`, and
-`validation_results_verified=false` for every bundle. These yield typed blocker codes and keep
-both the narrow component surface and all public runtime operations non-executable even when every
-declaration looks complete. A future version must implement those verifiers; callers cannot assert
-their results.
-
-The execution guards repeat that assessment from source artifacts rather than trusting a
-caller-created readiness object. `require_biological_component_execution` can authorize an admitted
-`COMPONENT_MODEL` only on its separate direct component surface. `require_biological_execution`
-also requires the exact requested public operation to be declared, implemented, and evidenced in
-an admitted full bundle. In v0.1 that guard always fails before execution, so
-`build_admitted_estimator_descriptor` cannot produce a usable biological descriptor. A future
-bridge may mint one only for a bundle admitted specifically for `estimate_cell_state`; evolution
-or planning declarations can never mint an estimator descriptor.
-
-The contract names the future ordered component lifecycle:
-`SCAFFOLD`, `TRAINED_CANDIDATE`, `CALIBRATED_CANDIDATE`, `MODEL_SELECTED_FROZEN`,
-`COMPONENT_EVALUATED`, and `COMPONENT_GATES_PASSED`. No declaration can advance it. Because v0.1
-lacks byte, interface, and result verifiers, its derived stage is always `SCAFFOLD`, including for
-a complete-looking synthetic bundle. Future advancement will require verifier receipts plus exact
-training/model bindings, an evidenced calibrator, frozen typed validation results, complete
-executable benchmark evaluation, and benchmark admission.
+`require_biological_component_execution` can authorize only an admitted `COMPONENT_MODEL` on its
+separate direct component surface. `require_biological_execution` additionally requires the exact
+requested public operation to be declared, implemented, evidenced, and admitted in a full bundle.
+`build_admitted_estimator_descriptor` can bridge only a full bundle admitted specifically for
+`estimate_cell_state`.
 
 ## First component boundary
 
@@ -115,6 +178,9 @@ The sci-Plex3 K562 24-hour task is a direct population assay-response component:
 Its 24-hour recovered-nucleus RNA observations are future targets. Matched 24-hour vehicle wells
 are endpoint comparators. Neither is a pre-cutoff observation or a prior over hidden current state.
 The component therefore registers none of the four public cell-state operations, has no biological
-`EstimatorDescriptor`, and cannot emit a current-state belief. Its checked-in scaffold remains
-non-runnable while training artifacts, validation evidence, executable benchmark performance, and
-scientific admission are absent.
+`EstimatorDescriptor`, and cannot emit a current-state belief.
+
+Item 10 supplies the admission machinery, not the component evidence. The checked-in sci-Plex3
+artifact has no trained model, immutable executable loader, completed mandatory baselines, locked
+performance evidence, or admitted benchmark. It remains `SCAFFOLD` and non-executable. The next
+milestone is the immutable loader and baseline suite recorded in the [roadmap](../roadmap.md).

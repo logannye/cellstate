@@ -8,11 +8,47 @@ complete stage-port map, frozen query and benchmark, and evidence-derived lifecy
 an `EstimatorDescriptor`, current-state prior, or public operation merely to make the component fit
 the four-operation API. See [ADR 0009](../adr/0009-population-response-component-boundary.md).
 
-Bundle contract v0.1 is declaration-only and intentionally non-executable. It cannot trust a hash,
-artifact URI, or Python entry-point string as proof that bytes were resolved or an interface was
-loaded and validated. Every v0.1 bundle remains `SCAFFOLD`; do not work around that boundary with a
-manually constructed biological descriptor. `SYNTHETIC_TEST_MODEL` exists only for software
-contract tests and is never biological evidence or an admission path.
+Bundle contract v0.1 keeps hashes, artifact URIs, and Python entry-point strings as declarations.
+Execution requires the separate trusted admission context described in
+[ADR 0010](../adr/0010-trusted-admission-verification.md); a serialized receipt is not authority.
+Do not work around that boundary with a manually constructed biological descriptor.
+`SYNTHETIC_TEST_MODEL` exists only for software contract tests and is never biological evidence or
+an admission path.
+
+## Prepare trusted admission
+
+Keep verifier authority outside the submitted bundle and every serialized artifact. Provision
+capability-scoped `TrustedAdmissionVerifier` objects with external HMAC keys, and provision
+`TrustedRuntimeInterface` entries from an application-owned interface registry. Never put those
+secrets beside code being loaded, copy them into receipts, or accept the report submitter's live
+interface object as the contract.
+
+Derive real-data execution sources through the typed science-and-permission workflow. Authenticate
+that exact selection and include its resolution artifacts in byte coverage; do not infer execution
+inputs from every review-only source in a manifest. Resolve every consumed declaration from its
+exact URI and stream its actual bytes through the artifact verifier. Metadata, a matching filename,
+or an HTTP checksum header is not a byte observation.
+
+Load a declared implementation in an application-owned isolation boundary. Authenticate the
+bounded loader observation, then have the receipt issuer compare it with the exact implementation
+requirement and trusted interface registry. The loader and verifier roles may use separate trust
+roots. Specification-only bindings, inherited protocol stubs, abstract classes, substituted code,
+or merely similar signatures must fail.
+
+Produce one canonical typed result manifest for every required validation-evidence binding. It must
+cover the exact evidence role, partitions, authoritative cases, model and implementation scope,
+ports or operations, required semantic criteria, and supporting result artifacts. Semantic
+verification and scientific pass/fail are separate: a correctly parsed failed result is verified,
+but it still blocks execution. Reuse the admission batch's authoritative byte receipts rather than
+attaching a second claim about the same result bytes.
+
+Finally, derive query prerequisites from the exact query, envelope, bundle, and target surface.
+Pass the runtime-only `AdmissionVerificationContext` to the appropriate execution guard together
+with a code-only provider. The provider reacquires the admitted bytes; it must not supply a loaded
+object. The guard seals and verifies that stream once, then gives that exact immutable snapshot to
+the registry-owned `TrustedJITLoader` bound to the authenticated loader identity and key. Invoke
+only the object carried by the returned `VerifiedRuntimeHandle`; never treat the persisted receipt
+or a previously imported object as authority.
 
 Implement `QueryCompiler` and `CellStateEstimator` together. Compilation must turn the exact
 `StateQuery` into an auditable `CompiledStateSpecification`: activate only factors required by the

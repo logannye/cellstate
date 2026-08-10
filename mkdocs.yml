@@ -38,5 +38,6 @@ nav:
       - Content-addressed representability: adr/0007-content-addressed-representability.md
       - First Vertical A component benchmark: adr/0008-sciplex3-k562-component-benchmark.md
       - Population-response component boundary: adr/0009-population-response-component-boundary.md
+      - Trusted admission verification: adr/0010-trusted-admission-verification.md
   - Roadmap: roadmap.md
 strict: true

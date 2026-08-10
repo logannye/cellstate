@@ -1,14 +1,57 @@
 {
   "$defs": {
+    "BiologicalStagePort": {
+      "description": "Original framework stages plus the narrow component's support infrastructure.\n\nThe first eighteen named biological stages are the complete port surface from the original\nproposed ``CellStateModelBundle`` skeleton.  The remaining support ports let a component be\nimplemented and benchmarked without pretending that it is a current-state belief backend.",
+      "enum": [
+        "query_compiler",
+        "reference_prior",
+        "observation_models",
+        "evidence_transfer_models",
+        "intervention_realization_model",
+        "transition_model",
+        "division_and_inheritance_model",
+        "cell_interaction_model",
+        "extracellular_transport_model",
+        "functional_decoders",
+        "mechanistic_constraints",
+        "posterior_inference_engine",
+        "model_ensemble",
+        "uncertainty_calibrator",
+        "ood_detector",
+        "sufficiency_evaluator",
+        "identifiability_analyzer",
+        "value_of_information_engine",
+        "exact_artifact_resolver",
+        "query_scope_validator",
+        "train_cal_data_loader",
+        "action_context_encoder",
+        "population_assay_response_distribution_model",
+        "strict_support_ood_gate",
+        "artifact_provenance_writer"
+      ],
+      "title": "BiologicalStagePort",
+      "type": "string"
+    },
     "BundleAdmissionBlockerCode": {
-      "description": "Machine-readable v0.1 gates that declarations cannot satisfy.",
+      "description": "Machine-readable gates derived by the trusted admission boundary.",
       "enum": [
         "artifact_bytes_unresolved",
         "implementation_interfaces_unverified",
         "query_derived_operation_prerequisites_unverified",
+        "validation_results_failed",
         "validation_results_unverified"
       ],
       "title": "BundleAdmissionBlockerCode",
+      "type": "string"
+    },
+    "BundleContractKind": {
+      "description": "Scientific scope of an artifact, not a readiness or admission assertion.",
+      "enum": [
+        "component_scaffold",
+        "component_model",
+        "biological_model_bundle"
+      ],
+      "title": "BundleContractKind",
       "type": "string"
     },
     "ComponentLifecycleStage": {
@@ -22,6 +65,325 @@
         "component_gates_passed"
       ],
       "title": "ComponentLifecycleStage",
+      "type": "string"
+    },
+    "DirectPopulationResponseSemantics": {
+      "additionalProperties": false,
+      "description": "Fail-closed meaning of the endpoint-only component computation.\n\nLiteral fields prevent a future endpoint or its matched vehicle observations from being\nrelabeled as a pre-cutoff prior merely to satisfy a cell-state estimator interface.",
+      "properties": {
+        "computation": {
+          "const": "direct_population_assay_response",
+          "default": "direct_population_assay_response",
+          "title": "Computation",
+          "type": "string"
+        },
+        "endpoint_observations": {
+          "const": "future_target_only",
+          "default": "future_target_only",
+          "title": "Endpoint Observations",
+          "type": "string"
+        },
+        "inference_inputs": {
+          "const": "static_context_and_assigned_action_only",
+          "default": "static_context_and_assigned_action_only",
+          "title": "Inference Inputs",
+          "type": "string"
+        },
+        "matched_control_observations": {
+          "const": "endpoint_comparator_only",
+          "default": "endpoint_comparator_only",
+          "title": "Matched Control Observations",
+          "type": "string"
+        }
+      },
+      "title": "DirectPopulationResponseSemantics",
+      "type": "object"
+    },
+    "ModelOperation": {
+      "description": "Public runtime operation a support envelope may eventually register.",
+      "enum": [
+        "choose_intervention",
+        "estimate_cell_state",
+        "evolve_cell_state",
+        "recommend_next_measurement"
+      ],
+      "title": "ModelOperation",
+      "type": "string"
+    },
+    "PortDisposition": {
+      "description": "Honest implementation state for one explicitly mapped port.",
+      "enum": [
+        "required",
+        "provided",
+        "planned",
+        "not_applicable",
+        "unsupported"
+      ],
+      "title": "PortDisposition",
+      "type": "string"
+    },
+    "QueryDerivedPortPrerequisite": {
+      "additionalProperties": false,
+      "description": "One required port and every query-derived reason that requires it.",
+      "properties": {
+        "port": {
+          "$ref": "#/$defs/BiologicalStagePort"
+        },
+        "reasons": {
+          "items": {
+            "$ref": "#/$defs/QueryPrerequisiteReasonCode"
+          },
+          "minItems": 1,
+          "title": "Reasons",
+          "type": "array"
+        }
+      },
+      "required": [
+        "port",
+        "reasons"
+      ],
+      "title": "QueryDerivedPortPrerequisite",
+      "type": "object"
+    },
+    "QueryDerivedPrerequisiteReport": {
+      "additionalProperties": false,
+      "description": "Deterministic query/envelope/bundle-bound prerequisite compilation.\n\nThe report is evidence to be *bound* by a future trusted admission receipt, never an\nauthorization by itself. Verification must call :func:`verify_query_prerequisite_report`,\nwhich re-derives this payload from the exact source objects.",
+      "properties": {
+        "bundle_fingerprint": {
+          "pattern": "^[a-fA-F0-9]{64}$",
+          "title": "Bundle Fingerprint",
+          "type": "string"
+        },
+        "bundle_id": {
+          "minLength": 1,
+          "title": "Bundle Id",
+          "type": "string"
+        },
+        "bundle_kind": {
+          "$ref": "#/$defs/BundleContractKind"
+        },
+        "bundle_version": {
+          "minLength": 1,
+          "title": "Bundle Version",
+          "type": "string"
+        },
+        "compiler_fingerprint": {
+          "pattern": "^[a-fA-F0-9]{64}$",
+          "title": "Compiler Fingerprint",
+          "type": "string"
+        },
+        "compiler_id": {
+          "minLength": 1,
+          "title": "Compiler Id",
+          "type": "string"
+        },
+        "compiler_version": {
+          "minLength": 1,
+          "title": "Compiler Version",
+          "type": "string"
+        },
+        "envelope_extra_ports": {
+          "items": {
+            "$ref": "#/$defs/BiologicalStagePort"
+          },
+          "title": "Envelope Extra Ports",
+          "type": "array"
+        },
+        "envelope_missing_ports": {
+          "items": {
+            "$ref": "#/$defs/BiologicalStagePort"
+          },
+          "title": "Envelope Missing Ports",
+          "type": "array"
+        },
+        "invalid_dispositions": {
+          "items": {
+            "$ref": "#/$defs/QueryPrerequisiteDispositionFailure"
+          },
+          "title": "Invalid Dispositions",
+          "type": "array"
+        },
+        "query_fingerprint": {
+          "pattern": "^[a-fA-F0-9]{64}$",
+          "title": "Query Fingerprint",
+          "type": "string"
+        },
+        "required_ports": {
+          "items": {
+            "$ref": "#/$defs/BiologicalStagePort"
+          },
+          "title": "Required Ports",
+          "type": "array"
+        },
+        "scope_issues": {
+          "items": {
+            "$ref": "#/$defs/QueryPrerequisiteScopeIssue"
+          },
+          "title": "Scope Issues",
+          "type": "array"
+        },
+        "support_envelope_fingerprint": {
+          "pattern": "^[a-fA-F0-9]{64}$",
+          "title": "Support Envelope Fingerprint",
+          "type": "string"
+        },
+        "support_envelope_id": {
+          "minLength": 1,
+          "title": "Support Envelope Id",
+          "type": "string"
+        },
+        "support_envelope_version": {
+          "minLength": 1,
+          "title": "Support Envelope Version",
+          "type": "string"
+        },
+        "targets": {
+          "items": {
+            "$ref": "#/$defs/QueryDerivedPrerequisiteTarget"
+          },
+          "title": "Targets",
+          "type": "array"
+        }
+      },
+      "required": [
+        "compiler_id",
+        "compiler_version",
+        "compiler_fingerprint",
+        "query_fingerprint",
+        "support_envelope_id",
+        "support_envelope_version",
+        "support_envelope_fingerprint",
+        "bundle_id",
+        "bundle_version",
+        "bundle_fingerprint",
+        "bundle_kind",
+        "targets",
+        "required_ports",
+        "envelope_missing_ports",
+        "envelope_extra_ports",
+        "invalid_dispositions",
+        "scope_issues"
+      ],
+      "title": "QueryDerivedPrerequisiteReport",
+      "type": "object"
+    },
+    "QueryDerivedPrerequisiteTarget": {
+      "additionalProperties": false,
+      "description": "Prerequisites for one exact public operation or direct component surface.",
+      "properties": {
+        "direct_population_response": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/DirectPopulationResponseSemantics"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "operation": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ModelOperation"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "required_ports": {
+          "items": {
+            "$ref": "#/$defs/QueryDerivedPortPrerequisite"
+          },
+          "minItems": 1,
+          "title": "Required Ports",
+          "type": "array"
+        },
+        "target_kind": {
+          "$ref": "#/$defs/QueryPrerequisiteTargetKind"
+        }
+      },
+      "required": [
+        "target_kind",
+        "required_ports"
+      ],
+      "title": "QueryDerivedPrerequisiteTarget",
+      "type": "object"
+    },
+    "QueryPrerequisiteDispositionFailure": {
+      "additionalProperties": false,
+      "description": "A derived-required port classified as unavailable by the bundle.",
+      "properties": {
+        "disposition": {
+          "$ref": "#/$defs/PortDisposition"
+        },
+        "port": {
+          "$ref": "#/$defs/BiologicalStagePort"
+        }
+      },
+      "required": [
+        "port",
+        "disposition"
+      ],
+      "title": "QueryPrerequisiteDispositionFailure",
+      "type": "object"
+    },
+    "QueryPrerequisiteReasonCode": {
+      "description": "Machine-readable reason why one biological stage is mandatory.",
+      "enum": [
+        "action_context_encoding",
+        "causal_transport_assumptions",
+        "component_artifact_identity",
+        "component_partition_loading",
+        "component_provenance",
+        "component_query_scope",
+        "component_response_distribution",
+        "component_support_ood",
+        "component_uncertainty_calibration",
+        "counterfactual_replanning",
+        "declared_mechanistic_semantics",
+        "environment_history_dynamics",
+        "epistemic_model_uncertainty",
+        "future_assay_target",
+        "functional_target",
+        "hypothetical_measurement_update",
+        "intervention_history_dynamics",
+        "intervention_realization_uncertainty",
+        "lineage_or_population_dynamics",
+        "measurement_decision_evsi",
+        "measurement_outcome_prediction",
+        "neighborhood_or_population_interactions",
+        "nondirect_evidence_transfer",
+        "observation_likelihood",
+        "operation_contract_floor",
+        "planning_identifiability",
+        "planning_state_sufficiency",
+        "soluble_or_spatial_transport",
+        "temporal_evidence_propagation"
+      ],
+      "title": "QueryPrerequisiteReasonCode",
+      "type": "string"
+    },
+    "QueryPrerequisiteScopeIssue": {
+      "description": "Query/target combinations that cannot define the requested computation.",
+      "enum": [
+        "intervention_planning_requires_action_space",
+        "measurement_evsi_requires_action_space",
+        "measurement_selection_requires_candidate_assays",
+        "runtime_bundle_requires_operation"
+      ],
+      "title": "QueryPrerequisiteScopeIssue",
+      "type": "string"
+    },
+    "QueryPrerequisiteTargetKind": {
+      "description": "Exact computation surface for one query-derived prerequisite set.",
+      "enum": [
+        "direct_population_response_component",
+        "runtime_operation"
+      ],
+      "title": "QueryPrerequisiteTargetKind",
       "type": "string"
     }
   },
@@ -98,6 +460,14 @@
       "title": "Query Binding Verified",
       "type": "boolean"
     },
+    "query_derived_prerequisite_fingerprint": {
+      "pattern": "^[a-fA-F0-9]{64}$",
+      "title": "Query Derived Prerequisite Fingerprint",
+      "type": "string"
+    },
+    "query_derived_prerequisite_report": {
+      "$ref": "#/$defs/QueryDerivedPrerequisiteReport"
+    },
     "query_derived_prerequisites_verified": {
       "title": "Query Derived Prerequisites Verified",
       "type": "boolean"
@@ -158,6 +528,10 @@
       "title": "Validation Evidence Semantics Verified",
       "type": "boolean"
     },
+    "validation_results_passed": {
+      "title": "Validation Results Passed",
+      "type": "boolean"
+    },
     "validation_results_verified": {
       "title": "Validation Results Verified",
       "type": "boolean"
@@ -178,6 +552,9 @@
     "artifact_bytes_resolved",
     "implementation_interfaces_verified",
     "validation_results_verified",
+    "validation_results_passed",
+    "query_derived_prerequisite_report",
+    "query_derived_prerequisite_fingerprint",
     "query_derived_prerequisites_verified",
     "required_ports_provided",
     "required_ports_executable",

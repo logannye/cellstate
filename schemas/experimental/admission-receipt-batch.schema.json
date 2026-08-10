@@ -1,0 +1,1012 @@
+{
+  "$defs": {
+    "AccessMode": {
+      "description": "Public access may be direct or require registration, but not approval.",
+      "enum": [
+        "open_download",
+        "registration_required"
+      ],
+      "title": "AccessMode",
+      "type": "string"
+    },
+    "AdmissionArtifactKind": {
+      "description": "Namespace of an exact byte declaration consumed during admission.",
+      "enum": [
+        "content_addressed_artifact",
+        "dataset_source_artifact"
+      ],
+      "title": "AdmissionArtifactKind",
+      "type": "string"
+    },
+    "AdmissionArtifactReference": {
+      "additionalProperties": false,
+      "description": "Normalized exact reference to either a contract artifact or real-data source.",
+      "properties": {
+        "artifact_kind": {
+          "$ref": "#/$defs/AdmissionArtifactKind"
+        },
+        "content_addressed_artifact": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ContentAddressedArtifact"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "dataset_source_artifact": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/SourceArtifact"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        }
+      },
+      "required": [
+        "artifact_kind"
+      ],
+      "title": "AdmissionArtifactReference",
+      "type": "object"
+    },
+    "AdmissionVerifierCapability": {
+      "description": "Exact observation class a verifier implementation is trusted to attest.",
+      "enum": [
+        "artifact_byte_resolution",
+        "execution_source_selection",
+        "loaded_interface_verification",
+        "validation_result_semantics"
+      ],
+      "title": "AdmissionVerifierCapability",
+      "type": "string"
+    },
+    "AdmissionVerifierIdentity": {
+      "additionalProperties": false,
+      "description": "Exact versioned identity of the code that issued an admission receipt.",
+      "properties": {
+        "capabilities": {
+          "items": {
+            "$ref": "#/$defs/AdmissionVerifierCapability"
+          },
+          "minItems": 1,
+          "title": "Capabilities",
+          "type": "array"
+        },
+        "code_artifact": {
+          "$ref": "#/$defs/ContentAddressedArtifact"
+        },
+        "entrypoint": {
+          "minLength": 1,
+          "title": "Entrypoint",
+          "type": "string"
+        },
+        "runtime": {
+          "minLength": 1,
+          "title": "Runtime",
+          "type": "string"
+        },
+        "verifier_id": {
+          "minLength": 1,
+          "title": "Verifier Id",
+          "type": "string"
+        },
+        "verifier_version": {
+          "minLength": 1,
+          "title": "Verifier Version",
+          "type": "string"
+        }
+      },
+      "required": [
+        "verifier_id",
+        "verifier_version",
+        "code_artifact",
+        "entrypoint",
+        "runtime",
+        "capabilities"
+      ],
+      "title": "AdmissionVerifierIdentity",
+      "type": "object"
+    },
+    "ArtifactByteObservation": {
+      "additionalProperties": false,
+      "description": "Digest and length computed from one concrete byte stream.",
+      "properties": {
+        "observed_byte_count": {
+          "exclusiveMinimum": 0,
+          "title": "Observed Byte Count",
+          "type": "integer"
+        },
+        "observed_sha256": {
+          "pattern": "^[a-fA-F0-9]{64}$",
+          "title": "Observed Sha256",
+          "type": "string"
+        },
+        "source_uri": {
+          "minLength": 1,
+          "title": "Source Uri",
+          "type": "string"
+        }
+      },
+      "required": [
+        "source_uri",
+        "observed_sha256",
+        "observed_byte_count"
+      ],
+      "title": "ArtifactByteObservation",
+      "type": "object"
+    },
+    "ArtifactResolutionReceipt": {
+      "additionalProperties": false,
+      "description": "Positive receipt proving that observed bytes exactly match one declaration.",
+      "properties": {
+        "artifact": {
+          "$ref": "#/$defs/AdmissionArtifactReference"
+        },
+        "attestation": {
+          "$ref": "#/$defs/ReceiptAttestation"
+        },
+        "evidence_artifacts": {
+          "description": "Non-authoritative audit-log references; they never satisfy byte or interface coverage and must not be treated as readiness evidence.",
+          "items": {
+            "$ref": "#/$defs/ContentAddressedArtifact"
+          },
+          "minItems": 1,
+          "title": "Evidence Artifacts",
+          "type": "array"
+        },
+        "issued_at": {
+          "format": "date-time",
+          "title": "Issued At",
+          "type": "string"
+        },
+        "observation": {
+          "$ref": "#/$defs/ArtifactByteObservation"
+        },
+        "receipt_fingerprint": {
+          "pattern": "^[a-fA-F0-9]{64}$",
+          "title": "Receipt Fingerprint",
+          "type": "string"
+        },
+        "receipt_id": {
+          "minLength": 1,
+          "title": "Receipt Id",
+          "type": "string"
+        },
+        "receipt_kind": {
+          "const": "artifact_resolution",
+          "default": "artifact_resolution",
+          "title": "Receipt Kind",
+          "type": "string"
+        },
+        "schema_version": {
+          "const": "0.1-experimental",
+          "default": "0.1-experimental",
+          "title": "Schema Version",
+          "type": "string"
+        },
+        "verifier": {
+          "$ref": "#/$defs/AdmissionVerifierIdentity"
+        },
+        "verifier_fingerprint": {
+          "pattern": "^[a-fA-F0-9]{64}$",
+          "title": "Verifier Fingerprint",
+          "type": "string"
+        }
+      },
+      "required": [
+        "receipt_id",
+        "artifact",
+        "observation",
+        "verifier",
+        "verifier_fingerprint",
+        "issued_at",
+        "evidence_artifacts",
+        "attestation",
+        "receipt_fingerprint"
+      ],
+      "title": "ArtifactResolutionReceipt",
+      "type": "object"
+    },
+    "ContentAddressedArtifact": {
+      "additionalProperties": false,
+      "properties": {
+        "artifact_id": {
+          "minLength": 1,
+          "title": "Artifact Id",
+          "type": "string"
+        },
+        "byte_count": {
+          "exclusiveMinimum": 0,
+          "title": "Byte Count",
+          "type": "integer"
+        },
+        "media_type": {
+          "minLength": 1,
+          "title": "Media Type",
+          "type": "string"
+        },
+        "sha256": {
+          "pattern": "^[a-fA-F0-9]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        },
+        "uri": {
+          "minLength": 1,
+          "title": "Uri",
+          "type": "string"
+        }
+      },
+      "required": [
+        "artifact_id",
+        "uri",
+        "sha256",
+        "byte_count",
+        "media_type"
+      ],
+      "title": "ContentAddressedArtifact",
+      "type": "object"
+    },
+    "ExecutionSourceSelectionReceipt": {
+      "additionalProperties": false,
+      "description": "Authenticated legal/scientific selection of exact real-data execution bytes.\n\nThe selection is external to a bundle because a bundle contains only the content-addressed\nbenchmark declaration.  An application-owned workflow resolver must derive ``sources`` from\ntyped dataset-assessment resolutions.  Its exact resolution artifacts are included in byte\ncoverage; arbitrary manifest review sources are never inferred as execution inputs.",
+      "properties": {
+        "attestation": {
+          "$ref": "#/$defs/ReceiptAttestation"
+        },
+        "bundle_fingerprint": {
+          "pattern": "^[a-fA-F0-9]{64}$",
+          "title": "Bundle Fingerprint",
+          "type": "string"
+        },
+        "issued_at": {
+          "format": "date-time",
+          "title": "Issued At",
+          "type": "string"
+        },
+        "receipt_kind": {
+          "const": "execution_source_selection",
+          "default": "execution_source_selection",
+          "title": "Receipt Kind",
+          "type": "string"
+        },
+        "schema_version": {
+          "const": "0.1-experimental",
+          "default": "0.1-experimental",
+          "title": "Schema Version",
+          "type": "string"
+        },
+        "selection_fingerprint": {
+          "pattern": "^[a-fA-F0-9]{64}$",
+          "title": "Selection Fingerprint",
+          "type": "string"
+        },
+        "selection_id": {
+          "minLength": 1,
+          "title": "Selection Id",
+          "type": "string"
+        },
+        "selector": {
+          "$ref": "#/$defs/AdmissionVerifierIdentity"
+        },
+        "selector_fingerprint": {
+          "pattern": "^[a-fA-F0-9]{64}$",
+          "title": "Selector Fingerprint",
+          "type": "string"
+        },
+        "sources": {
+          "items": {
+            "$ref": "#/$defs/SourceArtifact"
+          },
+          "minItems": 1,
+          "title": "Sources",
+          "type": "array"
+        },
+        "workflow_resolution_artifacts": {
+          "items": {
+            "$ref": "#/$defs/ContentAddressedArtifact"
+          },
+          "minItems": 1,
+          "title": "Workflow Resolution Artifacts",
+          "type": "array"
+        }
+      },
+      "required": [
+        "selection_id",
+        "bundle_fingerprint",
+        "workflow_resolution_artifacts",
+        "sources",
+        "selector",
+        "selector_fingerprint",
+        "issued_at",
+        "attestation",
+        "selection_fingerprint"
+      ],
+      "title": "ExecutionSourceSelectionReceipt",
+      "type": "object"
+    },
+    "ImplementationReceiptRequirement": {
+      "additionalProperties": false,
+      "description": "Exact implementation target whose loaded interface must be verified.",
+      "properties": {
+        "bundle_fingerprint": {
+          "pattern": "^[a-fA-F0-9]{64}$",
+          "title": "Bundle Fingerprint",
+          "type": "string"
+        },
+        "implementation": {
+          "$ref": "#/$defs/PortImplementationBinding"
+        },
+        "implementation_scope_fingerprint": {
+          "pattern": "^[a-fA-F0-9]{64}$",
+          "title": "Implementation Scope Fingerprint",
+          "type": "string"
+        },
+        "interface_artifact": {
+          "$ref": "#/$defs/ContentAddressedArtifact"
+        },
+        "interface_contract_fingerprint": {
+          "pattern": "^[a-fA-F0-9]{64}$",
+          "title": "Interface Contract Fingerprint",
+          "type": "string"
+        },
+        "required_member_signatures": {
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Required Member Signatures",
+          "type": "array"
+        },
+        "runtime_interface_module": {
+          "minLength": 1,
+          "title": "Runtime Interface Module",
+          "type": "string"
+        },
+        "runtime_interface_qualname": {
+          "minLength": 1,
+          "title": "Runtime Interface Qualname",
+          "type": "string"
+        },
+        "target_id": {
+          "minLength": 1,
+          "title": "Target Id",
+          "type": "string"
+        },
+        "target_kind": {
+          "$ref": "#/$defs/ImplementationReceiptTargetKind"
+        },
+        "trusted_interface_fingerprint": {
+          "pattern": "^[a-fA-F0-9]{64}$",
+          "title": "Trusted Interface Fingerprint",
+          "type": "string"
+        }
+      },
+      "required": [
+        "target_kind",
+        "target_id",
+        "bundle_fingerprint",
+        "implementation_scope_fingerprint",
+        "implementation",
+        "interface_artifact",
+        "trusted_interface_fingerprint",
+        "runtime_interface_module",
+        "runtime_interface_qualname",
+        "required_member_signatures",
+        "interface_contract_fingerprint"
+      ],
+      "title": "ImplementationReceiptRequirement",
+      "type": "object"
+    },
+    "ImplementationReceiptTargetKind": {
+      "description": "Kind of executable declaration covered by one interface receipt.",
+      "enum": [
+        "port",
+        "runtime_operation"
+      ],
+      "title": "ImplementationReceiptTargetKind",
+      "type": "string"
+    },
+    "InterfaceConformanceObservation": {
+      "additionalProperties": false,
+      "description": "Exact positive structural observation emitted by a named interface verifier.",
+      "properties": {
+        "declared_interface": {
+          "minLength": 1,
+          "title": "Declared Interface",
+          "type": "string"
+        },
+        "interface_contract_fingerprint": {
+          "pattern": "^[a-fA-F0-9]{64}$",
+          "title": "Interface Contract Fingerprint",
+          "type": "string"
+        },
+        "loaded_object_fingerprint": {
+          "pattern": "^[a-fA-F0-9]{64}$",
+          "title": "Loaded Object Fingerprint",
+          "type": "string"
+        },
+        "observed_contract_fingerprint": {
+          "pattern": "^[a-fA-F0-9]{64}$",
+          "title": "Observed Contract Fingerprint",
+          "type": "string"
+        },
+        "observed_matching_member_signatures": {
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Observed Matching Member Signatures",
+          "type": "array"
+        },
+        "required_member_signatures": {
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Required Member Signatures",
+          "type": "array"
+        },
+        "runtime_interface_module": {
+          "minLength": 1,
+          "title": "Runtime Interface Module",
+          "type": "string"
+        },
+        "runtime_interface_qualname": {
+          "minLength": 1,
+          "title": "Runtime Interface Qualname",
+          "type": "string"
+        },
+        "verification_method": {
+          "$ref": "#/$defs/InterfaceVerificationMethod"
+        }
+      },
+      "required": [
+        "verification_method",
+        "declared_interface",
+        "runtime_interface_module",
+        "runtime_interface_qualname",
+        "loaded_object_fingerprint",
+        "required_member_signatures",
+        "observed_matching_member_signatures",
+        "interface_contract_fingerprint",
+        "observed_contract_fingerprint"
+      ],
+      "title": "InterfaceConformanceObservation",
+      "type": "object"
+    },
+    "InterfaceVerificationMethod": {
+      "description": "Auditable mechanism used to compare an object with its declared interface.",
+      "enum": [
+        "abstract_base_class",
+        "inspected_signature_set",
+        "runtime_checkable_protocol"
+      ],
+      "title": "InterfaceVerificationMethod",
+      "type": "string"
+    },
+    "IsolatedLoadedInterfaceObservation": {
+      "additionalProperties": false,
+      "description": "Authenticated bounded output from an application-owned isolated loader.",
+      "properties": {
+        "attestation": {
+          "$ref": "#/$defs/ReceiptAttestation"
+        },
+        "conformance": {
+          "$ref": "#/$defs/InterfaceConformanceObservation"
+        },
+        "implementation_code_artifact": {
+          "$ref": "#/$defs/ContentAddressedArtifact"
+        },
+        "implementation_scope_fingerprint": {
+          "pattern": "^[a-fA-F0-9]{64}$",
+          "title": "Implementation Scope Fingerprint",
+          "type": "string"
+        },
+        "isolation_evidence_artifact": {
+          "$ref": "#/$defs/ContentAddressedArtifact"
+        },
+        "issued_at": {
+          "format": "date-time",
+          "title": "Issued At",
+          "type": "string"
+        },
+        "loaded_object": {
+          "$ref": "#/$defs/LoadedObjectIdentity"
+        },
+        "loader": {
+          "$ref": "#/$defs/AdmissionVerifierIdentity"
+        },
+        "loader_fingerprint": {
+          "pattern": "^[a-fA-F0-9]{64}$",
+          "title": "Loader Fingerprint",
+          "type": "string"
+        },
+        "observation_fingerprint": {
+          "pattern": "^[a-fA-F0-9]{64}$",
+          "title": "Observation Fingerprint",
+          "type": "string"
+        },
+        "observation_id": {
+          "minLength": 1,
+          "title": "Observation Id",
+          "type": "string"
+        },
+        "observation_kind": {
+          "const": "isolated_loaded_interface",
+          "default": "isolated_loaded_interface",
+          "title": "Observation Kind",
+          "type": "string"
+        },
+        "requirement_fingerprint": {
+          "pattern": "^[a-fA-F0-9]{64}$",
+          "title": "Requirement Fingerprint",
+          "type": "string"
+        },
+        "schema_version": {
+          "const": "0.1-experimental",
+          "default": "0.1-experimental",
+          "title": "Schema Version",
+          "type": "string"
+        }
+      },
+      "required": [
+        "observation_id",
+        "requirement_fingerprint",
+        "implementation_scope_fingerprint",
+        "implementation_code_artifact",
+        "loaded_object",
+        "conformance",
+        "loader",
+        "loader_fingerprint",
+        "issued_at",
+        "isolation_evidence_artifact",
+        "attestation",
+        "observation_fingerprint"
+      ],
+      "title": "IsolatedLoadedInterfaceObservation",
+      "type": "object"
+    },
+    "LoadedInterfaceReceipt": {
+      "additionalProperties": false,
+      "description": "Positive receipt binding a loaded object to one exact implementation requirement.",
+      "properties": {
+        "attestation": {
+          "$ref": "#/$defs/ReceiptAttestation"
+        },
+        "conformance": {
+          "$ref": "#/$defs/InterfaceConformanceObservation"
+        },
+        "evidence_artifacts": {
+          "description": "Non-authoritative audit-log references; they never satisfy byte or interface coverage and must not be treated as readiness evidence.",
+          "items": {
+            "$ref": "#/$defs/ContentAddressedArtifact"
+          },
+          "minItems": 1,
+          "title": "Evidence Artifacts",
+          "type": "array"
+        },
+        "execution_recheck_requirement": {
+          "const": "reload_exact_bytes_and_reverify_before_execution",
+          "default": "reload_exact_bytes_and_reverify_before_execution",
+          "title": "Execution Recheck Requirement",
+          "type": "string"
+        },
+        "isolated_loader_observation": {
+          "$ref": "#/$defs/IsolatedLoadedInterfaceObservation"
+        },
+        "issued_at": {
+          "format": "date-time",
+          "title": "Issued At",
+          "type": "string"
+        },
+        "loaded_object": {
+          "$ref": "#/$defs/LoadedObjectIdentity"
+        },
+        "receipt_fingerprint": {
+          "pattern": "^[a-fA-F0-9]{64}$",
+          "title": "Receipt Fingerprint",
+          "type": "string"
+        },
+        "receipt_id": {
+          "minLength": 1,
+          "title": "Receipt Id",
+          "type": "string"
+        },
+        "receipt_kind": {
+          "const": "loaded_interface",
+          "default": "loaded_interface",
+          "title": "Receipt Kind",
+          "type": "string"
+        },
+        "requirement": {
+          "$ref": "#/$defs/ImplementationReceiptRequirement"
+        },
+        "schema_version": {
+          "const": "0.1-experimental",
+          "default": "0.1-experimental",
+          "title": "Schema Version",
+          "type": "string"
+        },
+        "verifier": {
+          "$ref": "#/$defs/AdmissionVerifierIdentity"
+        },
+        "verifier_fingerprint": {
+          "pattern": "^[a-fA-F0-9]{64}$",
+          "title": "Verifier Fingerprint",
+          "type": "string"
+        }
+      },
+      "required": [
+        "receipt_id",
+        "requirement",
+        "loaded_object",
+        "conformance",
+        "isolated_loader_observation",
+        "verifier",
+        "verifier_fingerprint",
+        "issued_at",
+        "evidence_artifacts",
+        "attestation",
+        "receipt_fingerprint"
+      ],
+      "title": "LoadedInterfaceReceipt",
+      "type": "object"
+    },
+    "LoadedObjectIdentity": {
+      "additionalProperties": false,
+      "description": "Exact serializable identity of the object loaded from declared code bytes.",
+      "properties": {
+        "entrypoint": {
+          "minLength": 1,
+          "title": "Entrypoint",
+          "type": "string"
+        },
+        "loaded_code_sha256": {
+          "pattern": "^[a-fA-F0-9]{64}$",
+          "title": "Loaded Code Sha256",
+          "type": "string"
+        },
+        "module": {
+          "minLength": 1,
+          "title": "Module",
+          "type": "string"
+        },
+        "object_kind": {
+          "$ref": "#/$defs/LoadedObjectKind"
+        },
+        "qualname": {
+          "minLength": 1,
+          "title": "Qualname",
+          "type": "string"
+        }
+      },
+      "required": [
+        "entrypoint",
+        "module",
+        "qualname",
+        "object_kind",
+        "loaded_code_sha256"
+      ],
+      "title": "LoadedObjectIdentity",
+      "type": "object"
+    },
+    "LoadedObjectKind": {
+      "description": "Serializable runtime kind observed after resolving a Python entry point.",
+      "enum": [
+        "class",
+        "function",
+        "instance"
+      ],
+      "title": "LoadedObjectKind",
+      "type": "string"
+    },
+    "PortImplementationBinding": {
+      "additionalProperties": false,
+      "description": "Versioned code declaration for one port, not proof that its bytes can execute.",
+      "properties": {
+        "code_artifact": {
+          "$ref": "#/$defs/ContentAddressedArtifact"
+        },
+        "entrypoint": {
+          "anyOf": [
+            {
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Entrypoint"
+        },
+        "implementation_id": {
+          "minLength": 1,
+          "title": "Implementation Id",
+          "type": "string"
+        },
+        "implementation_version": {
+          "minLength": 1,
+          "title": "Implementation Version",
+          "type": "string"
+        },
+        "interface": {
+          "minLength": 1,
+          "title": "Interface",
+          "type": "string"
+        },
+        "kind": {
+          "$ref": "#/$defs/PortImplementationKind"
+        }
+      },
+      "required": [
+        "implementation_id",
+        "implementation_version",
+        "interface",
+        "kind",
+        "code_artifact"
+      ],
+      "title": "PortImplementationBinding",
+      "type": "object"
+    },
+    "PortImplementationKind": {
+      "description": "Structural declaration kind; neither value is executable evidence.",
+      "enum": [
+        "specification_only",
+        "python_entry_point"
+      ],
+      "title": "PortImplementationKind",
+      "type": "string"
+    },
+    "ReceiptAttestation": {
+      "additionalProperties": false,
+      "description": "Keyed authentication of a receipt payload by an external verifier trust root.",
+      "properties": {
+        "algorithm": {
+          "const": "hmac-sha256-v1",
+          "default": "hmac-sha256-v1",
+          "title": "Algorithm",
+          "type": "string"
+        },
+        "attested_payload_fingerprint": {
+          "pattern": "^[a-fA-F0-9]{64}$",
+          "title": "Attested Payload Fingerprint",
+          "type": "string"
+        },
+        "authentication_tag": {
+          "pattern": "^[a-fA-F0-9]{64}$",
+          "title": "Authentication Tag",
+          "type": "string"
+        },
+        "key_id": {
+          "minLength": 1,
+          "title": "Key Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "key_id",
+        "attested_payload_fingerprint",
+        "authentication_tag"
+      ],
+      "title": "ReceiptAttestation",
+      "type": "object"
+    },
+    "SourceArtifact": {
+      "additionalProperties": false,
+      "properties": {
+        "access_mode": {
+          "$ref": "#/$defs/AccessMode",
+          "default": "open_download"
+        },
+        "accession": {
+          "minLength": 1,
+          "title": "Accession",
+          "type": "string"
+        },
+        "byte_count": {
+          "exclusiveMinimum": 0,
+          "title": "Byte Count",
+          "type": "integer"
+        },
+        "kind": {
+          "$ref": "#/$defs/SourceKind"
+        },
+        "media_type": {
+          "minLength": 1,
+          "title": "Media Type",
+          "type": "string"
+        },
+        "parent_study_accession": {
+          "anyOf": [
+            {
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Parent Study Accession"
+        },
+        "parent_study_release": {
+          "anyOf": [
+            {
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Parent Study Release"
+        },
+        "release": {
+          "minLength": 1,
+          "title": "Release",
+          "type": "string"
+        },
+        "retrieved_at": {
+          "format": "date-time",
+          "title": "Retrieved At",
+          "type": "string"
+        },
+        "sha256": {
+          "pattern": "^[a-fA-F0-9]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        },
+        "source_id": {
+          "minLength": 1,
+          "title": "Source Id",
+          "type": "string"
+        },
+        "uri": {
+          "minLength": 1,
+          "title": "Uri",
+          "type": "string"
+        }
+      },
+      "required": [
+        "source_id",
+        "kind",
+        "uri",
+        "sha256",
+        "media_type",
+        "accession",
+        "release",
+        "byte_count",
+        "retrieved_at"
+      ],
+      "title": "SourceArtifact",
+      "type": "object"
+    },
+    "SourceKind": {
+      "enum": [
+        "raw",
+        "processed",
+        "metadata",
+        "documentation"
+      ],
+      "title": "SourceKind",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Complete one-to-one artifact and interface receipt coverage for one bundle scope.",
+  "properties": {
+    "artifact_coverage_fingerprint": {
+      "pattern": "^[a-fA-F0-9]{64}$",
+      "title": "Artifact Coverage Fingerprint",
+      "type": "string"
+    },
+    "artifact_receipts": {
+      "items": {
+        "$ref": "#/$defs/ArtifactResolutionReceipt"
+      },
+      "minItems": 1,
+      "title": "Artifact Receipts",
+      "type": "array"
+    },
+    "batch_id": {
+      "minLength": 1,
+      "title": "Batch Id",
+      "type": "string"
+    },
+    "bundle_fingerprint": {
+      "pattern": "^[a-fA-F0-9]{64}$",
+      "title": "Bundle Fingerprint",
+      "type": "string"
+    },
+    "evidence_artifacts": {
+      "description": "Non-authoritative batch audit-log references; only the closed required/receipt sets above contribute admission coverage.",
+      "items": {
+        "$ref": "#/$defs/ContentAddressedArtifact"
+      },
+      "minItems": 1,
+      "title": "Evidence Artifacts",
+      "type": "array"
+    },
+    "execution_source_selection": {
+      "$ref": "#/$defs/ExecutionSourceSelectionReceipt"
+    },
+    "implementation_scope_fingerprint": {
+      "pattern": "^[a-fA-F0-9]{64}$",
+      "title": "Implementation Scope Fingerprint",
+      "type": "string"
+    },
+    "interface_coverage_fingerprint": {
+      "pattern": "^[a-fA-F0-9]{64}$",
+      "title": "Interface Coverage Fingerprint",
+      "type": "string"
+    },
+    "interface_receipts": {
+      "default": [],
+      "items": {
+        "$ref": "#/$defs/LoadedInterfaceReceipt"
+      },
+      "title": "Interface Receipts",
+      "type": "array"
+    },
+    "issued_at": {
+      "format": "date-time",
+      "title": "Issued At",
+      "type": "string"
+    },
+    "report_fingerprint": {
+      "pattern": "^[a-fA-F0-9]{64}$",
+      "title": "Report Fingerprint",
+      "type": "string"
+    },
+    "report_kind": {
+      "const": "complete_admission_receipt_batch",
+      "default": "complete_admission_receipt_batch",
+      "title": "Report Kind",
+      "type": "string"
+    },
+    "required_artifacts": {
+      "items": {
+        "$ref": "#/$defs/AdmissionArtifactReference"
+      },
+      "minItems": 1,
+      "title": "Required Artifacts",
+      "type": "array"
+    },
+    "required_interfaces": {
+      "default": [],
+      "items": {
+        "$ref": "#/$defs/ImplementationReceiptRequirement"
+      },
+      "title": "Required Interfaces",
+      "type": "array"
+    },
+    "schema_version": {
+      "const": "0.1-experimental",
+      "default": "0.1-experimental",
+      "title": "Schema Version",
+      "type": "string"
+    }
+  },
+  "required": [
+    "batch_id",
+    "bundle_fingerprint",
+    "implementation_scope_fingerprint",
+    "execution_source_selection",
+    "required_artifacts",
+    "artifact_receipts",
+    "artifact_coverage_fingerprint",
+    "interface_coverage_fingerprint",
+    "issued_at",
+    "evidence_artifacts",
+    "report_fingerprint"
+  ],
+  "title": "AdmissionReceiptBatchReport",
+  "type": "object"
+}

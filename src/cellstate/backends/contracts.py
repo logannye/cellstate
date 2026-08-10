@@ -15,7 +15,7 @@ from __future__ import annotations
 from collections.abc import Mapping, Sequence
 from enum import StrEnum
 from types import MappingProxyType
-from typing import Literal
+from typing import TYPE_CHECKING, Literal
 
 from pydantic import ConfigDict, Field, field_validator, model_validator
 
@@ -30,11 +30,27 @@ from cellstate.data.benchmarks import (
 )
 from cellstate.data.manifests import DatasetManifest
 from cellstate.domain.common import SchemaModel, canonical_fingerprint, canonical_json_bytes
-from cellstate.domain.query import StateQuery
+from cellstate.domain.events import EvidenceRole
+from cellstate.domain.query import (
+    AssayPurpose,
+    FutureAssayObservationEndpoint,
+    StateQuery,
+    SystemBoundary,
+)
+from cellstate.domain.subjects import SubjectKind
 from cellstate.ports.models import EstimatorDescriptor, ModelArtifactKind
+
+if TYPE_CHECKING:
+    from .validation import (
+        AdmissionVerificationContext,
+        BiologicalExecutionAuthorization,
+        JITCodeProvider,
+    )
 
 BundleContractSchemaVersion = Literal["0.1-experimental"]
 BUNDLE_CONTRACT_SCHEMA_VERSION: BundleContractSchemaVersion = "0.1-experimental"
+QUERY_PREREQUISITE_COMPILER_ID = "cellstate.query-derived-port-prerequisite-compiler"
+QUERY_PREREQUISITE_COMPILER_VERSION = "0.1.0"
 
 
 class BundleContractModel(SchemaModel):
@@ -93,13 +109,14 @@ class ComponentLifecycleStage(StrEnum):
 
 
 class BundleAdmissionBlockerCode(StrEnum):
-    """Machine-readable v0.1 gates that declarations cannot satisfy."""
+    """Machine-readable gates derived by the trusted admission boundary."""
 
     ARTIFACT_BYTES_UNRESOLVED = "artifact_bytes_unresolved"
     IMPLEMENTATION_INTERFACES_UNVERIFIED = "implementation_interfaces_unverified"
     QUERY_DERIVED_OPERATION_PREREQUISITES_UNVERIFIED = (
         "query_derived_operation_prerequisites_unverified"
     )
+    VALIDATION_RESULTS_FAILED = "validation_results_failed"
     VALIDATION_RESULTS_UNVERIFIED = "validation_results_unverified"
 
 
@@ -257,6 +274,231 @@ class PortDisposition(StrEnum):
     PLANNED = "planned"
     NOT_APPLICABLE = "not_applicable"
     UNSUPPORTED = "unsupported"
+
+
+class QueryPrerequisiteTargetKind(StrEnum):
+    """Exact computation surface for one query-derived prerequisite set."""
+
+    DIRECT_POPULATION_RESPONSE_COMPONENT = "direct_population_response_component"
+    RUNTIME_OPERATION = "runtime_operation"
+
+
+class QueryPrerequisiteReasonCode(StrEnum):
+    """Machine-readable reason why one biological stage is mandatory."""
+
+    ACTION_CONTEXT_ENCODING = "action_context_encoding"
+    CAUSAL_TRANSPORT_ASSUMPTIONS = "causal_transport_assumptions"
+    COMPONENT_ARTIFACT_IDENTITY = "component_artifact_identity"
+    COMPONENT_PARTITION_LOADING = "component_partition_loading"
+    COMPONENT_PROVENANCE = "component_provenance"
+    COMPONENT_QUERY_SCOPE = "component_query_scope"
+    COMPONENT_RESPONSE_DISTRIBUTION = "component_response_distribution"
+    COMPONENT_SUPPORT_OOD = "component_support_ood"
+    COMPONENT_UNCERTAINTY_CALIBRATION = "component_uncertainty_calibration"
+    COUNTERFACTUAL_REPLANNING = "counterfactual_replanning"
+    DECLARED_MECHANISTIC_SEMANTICS = "declared_mechanistic_semantics"
+    ENVIRONMENT_HISTORY_DYNAMICS = "environment_history_dynamics"
+    EPISTEMIC_MODEL_UNCERTAINTY = "epistemic_model_uncertainty"
+    FUTURE_ASSAY_TARGET = "future_assay_target"
+    FUNCTIONAL_TARGET = "functional_target"
+    HYPOTHETICAL_MEASUREMENT_UPDATE = "hypothetical_measurement_update"
+    INTERVENTION_HISTORY_DYNAMICS = "intervention_history_dynamics"
+    INTERVENTION_REALIZATION_UNCERTAINTY = "intervention_realization_uncertainty"
+    LINEAGE_OR_POPULATION_DYNAMICS = "lineage_or_population_dynamics"
+    MEASUREMENT_DECISION_EVSI = "measurement_decision_evsi"
+    MEASUREMENT_OUTCOME_PREDICTION = "measurement_outcome_prediction"
+    NEIGHBORHOOD_OR_POPULATION_INTERACTIONS = "neighborhood_or_population_interactions"
+    NONDIRECT_EVIDENCE_TRANSFER = "nondirect_evidence_transfer"
+    OBSERVATION_LIKELIHOOD = "observation_likelihood"
+    OPERATION_CONTRACT_FLOOR = "operation_contract_floor"
+    PLANNING_IDENTIFIABILITY = "planning_identifiability"
+    PLANNING_STATE_SUFFICIENCY = "planning_state_sufficiency"
+    SOLUBLE_OR_SPATIAL_TRANSPORT = "soluble_or_spatial_transport"
+    TEMPORAL_EVIDENCE_PROPAGATION = "temporal_evidence_propagation"
+
+
+class QueryPrerequisiteScopeIssue(StrEnum):
+    """Query/target combinations that cannot define the requested computation."""
+
+    INTERVENTION_PLANNING_REQUIRES_ACTION_SPACE = "intervention_planning_requires_action_space"
+    MEASUREMENT_EVSI_REQUIRES_ACTION_SPACE = "measurement_evsi_requires_action_space"
+    MEASUREMENT_SELECTION_REQUIRES_CANDIDATE_ASSAYS = (
+        "measurement_selection_requires_candidate_assays"
+    )
+    RUNTIME_BUNDLE_REQUIRES_OPERATION = "runtime_bundle_requires_operation"
+
+
+class QueryDerivedPortPrerequisite(BundleContractModel):
+    """One required port and every query-derived reason that requires it."""
+
+    port: BiologicalStagePort
+    reasons: tuple[QueryPrerequisiteReasonCode, ...] = Field(min_length=1)
+
+    @field_validator("reasons")
+    @classmethod
+    def reasons_are_canonical(
+        cls,
+        values: tuple[QueryPrerequisiteReasonCode, ...],
+    ) -> tuple[QueryPrerequisiteReasonCode, ...]:
+        reason_values = tuple(reason.value for reason in values)
+        _canonical_values(
+            reason_values,
+            name="query prerequisite reason codes",
+            allow_empty=False,
+        )
+        return values
+
+
+class QueryDerivedPrerequisiteTarget(BundleContractModel):
+    """Prerequisites for one exact public operation or direct component surface."""
+
+    target_kind: QueryPrerequisiteTargetKind
+    operation: ModelOperation | None = None
+    direct_population_response: DirectPopulationResponseSemantics | None = None
+    required_ports: tuple[QueryDerivedPortPrerequisite, ...] = Field(min_length=1)
+
+    @property
+    def target_id(self) -> str:
+        if self.operation is not None:
+            return f"runtime_operation:{self.operation.value}"
+        return "component:direct_population_assay_response"
+
+    @model_validator(mode="after")
+    def target_and_ports_are_canonical(self) -> QueryDerivedPrerequisiteTarget:
+        is_runtime = self.target_kind is QueryPrerequisiteTargetKind.RUNTIME_OPERATION
+        if is_runtime is (self.operation is None):
+            raise ValueError("only a runtime prerequisite target names an operation")
+        if is_runtime is not (self.direct_population_response is None):
+            raise ValueError(
+                "only a direct-component prerequisite target binds component semantics"
+            )
+        port_values = tuple(item.port.value for item in self.required_ports)
+        _canonical_values(
+            port_values,
+            name="query-derived target prerequisite ports",
+            allow_empty=False,
+        )
+        return self
+
+
+class QueryPrerequisiteDispositionFailure(BundleContractModel):
+    """A derived-required port classified as unavailable by the bundle."""
+
+    port: BiologicalStagePort
+    disposition: PortDisposition
+
+    @model_validator(mode="after")
+    def disposition_is_a_failure(self) -> QueryPrerequisiteDispositionFailure:
+        if self.disposition not in {
+            PortDisposition.PLANNED,
+            PortDisposition.NOT_APPLICABLE,
+            PortDisposition.UNSUPPORTED,
+        }:
+            raise ValueError(
+                "a query-prerequisite disposition failure must be planned, not applicable, "
+                "or unsupported"
+            )
+        return self
+
+
+class QueryDerivedPrerequisiteReport(BundleContractModel):
+    """Deterministic query/envelope/bundle-bound prerequisite compilation.
+
+    The report is evidence to be *bound* by a future trusted admission receipt, never an
+    authorization by itself. Verification must call :func:`verify_query_prerequisite_report`,
+    which re-derives this payload from the exact source objects.
+    """
+
+    compiler_id: str = Field(min_length=1)
+    compiler_version: str = Field(min_length=1)
+    compiler_fingerprint: str = Field(pattern=r"^[a-fA-F0-9]{64}$")
+    query_fingerprint: str = Field(pattern=r"^[a-fA-F0-9]{64}$")
+    support_envelope_id: str = Field(min_length=1)
+    support_envelope_version: str = Field(min_length=1)
+    support_envelope_fingerprint: str = Field(pattern=r"^[a-fA-F0-9]{64}$")
+    bundle_id: str = Field(min_length=1)
+    bundle_version: str = Field(min_length=1)
+    bundle_fingerprint: str = Field(pattern=r"^[a-fA-F0-9]{64}$")
+    bundle_kind: BundleContractKind
+    targets: tuple[QueryDerivedPrerequisiteTarget, ...]
+    required_ports: tuple[BiologicalStagePort, ...]
+    envelope_missing_ports: tuple[BiologicalStagePort, ...]
+    envelope_extra_ports: tuple[BiologicalStagePort, ...]
+    invalid_dispositions: tuple[QueryPrerequisiteDispositionFailure, ...]
+    scope_issues: tuple[QueryPrerequisiteScopeIssue, ...]
+
+    @property
+    def fingerprint(self) -> str:
+        return canonical_fingerprint(self.model_dump(mode="json"))
+
+    @property
+    def structurally_satisfied(self) -> bool:
+        """Whether declared scope/dispositions satisfy derivation, absent trusted receipts."""
+
+        return not any(
+            (
+                self.envelope_missing_ports,
+                self.envelope_extra_ports,
+                self.invalid_dispositions,
+                self.scope_issues,
+            )
+        )
+
+    @field_validator(
+        "compiler_fingerprint",
+        "query_fingerprint",
+        "support_envelope_fingerprint",
+        "bundle_fingerprint",
+    )
+    @classmethod
+    def fingerprints_are_lowercase(cls, value: str) -> str:
+        return value.casefold()
+
+    @model_validator(mode="after")
+    def report_is_canonical(self) -> QueryDerivedPrerequisiteReport:
+        if (
+            self.compiler_id != QUERY_PREREQUISITE_COMPILER_ID
+            or self.compiler_version != QUERY_PREREQUISITE_COMPILER_VERSION
+            or self.compiler_fingerprint != QUERY_PREREQUISITE_COMPILER_FINGERPRINT
+        ):
+            raise ValueError("query prerequisite report must bind the canonical compiler identity")
+        for value, name in (
+            (self.compiler_id, "prerequisite compiler ID"),
+            (self.compiler_version, "prerequisite compiler version"),
+            (self.support_envelope_id, "prerequisite support-envelope ID"),
+            (self.support_envelope_version, "prerequisite support-envelope version"),
+            (self.bundle_id, "prerequisite bundle ID"),
+            (self.bundle_version, "prerequisite bundle version"),
+        ):
+            _canonical_text(value, name=name)
+        target_ids = tuple(target.target_id for target in self.targets)
+        _canonical_values(target_ids, name="query prerequisite target IDs")
+        required_values = tuple(port.value for port in self.required_ports)
+        _canonical_values(required_values, name="query-derived required ports")
+        target_ports = {
+            prerequisite.port for target in self.targets for prerequisite in target.required_ports
+        }
+        if set(self.required_ports) != target_ports:
+            raise ValueError(
+                "query-derived required-port union must equal the per-target prerequisites"
+            )
+        for ports, name in (
+            (self.envelope_missing_ports, "query prerequisite envelope-missing ports"),
+            (self.envelope_extra_ports, "query prerequisite envelope-extra ports"),
+        ):
+            values = tuple(port.value for port in ports)
+            _canonical_values(values, name=name)
+        failure_values = tuple(
+            f"{failure.port.value}:{failure.disposition.value}"
+            for failure in self.invalid_dispositions
+        )
+        _canonical_values(
+            failure_values,
+            name="query prerequisite invalid dispositions",
+        )
+        issue_values = tuple(issue.value for issue in self.scope_issues)
+        _canonical_values(issue_values, name="query prerequisite scope issues")
+        return self
 
 
 class PortImplementationKind(StrEnum):
@@ -553,6 +795,12 @@ class ValidationEvidenceBinding(BundleContractModel):
     def fingerprint(self) -> str:
         return canonical_fingerprint(self.model_dump(mode="json"))
 
+    @property
+    def validation_scope_fingerprint(self) -> str:
+        """Noncircular identity that a result manifest can bind before its own hash exists."""
+
+        return canonical_fingerprint(self.model_dump(mode="json", exclude={"evidence_artifacts"}))
+
     @field_validator(
         "query_fingerprint",
         "benchmark_fingerprint",
@@ -691,6 +939,391 @@ class BiologicalModelBundleContract(BundleContractModel):
         return self
 
 
+_COMPONENT_PREREQUISITE_REASONS: Mapping[
+    BiologicalStagePort,
+    QueryPrerequisiteReasonCode,
+] = MappingProxyType(
+    {
+        BiologicalStagePort.ACTION_CONTEXT_ENCODER: (
+            QueryPrerequisiteReasonCode.ACTION_CONTEXT_ENCODING
+        ),
+        BiologicalStagePort.ARTIFACT_PROVENANCE_WRITER: (
+            QueryPrerequisiteReasonCode.COMPONENT_PROVENANCE
+        ),
+        BiologicalStagePort.EXACT_ARTIFACT_RESOLVER: (
+            QueryPrerequisiteReasonCode.COMPONENT_ARTIFACT_IDENTITY
+        ),
+        BiologicalStagePort.POPULATION_ASSAY_RESPONSE_DISTRIBUTION_MODEL: (
+            QueryPrerequisiteReasonCode.COMPONENT_RESPONSE_DISTRIBUTION
+        ),
+        BiologicalStagePort.QUERY_SCOPE_VALIDATOR: (
+            QueryPrerequisiteReasonCode.COMPONENT_QUERY_SCOPE
+        ),
+        BiologicalStagePort.STRICT_SUPPORT_OOD_GATE: (
+            QueryPrerequisiteReasonCode.COMPONENT_SUPPORT_OOD
+        ),
+        BiologicalStagePort.TRAIN_CAL_DATA_LOADER: (
+            QueryPrerequisiteReasonCode.COMPONENT_PARTITION_LOADING
+        ),
+        BiologicalStagePort.UNCERTAINTY_CALIBRATOR: (
+            QueryPrerequisiteReasonCode.COMPONENT_UNCERTAINTY_CALIBRATION
+        ),
+    }
+)
+
+QUERY_PREREQUISITE_COMPILER_FINGERPRINT = canonical_fingerprint(
+    {
+        "compiler_id": QUERY_PREREQUISITE_COMPILER_ID,
+        "compiler_version": QUERY_PREREQUISITE_COMPILER_VERSION,
+        "algorithm": "exact-query-operation-and-direct-component-port-derivation-v1",
+        "operation_floors": {
+            operation.value: sorted(port.value for port in ports)
+            for operation, ports in OPERATION_REQUIRED_PORTS.items()
+        },
+        "component_floor": {
+            port.value: reason.value for port, reason in _COMPONENT_PREREQUISITE_REASONS.items()
+        },
+        "conditional_rule_codes": sorted(reason.value for reason in QueryPrerequisiteReasonCode),
+        "scope_issue_codes": sorted(issue.value for issue in QueryPrerequisiteScopeIssue),
+    }
+)
+
+
+def _add_prerequisite_reason(
+    reasons: dict[BiologicalStagePort, set[QueryPrerequisiteReasonCode]],
+    port: BiologicalStagePort,
+    reason: QueryPrerequisiteReasonCode,
+) -> None:
+    reasons.setdefault(port, set()).add(reason)
+
+
+def _canonical_prerequisites(
+    reasons: Mapping[BiologicalStagePort, set[QueryPrerequisiteReasonCode]],
+) -> tuple[QueryDerivedPortPrerequisite, ...]:
+    return tuple(
+        QueryDerivedPortPrerequisite(
+            port=port,
+            reasons=tuple(sorted(port_reasons, key=lambda item: item.value)),
+        )
+        for port, port_reasons in sorted(reasons.items(), key=lambda item: item[0].value)
+    )
+
+
+def _derive_runtime_target_prerequisites(
+    query: StateQuery,
+    operation: ModelOperation,
+) -> tuple[QueryDerivedPortPrerequisite, ...]:
+    reasons: dict[BiologicalStagePort, set[QueryPrerequisiteReasonCode]] = {}
+    for port in OPERATION_REQUIRED_PORTS[operation]:
+        _add_prerequisite_reason(
+            reasons,
+            port,
+            QueryPrerequisiteReasonCode.OPERATION_CONTRACT_FLOOR,
+        )
+
+    # Every public biological result must expose epistemic/model uncertainty, rather than
+    # allowing a single fitted model to stand in for calibrated model uncertainty.
+    _add_prerequisite_reason(
+        reasons,
+        BiologicalStagePort.MODEL_ENSEMBLE,
+        QueryPrerequisiteReasonCode.EPISTEMIC_MODEL_UNCERTAINTY,
+    )
+
+    evidence_roles = set(query.evidence_policy.allowed_evidence_roles)
+    evidence_consuming = operation in {
+        ModelOperation.ESTIMATE_CELL_STATE,
+        ModelOperation.RECOMMEND_NEXT_MEASUREMENT,
+    }
+    if evidence_consuming:
+        _add_prerequisite_reason(
+            reasons,
+            BiologicalStagePort.OBSERVATION_MODELS,
+            QueryPrerequisiteReasonCode.OBSERVATION_LIKELIHOOD,
+        )
+        if evidence_roles != {EvidenceRole.DIRECT}:
+            _add_prerequisite_reason(
+                reasons,
+                BiologicalStagePort.EVIDENCE_TRANSFER_MODELS,
+                QueryPrerequisiteReasonCode.NONDIRECT_EVIDENCE_TRANSFER,
+            )
+
+    if any(
+        isinstance(output.endpoint, FutureAssayObservationEndpoint)
+        for output in query.target_outputs
+    ):
+        _add_prerequisite_reason(
+            reasons,
+            BiologicalStagePort.OBSERVATION_MODELS,
+            QueryPrerequisiteReasonCode.FUTURE_ASSAY_TARGET,
+        )
+    if any(output.functional for output in query.target_outputs):
+        _add_prerequisite_reason(
+            reasons,
+            BiologicalStagePort.FUNCTIONAL_DECODERS,
+            QueryPrerequisiteReasonCode.FUNCTIONAL_TARGET,
+        )
+
+    if query.intervention_space:
+        _add_prerequisite_reason(
+            reasons,
+            BiologicalStagePort.INTERVENTION_REALIZATION_MODEL,
+            QueryPrerequisiteReasonCode.INTERVENTION_REALIZATION_UNCERTAINTY,
+        )
+        if operation is ModelOperation.ESTIMATE_CELL_STATE:
+            _add_prerequisite_reason(
+                reasons,
+                BiologicalStagePort.TRANSITION_MODEL,
+                QueryPrerequisiteReasonCode.INTERVENTION_HISTORY_DYNAMICS,
+            )
+
+    if query.environment_space and operation is ModelOperation.ESTIMATE_CELL_STATE:
+        _add_prerequisite_reason(
+            reasons,
+            BiologicalStagePort.TRANSITION_MODEL,
+            QueryPrerequisiteReasonCode.ENVIRONMENT_HISTORY_DYNAMICS,
+        )
+    lookback = query.evidence_policy.lookback_seconds
+    if operation is ModelOperation.ESTIMATE_CELL_STATE and (lookback is None or lookback > 0):
+        _add_prerequisite_reason(
+            reasons,
+            BiologicalStagePort.TRANSITION_MODEL,
+            QueryPrerequisiteReasonCode.TEMPORAL_EVIDENCE_PROPAGATION,
+        )
+
+    lineage_roles = {
+        EvidenceRole.ANCESTOR,
+        EvidenceRole.DESCENDANT,
+        EvidenceRole.SIBLING,
+        EvidenceRole.CLONE_AGGREGATE,
+    }
+    lineage_scope = (
+        query.subject.kind is SubjectKind.CLONE_LINEAGE
+        or query.system_boundary is SystemBoundary.CLONE
+        or query.constraints.require_complete_lineage_history
+        or bool(evidence_roles & lineage_roles)
+    )
+    dynamic_operation = operation is not ModelOperation.ESTIMATE_CELL_STATE
+    population_dynamics = dynamic_operation and (
+        query.subject.kind is SubjectKind.POPULATION
+        or query.system_boundary is SystemBoundary.POPULATION
+    )
+    if lineage_scope or population_dynamics:
+        _add_prerequisite_reason(
+            reasons,
+            BiologicalStagePort.DIVISION_AND_INHERITANCE_MODEL,
+            QueryPrerequisiteReasonCode.LINEAGE_OR_POPULATION_DYNAMICS,
+        )
+
+    interaction_scope = (
+        query.subject.kind is SubjectKind.SPATIAL_NICHE
+        or query.system_boundary
+        in {
+            SystemBoundary.CELL_AND_NEIGHBORS,
+            SystemBoundary.SPATIAL_TISSUE_NICHE,
+        }
+        or query.constraints.require_complete_neighborhood_history
+        or EvidenceRole.SPATIAL_NEIGHBOR in evidence_roles
+        or population_dynamics
+    )
+    if interaction_scope:
+        _add_prerequisite_reason(
+            reasons,
+            BiologicalStagePort.CELL_INTERACTION_MODEL,
+            QueryPrerequisiteReasonCode.NEIGHBORHOOD_OR_POPULATION_INTERACTIONS,
+        )
+
+    transport_scope = query.system_boundary in {
+        SystemBoundary.CELL_AND_SOLUBLE_ENVIRONMENT,
+        SystemBoundary.SPATIAL_TISSUE_NICHE,
+    } or (bool(query.environment_space) and query.constraints.allow_transport)
+    if transport_scope:
+        _add_prerequisite_reason(
+            reasons,
+            BiologicalStagePort.EXTRACELLULAR_TRANSPORT_MODEL,
+            QueryPrerequisiteReasonCode.SOLUBLE_OR_SPATIAL_TRANSPORT,
+        )
+    if query.constraints.allow_transport:
+        _add_prerequisite_reason(
+            reasons,
+            BiologicalStagePort.MECHANISTIC_CONSTRAINTS,
+            QueryPrerequisiteReasonCode.CAUSAL_TRANSPORT_ASSUMPTIONS,
+        )
+
+    declares_mechanism = any(spec.mechanisms for spec in query.intervention_space)
+    if declares_mechanism:
+        _add_prerequisite_reason(
+            reasons,
+            BiologicalStagePort.MECHANISTIC_CONSTRAINTS,
+            QueryPrerequisiteReasonCode.DECLARED_MECHANISTIC_SEMANTICS,
+        )
+    if operation in {
+        ModelOperation.CHOOSE_INTERVENTION,
+        ModelOperation.RECOMMEND_NEXT_MEASUREMENT,
+    }:
+        _add_prerequisite_reason(
+            reasons,
+            BiologicalStagePort.SUFFICIENCY_EVALUATOR,
+            QueryPrerequisiteReasonCode.PLANNING_STATE_SUFFICIENCY,
+        )
+        _add_prerequisite_reason(
+            reasons,
+            BiologicalStagePort.IDENTIFIABILITY_ANALYZER,
+            QueryPrerequisiteReasonCode.PLANNING_IDENTIFIABILITY,
+        )
+        if query.constraints.named_constraints:
+            _add_prerequisite_reason(
+                reasons,
+                BiologicalStagePort.MECHANISTIC_CONSTRAINTS,
+                QueryPrerequisiteReasonCode.DECLARED_MECHANISTIC_SEMANTICS,
+            )
+
+    if operation is ModelOperation.RECOMMEND_NEXT_MEASUREMENT:
+        for port, reason in (
+            (
+                BiologicalStagePort.OBSERVATION_MODELS,
+                QueryPrerequisiteReasonCode.MEASUREMENT_OUTCOME_PREDICTION,
+            ),
+            (
+                BiologicalStagePort.POSTERIOR_INFERENCE_ENGINE,
+                QueryPrerequisiteReasonCode.HYPOTHETICAL_MEASUREMENT_UPDATE,
+            ),
+            (
+                BiologicalStagePort.TRANSITION_MODEL,
+                QueryPrerequisiteReasonCode.COUNTERFACTUAL_REPLANNING,
+            ),
+            (
+                BiologicalStagePort.FUNCTIONAL_DECODERS,
+                QueryPrerequisiteReasonCode.COUNTERFACTUAL_REPLANNING,
+            ),
+            (
+                BiologicalStagePort.VALUE_OF_INFORMATION_ENGINE,
+                QueryPrerequisiteReasonCode.MEASUREMENT_DECISION_EVSI,
+            ),
+        ):
+            _add_prerequisite_reason(reasons, port, reason)
+
+    return _canonical_prerequisites(reasons)
+
+
+def derive_query_prerequisite_report(
+    *,
+    query: StateQuery,
+    support_envelope: BiologicalSupportEnvelope,
+    bundle: BiologicalModelBundleContract,
+) -> QueryDerivedPrerequisiteReport:
+    """Compile exact conditional ports and bind them to query, envelope, and bundle identity."""
+
+    targets: list[QueryDerivedPrerequisiteTarget] = []
+    scope_issues: set[QueryPrerequisiteScopeIssue] = set()
+    is_component = support_envelope.bundle_kind in {
+        BundleContractKind.COMPONENT_SCAFFOLD,
+        BundleContractKind.COMPONENT_MODEL,
+    }
+    if is_component:
+        direct_semantics = support_envelope.direct_population_response
+        if direct_semantics is not None:
+            targets.append(
+                QueryDerivedPrerequisiteTarget(
+                    target_kind=(QueryPrerequisiteTargetKind.DIRECT_POPULATION_RESPONSE_COMPONENT),
+                    direct_population_response=direct_semantics,
+                    required_ports=_canonical_prerequisites(
+                        {port: {reason} for port, reason in _COMPONENT_PREREQUISITE_REASONS.items()}
+                    ),
+                )
+            )
+    else:
+        if not support_envelope.runtime_operations:
+            scope_issues.add(QueryPrerequisiteScopeIssue.RUNTIME_BUNDLE_REQUIRES_OPERATION)
+        measurement_assays = {
+            assay.assay_id
+            for assay in query.available_assays
+            if AssayPurpose.MEASUREMENT_SELECTION in assay.purposes
+        }
+        for operation in support_envelope.runtime_operations:
+            if operation is ModelOperation.CHOOSE_INTERVENTION and not query.intervention_space:
+                scope_issues.add(
+                    QueryPrerequisiteScopeIssue.INTERVENTION_PLANNING_REQUIRES_ACTION_SPACE
+                )
+            if operation is ModelOperation.RECOMMEND_NEXT_MEASUREMENT:
+                if not query.intervention_space:
+                    scope_issues.add(
+                        QueryPrerequisiteScopeIssue.MEASUREMENT_EVSI_REQUIRES_ACTION_SPACE
+                    )
+                if not measurement_assays:
+                    scope_issues.add(
+                        QueryPrerequisiteScopeIssue.MEASUREMENT_SELECTION_REQUIRES_CANDIDATE_ASSAYS
+                    )
+            targets.append(
+                QueryDerivedPrerequisiteTarget(
+                    target_kind=QueryPrerequisiteTargetKind.RUNTIME_OPERATION,
+                    operation=operation,
+                    required_ports=_derive_runtime_target_prerequisites(query, operation),
+                )
+            )
+
+    targets_tuple = tuple(sorted(targets, key=lambda item: item.target_id))
+    required = {
+        prerequisite.port for target in targets_tuple for prerequisite in target.required_ports
+    }
+    envelope_ports = set(support_envelope.required_ports)
+    port_map = {binding.port: binding for binding in bundle.ports}
+    invalid_dispositions = tuple(
+        QueryPrerequisiteDispositionFailure(
+            port=port,
+            disposition=port_map[port].disposition,
+        )
+        for port in sorted(required, key=lambda item: item.value)
+        if port_map[port].disposition
+        in {
+            PortDisposition.PLANNED,
+            PortDisposition.NOT_APPLICABLE,
+            PortDisposition.UNSUPPORTED,
+        }
+    )
+    return QueryDerivedPrerequisiteReport(
+        compiler_id=QUERY_PREREQUISITE_COMPILER_ID,
+        compiler_version=QUERY_PREREQUISITE_COMPILER_VERSION,
+        compiler_fingerprint=QUERY_PREREQUISITE_COMPILER_FINGERPRINT,
+        query_fingerprint=query.fingerprint,
+        support_envelope_id=support_envelope.envelope_id,
+        support_envelope_version=support_envelope.envelope_version,
+        support_envelope_fingerprint=support_envelope.fingerprint,
+        bundle_id=bundle.bundle_id,
+        bundle_version=bundle.bundle_version,
+        bundle_fingerprint=bundle.fingerprint,
+        bundle_kind=bundle.bundle_kind,
+        targets=targets_tuple,
+        required_ports=tuple(sorted(required, key=lambda item: item.value)),
+        envelope_missing_ports=tuple(
+            sorted(required - envelope_ports, key=lambda item: item.value)
+        ),
+        envelope_extra_ports=tuple(sorted(envelope_ports - required, key=lambda item: item.value)),
+        invalid_dispositions=invalid_dispositions,
+        scope_issues=tuple(sorted(scope_issues, key=lambda item: item.value)),
+    )
+
+
+def verify_query_prerequisite_report(
+    report: QueryDerivedPrerequisiteReport,
+    *,
+    query: StateQuery,
+    support_envelope: BiologicalSupportEnvelope,
+    bundle: BiologicalModelBundleContract,
+) -> QueryDerivedPrerequisiteReport:
+    """Re-derive a report from sources and reject any caller-supplied drift."""
+
+    derived = derive_query_prerequisite_report(
+        query=query,
+        support_envelope=support_envelope,
+        bundle=bundle,
+    )
+    if report != derived or report.fingerprint != derived.fingerprint:
+        raise ValueError(
+            "query-derived prerequisite report does not match exact query/envelope/bundle scope"
+        )
+    return derived
+
+
 class BundleReadiness(BundleContractModel):
     """Derived readiness result; no field is accepted on the source bundle contract."""
 
@@ -708,6 +1341,9 @@ class BundleReadiness(BundleContractModel):
     artifact_bytes_resolved: bool
     implementation_interfaces_verified: bool
     validation_results_verified: bool
+    validation_results_passed: bool
+    query_derived_prerequisite_report: QueryDerivedPrerequisiteReport
+    query_derived_prerequisite_fingerprint: str = Field(pattern=r"^[a-fA-F0-9]{64}$")
     query_derived_prerequisites_verified: bool
     required_ports_provided: bool
     required_ports_executable: bool
@@ -727,13 +1363,28 @@ class BundleReadiness(BundleContractModel):
     admission_blocker_codes: tuple[BundleAdmissionBlockerCode, ...]
     blockers: tuple[str, ...]
 
-    @field_validator("bundle_fingerprint")
+    @field_validator("bundle_fingerprint", "query_derived_prerequisite_fingerprint")
     @classmethod
     def fingerprint_is_lowercase(cls, value: str) -> str:
         return value.casefold()
 
     @model_validator(mode="after")
     def derived_states_are_consistent(self) -> BundleReadiness:
+        if (
+            self.query_derived_prerequisite_fingerprint
+            != self.query_derived_prerequisite_report.fingerprint
+        ):
+            raise ValueError(
+                "query prerequisite fingerprint must match the embedded derived report"
+            )
+        if self.bundle_fingerprint != self.query_derived_prerequisite_report.bundle_fingerprint:
+            raise ValueError("query prerequisite report must bind this exact bundle")
+        if self.query_derived_prerequisites_verified and not (
+            self.query_derived_prerequisite_report.structurally_satisfied
+        ):
+            raise ValueError("query prerequisites cannot verify with scope or disposition failures")
+        if self.validation_results_passed and not self.validation_results_verified:
+            raise ValueError("validation results cannot pass before exact semantic verification")
         blocker_code_values = tuple(code.value for code in self.admission_blocker_codes)
         _canonical_values(blocker_code_values, name="admission blocker codes")
         expected_codes = {
@@ -758,8 +1409,10 @@ class BundleReadiness(BundleContractModel):
             )
             if not flag
         }
+        if self.validation_results_verified and not self.validation_results_passed:
+            expected_codes.add(BundleAdmissionBlockerCode.VALIDATION_RESULTS_FAILED)
         if set(self.admission_blocker_codes) != expected_codes:
-            raise ValueError("admission blocker codes must exactly match unverified v0.1 gates")
+            raise ValueError("admission blocker codes must exactly match derived trust gates")
         expected_component = all(
             (
                 self.query_binding_verified,
@@ -773,7 +1426,8 @@ class BundleReadiness(BundleContractModel):
                 self.implementation_scope_binding_verified,
                 self.artifact_bytes_resolved,
                 self.implementation_interfaces_verified,
-                self.validation_results_verified,
+                self.validation_results_passed,
+                self.query_derived_prerequisites_verified,
                 self.required_ports_provided,
                 self.required_ports_executable,
                 self.required_ports_evidenced,
@@ -810,12 +1464,44 @@ class BundleReadiness(BundleContractModel):
         execution_allowed = self.runnable or self.component_execution_allowed
         if execution_allowed is bool(self.blockers):
             raise ValueError("derived execution state and blockers are inconsistent")
+        expected_lifecycle = ComponentLifecycleStage.SCAFFOLD
+        trusted_declarations = all(
+            (
+                self.artifact_bytes_resolved,
+                self.implementation_interfaces_verified,
+                self.query_derived_prerequisites_verified,
+            )
+        )
+        if trusted_declarations and self.training_binding_verified:
+            expected_lifecycle = ComponentLifecycleStage.TRAINED_CANDIDATE
+        if (
+            expected_lifecycle is ComponentLifecycleStage.TRAINED_CANDIDATE
+            and self.calibration_binding_verified
+        ):
+            expected_lifecycle = ComponentLifecycleStage.CALIBRATED_CANDIDATE
+        if (
+            expected_lifecycle is ComponentLifecycleStage.CALIBRATED_CANDIDATE
+            and self.model_selection_binding_verified
+        ):
+            expected_lifecycle = ComponentLifecycleStage.MODEL_SELECTED_FROZEN
+        if (
+            expected_lifecycle is ComponentLifecycleStage.MODEL_SELECTED_FROZEN
+            and self.component_evaluation_complete
+        ):
+            expected_lifecycle = ComponentLifecycleStage.COMPONENT_EVALUATED
+        if (
+            expected_lifecycle is ComponentLifecycleStage.COMPONENT_EVALUATED
+            and self.scientifically_admitted
+        ):
+            expected_lifecycle = ComponentLifecycleStage.COMPONENT_GATES_PASSED
+        if self.lifecycle_stage is not expected_lifecycle:
+            raise ValueError("component lifecycle must be derived from exact verified evidence")
         if (
             not all(
                 (
                     self.artifact_bytes_resolved,
                     self.implementation_interfaces_verified,
-                    self.validation_results_verified,
+                    self.query_derived_prerequisites_verified,
                 )
             )
             and self.lifecycle_stage is not ComponentLifecycleStage.SCAFFOLD
@@ -906,36 +1592,63 @@ def assess_biological_model_bundle(
     support_envelope: BiologicalSupportEnvelope,
     training_run: TrainingRunBinding | None = None,
     validation_evidence: Sequence[ValidationEvidenceBinding] = (),
+    admission_context: AdmissionVerificationContext | None = None,
 ) -> BundleReadiness:
-    """Derive v0.1 declaration readiness while keeping biological execution unreachable.
+    """Derive readiness from source declarations plus an optional runtime-only trust context.
 
-    This version has no trusted byte resolver, loaded-interface verifier, validation-result
-    verifier, or query-derived conditional prerequisite compiler.  Their states are therefore
-    derived as false here and cannot be supplied by a caller.
+    Without an external context every trust-bearing state remains false.  With one, this function
+    re-authenticates exact bytes, interfaces, semantic results, and query prerequisites; serialized
+    readiness is never accepted as execution authority.
     """
 
     blockers: list[str] = []
     artifact_bytes_resolved = False
     implementation_interfaces_verified = False
     validation_results_verified = False
-    query_derived_prerequisites_verified = not support_envelope.runtime_operations
-    _append_once(
-        blockers,
-        "v0.1 does not resolve and hash-check all declared artifact bytes",
+    validation_results_passed = False
+    prerequisite_report = derive_query_prerequisite_report(
+        query=query,
+        support_envelope=support_envelope,
+        bundle=bundle,
     )
-    _append_once(
-        blockers,
-        "v0.1 does not load and verify declared implementation interfaces",
-    )
-    _append_once(
-        blockers,
-        "v0.1 does not verify validation-result contents and scientific semantics",
-    )
-    if not query_derived_prerequisites_verified:
+    query_derived_prerequisites_verified = False
+    if admission_context is None:
+        _append_once(blockers, "trusted artifact-byte receipts are absent")
+        _append_once(blockers, "trusted loaded-interface receipts are absent")
+        _append_once(blockers, "trusted typed validation-result semantics are absent")
+        _append_once(blockers, "trusted query-prerequisite binding is absent")
+    else:
+        from .validation import require_exact_query_prerequisites
+
+        try:
+            require_exact_query_prerequisites(
+                admission_context,
+                query=query,
+                support_envelope=support_envelope,
+                bundle=bundle,
+            )
+        except ValueError as error:
+            _append_once(blockers, f"query-prerequisite verification failed: {error}")
+        else:
+            query_derived_prerequisites_verified = True
+    for port in prerequisite_report.envelope_missing_ports:
         _append_once(
             blockers,
-            "v0.1 does not derive conditional operation prerequisites from the exact query",
+            f"query-derived prerequisite port {port.value} is absent from the support envelope",
         )
+    for port in prerequisite_report.envelope_extra_ports:
+        _append_once(
+            blockers,
+            f"support-envelope required port {port.value} is not required by the exact query "
+            "target",
+        )
+    for failure in prerequisite_report.invalid_dispositions:
+        _append_once(
+            blockers,
+            f"query-derived prerequisite port {failure.port.value} is {failure.disposition.value}",
+        )
+    for issue in prerequisite_report.scope_issues:
+        _append_once(blockers, f"query prerequisite scope issue: {issue.value}")
     benchmark_query = benchmark.definition.query
     query_binding_verified = (
         query.fingerprint == benchmark_query.query_fingerprint
@@ -984,6 +1697,25 @@ def assess_biological_model_bundle(
         benchmark_admission_ready = benchmark_verification.admission_ready
         if not benchmark_admission_ready:
             _append_once(blockers, "bound benchmark is not scientifically admitted")
+
+    if admission_context is not None:
+        from .validation import require_exact_admission_receipts
+
+        try:
+            receipt_report = require_exact_admission_receipts(
+                admission_context,
+                bundle=bundle,
+                benchmark=benchmark,
+                training_run=training_run,
+                validation_evidence=validation_evidence,
+            )
+        except ValueError as error:
+            _append_once(blockers, f"admission receipt verification failed: {error}")
+        else:
+            artifact_bytes_resolved = True
+            implementation_interfaces_verified = receipt_report.required_interfaces == () or len(
+                receipt_report.interface_receipts
+            ) == len(receipt_report.required_interfaces)
 
     port_map = {binding.port: binding for binding in bundle.ports}
     required = set(support_envelope.required_ports)
@@ -1175,6 +1907,29 @@ def assess_biological_model_bundle(
             "validation evidence kind, partition role, or evaluation-case identity is invalid",
         )
 
+    if (
+        admission_context is not None
+        and artifact_bytes_resolved
+        and validation_evidence_semantics_verified
+        and implementation_scope_binding_verified
+    ):
+        from .validation import require_exact_admission_validation_results
+
+        try:
+            result_batch = require_exact_admission_validation_results(
+                admission_context,
+                bundle=bundle,
+                support_envelope=support_envelope,
+                validation_evidence=validation_evidence,
+            )
+        except ValueError as error:
+            _append_once(blockers, f"validation-result verification failed: {error}")
+        else:
+            validation_results_verified = True
+            validation_results_passed = result_batch.all_results_passed
+            if not validation_results_passed:
+                _append_once(blockers, "one or more authenticated validation results did not pass")
+
     evidence_coverage = {
         evidence_id: set(evidence.covered_ports)
         for evidence_id, evidence in actual_validation.items()
@@ -1184,6 +1939,7 @@ def assess_biological_model_bundle(
             validation_bindings_verified,
             validation_evidence_semantics_verified,
             implementation_scope_binding_verified,
+            validation_results_passed,
         )
     ) and all(
         port_map[port].validation_evidence_ids
@@ -1217,7 +1973,7 @@ def assess_biological_model_bundle(
             ),
         )
     )
-    if runtime_operations_bound and not runtime_operations_executable:
+    if declared_operations and runtime_operations_bound and not runtime_operations_executable:
         _append_once(blockers, "one or more public runtime operations are specification-only")
 
     operation_evidence_coverage = {
@@ -1229,6 +1985,7 @@ def assess_biological_model_bundle(
             validation_bindings_verified,
             validation_evidence_semantics_verified,
             implementation_scope_binding_verified,
+            validation_results_passed,
         )
     ) and all(
         operation_map[operation].validation_evidence_ids
@@ -1268,7 +2025,8 @@ def assess_biological_model_bundle(
             implementation_scope_binding_verified,
             artifact_bytes_resolved,
             implementation_interfaces_verified,
-            validation_results_verified,
+            validation_results_passed,
+            query_derived_prerequisites_verified,
             required_ports_provided,
             required_ports_executable,
             required_ports_evidenced,
@@ -1279,6 +2037,32 @@ def assess_biological_model_bundle(
     component_model_declared = bundle.bundle_kind is BundleContractKind.COMPONENT_MODEL
     component_execution_allowed = scientifically_admitted and component_model_declared
     lifecycle_stage = ComponentLifecycleStage.SCAFFOLD
+    trusted_declarations = all(
+        (
+            artifact_bytes_resolved,
+            implementation_interfaces_verified,
+            query_derived_prerequisites_verified,
+        )
+    )
+    if trusted_declarations and training_binding_verified:
+        lifecycle_stage = ComponentLifecycleStage.TRAINED_CANDIDATE
+    if (
+        lifecycle_stage is ComponentLifecycleStage.TRAINED_CANDIDATE
+        and calibration_binding_verified
+    ):
+        lifecycle_stage = ComponentLifecycleStage.CALIBRATED_CANDIDATE
+    if (
+        lifecycle_stage is ComponentLifecycleStage.CALIBRATED_CANDIDATE
+        and model_selection_binding_verified
+    ):
+        lifecycle_stage = ComponentLifecycleStage.MODEL_SELECTED_FROZEN
+    if (
+        lifecycle_stage is ComponentLifecycleStage.MODEL_SELECTED_FROZEN
+        and component_evaluation_complete
+    ):
+        lifecycle_stage = ComponentLifecycleStage.COMPONENT_EVALUATED
+    if lifecycle_stage is ComponentLifecycleStage.COMPONENT_EVALUATED and scientifically_admitted:
+        lifecycle_stage = ComponentLifecycleStage.COMPONENT_GATES_PASSED
     runtime_surface_declared = (
         bundle.bundle_kind is BundleContractKind.BIOLOGICAL_MODEL_BUNDLE
         and bool(support_envelope.runtime_operations)
@@ -1303,23 +2087,22 @@ def assess_biological_model_bundle(
     elif bundle.posterior_schema_id is None:
         _append_once(blockers, "biological runtime bundle lacks a posterior schema binding")
 
-    admission_blocker_codes = tuple(
-        sorted(
-            (
-                BundleAdmissionBlockerCode.ARTIFACT_BYTES_UNRESOLVED,
-                BundleAdmissionBlockerCode.IMPLEMENTATION_INTERFACES_UNVERIFIED,
-                BundleAdmissionBlockerCode.VALIDATION_RESULTS_UNVERIFIED,
-                *(
-                    ()
-                    if query_derived_prerequisites_verified
-                    else (
-                        BundleAdmissionBlockerCode.QUERY_DERIVED_OPERATION_PREREQUISITES_UNVERIFIED,
-                    )
-                ),
-            ),
-            key=lambda code: code.value,
+    admission_blocker_code_set: set[BundleAdmissionBlockerCode] = set()
+    if not artifact_bytes_resolved:
+        admission_blocker_code_set.add(BundleAdmissionBlockerCode.ARTIFACT_BYTES_UNRESOLVED)
+    if not implementation_interfaces_verified:
+        admission_blocker_code_set.add(
+            BundleAdmissionBlockerCode.IMPLEMENTATION_INTERFACES_UNVERIFIED
         )
-    )
+    if not validation_results_verified:
+        admission_blocker_code_set.add(BundleAdmissionBlockerCode.VALIDATION_RESULTS_UNVERIFIED)
+    elif not validation_results_passed:
+        admission_blocker_code_set.add(BundleAdmissionBlockerCode.VALIDATION_RESULTS_FAILED)
+    if not query_derived_prerequisites_verified:
+        admission_blocker_code_set.add(
+            BundleAdmissionBlockerCode.QUERY_DERIVED_OPERATION_PREREQUISITES_UNVERIFIED
+        )
+    admission_blocker_codes = tuple(sorted(admission_blocker_code_set, key=lambda code: code.value))
     blockers = sorted(set(blockers))
     return BundleReadiness(
         bundle_fingerprint=bundle.fingerprint,
@@ -1336,6 +2119,9 @@ def assess_biological_model_bundle(
         artifact_bytes_resolved=artifact_bytes_resolved,
         implementation_interfaces_verified=implementation_interfaces_verified,
         validation_results_verified=validation_results_verified,
+        validation_results_passed=validation_results_passed,
+        query_derived_prerequisite_report=prerequisite_report,
+        query_derived_prerequisite_fingerprint=prerequisite_report.fingerprint,
         query_derived_prerequisites_verified=query_derived_prerequisites_verified,
         required_ports_provided=required_ports_provided,
         required_ports_executable=required_ports_executable,
@@ -1377,7 +2163,9 @@ def require_biological_execution(
     support_envelope: BiologicalSupportEnvelope,
     training_run: TrainingRunBinding | None = None,
     validation_evidence: Sequence[ValidationEvidenceBinding] = (),
-) -> BundleReadiness:
+    admission_context: AdmissionVerificationContext | None = None,
+    jit_code_provider: JITCodeProvider | None = None,
+) -> BiologicalExecutionAuthorization:
     """Re-derive admission and fail closed before every biological runtime execution.
 
     Accepting source artifacts here rather than a caller-created readiness object prevents a
@@ -1392,6 +2180,7 @@ def require_biological_execution(
         support_envelope=support_envelope,
         training_run=training_run,
         validation_evidence=validation_evidence,
+        admission_context=admission_context,
     )
     _require_derived_readiness(readiness)
     bound_operations = {binding.operation for binding in bundle.operation_implementations}
@@ -1399,7 +2188,27 @@ def require_biological_execution(
         raise BiologicalExecutionBlockedError(
             f"{operation.value} is not an exact admitted operation of this bundle"
         )
-    return readiness
+    if admission_context is None or jit_code_provider is None:
+        raise BiologicalExecutionBlockedError(
+            "biological execution requires an authenticated context and JIT code provider"
+        )
+    from .validation import BiologicalExecutionAuthorization, reverify_admission_jit_interfaces
+
+    try:
+        handles = reverify_admission_jit_interfaces(
+            admission_context,
+            provider=jit_code_provider,
+            operation=operation,
+        )
+    except ValueError as error:
+        raise BiologicalExecutionBlockedError(
+            f"JIT interface verification failed: {error}"
+        ) from error
+    return BiologicalExecutionAuthorization(
+        readiness=readiness,
+        operation=operation,
+        runtime_handles=handles,
+    )
 
 
 def require_biological_component_execution(
@@ -1411,7 +2220,9 @@ def require_biological_component_execution(
     support_envelope: BiologicalSupportEnvelope,
     training_run: TrainingRunBinding | None = None,
     validation_evidence: Sequence[ValidationEvidenceBinding] = (),
-) -> BundleReadiness:
+    admission_context: AdmissionVerificationContext | None = None,
+    jit_code_provider: JITCodeProvider | None = None,
+) -> BiologicalExecutionAuthorization:
     """Authorize only the direct component surface, never a public belief operation."""
 
     readiness = assess_biological_model_bundle(
@@ -1422,11 +2233,32 @@ def require_biological_component_execution(
         support_envelope=support_envelope,
         training_run=training_run,
         validation_evidence=validation_evidence,
+        admission_context=admission_context,
     )
     if not readiness.component_execution_allowed:
         reasons = "; ".join(readiness.blockers) or "component execution is not admitted"
         raise BiologicalExecutionBlockedError(reasons)
-    return readiness
+    if admission_context is None or jit_code_provider is None:
+        raise BiologicalExecutionBlockedError(
+            "component execution requires an authenticated context and JIT code provider"
+        )
+    from .validation import BiologicalExecutionAuthorization, reverify_admission_jit_interfaces
+
+    try:
+        handles = reverify_admission_jit_interfaces(
+            admission_context,
+            provider=jit_code_provider,
+            operation=None,
+        )
+    except ValueError as error:
+        raise BiologicalExecutionBlockedError(
+            f"JIT interface verification failed: {error}"
+        ) from error
+    return BiologicalExecutionAuthorization(
+        readiness=readiness,
+        operation=None,
+        runtime_handles=handles,
+    )
 
 
 def build_admitted_estimator_descriptor(
@@ -1438,6 +2270,8 @@ def build_admitted_estimator_descriptor(
     support_envelope: BiologicalSupportEnvelope,
     training_run: TrainingRunBinding | None = None,
     validation_evidence: Sequence[ValidationEvidenceBinding] = (),
+    admission_context: AdmissionVerificationContext | None = None,
+    jit_code_provider: JITCodeProvider | None = None,
 ) -> EstimatorDescriptor:
     """Bridge an admitted full bundle to the existing public runtime protocol descriptor."""
 
@@ -1450,6 +2284,8 @@ def build_admitted_estimator_descriptor(
         support_envelope=support_envelope,
         training_run=training_run,
         validation_evidence=validation_evidence,
+        admission_context=admission_context,
+        jit_code_provider=jit_code_provider,
     )
     if (
         bundle.bundle_kind is not BundleContractKind.BIOLOGICAL_MODEL_BUNDLE
