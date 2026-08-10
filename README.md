@@ -46,7 +46,7 @@ utility. Posterior covariance reduction alone is not EVSI.
 > pipeline. The contract and scoped-eligibility adversarial gates are complete. Two
 > content-addressed real-data representability proofs pass, and a corrected sci-Plex3 K562 24-hour
 > component benchmark is frozen with exact well-level cases and plate-level splits. It remains
-> deliberately non-admitted: metric implementations, leakage audit, mandatory baselines, and
+> deliberately non-admitted: metric implementations, leakage audit, completed baseline runs, and
 > performance thresholds have not passed. The complete biological support-port map and a
 > content-addressed population assay-response scaffold are now checked in. That scaffold is not a
 > hidden-state estimator and rejects every prediction call. Contract version 0.1 now implements a
@@ -55,7 +55,11 @@ utility. Posterior covariance reduction alone is not EVSI.
 > prerequisites are rebound to exact bundle scope. Persisted receipts still are not execution
 > tokens; the guards require external trust roots and just-in-time reload/reverification. The
 > sci-Plex3 artifact remains `SCAFFOLD` because it has no trained model or completed scientific
-> gates. The active milestone is its immutable data loader and mandatory baseline suite.
+> gates. Its Item 11 software path is now intentionally limited to an immutable `p1-train` loader,
+> six `p1`-fit probabilistic baseline algorithms, and content-addressed streaming-run scaffolding.
+> The exact 2.526 GB source has now been close-reauthenticated, all 94,785 `p1` rows scanned, and six
+> non-admissible fitted-state identities frozen. Held-out `p2`, `p3`, and `p4` access remains hard
+> sealed; no prediction campaign, metric, performance comparison, or scientific admission has run.
 
 ## Scientific thesis
 
@@ -249,7 +253,15 @@ checks objects loaded outside the receipt issuer against an application-owned in
 verifies typed result semantics separately from result pass/fail, and recompiles query-dependent
 prerequisites. Execution guards then reload and reverify the exact object immediately before use.
 This infrastructure does not graduate the component: sci-Plex3 remains a non-executable
-`SCAFFOLD`. The next milestone is its immutable loader and mandatory baseline suite.
+`SCAFFOLD`. Item 11 adds a single-purpose immutable `p1-train` loader and six `p1`-only
+probabilistic baselines while keeping `p2`, `p3`, and `p4` hard sealed behind future lifecycle
+grants. Each baseline supports the no-action condition; the alternate-dose baseline excludes the
+requested dose. Frozen execution uses 512 samples per case and seed for seeds 0 through 4 with
+NumPy `PCG64DXSM`. The exact 2,526,631,614-byte source has been close-reauthenticated, all 94,785
+`p1` rows have been scanned, and content-addressed fitted-state identities for all six baselines
+have been recorded. Seven rows with zero counts on the selected panel are retained, not silently
+excluded. No prediction campaign, metric, baseline comparison, or performance gate has run, so
+benchmark performance and admission remain false.
 
 The [project roadmap](docs/roadmap.md) is the sole authority for implementation order and graduation
 status. The [full buildout architecture](docs/architecture/full-buildout.md) defines the target
@@ -288,6 +300,11 @@ evidence.
   output schema, well-level cases, physical plate splits, planned metrics/baselines, and a
   fail-closed acceptance policy. Its performance gates are unrun and it is not scientifically
   admitted.
+- A narrow sci-Plex3 K562 Item 11 software path: immutable CSR batches from `p1-train` only; six
+  probabilistic raw-count baselines fit only from `p1`, including no-action behavior and a nearest
+  alternate-dose comparator; deterministic `PCG64DXSM` sampling; and streamed, content-addressed
+  fitted-state and prediction-run scaffolding. The exact source scan and six software-only fits are
+  recorded; no baseline prediction, metric, comparison, or performance result is asserted.
 - An experimental biological-bundle and support-envelope contract with an exhaustive stage-port
   map, operation-specific prerequisites, content-addressed training/calibration/validation
   bindings, and a derived component lifecycle. The first sci-Plex3 population assay-response

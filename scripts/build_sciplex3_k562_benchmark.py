@@ -58,6 +58,7 @@ from cellstate.data.benchmarks import (
     EvidenceScopeBinding,
     EvidenceTargetMapping,
     ExactBaselineComparator,
+    ExecutableImplementationBinding,
     ExperimentalUnitBinding,
     ExplicitPartitionMembership,
     LeakageAuditCheck,
@@ -181,6 +182,23 @@ from cellstate.domain.subjects import (
     SubjectKind,
     SubjectSpecification,
     TargetAggregation,
+)
+from cellstate.evaluation.sciplex3_baselines import (
+    DEFAULT_LOW_RANK,
+    EXACT_DISPERSION_GLOBAL_PSEUDO_WELLS,
+    EXACT_MEAN_GLOBAL_PSEUDO_WELLS,
+    HIERARCHICAL_COMPOUND_PSEUDO_WELLS,
+    HIERARCHICAL_CONDITION_WELLS,
+    HIERARCHICAL_GLOBAL_PSEUDO_WELLS,
+    LOW_RANK_MEAN_DECIMALS,
+    LOW_RANK_SVD_TIE_RTOL,
+    MAX_ZERO_TOTAL_REDRAWS,
+    NEAREST_DOSE_TIE_ATOL,
+    RNG_ALGORITHM,
+    SCIPLEX3_BASELINE_IMPLEMENTATION_VERSION,
+    SCIPLEX3_BASELINE_IMPLEMENTATIONS,
+    SCIPLEX3_BASELINE_SAMPLES_PER_CASE_PER_SEED,
+    SCIPLEX3_BASELINE_SEEDS,
 )
 from cellstate.training.objectives import LossKind
 
@@ -1494,7 +1512,52 @@ def _write_support_specs(prep: dict[str, Any]) -> dict[str, ContentAddressedArti
         SUPPORT_DIR / "baseline-suite-spec.json",
         {
             "artifact_schema": "sciplex3-k562-frozen-baseline-suite",
-            "artifact_schema_version": "1.0.0",
+            "artifact_schema_version": "1.1.0",
+            "algorithm_contracts": {
+                "exact-condition-negative-binomial": {
+                    "distribution": "independent-feature Gamma-Poisson",
+                    "dispersion_global_pseudo_wells": (EXACT_DISPERSION_GLOBAL_PSEUDO_WELLS),
+                    "mean_global_pseudo_wells": EXACT_MEAN_GLOBAL_PSEUDO_WELLS,
+                    "positive_panel_maximum_redraws": MAX_ZERO_TOTAL_REDRAWS,
+                },
+                "exact-condition-rep1-empirical-resampling": {
+                    "pool": "exact compound-dose p1 wells; p1 vehicles for no-action",
+                    "sampling": "uniform well then uniform nucleus",
+                    "prediction_support": "conditioned on positive panel total",
+                    "positive_panel_maximum_redraws": MAX_ZERO_TOTAL_REDRAWS,
+                },
+                "hierarchical-well-negative-binomial": {
+                    "compound_pseudo_wells": HIERARCHICAL_COMPOUND_PSEUDO_WELLS,
+                    "condition_wells": HIERARCHICAL_CONDITION_WELLS,
+                    "distribution": "independent-feature Gamma-Poisson",
+                    "global_pseudo_wells": HIERARCHICAL_GLOBAL_PSEUDO_WELLS,
+                    "positive_panel_maximum_redraws": MAX_ZERO_TOTAL_REDRAWS,
+                },
+                "low-rank-compound-dose-response": {
+                    "default_rank": DEFAULT_LOW_RANK,
+                    "effect": "log1p condition mean minus log1p same-plate p1 vehicle mean",
+                    "mean_decimals": LOW_RANK_MEAN_DECIMALS,
+                    "sampling": "Gamma-Poisson with equal-well global dispersion",
+                    "svd_boundary_tie_rtol": LOW_RANK_SVD_TIE_RTOL,
+                    "svd_sign": "maximum-absolute-loading positive",
+                },
+                "matched-vehicle-resampling": {
+                    "no_action_pool": "all p1 vehicle wells",
+                    "sampling": "uniform p1 vehicle well then uniform nucleus",
+                    "treated_pool": "same-plate p1 vehicles for the exact p1 condition",
+                    "prediction_support": "conditioned on positive panel total",
+                    "positive_panel_maximum_redraws": MAX_ZERO_TOTAL_REDRAWS,
+                },
+                "nearest-supported-dose": {
+                    "distance": "absolute log10 dose",
+                    "exact_requested_dose_excluded": True,
+                    "sampling": "uniform selected p1 well then uniform nucleus",
+                    "prediction_support": "conditioned on positive panel total",
+                    "positive_panel_maximum_redraws": MAX_ZERO_TOTAL_REDRAWS,
+                    "tie_absolute_tolerance": NEAREST_DOSE_TIE_ATOL,
+                    "tie_break": "lower dose",
+                },
+            },
             "baselines": [
                 "exact-condition-negative-binomial",
                 "exact-condition-rep1-empirical-resampling",
@@ -1505,7 +1568,28 @@ def _write_support_specs(prep: dict[str, Any]) -> dict[str, ContentAddressedArti
                 "persistence",
                 "temporal-state-space",
             ],
-            "execution_status": "not_run",
+            "training_zero_panel_policy": (
+                "retain every exact p1 record in fit statistics; never exclude or impute a "
+                "zero-panel training row; predictive draws remain strictly positive"
+            ),
+            "code": {
+                "implementation_version": SCIPLEX3_BASELINE_IMPLEMENTATION_VERSION,
+                "path": "src/cellstate/evaluation/sciplex3_baselines.py",
+                "sha256": _sha256_bytes(
+                    (REPO_ROOT / "src/cellstate/evaluation/sciplex3_baselines.py").read_bytes()
+                ),
+            },
+            "execution_status": "software_golden_passed_real_benchmark_not_run",
+            "golden_fixture": {
+                "path": (
+                    "benchmarks/vertical-a/sciplex3-k562-24h-v1/support/"
+                    "baseline-golden-fixtures.json"
+                ),
+                "purpose": "software conformance only; not biological performance evidence",
+                "sha256": _sha256_bytes(
+                    (SUPPORT_DIR / "baseline-golden-fixtures.json").read_bytes()
+                ),
+            },
             "inapplicability": {
                 "persistence": (
                     "requires a pre-cutoff target-modality observation; frozen query has none"
@@ -1514,7 +1598,22 @@ def _write_support_specs(prep: dict[str, Any]) -> dict[str, ContentAddressedArti
                     "also requires at least two future horizons; frozen query has one"
                 ),
             },
+            "input_contract": {
+                "counts": "immutable CSR raw UMI counts on exact ordered 2,000-feature panel",
+                "fit_partition": "p1-train only",
+                "heldout_outcomes_allowed": False,
+                "no_action_cases_required": True,
+                "replication_unit": "well",
+            },
             "mandatory_probabilistic_baselines": list(MANDATORY_PROBABILISTIC_BASELINE_IDS),
+            "prediction_contract": {
+                "bounded_streaming_required": True,
+                "draw_count_independent_of_recovered_nucleus_count": True,
+                "rng_algorithm": RNG_ALGORITHM,
+                "samples_per_case_per_seed": SCIPLEX3_BASELINE_SAMPLES_PER_CASE_PER_SEED,
+                "seed_pooling": "retain labels; pooled point score plus per-seed MC diagnostics",
+                "seeds": list(SCIPLEX3_BASELINE_SEEDS),
+            },
             "scoring_contract": {
                 "candidate_and_baseline_symmetry": (
                     "candidate and every applicable baseline emit raw ordered 2,000-panel count "
@@ -1549,7 +1648,9 @@ def _write_support_specs(prep: dict[str, Any]) -> dict[str, ContentAddressedArti
                 "zero_panel_total_policy": ("error_fail_evaluation_no_exclusion_or_imputation"),
             },
             "limitations": [
-                "No model or applicable baseline has been executed.",
+                "All six applicable baselines have authenticated real-p1 fitted-state identities, "
+                "but no candidate model or baseline has produced protected-partition predictions, "
+                "well-clustered metrics, or paired comparisons.",
                 "Source-duplicate detection beyond exact source row IDs remains unassessed.",
                 "All assessment bindings reuse one explicitly identified physical dataset and "
                 "one four-way physical split.",
@@ -1567,6 +1668,15 @@ def _write_support_specs(prep: dict[str, Any]) -> dict[str, ContentAddressedArti
         ),
         "baseline_suite": _artifact_for_file(
             "sciplex3-frozen-baseline-suite", SUPPORT_DIR / "baseline-suite-spec.json"
+        ),
+        "baseline_code": _artifact_for_file(
+            "sciplex3-baseline-implementation",
+            REPO_ROOT / "src/cellstate/evaluation/sciplex3_baselines.py",
+            media_type="text/x-python",
+        ),
+        "baseline_golden": _artifact_for_file(
+            "sciplex3-baseline-golden-fixtures",
+            SUPPORT_DIR / "baseline-golden-fixtures.json",
         ),
         "feature_panel": feature_panel_artifact,
         "leakage_evidence": _artifact_for_file(
@@ -2125,17 +2235,84 @@ def build_baselines(
         ("persistence", True, 1),
         ("temporal-state-space", True, 2),
     )
+    algorithm_parameters: dict[str, dict[str, str | int | float | bool]] = {
+        "exact-condition-negative-binomial": {
+            "dispersion_global_pseudo_wells": EXACT_DISPERSION_GLOBAL_PSEUDO_WELLS,
+            "mean_global_pseudo_wells": EXACT_MEAN_GLOBAL_PSEUDO_WELLS,
+            "maximum_zero_total_redraws": MAX_ZERO_TOTAL_REDRAWS,
+        },
+        "exact-condition-rep1-empirical-resampling": {
+            "maximum_zero_total_redraws": MAX_ZERO_TOTAL_REDRAWS,
+            "prediction_support": "conditioned_positive_panel_total",
+            "sampling": "uniform_well_then_uniform_nucleus",
+        },
+        "hierarchical-well-negative-binomial": {
+            "compound_pseudo_wells": HIERARCHICAL_COMPOUND_PSEUDO_WELLS,
+            "condition_wells": HIERARCHICAL_CONDITION_WELLS,
+            "global_pseudo_wells": HIERARCHICAL_GLOBAL_PSEUDO_WELLS,
+            "maximum_zero_total_redraws": MAX_ZERO_TOTAL_REDRAWS,
+        },
+        "low-rank-compound-dose-response": {
+            "mean_decimals": LOW_RANK_MEAN_DECIMALS,
+            "rank": DEFAULT_LOW_RANK,
+            "svd_boundary_tie_rtol": LOW_RANK_SVD_TIE_RTOL,
+        },
+        "matched-vehicle-resampling": {
+            "maximum_zero_total_redraws": MAX_ZERO_TOTAL_REDRAWS,
+            "prediction_support": "conditioned_positive_panel_total",
+            "sampling": "uniform_p1_vehicle_well_then_uniform_nucleus",
+        },
+        "nearest-supported-dose": {
+            "exclude_exact_requested_dose": True,
+            "maximum_zero_total_redraws": MAX_ZERO_TOTAL_REDRAWS,
+            "prediction_support": "conditioned_positive_panel_total",
+            "tie_absolute_tolerance": NEAREST_DOSE_TIE_ATOL,
+            "tie_break": "lower_dose",
+        },
+    }
     baselines = []
     for baseline_id, needs_pre_cutoff_target, horizon_count in specs:
+        executable = baseline_id in SCIPLEX3_BASELINE_IMPLEMENTATIONS
+        parameters: dict[str, str | int | float | bool] = {
+            "well_is_replication_unit": True,
+        }
+        if executable:
+            parameters.update(
+                {
+                    "heldout_outcomes_allowed": False,
+                    "rng_algorithm": RNG_ALGORITHM,
+                    "samples_per_case_per_seed": (SCIPLEX3_BASELINE_SAMPLES_PER_CASE_PER_SEED),
+                    "seed_schedule": ",".join(str(seed) for seed in SCIPLEX3_BASELINE_SEEDS),
+                }
+            )
+            parameters.update(algorithm_parameters[baseline_id])
+            baseline_class = SCIPLEX3_BASELINE_IMPLEMENTATIONS[baseline_id]
+            implementation_binding: (
+                ExecutableImplementationBinding | SpecificationOnlyImplementationBinding
+            ) = ExecutableImplementationBinding(
+                specification_artifact=support["baseline_suite"],
+                implementation=VersionedImplementation(
+                    implementation_id=f"cellstate.sciplex3-baseline.{baseline_id}",
+                    implementation_version=SCIPLEX3_BASELINE_IMPLEMENTATION_VERSION,
+                    code_artifact=support["baseline_code"],
+                    entrypoint=(
+                        f"cellstate.evaluation.sciplex3_baselines:{baseline_class.__name__}"
+                    ),
+                    runtime="python-3.11+numpy-2.4.6",
+                ),
+                golden_fixture_artifact=support["baseline_golden"],
+            )
+        else:
+            implementation_binding = _specification_only(
+                support["baseline_suite"],
+                component=f"{baseline_id} baseline",
+            )
         baselines.append(
             BenchmarkBaselineDefinition(
                 baseline_id=baseline_id,
-                baseline_version="1.0.0-definition",
+                baseline_version="1.1.0" if executable else "1.0.0-definition",
                 query_fingerprint=query.fingerprint,
-                implementation_binding=_specification_only(
-                    support["baseline_suite"],
-                    component=f"{baseline_id} baseline",
-                ),
+                implementation_binding=implementation_binding,
                 applicability=BaselineApplicabilityRule(
                     allowed_subject_kinds=(SubjectKind.POPULATION,),
                     requires_intervention_space=True,
@@ -2144,8 +2321,11 @@ def build_baselines(
                     minimum_horizon_count=horizon_count,
                 ),
                 training_partition_ids=(train_partition,),
-                parameters=(BenchmarkParameter(name="well_is_replication_unit", value=True),),
-                seeds=(0, 1, 2, 3, 4),
+                parameters=tuple(
+                    BenchmarkParameter(name=name, value=value)
+                    for name, value in sorted(parameters.items())
+                ),
+                seeds=SCIPLEX3_BASELINE_SEEDS,
             )
         )
     return tuple(sorted(baselines, key=lambda item: item.baseline_id))
@@ -2524,8 +2704,9 @@ def build_definition(
         notes=tuple(
             sorted(
                 (
-                    "All model, metric, uncertainty, and applicable baseline executions remain "
-                    "blocked until executable implementations and golden fixtures exist.",
+                    "Model, metric, uncertainty, and real-data baseline prediction executions "
+                    "remain blocked; baseline code has passed only synthetic software golden "
+                    "fixtures.",
                     "Compound labels are source-scoped administered agents only; no chemical "
                     "ontology identity, biological target, or target-engagement claim is made.",
                     "The benchmark has no pre-cutoff molecular observation, tracked cell, "
@@ -2707,9 +2888,10 @@ def build_admission(
                     status=BaselineRunStatus.NOT_RUN,
                     applicability_rule_fingerprint=baseline.applicability.fingerprint,
                     blockers=(
-                        "The applicable baseline has a frozen definition but has not passed "
-                        "executable golden cases or produced predictions and well-clustered "
-                        "metric results.",
+                        "The applicable baseline passed synthetic software golden conformance and "
+                        "has an authenticated real-p1 fitted-state identity, but protected-"
+                        "partition predictions and well-clustered metric results have not been "
+                        "produced.",
                     ),
                 )
             )
@@ -2744,8 +2926,9 @@ def build_admission(
         reasons=tuple(
             sorted(
                 (
-                    "Applicable mandatory baselines and benchmark metric implementations have not "
-                    "been executed against golden cases or protected evaluation partitions.",
+                    "All six applicable baselines passed synthetic software golden cases and have "
+                    "authenticated real-p1 fitted-state identities, but no protected prediction "
+                    "campaign, metric execution, or paired baseline comparison has completed.",
                     "This endpoint-only component has no pre-intervention molecular measurement, "
                     "same-cell linkage, viability target, second horizon, or external-study "
                     "transport evidence.",

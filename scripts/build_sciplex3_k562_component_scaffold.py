@@ -126,7 +126,8 @@ PORT_RATIONALES = {
         "One context-to-endpoint experiment cannot establish hidden-state sufficiency."
     ),
     BiologicalStagePort.TRAIN_CAL_DATA_LOADER: (
-        "A loader enforcing p1 training, p2 calibration, p3 selection, and locked p4 use is absent."
+        "A software-verified p1-only training loader exists, but admitted grant-bound p2 "
+        "calibration, p3 selection, and locked p4 loading remain absent."
     ),
     BiologicalStagePort.TRANSITION_MODEL: (
         "The component predicts one 24-hour endpoint directly and does not expose state dynamics."

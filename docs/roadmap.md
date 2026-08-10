@@ -285,9 +285,14 @@ estimation and exposes none of the four public operations. Step 10 completed the
 boundary around contract v0.1 declarations: exact bytes, loaded interfaces, semantic results, and
 query-derived prerequisites can now be authenticated and rebound without turning a serialized
 receipt into runtime authority. That infrastructure does not supply a trained model, run a metric,
-or pass a scientific gate. The sci-Plex3 artifact therefore remains a non-executable `SCAFFOLD`.
-The next implementation gate is its immutable data loader and mandatory baseline suite; it must not
-present unrun performance as a validated biological belief.
+or pass a scientific gate. Item 11 has now completed the first frozen-data software path. Its
+immutable, single-purpose `p1-train` loader close-reauthenticated the exact 2,526,631,614-byte
+source, scanned all 94,785 training records across 768 wells, and froze content-addressed fitted-
+state identities for all six probabilistic baselines. The loader does not parse held-out outcomes
+and refuses `p2`, `p3`, and `p4` before source access unless future lifecycle-bound grants exist.
+These are software provenance artifacts, not benchmark results: no prediction campaign, metric,
+comparison, or performance gate has run. The sci-Plex3 component therefore remains a non-
+executable `SCAFFOLD` and must not present unrun performance as a validated biological belief.
 
 The next development work proceeds in this order:
 
@@ -345,13 +350,32 @@ The next development work proceeds in this order:
     scope, forged attestations, failed results, or omitted/extra receipts remain blockers. The
     sci-Plex3 component remains at `SCAFFOLD` because it still has no trained artifact, executable
     evaluation, mandatory baseline results, or admitted benchmark.
+11. **Completed 2026-08-10:** implement the first frozen-data software path without opening a
+    held-out lifecycle stage. The single-purpose loader authenticates the exact sci-Plex3 H5AD and
+    checked-in `p1` closure, then yields immutable sparse raw-count batches on the ordered 2,000-
+    feature panel. `p2` calibration, `p3` model selection, and `p4` untouched evaluation remain
+    hard sealed pending future grants bound respectively to `TRAINED_CANDIDATE`,
+    `CALIBRATED_CANDIDATE`, and `MODEL_SELECTED_FROZEN` lifecycle states. Six mandatory
+    probabilistic algorithms fit only from `p1`: matched-vehicle resampling, exact-condition
+    empirical resampling, exact-condition negative binomial, hierarchical well negative binomial,
+    low-rank compound-dose response, and nearest-supported-dose resampling. Every algorithm has an
+    explicit no-action path; matched vehicles come only from `p1` source plates, and nearest dose
+    excludes the exact requested dose. Frozen prediction semantics are 512 samples per case and
+    seed, seeds 0 through 4, and NumPy `PCG64DXSM`. Fitted-state manifests and prediction shards are
+    designed for content addressing and streaming rather than a dense campaign-wide materialization.
+    The exact source was authenticated before and after use; all 94,785 `p1` records across 768
+    wells were scanned; seven genuine zero-panel rows were retained; and six fitted-state identities
+    were materialized with no held-out access or lifecycle authority. None of this is baseline
+    performance, scientific admission, or a public cell-state runtime.
 
-The immediate next work is to implement the immutable sci-Plex3 data loader and mandatory baseline
-suite, followed by the first candidate distribution model, using `p1` for parameter fitting, `p2`
-for calibration, `p3` for model selection and freezing, and `p4` only for untouched evaluation.
-Passing that component lifecycle would authorize only the exact assay-response API; a hidden-state
-backend still requires its own observation/prior, inference, dynamics, sufficiency,
-identifiability, and operation-specific evidence.
+The immediate next work is the first candidate distribution model, using `p1` for parameter fitting
+and preserving the completed Item 11 source and fit closure. A future trusted grant may open `p2`
+for calibration only after an exact `TRAINED_CANDIDATE`; a separate grant may open `p3` for model
+selection and freezing only after calibration; and `p4` remains untouched until a locked evaluator
+receives an exact `MODEL_SELECTED_FROZEN` candidate. Passing that component lifecycle would
+authorize only the exact assay-response API; a hidden-state backend still requires its own
+observation/prior, inference, dynamics, sufficiency, identifiability, and operation-specific
+evidence.
 
 This sequence corrects the semantic spine before adapters or models depend on it. It preserves the
 existing manifest work while ensuring the first implementation cannot satisfy software contracts by

@@ -1557,6 +1557,7 @@ def _benchmark_evaluation_complete(benchmark: BenchmarkArtifact) -> bool:
     ) or any(
         not isinstance(baseline.implementation_binding, ExecutableImplementationBinding)
         for baseline in definition.baselines
+        if baseline.applicability.applies_to(definition.query.state_query)
     ):
         return False
     expected_results = {

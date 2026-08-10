@@ -66,6 +66,16 @@
   state, deterministic query-derived prerequisites, and just-in-time reverified runtime handles.
   These checks advance infrastructure only; the sci-Plex3 component remains a non-runnable
   `SCAFFOLD` pending its immutable loader and mandatory baseline suite.
+- Add the Item 11 sci-Plex3 software path without advancing biological admission: a permanently
+  `p1-train`-scoped immutable H5AD loader; six `p1`-fit probabilistic raw-count baselines with
+  explicit no-action behavior and an exact-dose-excluding nearest-dose comparator; fixed
+  512-sample, five-seed `PCG64DXSM` execution semantics; and streamed, content-addressed fitted-
+  state and prediction-run scaffolding. `p2`, `p3`, and `p4` remain hard sealed behind future
+  lifecycle grants. Record the exact close-reauthenticated source scan of 94,785 `p1` rows across
+  768 wells and all six content-addressed fitted-state identities, retaining seven genuine zero-
+  panel rows. These are software provenance, not prediction or performance results: the benchmark
+  stays `COMPONENT_BENCHMARK`, the bundle stays `SCAFFOLD`, and no public cell-state runtime is
+  added.
 
 ## 0.1.0 - Unreleased
 

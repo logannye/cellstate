@@ -17,7 +17,7 @@
     "heldout_count_rows_accessed": 0
   },
   "limitations": [
-    "No model or applicable baseline has been executed.",
+    "All six applicable baselines have authenticated real-p1 fitted-state identities, but no candidate model or baseline has produced protected-partition predictions, well-clustered metrics, or paired comparisons.",
     "Source-duplicate detection beyond exact source row IDs remains unassessed.",
     "All assessment bindings reuse one explicitly identified physical dataset and one four-way physical split."
   ],
