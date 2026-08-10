@@ -1,0 +1,363 @@
+{
+  "artifact_schema": "sciplex3-k562-frozen-partitions",
+  "artifact_schema_version": "1.0.0",
+  "assignment_unit": "plate",
+  "cross_partition_checks": {
+    "all_evaluation_conditions_have_rep1_train_counterparts": true,
+    "protected_plate_overlap_count": 0,
+    "record_overlap_count": 0,
+    "rep2_compound_overlap_count": 0,
+    "rep2_compound_union_count": 188,
+    "well_overlap_count": 0
+  },
+  "metric_evaluation_unit": {
+    "encoding": "canonical_json_utf8_string_array_v1",
+    "identity_kind": "COMPOSITE_SOURCE_FIELDS",
+    "level": "WELL",
+    "source_fields": [
+      "plate",
+      "well"
+    ]
+  },
+  "partition_rule_uses_only_preoutcome_design_metadata": true,
+  "partitions": [
+    {
+      "composite_well_ids_encoded_byte_count": 22561,
+      "composite_well_ids_encoding": "canonical_json_utf8_string_array_v1",
+      "composite_well_ids_sha256": "6bc034fed88548b25002d3d273cc6744e1d7875acb11c42d5b066599cb473c46",
+      "compound_count": 188,
+      "condition_group_count": 753,
+      "control_well_count": 16,
+      "dose_values_nm": [
+        10,
+        100,
+        1000,
+        10000
+      ],
+      "membership_artifacts": {
+        "plate_ids": {
+          "byte_count": 73,
+          "encoding": "canonical_json_utf8_string_array_v1",
+          "media_type": "application/json",
+          "relative_path": "memberships/train-plate-ids.json",
+          "sha256": "d163d82b08f4195903b83c55ed484bf294ed490d84d064f6433dc456f8aab035"
+        },
+        "record_ids": {
+          "byte_count": 2888396,
+          "encoding": "canonical_json_utf8_string_array_v1",
+          "media_type": "application/json",
+          "relative_path": "memberships/train-record-ids.json",
+          "sha256": "a57e083023e818f5e9dabcef1f9a45af23b270ed0e198049a970867fb28fffcd"
+        },
+        "record_to_well": {
+          "byte_count": 5863401,
+          "encoding": "canonical_json_utf8_string_pair_array_v1",
+          "media_type": "application/json",
+          "relative_path": "memberships/train-record-to-well.json",
+          "sha256": "d01406c592fc67a0730fdddde912a9ca7801cd1d356eb13586c35251fad36d2b"
+        },
+        "well_ids": {
+          "byte_count": 22561,
+          "encoding": "canonical_json_utf8_string_array_v1",
+          "media_type": "application/json",
+          "relative_path": "memberships/train-well-ids.json",
+          "sha256": "6bc034fed88548b25002d3d273cc6744e1d7875acb11c42d5b066599cb473c46"
+        },
+        "well_to_condition": {
+          "byte_count": 53065,
+          "encoding": "canonical_json_utf8_string_pair_array_v1",
+          "media_type": "application/json",
+          "relative_path": "memberships/train-well-to-condition.json",
+          "sha256": "4bb1bc08e0fb9c819f9512fc34e28beb6ad8cc3c19d853851884a89517939743"
+        }
+      },
+      "normalized_perturbation_labels_encoded_byte_count": 3493,
+      "normalized_perturbation_labels_encoding": "canonical_json_utf8_string_array_v1",
+      "normalized_perturbation_labels_sha256": "0a8ff149bb1e6d1363c83bb0dcace914bc99c6d3f3f6f6d3b186ff3e0731ad2b",
+      "partition_role": "train",
+      "plate_ids_encoded_byte_count": 73,
+      "plate_ids_encoding": "canonical_json_utf8_string_array_v1",
+      "plate_ids_sha256": "d163d82b08f4195903b83c55ed484bf294ed490d84d064f6433dc456f8aab035",
+      "record_count": 94785,
+      "record_ids_encoded_byte_count": 2888396,
+      "record_ids_encoding": "canonical_json_utf8_string_array_v1",
+      "record_ids_sha256": "a57e083023e818f5e9dabcef1f9a45af23b270ed0e198049a970867fb28fffcd",
+      "record_to_well_encoded_byte_count": 5863401,
+      "record_to_well_encoding": "canonical_json_utf8_string_pair_array_v1",
+      "record_to_well_sha256": "d01406c592fc67a0730fdddde912a9ca7801cd1d356eb13586c35251fad36d2b",
+      "selector": {
+        "plate": [
+          "plate1",
+          "plate2",
+          "plate3",
+          "plate4",
+          "plate5",
+          "plate6",
+          "plate7",
+          "plate8"
+        ],
+        "replicate": "rep1"
+      },
+      "source_perturbation_labels_encoded_byte_count": 3504,
+      "source_perturbation_labels_encoding": "canonical_json_utf8_string_array_v1",
+      "source_perturbation_labels_sha256": "61a777024c85c7ef4f589fd984d9ffa3972aeae5bf799b6e6950c0e171681ce0",
+      "treated_well_count": 752,
+      "well_count": 768,
+      "well_to_condition_encoded_byte_count": 53065,
+      "well_to_condition_encoding": "canonical_json_utf8_string_pair_array_v1",
+      "well_to_condition_sha256": "4bb1bc08e0fb9c819f9512fc34e28beb6ad8cc3c19d853851884a89517939743"
+    },
+    {
+      "composite_well_ids_encoded_byte_count": 5809,
+      "composite_well_ids_encoding": "canonical_json_utf8_string_array_v1",
+      "composite_well_ids_sha256": "a86e15037702deae47bb919769dc180b2852294813e14f8664d3122c82b284f0",
+      "compound_count": 47,
+      "condition_group_count": 189,
+      "control_well_count": 4,
+      "dose_values_nm": [
+        10,
+        100,
+        1000,
+        10000
+      ],
+      "membership_artifacts": {
+        "plate_ids": {
+          "byte_count": 21,
+          "encoding": "canonical_json_utf8_string_array_v1",
+          "media_type": "application/json",
+          "relative_path": "memberships/calibration-plate-ids.json",
+          "sha256": "bd651f3d4944f674a7b636e5c030d0b3b5ca0079915ce1c8a7bbc15d8d56cc61"
+        },
+        "record_ids": {
+          "byte_count": 548494,
+          "encoding": "canonical_json_utf8_string_array_v1",
+          "media_type": "application/json",
+          "relative_path": "memberships/calibration-record-ids.json",
+          "sha256": "57394a1a6e978bf5362e750816be18febd75b8c4e8d65d0389c39687d407656e"
+        },
+        "record_to_well": {
+          "byte_count": 1129088,
+          "encoding": "canonical_json_utf8_string_pair_array_v1",
+          "media_type": "application/json",
+          "relative_path": "memberships/calibration-record-to-well.json",
+          "sha256": "c6534f63ad04cf5e147bbc7c99b3a4778af5a25b80a4310eea3e4447e3d9a1ee"
+        },
+        "well_ids": {
+          "byte_count": 5809,
+          "encoding": "canonical_json_utf8_string_array_v1",
+          "media_type": "application/json",
+          "relative_path": "memberships/calibration-well-ids.json",
+          "sha256": "a86e15037702deae47bb919769dc180b2852294813e14f8664d3122c82b284f0"
+        },
+        "well_to_condition": {
+          "byte_count": 13643,
+          "encoding": "canonical_json_utf8_string_pair_array_v1",
+          "media_type": "application/json",
+          "relative_path": "memberships/calibration-well-to-condition.json",
+          "sha256": "96e5c7017df23bd7d0d04b62a43c6351289292fc8ab717ef7e6d849568430a92"
+        }
+      },
+      "normalized_perturbation_labels_encoded_byte_count": 926,
+      "normalized_perturbation_labels_encoding": "canonical_json_utf8_string_array_v1",
+      "normalized_perturbation_labels_sha256": "322d6cdaff2cae056d0093a1ba4848656ffcbf6aed26efc1a353991c44e74413",
+      "partition_role": "calibration",
+      "plate_ids_encoded_byte_count": 21,
+      "plate_ids_encoding": "canonical_json_utf8_string_array_v1",
+      "plate_ids_sha256": "bd651f3d4944f674a7b636e5c030d0b3b5ca0079915ce1c8a7bbc15d8d56cc61",
+      "record_count": 18001,
+      "record_ids_encoded_byte_count": 548494,
+      "record_ids_encoding": "canonical_json_utf8_string_array_v1",
+      "record_ids_sha256": "57394a1a6e978bf5362e750816be18febd75b8c4e8d65d0389c39687d407656e",
+      "record_to_well_encoded_byte_count": 1129088,
+      "record_to_well_encoding": "canonical_json_utf8_string_pair_array_v1",
+      "record_to_well_sha256": "c6534f63ad04cf5e147bbc7c99b3a4778af5a25b80a4310eea3e4447e3d9a1ee",
+      "selector": {
+        "plate": [
+          "plate25",
+          "plate26"
+        ],
+        "replicate": "rep2"
+      },
+      "source_perturbation_labels_encoded_byte_count": 927,
+      "source_perturbation_labels_encoding": "canonical_json_utf8_string_array_v1",
+      "source_perturbation_labels_sha256": "8d00da63f4a94cc997b083e924a375a5a956ed81d9ee869e246646ddf74d1192",
+      "treated_well_count": 188,
+      "well_count": 192,
+      "well_to_condition_encoded_byte_count": 13643,
+      "well_to_condition_encoding": "canonical_json_utf8_string_pair_array_v1",
+      "well_to_condition_sha256": "96e5c7017df23bd7d0d04b62a43c6351289292fc8ab717ef7e6d849568430a92"
+    },
+    {
+      "composite_well_ids_encoded_byte_count": 5809,
+      "composite_well_ids_encoding": "canonical_json_utf8_string_array_v1",
+      "composite_well_ids_sha256": "ecb70d2b696fcf1de0755a0791cd96ded6963b5c526902503339be4f05a074bd",
+      "compound_count": 47,
+      "condition_group_count": 189,
+      "control_well_count": 4,
+      "dose_values_nm": [
+        10,
+        100,
+        1000,
+        10000
+      ],
+      "membership_artifacts": {
+        "plate_ids": {
+          "byte_count": 21,
+          "encoding": "canonical_json_utf8_string_array_v1",
+          "media_type": "application/json",
+          "relative_path": "memberships/model_selection_validation-plate-ids.json",
+          "sha256": "ff85f619245543b37ef9c5bedbb4fea5db3858ac6764484849f88b81b6059c2a"
+        },
+        "record_ids": {
+          "byte_count": 624046,
+          "encoding": "canonical_json_utf8_string_array_v1",
+          "media_type": "application/json",
+          "relative_path": "memberships/model_selection_validation-record-ids.json",
+          "sha256": "2217064bb9320b7e11d93828299fa6b6385d9d25f27fbd37a1bb99e1f98514c9"
+        },
+        "record_to_well": {
+          "byte_count": 1284805,
+          "encoding": "canonical_json_utf8_string_pair_array_v1",
+          "media_type": "application/json",
+          "relative_path": "memberships/model_selection_validation-record-to-well.json",
+          "sha256": "dce201c0b99fc830c942abcaf91f5a7b2e0878688fc8204db1407e105377f258"
+        },
+        "well_ids": {
+          "byte_count": 5809,
+          "encoding": "canonical_json_utf8_string_array_v1",
+          "media_type": "application/json",
+          "relative_path": "memberships/model_selection_validation-well-ids.json",
+          "sha256": "ecb70d2b696fcf1de0755a0791cd96ded6963b5c526902503339be4f05a074bd"
+        },
+        "well_to_condition": {
+          "byte_count": 13031,
+          "encoding": "canonical_json_utf8_string_pair_array_v1",
+          "media_type": "application/json",
+          "relative_path": "memberships/model_selection_validation-well-to-condition.json",
+          "sha256": "9fa2ec52b130a6dd64e345cdba46d14519d84bfdf8ea8e275e2d6278afe5e3f4"
+        }
+      },
+      "normalized_perturbation_labels_encoded_byte_count": 773,
+      "normalized_perturbation_labels_encoding": "canonical_json_utf8_string_array_v1",
+      "normalized_perturbation_labels_sha256": "ab50028ed40928d54bc7fea2790a24f49644513f88c9779eea580cdd866806f8",
+      "partition_role": "model_selection_validation",
+      "plate_ids_encoded_byte_count": 21,
+      "plate_ids_encoding": "canonical_json_utf8_string_array_v1",
+      "plate_ids_sha256": "ff85f619245543b37ef9c5bedbb4fea5db3858ac6764484849f88b81b6059c2a",
+      "record_count": 20481,
+      "record_ids_encoded_byte_count": 624046,
+      "record_ids_encoding": "canonical_json_utf8_string_array_v1",
+      "record_ids_sha256": "2217064bb9320b7e11d93828299fa6b6385d9d25f27fbd37a1bb99e1f98514c9",
+      "record_to_well_encoded_byte_count": 1284805,
+      "record_to_well_encoding": "canonical_json_utf8_string_pair_array_v1",
+      "record_to_well_sha256": "dce201c0b99fc830c942abcaf91f5a7b2e0878688fc8204db1407e105377f258",
+      "selector": {
+        "plate": [
+          "plate27",
+          "plate28"
+        ],
+        "replicate": "rep2"
+      },
+      "source_perturbation_labels_encoded_byte_count": 775,
+      "source_perturbation_labels_encoding": "canonical_json_utf8_string_array_v1",
+      "source_perturbation_labels_sha256": "e9f0150b79b28b99c1b880b4f1dd4192999e1b06efba14191538048af9104123",
+      "treated_well_count": 188,
+      "well_count": 192,
+      "well_to_condition_encoded_byte_count": 13031,
+      "well_to_condition_encoding": "canonical_json_utf8_string_pair_array_v1",
+      "well_to_condition_sha256": "9fa2ec52b130a6dd64e345cdba46d14519d84bfdf8ea8e275e2d6278afe5e3f4"
+    },
+    {
+      "composite_well_ids_encoded_byte_count": 11713,
+      "composite_well_ids_encoding": "canonical_json_utf8_string_array_v1",
+      "composite_well_ids_sha256": "fa28c67b01064badd0ee7d5c5c9e3d32e9254a76e887dff2f64823a8e3b4b815",
+      "compound_count": 94,
+      "condition_group_count": 377,
+      "control_well_count": 8,
+      "dose_values_nm": [
+        10,
+        100,
+        1000,
+        10000
+      ],
+      "membership_artifacts": {
+        "plate_ids": {
+          "byte_count": 41,
+          "encoding": "canonical_json_utf8_string_array_v1",
+          "media_type": "application/json",
+          "relative_path": "memberships/untouched_test-plate-ids.json",
+          "sha256": "77ff1b217404d722b4f28ecbdac1703d9e1bc1205f3d6dce831d4a600a7f1a53"
+        },
+        "record_ids": {
+          "byte_count": 1230423,
+          "encoding": "canonical_json_utf8_string_array_v1",
+          "media_type": "application/json",
+          "relative_path": "memberships/untouched_test-record-ids.json",
+          "sha256": "ca22f394d3f8105f79efa1e21d47857f165b49bffd5d792613c6e4b71e881751"
+        },
+        "record_to_well": {
+          "byte_count": 2541731,
+          "encoding": "canonical_json_utf8_string_pair_array_v1",
+          "media_type": "application/json",
+          "relative_path": "memberships/untouched_test-record-to-well.json",
+          "sha256": "f59b14eb7ce873d28a25ba42b2954dbffd17e8db518b239c908cf88a22c6e494"
+        },
+        "well_ids": {
+          "byte_count": 11713,
+          "encoding": "canonical_json_utf8_string_array_v1",
+          "media_type": "application/json",
+          "relative_path": "memberships/untouched_test-well-ids.json",
+          "sha256": "fa28c67b01064badd0ee7d5c5c9e3d32e9254a76e887dff2f64823a8e3b4b815"
+        },
+        "well_to_condition": {
+          "byte_count": 27161,
+          "encoding": "canonical_json_utf8_string_pair_array_v1",
+          "media_type": "application/json",
+          "relative_path": "memberships/untouched_test-well-to-condition.json",
+          "sha256": "11916bc00b4c0c277e16c6f6e913d5c197d9ec6d8abdf42e31a593717d3dcf79"
+        }
+      },
+      "normalized_perturbation_labels_encoded_byte_count": 1796,
+      "normalized_perturbation_labels_encoding": "canonical_json_utf8_string_array_v1",
+      "normalized_perturbation_labels_sha256": "9eb590fd828677b540de78fb945883481d8b05fbe3ac09aa391ba2b35129b8fe",
+      "partition_role": "untouched_test",
+      "plate_ids_encoded_byte_count": 41,
+      "plate_ids_encoding": "canonical_json_utf8_string_array_v1",
+      "plate_ids_sha256": "77ff1b217404d722b4f28ecbdac1703d9e1bc1205f3d6dce831d4a600a7f1a53",
+      "record_count": 40385,
+      "record_ids_encoded_byte_count": 1230423,
+      "record_ids_encoding": "canonical_json_utf8_string_array_v1",
+      "record_ids_sha256": "ca22f394d3f8105f79efa1e21d47857f165b49bffd5d792613c6e4b71e881751",
+      "record_to_well_encoded_byte_count": 2541731,
+      "record_to_well_encoding": "canonical_json_utf8_string_pair_array_v1",
+      "record_to_well_sha256": "f59b14eb7ce873d28a25ba42b2954dbffd17e8db518b239c908cf88a22c6e494",
+      "selector": {
+        "plate": [
+          "plate29",
+          "plate30",
+          "plate31",
+          "plate32"
+        ],
+        "replicate": "rep2"
+      },
+      "source_perturbation_labels_encoded_byte_count": 1804,
+      "source_perturbation_labels_encoding": "canonical_json_utf8_string_array_v1",
+      "source_perturbation_labels_sha256": "cbf7cc2b568de5c8e46391434ece0286db2728baccf6a40dd0f0a6df6b73dcdf",
+      "treated_well_count": 376,
+      "well_count": 384,
+      "well_to_condition_encoded_byte_count": 27161,
+      "well_to_condition_encoding": "canonical_json_utf8_string_pair_array_v1",
+      "well_to_condition_sha256": "11916bc00b4c0c277e16c6f6e913d5c197d9ec6d8abdf42e31a593717d3dcf79"
+    }
+  ],
+  "protected_parent_unit": "plate",
+  "record_unit": "_index",
+  "scientific_scope": {
+    "tests_external_study_transport": false,
+    "tests_independent_well_replicate_transfer": true,
+    "tests_pretreatment_molecular_state": false,
+    "tests_unseen_compounds": false
+  },
+  "source_sha256": "603ed16c5e25401c8a7f5bb0b2b045179701017d65dcfc6aeea71722a66cd10a",
+  "universe_record_ids_sha256": "5d3b5c1288fe104d104851a03304dddfbe6814608fd4dcf8b565134fffdd2428"
+}

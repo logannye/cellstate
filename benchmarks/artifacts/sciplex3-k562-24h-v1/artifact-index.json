@@ -1,0 +1,207 @@
+{
+  "admission_decision": "not_made",
+  "artifact_schema": "sciplex3-k562-preparation-index",
+  "artifact_schema_version": "1.0.0",
+  "artifacts": [
+    {
+      "byte_count": 1884,
+      "media_type": "application/json",
+      "relative_path": "source-verification.json",
+      "sha256": "84d871ebc56a3343bf1277e7a6e7c9cc6dec9f28ba8e93fd4404a4c9b5e7fda7"
+    },
+    {
+      "byte_count": 4179,
+      "media_type": "application/json",
+      "relative_path": "k562-universe.json",
+      "sha256": "af77a87c1add0f818646397b1cf0b487099feae684e085968af027d525ec3399"
+    },
+    {
+      "byte_count": 16552,
+      "media_type": "application/json",
+      "relative_path": "partitions.json",
+      "sha256": "de6f2aee741100721ee6eb11e54a4b3a5ac544dee1ec58e7d74a716e1fcbe4d7"
+    },
+    {
+      "byte_count": 1404308,
+      "media_type": "application/json",
+      "relative_path": "well-groups.json",
+      "sha256": "2f21765f99f3dc6c85fce9720566296634f9e5e9823a4fa229ab76697939ed53"
+    },
+    {
+      "byte_count": 1287,
+      "media_type": "application/json",
+      "relative_path": "intervention-labels.json",
+      "sha256": "b1a3207d93ad163a23ee93d3447c67c7e441e227cb8931ded3426c701baf4818"
+    },
+    {
+      "byte_count": 922201,
+      "media_type": "application/json",
+      "relative_path": "feature-panel.json",
+      "sha256": "3935f749cf7feb45883f8ddadcbbbffc71749c7452126e7f53eba16f32585b66"
+    },
+    {
+      "byte_count": 5291356,
+      "media_type": "application/json",
+      "relative_path": "memberships/universe-record-ids.json",
+      "sha256": "5d3b5c1288fe104d104851a03304dddfbe6814608fd4dcf8b565134fffdd2428"
+    },
+    {
+      "byte_count": 45889,
+      "media_type": "application/json",
+      "relative_path": "memberships/universe-well-ids.json",
+      "sha256": "eaccd2bacd34c35a2cf9603bd6c387fb7765150f91496af3be7701a9abce2ea7"
+    },
+    {
+      "byte_count": 153,
+      "media_type": "application/json",
+      "relative_path": "memberships/universe-plate-ids.json",
+      "sha256": "d2c7e190c29753513e10412e42adf3323676a135439a1c7f9c7699a1d5899d9b"
+    },
+    {
+      "byte_count": 10819022,
+      "media_type": "application/json",
+      "relative_path": "memberships/universe-record-to-well.json",
+      "sha256": "c18ba250f9dd3aa0c1b19c18291a79ec15376c0a0b25cf2c179c95ad03ee9aed"
+    },
+    {
+      "byte_count": 106897,
+      "media_type": "application/json",
+      "relative_path": "memberships/universe-well-to-condition.json",
+      "sha256": "599a23889bc4deae974fbd49d2d42eef16693b13f531e14a8c7ac0fb51fc8338"
+    },
+    {
+      "byte_count": 2888396,
+      "media_type": "application/json",
+      "relative_path": "memberships/train-record-ids.json",
+      "sha256": "a57e083023e818f5e9dabcef1f9a45af23b270ed0e198049a970867fb28fffcd"
+    },
+    {
+      "byte_count": 22561,
+      "media_type": "application/json",
+      "relative_path": "memberships/train-well-ids.json",
+      "sha256": "6bc034fed88548b25002d3d273cc6744e1d7875acb11c42d5b066599cb473c46"
+    },
+    {
+      "byte_count": 73,
+      "media_type": "application/json",
+      "relative_path": "memberships/train-plate-ids.json",
+      "sha256": "d163d82b08f4195903b83c55ed484bf294ed490d84d064f6433dc456f8aab035"
+    },
+    {
+      "byte_count": 5863401,
+      "media_type": "application/json",
+      "relative_path": "memberships/train-record-to-well.json",
+      "sha256": "d01406c592fc67a0730fdddde912a9ca7801cd1d356eb13586c35251fad36d2b"
+    },
+    {
+      "byte_count": 53065,
+      "media_type": "application/json",
+      "relative_path": "memberships/train-well-to-condition.json",
+      "sha256": "4bb1bc08e0fb9c819f9512fc34e28beb6ad8cc3c19d853851884a89517939743"
+    },
+    {
+      "byte_count": 548494,
+      "media_type": "application/json",
+      "relative_path": "memberships/calibration-record-ids.json",
+      "sha256": "57394a1a6e978bf5362e750816be18febd75b8c4e8d65d0389c39687d407656e"
+    },
+    {
+      "byte_count": 5809,
+      "media_type": "application/json",
+      "relative_path": "memberships/calibration-well-ids.json",
+      "sha256": "a86e15037702deae47bb919769dc180b2852294813e14f8664d3122c82b284f0"
+    },
+    {
+      "byte_count": 21,
+      "media_type": "application/json",
+      "relative_path": "memberships/calibration-plate-ids.json",
+      "sha256": "bd651f3d4944f674a7b636e5c030d0b3b5ca0079915ce1c8a7bbc15d8d56cc61"
+    },
+    {
+      "byte_count": 1129088,
+      "media_type": "application/json",
+      "relative_path": "memberships/calibration-record-to-well.json",
+      "sha256": "c6534f63ad04cf5e147bbc7c99b3a4778af5a25b80a4310eea3e4447e3d9a1ee"
+    },
+    {
+      "byte_count": 13643,
+      "media_type": "application/json",
+      "relative_path": "memberships/calibration-well-to-condition.json",
+      "sha256": "96e5c7017df23bd7d0d04b62a43c6351289292fc8ab717ef7e6d849568430a92"
+    },
+    {
+      "byte_count": 624046,
+      "media_type": "application/json",
+      "relative_path": "memberships/model_selection_validation-record-ids.json",
+      "sha256": "2217064bb9320b7e11d93828299fa6b6385d9d25f27fbd37a1bb99e1f98514c9"
+    },
+    {
+      "byte_count": 5809,
+      "media_type": "application/json",
+      "relative_path": "memberships/model_selection_validation-well-ids.json",
+      "sha256": "ecb70d2b696fcf1de0755a0791cd96ded6963b5c526902503339be4f05a074bd"
+    },
+    {
+      "byte_count": 21,
+      "media_type": "application/json",
+      "relative_path": "memberships/model_selection_validation-plate-ids.json",
+      "sha256": "ff85f619245543b37ef9c5bedbb4fea5db3858ac6764484849f88b81b6059c2a"
+    },
+    {
+      "byte_count": 1284805,
+      "media_type": "application/json",
+      "relative_path": "memberships/model_selection_validation-record-to-well.json",
+      "sha256": "dce201c0b99fc830c942abcaf91f5a7b2e0878688fc8204db1407e105377f258"
+    },
+    {
+      "byte_count": 13031,
+      "media_type": "application/json",
+      "relative_path": "memberships/model_selection_validation-well-to-condition.json",
+      "sha256": "9fa2ec52b130a6dd64e345cdba46d14519d84bfdf8ea8e275e2d6278afe5e3f4"
+    },
+    {
+      "byte_count": 1230423,
+      "media_type": "application/json",
+      "relative_path": "memberships/untouched_test-record-ids.json",
+      "sha256": "ca22f394d3f8105f79efa1e21d47857f165b49bffd5d792613c6e4b71e881751"
+    },
+    {
+      "byte_count": 11713,
+      "media_type": "application/json",
+      "relative_path": "memberships/untouched_test-well-ids.json",
+      "sha256": "fa28c67b01064badd0ee7d5c5c9e3d32e9254a76e887dff2f64823a8e3b4b815"
+    },
+    {
+      "byte_count": 41,
+      "media_type": "application/json",
+      "relative_path": "memberships/untouched_test-plate-ids.json",
+      "sha256": "77ff1b217404d722b4f28ecbdac1703d9e1bc1205f3d6dce831d4a600a7f1a53"
+    },
+    {
+      "byte_count": 2541731,
+      "media_type": "application/json",
+      "relative_path": "memberships/untouched_test-record-to-well.json",
+      "sha256": "f59b14eb7ce873d28a25ba42b2954dbffd17e8db518b239c908cf88a22c6e494"
+    },
+    {
+      "byte_count": 27161,
+      "media_type": "application/json",
+      "relative_path": "memberships/untouched_test-well-to-condition.json",
+      "sha256": "11916bc00b4c0c277e16c6f6e913d5c197d9ec6d8abdf42e31a593717d3dcf79"
+    },
+    {
+      "byte_count": 7394,
+      "media_type": "application/json",
+      "relative_path": "mappings/source-label-to-normalized-label.json",
+      "sha256": "3ce773e9daf1342c88788edf4927130044f0e35d3378348819c567ce277bacb7"
+    }
+  ],
+  "contains_materialized_membership_arrays": true,
+  "contains_normalized_matrix": false,
+  "contains_source_matrix": false,
+  "generator_id": "cellstate.prepare-sciplex3-k562",
+  "generator_script_sha256": "d34c4168602682267eec6e30e84cfa50d319ab968a75159ff62b390c1325aece",
+  "generator_version": "1.0.0",
+  "membership_artifacts_are_canonical_json_bytes": true,
+  "source_sha256": "603ed16c5e25401c8a7f5bb0b2b045179701017d65dcfc6aeea71722a66cd10a"
+}

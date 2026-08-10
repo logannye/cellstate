@@ -1,0 +1,152 @@
+{
+  "$defs": {
+    "ContentAddressedArtifact": {
+      "additionalProperties": false,
+      "properties": {
+        "artifact_id": {
+          "minLength": 1,
+          "title": "Artifact Id",
+          "type": "string"
+        },
+        "byte_count": {
+          "exclusiveMinimum": 0,
+          "title": "Byte Count",
+          "type": "integer"
+        },
+        "media_type": {
+          "minLength": 1,
+          "title": "Media Type",
+          "type": "string"
+        },
+        "sha256": {
+          "pattern": "^[a-fA-F0-9]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        },
+        "uri": {
+          "minLength": 1,
+          "title": "Uri",
+          "type": "string"
+        }
+      },
+      "required": [
+        "artifact_id",
+        "uri",
+        "sha256",
+        "byte_count",
+        "media_type"
+      ],
+      "title": "ContentAddressedArtifact",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Immutable training/run manifest bound to exact benchmark partitions.",
+  "properties": {
+    "benchmark_fingerprint": {
+      "pattern": "^[a-fA-F0-9]{64}$",
+      "title": "Benchmark Fingerprint",
+      "type": "string"
+    },
+    "calibration_evidence_artifacts": {
+      "default": [],
+      "items": {
+        "$ref": "#/$defs/ContentAddressedArtifact"
+      },
+      "title": "Calibration Evidence Artifacts",
+      "type": "array"
+    },
+    "calibration_partition_ids": {
+      "default": [],
+      "items": {
+        "type": "string"
+      },
+      "title": "Calibration Partition Ids",
+      "type": "array"
+    },
+    "model_artifact": {
+      "$ref": "#/$defs/ContentAddressedArtifact"
+    },
+    "model_selection_evidence_artifacts": {
+      "default": [],
+      "items": {
+        "$ref": "#/$defs/ContentAddressedArtifact"
+      },
+      "title": "Model Selection Evidence Artifacts",
+      "type": "array"
+    },
+    "model_selection_freeze_artifact": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/ContentAddressedArtifact"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "model_selection_validation_partition_ids": {
+      "default": [],
+      "items": {
+        "type": "string"
+      },
+      "title": "Model Selection Validation Partition Ids",
+      "type": "array"
+    },
+    "query_fingerprint": {
+      "pattern": "^[a-fA-F0-9]{64}$",
+      "title": "Query Fingerprint",
+      "type": "string"
+    },
+    "run_id": {
+      "minLength": 1,
+      "title": "Run Id",
+      "type": "string"
+    },
+    "run_version": {
+      "minLength": 1,
+      "title": "Run Version",
+      "type": "string"
+    },
+    "schema_version": {
+      "const": "0.1-experimental",
+      "default": "0.1-experimental",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "support_envelope_fingerprint": {
+      "pattern": "^[a-fA-F0-9]{64}$",
+      "title": "Support Envelope Fingerprint",
+      "type": "string"
+    },
+    "training_evidence_artifacts": {
+      "items": {
+        "$ref": "#/$defs/ContentAddressedArtifact"
+      },
+      "minItems": 1,
+      "title": "Training Evidence Artifacts",
+      "type": "array"
+    },
+    "training_partition_ids": {
+      "items": {
+        "type": "string"
+      },
+      "minItems": 1,
+      "title": "Training Partition Ids",
+      "type": "array"
+    }
+  },
+  "required": [
+    "run_id",
+    "run_version",
+    "query_fingerprint",
+    "benchmark_fingerprint",
+    "support_envelope_fingerprint",
+    "model_artifact",
+    "training_partition_ids",
+    "training_evidence_artifacts"
+  ],
+  "title": "TrainingRunBinding",
+  "type": "object"
+}

@@ -11,17 +11,32 @@ nav:
       - Overview: architecture/overview.md
       - Full buildout: architecture/full-buildout.md
       - Data contracts: architecture/data-contracts.md
+      - Biological model bundles: architecture/biological-model-bundles.md
       - Inference pipeline: architecture/inference-pipeline.md
+  - Backends:
+      - sci-Plex3 K562 component scaffold: backends/sciplex3-k562-population-response.md
   - Data:
       - Evidence inventory: data/evidence-inventory.md
+      - Real-data representability:
+          - Replogle K562: data/representability/replogle-2022-k562.md
+          - GSE141064 Live-seq: data/representability/gse141064-liveseq-functional-recorder.md
+  - Verticals:
+      - Vertical A estimand (draft): verticals/vertical-a-estimand.md
+  - Components:
+      - sci-Plex3 K562 population response: backends/sciplex3-k562-population-response.md
   - Guides:
       - Add a backend: guides/add-a-backend.md
+      - Migrate v1 to v2: guides/migrate-v1-to-v2.md
   - Validation: validation/scientific-validation.md
   - Decisions:
       - Belief distributions: adr/0001-belief-state.md
       - Event histories: adr/0002-event-history.md
       - Backend-neutral contracts: adr/0003-backend-neutral-contracts.md
       - Public-real evidence: adr/0004-query-scoped-public-real-evidence.md
-      - Belief-subject semantics (proposed): adr/0005-belief-subject-semantics.md
+      - Typed belief subjects and schema v2: adr/0005-belief-subject-semantics.md
+      - Scoped eligibility ledger: adr/0006-scoped-eligibility-ledger.md
+      - Content-addressed representability: adr/0007-content-addressed-representability.md
+      - First Vertical A component benchmark: adr/0008-sciplex3-k562-component-benchmark.md
+      - Population-response component boundary: adr/0009-population-response-component-boundary.md
   - Roadmap: roadmap.md
 strict: true

@@ -11,7 +11,7 @@ from collections.abc import Iterable, Sequence
 from dataclasses import dataclass
 from hashlib import sha256
 from itertools import pairwise
-from typing import cast
+from typing import cast, overload
 from uuid import NAMESPACE_URL, uuid5
 
 import numpy as np
@@ -22,23 +22,29 @@ from scipy.linalg import expm
 from cellstate.domain.belief import (
     BeliefDiagnostics,
     BeliefStatus,
+    CalibrationReport,
+    CausalSupportReport,
     CellStateBelief,
     ContextBelief,
+    DecisionUncertaintyReport,
+    DimensionIdentifiability,
     DynamicSummary,
     EvaluatedScalar,
+    EvaluationStatus,
     FactorBelief,
-    MeasurementRecommendation,
-    ObservabilityReport,
-    OODReport,
+    IdentifiabilityReport,
     ParametricDistribution,
-    StateFactor,
+    QueryReadinessReport,
     SufficiencyReport,
+    SupportReport,
     UnavailableDistribution,
     UncertaintyBreakdown,
     UncertaintyComponent,
     UncertaintyKind,
 )
 from cellstate.domain.common import (
+    CausalStatus,
+    CriterionOutcome,
     EvidenceStatus,
     ProvenanceRecord,
     Quantity,
@@ -48,34 +54,72 @@ from cellstate.domain.common import (
     require_finite,
 )
 from cellstate.domain.events import (
+    AssignmentMechanism,
+    CollectionEffect,
     ContactEvent,
     DivisionEvent,
     EnvironmentEvent,
+    EnvironmentTemporalMode,
     EvidenceRole,
     InterventionEvent,
     MissingnessStatus,
     ObservationEvent,
+    ReversibilityStatus,
+    ScheduleKind,
 )
 from cellstate.domain.history import CellHistory, RecordCompleteness
-from cellstate.domain.query import StateQuery, SystemBoundary, Timescale
+from cellstate.domain.measurements import (
+    AssayEvaluation,
+    AssayReference,
+    MeasurementDecisionRequest,
+    MeasurementDecisionStatus,
+    MeasurementEvidenceCriterion,
+    MeasurementEvidenceTrace,
+    MeasurementRecommendation,
+)
+from cellstate.domain.query import (
+    AssayPurpose,
+    MissingHistoryPolicy,
+    NumericDomain,
+    StateQuery,
+    SystemBoundary,
+    Timescale,
+)
 from cellstate.domain.request import EstimateCellStateRequest, InferenceOptions
 from cellstate.domain.scenarios import (
     CandidateEvaluation,
     EvolutionScenario,
     InterventionObjective,
     InterventionPlan,
-    ObjectiveDirection,
+    PlanStatus,
     ScenarioReference,
     StateForecast,
     TargetPrediction,
+    TransportReport,
+    TransportStatus,
 )
+from cellstate.domain.specification import (
+    CompiledStateSpecification,
+    ExcludedStateFactor,
+    StateFactor,
+    StateFactorSpecification,
+)
+from cellstate.domain.subjects import AggregationStatistic, SubjectKind
 from cellstate.errors import (
     CapabilityError,
     PosteriorCompatibilityError,
     UnsupportedInterventionError,
     UnsupportedModalityError,
 )
-from cellstate.ports import CapabilityReport, EstimatorDescriptor
+from cellstate.ports import CapabilityReport, EstimatorDescriptor, MeasurementCapabilityReport
+from cellstate.ports.models import (
+    ModelArtifactKind,
+    QueryCompilerDescriptor,
+    estimation_capability_scope_fingerprint,
+    evolution_capability_scope_fingerprint,
+    measurement_capability_scope_fingerprint,
+    planning_capability_scope_fingerprint,
+)
 
 FloatArray = NDArray[np.float64]
 
@@ -107,7 +151,7 @@ class LinearGaussianConfig(SchemaModel):
     """Matrices for a small continuous-time controlled Gaussian system."""
 
     model_id: str = "linear-gaussian-reference"
-    model_version: str = "0.1.0"
+    model_version: str = "0.2.0"
     state_dimensions: tuple[str, ...] = Field(min_length=1)
     prior_time_seconds: float = 0.0
     prior_mean: tuple[float, ...]
@@ -118,6 +162,18 @@ class LinearGaussianConfig(SchemaModel):
     observation_models: tuple[LinearObservationConfig, ...] = ()
     control_effects: dict[str, tuple[float, ...]] = Field(default_factory=dict)
     control_dose_units: dict[str, str] = Field(default_factory=dict)
+    control_delivery_methods: dict[str, tuple[str, ...]] = Field(default_factory=dict)
+    control_reversibility_statuses: dict[str, tuple[ReversibilityStatus, ...]] = Field(
+        default_factory=dict
+    )
+    control_assignment_mechanisms: dict[str, tuple[AssignmentMechanism, ...]] = Field(
+        default_factory=dict
+    )
+    control_assignment_unit_kinds: dict[str, str] = Field(default_factory=dict)
+    control_randomization_unit_kinds: dict[str, str | None] = Field(default_factory=dict)
+    control_requires_randomization_unit: dict[str, bool] = Field(default_factory=dict)
+    control_requires_matched_control: dict[str, bool] = Field(default_factory=dict)
+    planned_efficiency_means: dict[str, float] = Field(default_factory=dict)
     environment_effects: dict[str, tuple[float, ...]] = Field(default_factory=dict)
     environment_units: dict[str, str] = Field(default_factory=dict)
     factor_dimensions: dict[StateFactor, tuple[str, ...]] = Field(default_factory=dict)
@@ -125,7 +181,7 @@ class LinearGaussianConfig(SchemaModel):
         default_factory=_default_factor_timescales
     )
     output_units: dict[str, str] = Field(default_factory=dict)
-    supported_species_keys: tuple[str, ...] = ("homo_sapiens", "NCBITaxon:9606")
+    supported_species_keys: tuple[str, ...] = ("homo_sapiens", "ncbitaxon:9606")
 
     @field_validator("state_dimensions")
     @classmethod
@@ -133,6 +189,23 @@ class LinearGaussianConfig(SchemaModel):
         if len(dimensions) != len(set(dimensions)):
             raise ValueError("state dimensions must be unique")
         return dimensions
+
+    @field_validator("supported_species_keys")
+    @classmethod
+    def species_keys_are_canonical(cls, keys: tuple[str, ...]) -> tuple[str, ...]:
+        if not keys or any(not key.strip() or key != key.strip() for key in keys):
+            raise ValueError("supported species keys must be nonempty and trimmed")
+        if len(keys) != len(set(keys)):
+            raise ValueError("supported species keys must be unique")
+        for key in keys:
+            canonical = (
+                f"{key.split(':', 1)[0].casefold()}:{key.split(':', 1)[1]}"
+                if ":" in key
+                else "_".join(key.casefold().split())
+            )
+            if key != canonical:
+                raise ValueError("supported species keys must use canonical ontology identity")
+        return keys
 
     @field_validator("prior_time_seconds")
     @classmethod
@@ -190,13 +263,69 @@ class LinearGaussianConfig(SchemaModel):
             _require_vector(f"effect {key}", vector, size)
         if set(self.control_dose_units) != set(self.control_effects):
             raise ValueError("control dose units must be declared for every control effect")
+        if set(self.control_delivery_methods) != set(self.control_effects):
+            raise ValueError("delivery methods must be declared for every control effect")
+        if set(self.control_reversibility_statuses) != set(self.control_effects):
+            raise ValueError("reversibility support must be declared for every control effect")
+        if set(self.control_assignment_mechanisms) != set(self.control_effects):
+            raise ValueError("assignment mechanisms must be declared for every control effect")
+        if set(self.control_assignment_unit_kinds) != set(self.control_effects):
+            raise ValueError("assignment-unit kinds must be declared for every control effect")
+        if set(self.control_randomization_unit_kinds) != set(self.control_effects):
+            raise ValueError("randomization-unit kinds must be declared for every control effect")
+        if set(self.control_requires_randomization_unit) != set(self.control_effects):
+            raise ValueError(
+                "randomization-unit requirements must be declared for every control effect"
+            )
+        if set(self.control_requires_matched_control) != set(self.control_effects):
+            raise ValueError(
+                "matched-control requirements must be declared for every control effect"
+            )
+        if set(self.planned_efficiency_means) != set(self.control_effects):
+            raise ValueError("planned efficacy means must be declared for every control effect")
+        if any(not methods for methods in self.control_delivery_methods.values()):
+            raise ValueError("every control effect requires at least one delivery method")
+        if any(not statuses for statuses in self.control_reversibility_statuses.values()):
+            raise ValueError("every control effect requires at least one reversibility status")
+        if any(
+            len(statuses) != len(set(statuses))
+            for statuses in self.control_reversibility_statuses.values()
+        ):
+            raise ValueError("control reversibility statuses must be unique per effect")
+        if any(not values for values in self.control_assignment_mechanisms.values()):
+            raise ValueError("every control effect requires at least one assignment mechanism")
+        if any(
+            len(values) != len(set(values))
+            for values in self.control_assignment_mechanisms.values()
+        ):
+            raise ValueError("control assignment mechanisms must be unique per effect")
+        if any(not value for value in self.control_assignment_unit_kinds.values()):
+            raise ValueError("every control effect requires a nonempty assignment-unit kind")
+        for key, required in self.control_requires_randomization_unit.items():
+            if required and self.control_randomization_unit_kinds[key] is None:
+                raise ValueError(
+                    "required randomization units must declare their experimental-unit kind"
+                )
+            if AssignmentMechanism.RANDOMIZED in self.control_assignment_mechanisms[key] and (
+                not required or self.control_randomization_unit_kinds[key] is None
+            ):
+                raise ValueError(
+                    "randomized reference controls require a declared randomization unit"
+                )
+        if any(
+            not math.isfinite(value) or not 0 <= value <= 1
+            for value in self.planned_efficiency_means.values()
+        ):
+            raise ValueError("planned efficacy means must lie in [0, 1]")
         if set(self.environment_units) != set(self.environment_effects):
             raise ValueError("environment units must be declared for every environment effect")
         assigned = [dimension for values in self.factor_dimensions.values() for dimension in values]
         if len(assigned) != len(set(assigned)):
             raise ValueError("a state dimension may belong to only one structured factor")
-        if not set(assigned) <= state_set:
-            raise ValueError("factor mappings contain undeclared state dimensions")
+        if set(assigned) != state_set:
+            raise ValueError(
+                "reference factor mappings must partition every configured state dimension"
+            )
         if set(self.factor_timescales) != set(StateFactor):
             raise ValueError("factor timescales must include every structured state factor")
         if any(not timescales for timescales in self.factor_timescales.values()):
@@ -269,7 +398,76 @@ class LinearGaussianReference:
 
     @property
     def posterior_schema_id(self) -> str:
-        return f"cellstate.linear_gaussian/{self.model_fingerprint}"
+        return f"cellstate.v2.linear_gaussian/{self.model_fingerprint}"
+
+    @property
+    def query_compiler(self) -> LinearGaussianReference:
+        return self
+
+    @property
+    def compiler_descriptor(self) -> QueryCompilerDescriptor:
+        return QueryCompilerDescriptor(
+            compiler_id="linear-gaussian-reference-query-compiler",
+            compiler_version="2.0.0",
+            compiler_fingerprint=canonical_fingerprint(
+                {
+                    "compiler": "linear-gaussian-reference-query-compiler",
+                    "compiler_version": "2.0.0",
+                    "model_fingerprint": self.model_fingerprint,
+                }
+            ),
+        )
+
+    def compile(self, query: StateQuery) -> CompiledStateSpecification:
+        """Compile the exact query without pretending unsupported factors are estimated."""
+
+        target_keys = tuple(output.term.key for output in query.target_outputs)
+        active = tuple(
+            StateFactorSpecification(
+                factor=factor,
+                dimensions=dimensions,
+                timescales=self.config.factor_timescales[factor],
+                required_for_outputs=target_keys,
+                rationale=(
+                    "Configured reference latent retained to exercise the v2 posterior contract; "
+                    "this is not a biological sufficiency claim."
+                ),
+            )
+            for factor in StateFactor
+            if (dimensions := self.config.factor_dimensions.get(factor, ()))
+        )
+        active_factors = {item.factor for item in active}
+        descriptor = self.compiler_descriptor
+        return CompiledStateSpecification(
+            query_fingerprint=query.fingerprint,
+            subject=query.subject,
+            compiler_id=descriptor.compiler_id,
+            compiler_version=descriptor.compiler_version,
+            compiler_fingerprint=descriptor.compiler_fingerprint,
+            active_factors=active,
+            excluded_factors=tuple(
+                ExcludedStateFactor(
+                    factor=factor,
+                    rationale="No configured latent dimension in this contract reference.",
+                )
+                for factor in StateFactor
+                if factor not in active_factors
+            ),
+            system_boundary=query.system_boundary,
+            temporal_resolution_seconds=query.temporal_resolution_seconds,
+            target_outputs=query.target_outputs,
+            prediction_horizons=query.prediction_horizons,
+            intervention_space=query.intervention_space,
+            environment_space=query.environment_space,
+            precision_requirements=query.precision_requirements,
+            available_assays=query.available_assays,
+            evidence_policy=query.evidence_policy,
+            constraints=query.constraints,
+            target_output_keys=target_keys,
+            horizon_names=tuple(horizon.name for horizon in query.prediction_horizons),
+            admissible_evidence_roles=query.evidence_policy.allowed_evidence_roles,
+            acceptance_thresholds=query.acceptance_thresholds,
+        )
 
     @property
     def descriptor(self) -> EstimatorDescriptor:
@@ -282,10 +480,35 @@ class LinearGaussianReference:
                 "Biologically non-authoritative linear-Gaussian contract reference; "
                 "not for scientific conclusions"
             ),
-            biologically_validated=False,
+            artifact_kind=ModelArtifactKind.CONTRACT_REFERENCE,
         )
 
-    def capabilities(self, query: StateQuery) -> CapabilityReport:
+    @overload
+    def capabilities(
+        self,
+        request: EstimateCellStateRequest,
+        state_specification: CompiledStateSpecification,
+    ) -> CapabilityReport: ...
+
+    @overload
+    def capabilities(
+        self,
+        request: CellStateBelief,
+        state_specification: EvolutionScenario,
+    ) -> CapabilityReport: ...
+
+    def capabilities(
+        self,
+        request: EstimateCellStateRequest | CellStateBelief,
+        state_specification: CompiledStateSpecification | EvolutionScenario,
+    ) -> CapabilityReport:
+        if isinstance(request, CellStateBelief):
+            if not isinstance(state_specification, EvolutionScenario):
+                raise TypeError("belief capability preflight requires an evolution scenario")
+            return self._evolution_capabilities(request, state_specification)
+        if not isinstance(state_specification, CompiledStateSpecification):
+            raise TypeError("request capability preflight requires a compiled state specification")
+        query = request.query
         supported_boundaries = {
             SystemBoundary.ISOLATED_CELL,
             SystemBoundary.CELL_AND_SOLUBLE_ENVIRONMENT,
@@ -295,7 +518,18 @@ class LinearGaussianReference:
             if query.system_boundary not in supported_boundaries
             else None
         )
+        unsupported_subjects = (
+            () if query.subject.kind is SubjectKind.INDIVIDUAL_CELL else (query.subject.kind.value,)
+        )
+        unsupported_aggregations = tuple(
+            output.term.key
+            for output in query.target_outputs
+            if output.aggregation.statistic is not AggregationStatistic.INDIVIDUAL
+        )
         unsupported_interventions: list[str] = []
+        unsupported_doses: list[str] = []
+        unsupported_schedules: list[str] = []
+        unsupported_delivery_methods: list[str] = []
         for intervention_spec in query.intervention_space:
             key = intervention_spec.kind.key.casefold()
             effect_keys = (
@@ -311,23 +545,75 @@ class LinearGaussianReference:
                 unsupported_interventions.append(
                     f"{intervention_spec.kind.key}[mechanism-specific]"
                 )
-            elif intervention_spec.dose_units is not None and any(
-                intervention_spec.dose_units != self.config.control_dose_units[effect_key]
+            elif any(
+                intervention_spec.dose_domain.units != self.config.control_dose_units[effect_key]
                 for effect_key in effect_keys
             ):
                 configured_units = sorted(
                     {self.config.control_dose_units[effect_key] for effect_key in effect_keys}
                 )
-                unsupported_interventions.append(
-                    f"{intervention_spec.kind.key}[{intervention_spec.dose_units} != "
+                unsupported_doses.append(
+                    f"{intervention_spec.kind.key}[{intervention_spec.dose_domain.units} != "
                     f"{configured_units}]"
                 )
+            if set(intervention_spec.schedule.allowed_kinds) - {
+                ScheduleKind.SINGLE,
+                ScheduleKind.CONTINUOUS,
+            }:
+                unsupported_schedules.append(intervention_spec.spec_id)
+            for effect_key in effect_keys:
+                if effect_key in self.config.control_delivery_methods and not set(
+                    method.casefold() for method in intervention_spec.delivery_methods
+                ) <= set(
+                    method.casefold() for method in self.config.control_delivery_methods[effect_key]
+                ):
+                    unsupported_delivery_methods.append(intervention_spec.spec_id)
+                if effect_key in self.config.control_reversibility_statuses and not set(
+                    intervention_spec.allowed_reversibility_statuses
+                ) <= set(self.config.control_reversibility_statuses[effect_key]):
+                    unsupported_interventions.append(f"{intervention_spec.spec_id}[reversibility]")
+                if effect_key in self.config.control_assignment_mechanisms and not set(
+                    intervention_spec.allowed_assignment_mechanisms
+                ) <= set(self.config.control_assignment_mechanisms[effect_key]):
+                    unsupported_interventions.append(
+                        f"{intervention_spec.spec_id}[assignment_mechanism]"
+                    )
+                if effect_key in self.config.control_assignment_unit_kinds and (
+                    intervention_spec.assignment_unit_kind.casefold()
+                    != self.config.control_assignment_unit_kinds[effect_key].casefold()
+                ):
+                    unsupported_interventions.append(
+                        f"{intervention_spec.spec_id}[assignment_unit]"
+                    )
+                if effect_key in self.config.control_randomization_unit_kinds and (
+                    intervention_spec.randomization_unit_kind
+                    != self.config.control_randomization_unit_kinds[effect_key]
+                    or intervention_spec.require_randomization_unit
+                    is not self.config.control_requires_randomization_unit[effect_key]
+                ):
+                    unsupported_interventions.append(
+                        f"{intervention_spec.spec_id}[randomization_unit]"
+                    )
+                if effect_key in self.config.control_requires_matched_control and (
+                    intervention_spec.require_matched_control
+                    is not self.config.control_requires_matched_control[effect_key]
+                ):
+                    unsupported_interventions.append(
+                        f"{intervention_spec.spec_id}[matched_control]"
+                    )
         supported_outputs = {key.casefold() for key in self.config.output_units}
         unsupported_environments: list[str] = []
         for environment_spec in query.environment_space:
             key = environment_spec.variable.key.casefold()
-            if key not in self.config.environment_effects:
+            if environment_spec.missing_history_policy is not MissingHistoryPolicy.REJECT:
+                unsupported_environments.append(
+                    f"{environment_spec.variable.key}[missing-policy="
+                    f"{environment_spec.missing_history_policy.value}]"
+                )
+            elif key not in self.config.environment_effects:
                 unsupported_environments.append(environment_spec.variable.key)
+            elif not isinstance(environment_spec.domain, NumericDomain):
+                unsupported_environments.append(f"{environment_spec.variable.key}[non-numeric]")
             elif (
                 environment_spec.units is not None
                 and environment_spec.units != self.config.environment_units[key]
@@ -336,6 +622,11 @@ class LinearGaussianReference:
                     f"{environment_spec.variable.key}[{environment_spec.units} != "
                     f"{self.config.environment_units[key]}]"
                 )
+            elif set(environment_spec.allowed_temporal_modes) - {
+                EnvironmentTemporalMode.FIXED,
+                EnvironmentTemporalMode.PIECEWISE_CONSTANT,
+            }:
+                unsupported_environments.append(f"{environment_spec.variable.key}[time-varying]")
         unsupported_outputs = tuple(
             sorted(
                 {
@@ -349,22 +640,115 @@ class LinearGaussianReference:
         unsupported_precision = tuple(
             f"{item.target.key}:{item.metric}" for item in query.precision_requirements
         )
+        unsupported_modalities = tuple(
+            modality.key
+            for modality in query.evidence_policy.allowed_modalities
+            if modality.key.casefold() not in self.config.observations_by_key
+        )
+        unsupported_constraints_list: list[str] = []
+        if state_specification != self.compile(query):
+            unsupported_constraints_list.append("compiled_state_specification_mismatch")
+        unsupported_constraints_list.extend(
+            f"evidence_role:{role.value}"
+            for role in query.evidence_policy.allowed_evidence_roles
+            if role is not EvidenceRole.DIRECT
+        )
+        try:
+            self._validate_history_semantics(request)
+            self._validate_history_capabilities(request.history)
+        except (CapabilityError, UnsupportedInterventionError, UnsupportedModalityError) as error:
+            unsupported_constraints_list.append(str(error))
+        unsupported_constraints = tuple(unsupported_constraints_list)
         return CapabilityReport(
             supported=not any(
                 (
                     unsupported_boundary,
+                    unsupported_subjects,
+                    unsupported_aggregations,
                     unsupported_interventions,
+                    unsupported_doses,
+                    unsupported_schedules,
+                    unsupported_delivery_methods,
+                    unsupported_modalities,
                     unsupported_environments,
                     unsupported_outputs,
                     unsupported_precision,
+                    unsupported_constraints,
                 )
             ),
+            scope_fingerprint=estimation_capability_scope_fingerprint(request, state_specification),
             unsupported_system_boundary=unsupported_boundary,
+            unsupported_subjects=unsupported_subjects,
+            unsupported_aggregations=unsupported_aggregations,
+            unsupported_modalities=unsupported_modalities,
             unsupported_interventions=tuple(sorted(unsupported_interventions)),
+            unsupported_doses=tuple(sorted(set(unsupported_doses))),
+            unsupported_schedules=tuple(sorted(set(unsupported_schedules))),
+            unsupported_delivery_methods=tuple(sorted(set(unsupported_delivery_methods))),
             unsupported_environments=tuple(sorted(unsupported_environments)),
             unsupported_outputs=unsupported_outputs,
             unsupported_precision_requirements=unsupported_precision,
+            unsupported_constraints=unsupported_constraints,
             notes=("Reference backend is not biologically validated.",),
+        )
+
+    def _evolution_capabilities(
+        self,
+        belief: CellStateBelief,
+        scenario: EvolutionScenario,
+    ) -> CapabilityReport:
+        unsupported_interventions = tuple(
+            event.event_id
+            for event in scenario.interventions
+            if not belief.query.contains_intervention(event)
+        )
+        unsupported_combinations = (
+            ()
+            if not scenario.interventions
+            or belief.query.contains_intervention_combination(scenario.interventions)
+            else (scenario.scenario_id,)
+        )
+        unsupported_environments = tuple(
+            event.event_id
+            for event in scenario.environments
+            if not belief.query.contains_environment_event(event)
+        )
+        unsupported_horizons = (
+            ()
+            if any(
+                horizon.name == scenario.horizon_name
+                and math.isclose(
+                    horizon.duration_seconds,
+                    scenario.end_time_seconds - scenario.start_time_seconds,
+                    rel_tol=1e-9,
+                    abs_tol=1e-9,
+                )
+                for horizon in belief.query.prediction_horizons
+            )
+            else (scenario.horizon_name,)
+        )
+        runtime_blockers: list[str] = []
+        try:
+            self._validate_events_capabilities((*scenario.interventions, *scenario.environments))
+        except (CapabilityError, UnsupportedInterventionError, UnsupportedModalityError) as error:
+            runtime_blockers.append(str(error))
+        return CapabilityReport(
+            supported=not any(
+                (
+                    unsupported_interventions,
+                    unsupported_combinations,
+                    unsupported_environments,
+                    unsupported_horizons,
+                    runtime_blockers,
+                )
+            ),
+            scope_fingerprint=evolution_capability_scope_fingerprint(belief, scenario),
+            unsupported_interventions=unsupported_interventions,
+            unsupported_combinations=unsupported_combinations,
+            unsupported_environments=unsupported_environments,
+            unsupported_horizons=unsupported_horizons,
+            unsupported_constraints=tuple(runtime_blockers),
+            notes=("Reference evolution is a contract calculation, not biological support.",),
         )
 
     def estimate(
@@ -448,10 +832,25 @@ class LinearGaussianReference:
         )
         factors = self._forecast_factor_beliefs(propagated, belief.factors)
         target_predictions = self._target_predictions(
-            propagated, belief, scenario.end_time_seconds - scenario.start_time_seconds
+            propagated,
+            belief,
+            scenario.horizon_name,
+            scenario.end_time_seconds - scenario.start_time_seconds,
         )
         dynamics = self._dynamics(propagated, scenario.end_time_seconds, events)
         uncertainty = self._uncertainty(propagated)
+        forecast_context = ContextBelief(
+            active_interventions=tuple(
+                event
+                for event in events
+                if isinstance(event, InterventionEvent)
+                and event.time_seconds
+                <= scenario.end_time_seconds
+                < event.time_seconds + event.duration_seconds
+            ),
+            soluble_environment=_latest_environment(events, scenario.end_time_seconds),
+            unsupported_dimensions=belief.context.unsupported_dimensions,
+        )
         scenario_hash = canonical_fingerprint(scenario)
         provenance = ProvenanceRecord(
             model_id=self.config.model_id,
@@ -491,16 +890,24 @@ class LinearGaussianReference:
             scenario_fingerprint=scenario_hash,
             query=belief.query,
             query_fingerprint=belief.query_fingerprint,
+            state_specification=belief.state_specification,
             horizon_name=scenario.horizon_name,
             horizon_seconds=scenario.end_time_seconds - scenario.start_time_seconds,
-            subject_id=belief.subject_id,
+            subject=belief.subject,
             start_time_seconds=scenario.start_time_seconds,
             end_time_seconds=scenario.end_time_seconds,
             joint_posterior=self._distribution(propagated),
             factors=factors,
+            context=forecast_context,
+            intervention_realizations=(),
+            nuisance=None,
             target_predictions=target_predictions,
             dynamics=dynamics,
             uncertainty=uncertainty,
+            diagnostics=belief.diagnostics,
+            readiness=belief.readiness,
+            causal_status=CausalStatus.UNSUPPORTED,
+            transport=TransportReport(status=TransportStatus.UNSUPPORTED),
             provenance=provenance,
         )
 
@@ -767,9 +1174,11 @@ class LinearGaussianReference:
             inherited = (
                 EnvironmentEvent(
                     event_id=f"{scenario.scenario_id}:inherited-environment",
-                    subject_id=scenario.subject_id,
+                    subject=scenario.subject,
                     time_seconds=scenario.start_time_seconds,
                     variables=inherited_variables,
+                    duration_seconds=(scenario.end_time_seconds - scenario.start_time_seconds),
+                    temporal_mode=EnvironmentTemporalMode.FIXED,
                     source="inherited from input belief context",
                 ),
             )
@@ -798,7 +1207,9 @@ class LinearGaussianReference:
                 start < event.time_seconds < end
             ):
                 breakpoints.add(event.time_seconds)
-            if isinstance(event, InterventionEvent) and event.duration_seconds > 0:
+            if isinstance(event, (InterventionEvent, EnvironmentEvent)) and (
+                event.duration_seconds > 0
+            ):
                 stop = event.time_seconds + event.duration_seconds
                 if start < stop < end:
                     breakpoints.add(stop)
@@ -836,14 +1247,6 @@ class LinearGaussianReference:
         return result
 
     def _control_effect(self, event: InterventionEvent) -> tuple[FloatArray, float]:
-        if event.delivery_method is not None or event.reversible is not None:
-            raise UnsupportedInterventionError(
-                "reference backend does not model delivery-method or reversibility semantics"
-            )
-        if event.target is not None:
-            raise UnsupportedInterventionError(
-                "reference backend does not model target-specific intervention effects"
-            )
         key = (
             event.mechanism.key.casefold()
             if event.mechanism is not None
@@ -853,16 +1256,66 @@ class LinearGaussianReference:
             raise UnsupportedInterventionError(
                 f"reference backend has no control effect for {key!r}"
             )
+        supported_delivery = {
+            method.casefold() for method in self.config.control_delivery_methods[key]
+        }
+        if event.delivery_method.casefold() not in supported_delivery:
+            raise UnsupportedInterventionError(
+                f"reference backend does not support delivery method {event.delivery_method!r}"
+            )
+        if event.reversibility_status not in self.config.control_reversibility_statuses[key]:
+            raise UnsupportedInterventionError(
+                "reference backend does not support reversibility_status="
+                f"{event.reversibility_status.value!r} for {key!r}"
+            )
+        if event.assignment_mechanism not in self.config.control_assignment_mechanisms[key]:
+            raise UnsupportedInterventionError(
+                "reference backend does not support the intervention assignment mechanism"
+            )
+        if (
+            event.assignment_unit_kind.casefold()
+            != self.config.control_assignment_unit_kinds[key].casefold()
+        ):
+            raise UnsupportedInterventionError(
+                "reference backend does not support the intervention assignment-unit kind"
+            )
+        expected_randomization_kind = self.config.control_randomization_unit_kinds[key]
+        if self.config.control_requires_randomization_unit[key] and (
+            event.randomization_unit_id is None
+        ):
+            raise UnsupportedInterventionError(
+                "reference backend requires an explicit intervention randomization unit"
+            )
+        actual_randomization_kind = (
+            event.randomization_unit_kind.casefold()
+            if event.randomization_unit_kind is not None
+            else None
+        )
+        normalized_expected_randomization_kind = (
+            expected_randomization_kind.casefold()
+            if expected_randomization_kind is not None
+            else None
+        )
+        if actual_randomization_kind != normalized_expected_randomization_kind:
+            raise UnsupportedInterventionError(
+                "reference backend does not support the intervention randomization-unit kind"
+            )
+        if self.config.control_requires_matched_control[key] and event.matched_control is None:
+            raise UnsupportedInterventionError(
+                "reference backend requires an explicit matched control for this intervention"
+            )
+        if event.target is not None:
+            raise UnsupportedInterventionError(
+                "reference backend does not model target-specific intervention effects"
+            )
         actual_efficiency = (
             event.actual_perturbation.efficiency if event.actual_perturbation is not None else None
         )
-        efficiency = (
-            actual_efficiency if actual_efficiency is not None else event.estimated_efficiency
-        )
+        efficiency = actual_efficiency
         if efficiency is None:
-            raise UnsupportedInterventionError(
-                f"intervention {event.event_id!r} has no measured or estimated efficacy"
-            )
+            efficiency = event.estimated_efficiency
+        if efficiency is None:
+            efficiency = self.config.planned_efficiency_means[key]
         if event.duration_seconds == 0:
             raise UnsupportedInterventionError(
                 "reference backend does not implement instantaneous intervention jumps"
@@ -881,7 +1334,14 @@ class LinearGaussianReference:
     def _environment_drive(self, time: float, events: Iterable[object]) -> FloatArray:
         latest: dict[str, tuple[float, Quantity | object]] = {}
         for event in events:
-            if isinstance(event, EnvironmentEvent) and event.time_seconds <= time:
+            if (
+                isinstance(event, EnvironmentEvent)
+                and event.time_seconds <= time
+                and (
+                    event.duration_seconds == 0
+                    or time < event.time_seconds + event.duration_seconds
+                )
+            ):
                 for key, value in event.variables.items():
                     normalized = key.casefold()
                     if normalized not in latest or event.time_seconds >= latest[normalized][0]:
@@ -991,17 +1451,6 @@ class LinearGaussianReference:
         for factor in StateFactor:
             dimensions = self.config.factor_dimensions.get(factor, ())
             if not dimensions:
-                beliefs.append(
-                    FactorBelief(
-                        factor=factor,
-                        timescales=self.config.factor_timescales[factor],
-                        evidence_status=EvidenceStatus.UNIDENTIFIABLE,
-                        posterior=UnavailableDistribution(
-                            reason_code="unsupported_factor",
-                            message="Reference backend has no dimensions for this factor.",
-                        ),
-                    )
-                )
                 continue
             indices = [self.config.state_dimensions.index(dimension) for dimension in dimensions]
             event_ids = tuple(
@@ -1082,11 +1531,10 @@ class LinearGaussianReference:
         source_by_factor = {factor.factor: factor for factor in source_factors}
         propagated: list[FactorBelief] = []
         for factor in StateFactor:
-            source = source_by_factor[factor]
             dimensions = self.config.factor_dimensions.get(factor, ())
             if not dimensions:
-                propagated.append(source)
                 continue
+            source = source_by_factor[factor]
             indices = [self.config.state_dimensions.index(dimension) for dimension in dimensions]
             status = (
                 EvidenceStatus.UNIDENTIFIABLE
@@ -1107,11 +1555,17 @@ class LinearGaussianReference:
         return tuple(propagated)
 
     def _target_predictions(
-        self, posterior: GaussianState, belief: CellStateBelief, horizon_seconds: float
+        self,
+        posterior: GaussianState,
+        belief: CellStateBelief,
+        horizon_name: str,
+        horizon_seconds: float,
     ) -> tuple[TargetPrediction, ...]:
         predictions: list[TargetPrediction] = []
         dimensions = self.config.state_dimensions
         for target in belief.query.target_outputs:
+            if horizon_name not in target.supported_horizon_names:
+                continue
             key = target.term.key.casefold()
             if key not in dimensions:
                 predictions.append(
@@ -1124,6 +1578,8 @@ class LinearGaussianReference:
                             reason_code="missing_output_decoder",
                             message=f"No reference output decoder exists for {target.term.key!r}.",
                         ),
+                        causal_status=CausalStatus.UNSUPPORTED,
+                        transport=TransportReport(status=TransportStatus.UNSUPPORTED),
                     )
                 )
                 continue
@@ -1135,6 +1591,8 @@ class LinearGaussianReference:
                     horizon_seconds=horizon_seconds,
                     status=SupportStatus.SUPPORTED,
                     distribution=self._distribution(posterior, (dimensions[index],), (index,)),
+                    causal_status=CausalStatus.UNSUPPORTED,
+                    transport=TransportReport(status=TransportStatus.UNSUPPORTED),
                     notes=(
                         "Identity readout from one reference latent dimension; not a validated "
                         "functional output model.",
@@ -1213,9 +1671,12 @@ class LinearGaussianReference:
             )
         )
 
-    def _observability(
-        self, observations: Iterable[ObservationEvent], as_of_seconds: float
-    ) -> ObservabilityReport:
+    def _identifiability(
+        self,
+        query: StateQuery,
+        observations: Iterable[ObservationEvent],
+        as_of_seconds: float,
+    ) -> IdentifiabilityReport:
         observation_tuple = tuple(observations)
         observed: set[str] = set()
         for event in observation_tuple:
@@ -1225,28 +1686,102 @@ class LinearGaussianReference:
             if math.isclose(event.time_seconds, as_of_seconds, rel_tol=0, abs_tol=1e-12):
                 observed.update(model.direct_dimensions)
         identifiable = self._identifiable_dimensions(observation_tuple, as_of_seconds)
-        inferred = identifiable - observed
-        unidentifiable = set(self.config.state_dimensions) - identifiable
-        assigned_factors = set(self.config.factor_dimensions)
-        unsupported = {
-            f"factor:{factor.value}" for factor in StateFactor if factor not in assigned_factors
+        dimension_status = {
+            dimension: (
+                DimensionIdentifiability.DIRECTLY_OBSERVED
+                if dimension in observed
+                else (
+                    DimensionIdentifiability.INFERRED_WITH_SUPPORT
+                    if dimension in identifiable
+                    else DimensionIdentifiability.UNIDENTIFIABLE
+                )
+            )
+            for dimension in self.config.state_dimensions
         }
-        return ObservabilityReport(
-            observed=tuple(sorted(observed)),
-            inferred_with_support=tuple(sorted(inferred)),
-            unidentifiable=tuple(sorted(unidentifiable)),
-            unsupported_by_model=tuple(sorted(unsupported)),
+        score = len(identifiable) / len(self.config.state_dimensions)
+        minimum = query.acceptance_thresholds.minimum_identifiability
+        return IdentifiabilityReport(
+            evaluation_status=EvaluationStatus.EVALUATED,
+            outcome=(CriterionOutcome.PASSED if score >= minimum else CriterionOutcome.FAILED),
+            dimension_status=dimension_status,
+            identifiability_score=score,
+            minimum_identifiability_score=minimum,
+            notes=(
+                "Linear row-space observability is a software diagnostic, not biological "
+                "identification evidence.",
+            ),
         )
 
-    def _recommend_measurement(
-        self, _query: StateQuery, _posterior: GaussianState
-    ) -> MeasurementRecommendation:
-        return MeasurementRecommendation(
-            status=SupportStatus.NOT_EVALUATED,
-            rationale=(
-                "The reference backend intentionally abstains: generic posterior covariance "
-                "reduction is not decision-relevant value of information about future "
-                "intervention outcomes."
+    def _diagnostics(
+        self,
+        query: StateQuery,
+        observations: Iterable[ObservationEvent],
+        as_of_seconds: float,
+    ) -> BeliefDiagnostics:
+        thresholds = query.acceptance_thresholds
+        return BeliefDiagnostics(
+            support=SupportReport(
+                evaluation_status=EvaluationStatus.UNSUPPORTED,
+                outcome=CriterionOutcome.UNSUPPORTED,
+                maximum_ood_score=thresholds.maximum_ood_score,
+                abstention_required=True,
+                unsupported_causal_classes=("all_biological_claims",),
+                notes=(
+                    "The linear-Gaussian artifact is a contract reference with no biological "
+                    "training-support envelope or OOD detector.",
+                ),
+            ),
+            sufficiency=SufficiencyReport(
+                evaluation_status=EvaluationStatus.NOT_EVALUATED,
+                outcome=CriterionOutcome.NOT_EVALUATED,
+                maximum_history_information_gain=(thresholds.maximum_history_information_gain),
+                notes=(
+                    "State-vs-state-plus-history sufficiency requires held-out future outcomes.",
+                ),
+            ),
+            identifiability=self._identifiability(query, observations, as_of_seconds),
+            decision_uncertainty=DecisionUncertaintyReport(
+                evaluation_status=EvaluationStatus.NOT_EVALUATED,
+                outcome=CriterionOutcome.NOT_EVALUATED,
+                maximum_decision_uncertainty=(thresholds.maximum_decision_uncertainty),
+                maximum_counterfactual_uncertainty=(thresholds.maximum_counterfactual_uncertainty),
+                notes=(
+                    "No calibrated counterfactual or decision-uncertainty model is configured.",
+                ),
+            ),
+            calibration=CalibrationReport(
+                evaluation_status=EvaluationStatus.NOT_EVALUATED,
+                outcome=CriterionOutcome.NOT_EVALUATED,
+                minimum_coverage=thresholds.minimum_calibration_coverage,
+                maximum_calibration_error=thresholds.maximum_calibration_error,
+                notes=("No prospective biological calibration data are attached.",),
+            ),
+            causal_support=CausalSupportReport(
+                evaluation_status=EvaluationStatus.UNSUPPORTED,
+                outcome=CriterionOutcome.UNSUPPORTED,
+                causal_status=CausalStatus.UNSUPPORTED,
+                blockers=("contract_reference_has_no_causal_identification_evidence",),
+                notes=("Controlled linear propagation is not causal identification.",),
+            ),
+        )
+
+    def _readiness(self, query: StateQuery, diagnostics: BeliefDiagnostics) -> QueryReadinessReport:
+        return QueryReadinessReport(
+            support=diagnostics.support.outcome,
+            sufficiency=diagnostics.sufficiency.outcome,
+            identifiability=diagnostics.identifiability.outcome,
+            decision_uncertainty=diagnostics.decision_uncertainty.outcome,
+            calibration=diagnostics.calibration.outcome,
+            causal=diagnostics.causal_support.outcome,
+            measurement_model=CriterionOutcome.UNSUPPORTED,
+            control_requested=bool(query.intervention_space),
+            valid_for_prediction=False,
+            valid_for_control=False,
+            valid_for_measurement_selection=False,
+            abstention_required=True,
+            reasons=(
+                "Contract reference lacks biological support, calibration, predictive "
+                "sufficiency, and causal-identification evidence.",
             ),
         )
 
@@ -1267,19 +1802,9 @@ class LinearGaussianReference:
             <= request.as_of_seconds
             < event.time_seconds + event.duration_seconds
         )
-        diagnostics = BeliefDiagnostics(
-            ood=OODReport(
-                status=SupportStatus.NOT_EVALUATED,
-                notes=("No training-support or OOD detector is configured.",),
-            ),
-            sufficiency=SufficiencyReport(
-                status=SupportStatus.NOT_EVALUATED,
-                notes=(
-                    "State-vs-state-plus-history sufficiency requires held-out future outcomes.",
-                ),
-            ),
-            observability=self._observability(observations, request.as_of_seconds),
-        )
+        diagnostics = self._diagnostics(request.query, observations, request.as_of_seconds)
+        readiness = self._readiness(request.query, diagnostics)
+        state_specification = self.compile(request.query)
         source_ids = tuple(
             event.event_id for event in request.history.through(request.as_of_seconds)
         )
@@ -1310,12 +1835,13 @@ class LinearGaussianReference:
         )
         return CellStateBelief(
             belief_id=uuid5(NAMESPACE_URL, belief_name),
-            subject_id=request.history.subject_id,
+            subject=request.history.subject,
             as_of_seconds=request.as_of_seconds,
             query=request.query,
             query_fingerprint=request.query.fingerprint,
             history_fingerprint=request.history.fingerprint,
             context_fingerprint=request.context_fingerprint,
+            state_specification=state_specification,
             status=BeliefStatus.PARTIAL,
             joint_posterior=self._distribution(posterior),
             factors=factors,
@@ -1334,7 +1860,180 @@ class LinearGaussianReference:
             dynamics=self._dynamics(posterior, request.as_of_seconds, request.history.events),
             uncertainty=self._uncertainty(posterior),
             diagnostics=diagnostics,
-            next_measurement=self._recommend_measurement(request.query, posterior),
+            readiness=readiness,
+            provenance=provenance,
+        )
+
+
+class LinearGaussianMeasurementPolicy:
+    """Structured measurement abstention for the non-biological contract reference."""
+
+    def __init__(self, model: LinearGaussianReference) -> None:
+        self.model = model
+
+    @property
+    def descriptor(self) -> EstimatorDescriptor:
+        return self.model.descriptor
+
+    def capabilities(
+        self,
+        belief: CellStateBelief,
+        request: MeasurementDecisionRequest,
+    ) -> MeasurementCapabilityReport:
+        assays_by_id = {assay.assay_id: assay for assay in belief.query.available_assays}
+        unknown_assays = tuple(
+            assay_id for assay_id in request.candidate_assay_ids if assay_id not in assays_by_id
+        )
+        ineligible_assays = tuple(
+            assay_id
+            for assay_id in request.candidate_assay_ids
+            if assay_id in assays_by_id
+            and AssayPurpose.MEASUREMENT_SELECTION not in assays_by_id[assay_id].purposes
+        )
+        assay_support = {
+            assay_id: (
+                SupportStatus.NOT_EVALUATED
+                if assay_id in assays_by_id
+                and AssayPurpose.MEASUREMENT_SELECTION in assays_by_id[assay_id].purposes
+                and assays_by_id[assay_id].modality.key.casefold()
+                in self.model.config.observations_by_key
+                else SupportStatus.UNSUPPORTED
+            )
+            for assay_id in request.candidate_assay_ids
+        }
+        collection_effect_support = {
+            effect: (
+                SupportStatus.NOT_EVALUATED
+                if effect is CollectionEffect.NONDESTRUCTIVE
+                else SupportStatus.UNSUPPORTED
+            )
+            for effect in CollectionEffect
+        }
+        blockers = (
+            *(f"unknown_assay:{assay_id}" for assay_id in unknown_assays),
+            *(f"assay_not_for_measurement_selection:{assay_id}" for assay_id in ineligible_assays),
+        )
+        return MeasurementCapabilityReport(
+            supported=not blockers,
+            scope_fingerprint=measurement_capability_scope_fingerprint(belief, request),
+            assay_support=assay_support,
+            collection_effect_support=collection_effect_support,
+            assay_outcome_model=CriterionOutcome.NOT_EVALUATED,
+            hypothetical_update=CriterionOutcome.NOT_EVALUATED,
+            counterfactual_replanning=CriterionOutcome.NOT_EVALUATED,
+            decision_utility=CriterionOutcome.NOT_EVALUATED,
+            blockers=blockers,
+            notes=(
+                "The contract reference has no validated assay-outcome, hypothetical-update, "
+                "counterfactual-replanning, or decision-utility model.",
+            ),
+        )
+
+    def recommend(
+        self,
+        belief: CellStateBelief,
+        request: MeasurementDecisionRequest,
+        *,
+        options: InferenceOptions,
+    ) -> MeasurementRecommendation:
+        assays_by_id = {assay.assay_id: assay for assay in belief.query.available_assays}
+        missing = tuple(
+            assay_id for assay_id in request.candidate_assay_ids if assay_id not in assays_by_id
+        )
+        if missing:
+            raise CapabilityError(
+                f"measurement request names assays outside the query: {list(missing)}"
+            )
+        ineligible = tuple(
+            assay_id
+            for assay_id in request.candidate_assay_ids
+            if AssayPurpose.MEASUREMENT_SELECTION not in assays_by_id[assay_id].purposes
+        )
+        if ineligible:
+            raise CapabilityError(
+                "measurement request names assays without measurement-selection purpose: "
+                f"{list(ineligible)}"
+            )
+
+        assay_specs = tuple(assays_by_id[assay_id] for assay_id in request.candidate_assay_ids)
+        assay_references = tuple(
+            AssayReference(
+                assay_id=assay.assay_id,
+                fingerprint=canonical_fingerprint(assay),
+            )
+            for assay in assay_specs
+        )
+        scope_fingerprint = measurement_capability_scope_fingerprint(belief, request)
+        unavailable_traces = tuple(
+            MeasurementEvidenceTrace(
+                criterion=criterion,
+                outcome=CriterionOutcome.NOT_EVALUATED,
+                scope_fingerprint=scope_fingerprint,
+                reasons=(f"contract_reference_has_no_validated_{criterion.value}_model",),
+            )
+            for criterion in MeasurementEvidenceCriterion
+        )
+        evaluations = tuple(
+            AssayEvaluation(
+                assay=reference,
+                status=SupportStatus.NOT_EVALUATED,
+                collection_effect=assay.collection.effect,
+                evidence_traces=unavailable_traces,
+                reasons=(
+                    "contract_reference_has_no_validated_decision_evsi_model",
+                    f"assay_support:{assay.assay_id}:not_evaluated",
+                    f"collection_effect_support:{assay.collection.effect.value}:not_evaluated",
+                ),
+                notes=("Posterior covariance reduction is not treated as decision-relevant EVSI.",),
+            )
+            for assay, reference in zip(assay_specs, assay_references, strict=True)
+        )
+        candidate_references = tuple(
+            ScenarioReference(
+                scenario_id=candidate.scenario_id,
+                fingerprint=canonical_fingerprint(candidate),
+            )
+            for candidate in request.candidates
+        )
+        payload = f"{scope_fingerprint}:{self.model.model_fingerprint}:{options.seed}"
+        provenance = belief.provenance.model_copy(
+            update={
+                "seed": options.seed,
+                "warnings": (
+                    *belief.provenance.warnings,
+                    "Reference measurement policy returned NOT_EVALUATED; it did not compute "
+                    "EVSI from posterior covariance reduction.",
+                ),
+            }
+        )
+        return MeasurementRecommendation(
+            recommendation_id=sha256(payload.encode()).hexdigest()[:24],
+            status=MeasurementDecisionStatus.NOT_EVALUATED,
+            parent_belief_id=belief.belief_id,
+            query_fingerprint=belief.query_fingerprint,
+            request_id=request.request_id,
+            request_fingerprint=request.fingerprint,
+            objective_id=request.objective.objective_id,
+            objective_fingerprint=canonical_fingerprint(request.objective),
+            candidates=candidate_references,
+            assays=assay_references,
+            selected_assay_id=None,
+            evaluations=evaluations,
+            readiness=belief.readiness,
+            causal_status=belief.diagnostics.causal_support.causal_status,
+            causal_support=belief.diagnostics.causal_support,
+            transport=TransportReport(status=TransportStatus.UNSUPPORTED),
+            minimum_net_decision_value=request.minimum_net_decision_value,
+            utility_units=request.utility_units,
+            abstention_reasons=(
+                "No validated decision-relevant assay-outcome and counterfactual replanning "
+                "model is attached to the contract reference.",
+            ),
+            rationale=(
+                "The reference policy intentionally leaves every assay unevaluated; generic "
+                "posterior covariance reduction is not EVSI over intervention outcomes."
+            ),
+            seed=options.seed,
             provenance=provenance,
         )
 
@@ -1349,6 +2048,43 @@ class LinearGaussianPlanner:
     def descriptor(self) -> EstimatorDescriptor:
         return self.evolution_model.descriptor
 
+    def capabilities(
+        self,
+        belief: CellStateBelief,
+        objective: InterventionObjective,
+        candidates: Sequence[EvolutionScenario],
+    ) -> CapabilityReport:
+        query_targets = {
+            target.term.key
+            for target in belief.query.target_outputs
+            if objective.horizon_name in target.supported_horizon_names
+        }
+        unsupported_outputs = tuple(
+            term.target.key for term in objective.terms if term.target.key not in query_targets
+        )
+        unsupported_horizons = (
+            ()
+            if objective.horizon_name
+            in {horizon.name for horizon in belief.query.prediction_horizons}
+            else (objective.horizon_name,)
+        )
+        evolution_blockers = tuple(
+            f"{candidate.scenario_id}:{blocker}"
+            for candidate in candidates
+            for blocker in self.evolution_model._evolution_capabilities(belief, candidate).blockers
+        )
+        return CapabilityReport(
+            supported=not any((unsupported_outputs, unsupported_horizons, evolution_blockers)),
+            scope_fingerprint=planning_capability_scope_fingerprint(belief, objective, candidates),
+            unsupported_outputs=unsupported_outputs,
+            unsupported_horizons=unsupported_horizons,
+            unsupported_constraints=evolution_blockers,
+            notes=(
+                "The reference planner can exercise the contract but will abstain because it "
+                "has no biological or causal validation evidence.",
+            ),
+        )
+
     def choose(
         self,
         belief: CellStateBelief,
@@ -1357,65 +2093,25 @@ class LinearGaussianPlanner:
         *,
         options: InferenceOptions,
     ) -> InterventionPlan:
-        evaluations: list[CandidateEvaluation] = []
-        for candidate in candidates:
-            forecast = self.evolution_model.evolve(belief, candidate, options=options)
-            utility = 0.0
-            uncertainty_penalty = 0.0
-            notes: list[str] = []
-            supported = True
-            predictions = {
-                prediction.target.term.key: prediction for prediction in forecast.target_predictions
-            }
-            for term in objective.terms:
-                prediction = predictions.get(term.target.key)
-                if prediction is None:
-                    supported = False
-                    notes.append(f"Missing objective target: {term.target.key}")
-                    continue
-                distribution = prediction.distribution
-                if (
-                    prediction.status is not SupportStatus.SUPPORTED
-                    or not isinstance(distribution, ParametricDistribution)
-                    or len(distribution.mean) != 1
-                ):
-                    supported = False
-                    notes.append(
-                        f"Objective target lacks a supported scalar prediction: {term.target.key}"
-                    )
-                    continue
-                expected = float(distribution.mean[0])
-                if term.direction is ObjectiveDirection.MAXIMIZE:
-                    utility += term.weight * expected
-                elif term.direction is ObjectiveDirection.MINIMIZE:
-                    utility -= term.weight * expected
-                else:
-                    assert term.target_value is not None
-                    utility -= term.weight * abs(expected - term.target_value.value)
-                uncertainty_penalty += (
-                    objective.risk_aversion
-                    * term.weight
-                    * math.sqrt(max(0.0, float(distribution.covariance[0][0])))
-                )
-            evaluations.append(
-                CandidateEvaluation(
-                    scenario_id=candidate.scenario_id,
-                    expected_utility=utility if supported else None,
-                    uncertainty_penalty=uncertainty_penalty if supported else None,
-                    selection_score=(utility - uncertainty_penalty) if supported else None,
-                    supported=supported,
-                    notes=tuple(notes),
-                )
+        evaluations = tuple(
+            CandidateEvaluation(
+                scenario_id=candidate.scenario_id,
+                expected_utility=None,
+                uncertainty_penalty=None,
+                selection_score=None,
+                supported=False,
+                causal_status=CausalStatus.UNSUPPORTED,
+                causal_support=belief.diagnostics.causal_support,
+                transport=TransportReport(status=TransportStatus.UNSUPPORTED),
+                readiness=belief.readiness,
+                notes=(
+                    "Reference artifact abstains: a synthetic linear score is not a "
+                    "biologically supported intervention utility.",
+                ),
             )
-        supported_evaluations = [item for item in evaluations if item.supported]
-        selected = (
-            max(
-                supported_evaluations,
-                key=lambda item: cast(float, item.selection_score),
-            ).scenario_id
-            if supported_evaluations
-            else None
+            for candidate in candidates
         )
+        selected = None
         candidate_fingerprints = tuple(canonical_fingerprint(item) for item in candidates)
         payload = (
             f"{belief.belief_id}:{canonical_fingerprint(objective)}:"
@@ -1452,11 +2148,19 @@ class LinearGaussianPlanner:
             objective_id=objective.objective_id,
             objective_fingerprint=objective_fingerprint,
             candidates=candidate_references,
+            status=PlanStatus.ABSTAINED,
             selected_scenario_id=selected,
-            evaluations=tuple(evaluations),
+            evaluations=evaluations,
+            readiness=belief.readiness,
+            causal_status=CausalStatus.UNSUPPORTED,
+            causal_support=belief.diagnostics.causal_support,
+            transport=TransportReport(status=TransportStatus.UNSUPPORTED),
+            abstention_reasons=(
+                "No candidate has query-scoped biological, calibration, sufficiency, and "
+                "causal-identification support.",
+            ),
             rationale=(
-                "Selected the highest reference-model expected utility after a marginal Gaussian "
-                "risk penalty. This is not a biologically validated intervention recommendation."
+                "The contract reference deliberately abstained from recommending an intervention."
             ),
             seed=options.seed,
             provenance=provenance,
@@ -1541,6 +2245,23 @@ def minimal_reference_config() -> LinearGaussianConfig:
             "cytokine": (0.0, 0.03, -0.005, 0.015),
         },
         control_dose_units={"drug": "relative", "cytokine": "relative"},
+        control_delivery_methods={
+            "drug": ("synthetic_reference",),
+            "cytokine": ("synthetic_reference",),
+        },
+        control_reversibility_statuses={
+            "drug": (ReversibilityStatus.REVERSIBLE,),
+            "cytokine": (ReversibilityStatus.REVERSIBLE,),
+        },
+        control_assignment_mechanisms={
+            "drug": (AssignmentMechanism.ASSIGNED_NONRANDOM,),
+            "cytokine": (AssignmentMechanism.ASSIGNED_NONRANDOM,),
+        },
+        control_assignment_unit_kinds={"drug": "well", "cytokine": "well"},
+        control_randomization_unit_kinds={"drug": None, "cytokine": None},
+        control_requires_randomization_unit={"drug": False, "cytokine": False},
+        control_requires_matched_control={"drug": False, "cytokine": False},
+        planned_efficiency_means={"drug": 1.0, "cytokine": 1.0},
         environment_effects={"nutrient": (0.0, 0.0, 0.01, 0.005)},
         environment_units={"nutrient": "relative"},
         factor_dimensions={
@@ -1599,7 +2320,11 @@ def _discretize_linear_system(
 def _latest_environment(events: Iterable[object], time: float) -> dict[str, object]:
     latest: dict[str, tuple[float, object]] = {}
     for event in events:
-        if isinstance(event, EnvironmentEvent) and event.time_seconds <= time:
+        if (
+            isinstance(event, EnvironmentEvent)
+            and event.time_seconds <= time
+            and (event.duration_seconds == 0 or time < event.time_seconds + event.duration_seconds)
+        ):
             for key, value in event.variables.items():
                 normalized = key.casefold()
                 if normalized not in latest or event.time_seconds >= latest[normalized][0]:

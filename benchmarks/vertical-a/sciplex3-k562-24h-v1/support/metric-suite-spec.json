@@ -1,0 +1,93 @@
+{
+  "acceptance": {
+    "coverage_error_upper_confidence_bound_maximum": 0.03,
+    "coverage_nominal_probabilities": [
+      0.5,
+      0.8,
+      0.95
+    ],
+    "crps": "paired compound-block superiority to every mandatory probabilistic baseline",
+    "joint_energy_and_effect_rmse": "both within a 2% paired relative noninferiority margin of the best applicable mandatory baseline and at least one strictly superior"
+  },
+  "artifact_schema": "sciplex3-k562-frozen-metric-suite",
+  "artifact_schema_version": "1.0.0",
+  "execution_status": "definition_frozen_not_run",
+  "feature_panel": {
+    "fit_partition": "train",
+    "full_axis_logcp10k_purpose": "TRAIN-only feature ranking and selection",
+    "full_axis_logcp10k_used_for_scoring": false,
+    "heldout_count_rows_accessed": 0,
+    "path": "benchmarks/artifacts/sciplex3-k562-24h-v1/feature-panel.json",
+    "sha256": "3935f749cf7feb45883f8ddadcbbbffc71749c7452126e7f53eba16f32585b66"
+  },
+  "metrics": [
+    {
+      "formula": "mean over wells and train-selected features of E|X-Y|-0.5E|X-X'| after panel-only log1p(10000*count_i/panel_total_2000)",
+      "metric_id": "sciplex3.marginal-crps-logcp10k",
+      "primary": true
+    },
+    {
+      "formula": "mean over wells of E||X-Y||_2-0.5E||X-X'||_2 in a projection fit on train only after the panel-only scoring transform",
+      "metric_id": "sciplex3.joint-energy-train-pca",
+      "primary": true
+    },
+    {
+      "formula": "RMSE of predicted versus observed treated-minus-same-plate-vehicle mean panel-logCP10k effects",
+      "metric_id": "sciplex3.vehicle-relative-pseudobulk-rmse",
+      "primary": true
+    },
+    {
+      "formula": "absolute empirical marginal coverage error from nominal 0.50 on the panel-logCP10k untouched-test values",
+      "metric_id": "sciplex3.marginal-coverage-error-p50",
+      "primary": true
+    },
+    {
+      "formula": "absolute empirical marginal coverage error from nominal 0.80 on the panel-logCP10k untouched-test values",
+      "metric_id": "sciplex3.marginal-coverage-error-p80",
+      "primary": true
+    },
+    {
+      "formula": "absolute empirical marginal coverage error from nominal 0.95 on the panel-logCP10k untouched-test values",
+      "metric_id": "sciplex3.marginal-coverage-error-p95",
+      "primary": true
+    },
+    {
+      "formula": "mean central 50% panel-logCP10k predictive interval width on untouched test wells",
+      "metric_id": "sciplex3.marginal-interval-width-p50",
+      "primary": false
+    },
+    {
+      "formula": "mean central 80% panel-logCP10k predictive interval width on untouched test wells",
+      "metric_id": "sciplex3.marginal-interval-width-p80",
+      "primary": false
+    },
+    {
+      "formula": "mean central 95% panel-logCP10k predictive interval width on untouched test wells",
+      "metric_id": "sciplex3.marginal-interval-width-p95",
+      "primary": false
+    },
+    {
+      "formula": "equal-compound mean RMSE over the four exact-dose vehicle-relative panel-logCP10k pseudobulk profiles",
+      "metric_id": "sciplex3.four-dose-profile-diagnostic",
+      "primary": false
+    }
+  ],
+  "missingness": "Every expected well is required; an absent target is an error and never silently dropped.",
+  "predictive_interval_calibration": "Any interval-calibration parameters are fit only on the calibration partition; coverage error and width are reported on untouched test wells.",
+  "scoring_transform": {
+    "artifact_id": "sciplex3-panel-only-scoring-transform",
+    "byte_count": 3596,
+    "media_type": "application/json",
+    "sha256": "6968740ed833e482b83b73d6315c9ef4c1caca0ba1d9bb92ce09ffdca86c8f57",
+    "uri": "https://raw.githubusercontent.com/logannye/cellstate/main/benchmarks/vertical-a/sciplex3-k562-24h-v1/support/scoring-transform.json"
+  },
+  "scoring_transform_rule": "For each observed or predicted sample, panel_total is the sum of exactly the declared ordered 2,000 raw counts and each coordinate becomes log1p(10000*count_i/panel_total). No full-axis denominator is read. A wrong length/order, nonfinite/noninteger/negative count, or panel_total<=0 is a fatal evaluation error with no exclusion or imputation.",
+  "target_value_schema": {
+    "artifact_id": "sciplex3-panel-count-target-value-schema",
+    "byte_count": 2287,
+    "media_type": "application/json",
+    "sha256": "b2463271246eca932824ad4d0089aaf3c924afcedec865dec8e04c4bbf7b23e2",
+    "uri": "https://raw.githubusercontent.com/logannye/cellstate/main/benchmarks/vertical-a/sciplex3-k562-24h-v1/support/target-value-schema.json"
+  },
+  "uncertainty": "Multiway bootstrap by compound and whole protected plate; cells are never independent resampling units."
+}

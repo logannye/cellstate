@@ -1,0 +1,1256 @@
+{
+  "$defs": {
+    "AggregationStatistic": {
+      "description": "How a target is aggregated over its typed biological subject.",
+      "enum": [
+        "individual",
+        "joint_distribution",
+        "distribution",
+        "mean",
+        "sum",
+        "fraction",
+        "rate",
+        "hazard"
+      ],
+      "title": "AggregationStatistic",
+      "type": "string"
+    },
+    "AssayEvaluation": {
+      "additionalProperties": false,
+      "description": "Decision value and scientific support for one candidate assay.",
+      "properties": {
+        "assay": {
+          "$ref": "#/$defs/AssayReference"
+        },
+        "assay_cost_penalty": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Assay Cost Penalty"
+        },
+        "assay_cost_units": {
+          "anyOf": [
+            {
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Assay Cost Units"
+        },
+        "baseline_best_expected_utility": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Baseline Best Expected Utility"
+        },
+        "collection_effect": {
+          "$ref": "#/$defs/CollectionEffect"
+        },
+        "delay_cost": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Delay Cost"
+        },
+        "destructiveness_cost": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Destructiveness Cost"
+        },
+        "evidence_traces": {
+          "items": {
+            "$ref": "#/$defs/MeasurementEvidenceTrace"
+          },
+          "maxItems": 4,
+          "minItems": 4,
+          "title": "Evidence Traces",
+          "type": "array"
+        },
+        "expected_delay_seconds": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Expected Delay Seconds"
+        },
+        "expected_information_gain": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Expected Information Gain"
+        },
+        "expected_intervention_ranking_change": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Expected Intervention Ranking Change"
+        },
+        "expected_post_measurement_best_utility": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Expected Post Measurement Best Utility"
+        },
+        "expected_posterior_uncertainty_reduction": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Expected Posterior Uncertainty Reduction"
+        },
+        "gross_expected_decision_value": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Gross Expected Decision Value"
+        },
+        "information_gain_metric": {
+          "anyOf": [
+            {
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Information Gain Metric"
+        },
+        "information_scope": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/MeasurementInformationScope"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "measurement_model_evidence_fingerprints": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "title": "Measurement Model Evidence Fingerprints",
+          "type": "object"
+        },
+        "measurement_model_evidence_ids": {
+          "default": [],
+          "items": {
+            "type": "string"
+          },
+          "title": "Measurement Model Evidence Ids",
+          "type": "array"
+        },
+        "net_expected_decision_value": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Net Expected Decision Value"
+        },
+        "notes": {
+          "default": [],
+          "items": {
+            "type": "string"
+          },
+          "title": "Notes",
+          "type": "array"
+        },
+        "ranking_change_metric": {
+          "anyOf": [
+            {
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Ranking Change Metric"
+        },
+        "raw_assay_cost": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Raw Assay Cost"
+        },
+        "reasons": {
+          "default": [],
+          "items": {
+            "type": "string"
+          },
+          "title": "Reasons",
+          "type": "array"
+        },
+        "status": {
+          "$ref": "#/$defs/SupportStatus"
+        },
+        "uncertainty_reduction_metric": {
+          "anyOf": [
+            {
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Uncertainty Reduction Metric"
+        },
+        "value_basis": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/MeasurementValueBasis"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        }
+      },
+      "required": [
+        "assay",
+        "status",
+        "collection_effect",
+        "evidence_traces"
+      ],
+      "title": "AssayEvaluation",
+      "type": "object"
+    },
+    "AssayReference": {
+      "additionalProperties": false,
+      "properties": {
+        "assay_id": {
+          "minLength": 1,
+          "title": "Assay Id",
+          "type": "string"
+        },
+        "fingerprint": {
+          "pattern": "^[a-fA-F0-9]{64}$",
+          "title": "Fingerprint",
+          "type": "string"
+        }
+      },
+      "required": [
+        "assay_id",
+        "fingerprint"
+      ],
+      "title": "AssayReference",
+      "type": "object"
+    },
+    "AssignmentMechanism": {
+      "description": "How exposure was assigned to the experimental unit receiving an action.",
+      "enum": [
+        "observational",
+        "assigned_nonrandom",
+        "quasi_experimental",
+        "randomized"
+      ],
+      "title": "AssignmentMechanism",
+      "type": "string"
+    },
+    "CausalEstimandBinding": {
+      "additionalProperties": false,
+      "description": "Typed intervention/environment contrast for one query target and horizon.",
+      "properties": {
+        "aggregation": {
+          "$ref": "#/$defs/TargetAggregation"
+        },
+        "comparator": {
+          "minLength": 1,
+          "title": "Comparator",
+          "type": "string"
+        },
+        "decision_set_fingerprint": {
+          "anyOf": [
+            {
+              "pattern": "^[a-fA-F0-9]{64}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Decision Set Fingerprint"
+        },
+        "environment_variable_keys": {
+          "default": [],
+          "items": {
+            "type": "string"
+          },
+          "title": "Environment Variable Keys",
+          "type": "array"
+        },
+        "horizon_name": {
+          "minLength": 1,
+          "title": "Horizon Name",
+          "type": "string"
+        },
+        "intervention_spec_ids": {
+          "default": [],
+          "items": {
+            "type": "string"
+          },
+          "title": "Intervention Spec Ids",
+          "type": "array"
+        },
+        "scenario_fingerprint": {
+          "anyOf": [
+            {
+              "pattern": "^[a-fA-F0-9]{64}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Scenario Fingerprint"
+        },
+        "scenario_id": {
+          "anyOf": [
+            {
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Scenario Id"
+        },
+        "target": {
+          "$ref": "#/$defs/OntologyTerm"
+        }
+      },
+      "required": [
+        "target",
+        "horizon_name",
+        "aggregation",
+        "comparator"
+      ],
+      "title": "CausalEstimandBinding",
+      "type": "object"
+    },
+    "CausalStatus": {
+      "description": "Identification basis attached to a prediction or decision.",
+      "enum": [
+        "predictive_association",
+        "identified_population_effect",
+        "transported_under_assumptions",
+        "mechanistic_extrapolation",
+        "unsupported"
+      ],
+      "title": "CausalStatus",
+      "type": "string"
+    },
+    "CausalSupportReport": {
+      "additionalProperties": false,
+      "properties": {
+        "blockers": {
+          "default": [],
+          "items": {
+            "type": "string"
+          },
+          "title": "Blockers",
+          "type": "array"
+        },
+        "causal_status": {
+          "$ref": "#/$defs/CausalStatus"
+        },
+        "estimands": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/CausalEstimandBinding"
+          },
+          "title": "Estimands",
+          "type": "array"
+        },
+        "evaluation_status": {
+          "$ref": "#/$defs/EvaluationStatus"
+        },
+        "evidence_fingerprints": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "title": "Evidence Fingerprints",
+          "type": "object"
+        },
+        "evidence_ids": {
+          "default": [],
+          "items": {
+            "type": "string"
+          },
+          "title": "Evidence Ids",
+          "type": "array"
+        },
+        "identification_basis": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Identification Basis"
+        },
+        "identification_design": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/AssignmentMechanism"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "notes": {
+          "default": [],
+          "items": {
+            "type": "string"
+          },
+          "title": "Notes",
+          "type": "array"
+        },
+        "outcome": {
+          "$ref": "#/$defs/CriterionOutcome"
+        },
+        "source_scope": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Source Scope"
+        },
+        "target_scope": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Target Scope"
+        },
+        "transport_assumptions": {
+          "default": [],
+          "items": {
+            "type": "string"
+          },
+          "title": "Transport Assumptions",
+          "type": "array"
+        }
+      },
+      "required": [
+        "evaluation_status",
+        "outcome",
+        "causal_status"
+      ],
+      "title": "CausalSupportReport",
+      "type": "object"
+    },
+    "CollectionEffect": {
+      "enum": [
+        "nondestructive",
+        "viability_preserving_with_known_effect",
+        "partially_destructive_population_sampling",
+        "terminal_destructive"
+      ],
+      "title": "CollectionEffect",
+      "type": "string"
+    },
+    "CriterionOutcome": {
+      "description": "Scientific pass/fail state, kept separate from calculation availability.",
+      "enum": [
+        "passed",
+        "failed",
+        "not_evaluated",
+        "unsupported"
+      ],
+      "title": "CriterionOutcome",
+      "type": "string"
+    },
+    "EvaluationStatus": {
+      "description": "Whether a diagnostic was calculated, separate from whether it passed.",
+      "enum": [
+        "evaluated",
+        "not_evaluated",
+        "unsupported"
+      ],
+      "title": "EvaluationStatus",
+      "type": "string"
+    },
+    "MeasurementDecisionStatus": {
+      "enum": [
+        "recommended",
+        "abstained",
+        "not_evaluated",
+        "unsupported"
+      ],
+      "title": "MeasurementDecisionStatus",
+      "type": "string"
+    },
+    "MeasurementEvidenceCriterion": {
+      "description": "The four scientific calculations required for decision-oriented EVSI.",
+      "enum": [
+        "assay_outcome_model",
+        "hypothetical_update",
+        "exact_candidate_counterfactual_replanning",
+        "decision_utility"
+      ],
+      "title": "MeasurementEvidenceCriterion",
+      "type": "string"
+    },
+    "MeasurementEvidenceTrace": {
+      "additionalProperties": false,
+      "description": "Content-addressed support for one EVSI criterion on one exact request scope.",
+      "properties": {
+        "criterion": {
+          "$ref": "#/$defs/MeasurementEvidenceCriterion"
+        },
+        "evidence_fingerprints": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "title": "Evidence Fingerprints",
+          "type": "object"
+        },
+        "evidence_ids": {
+          "default": [],
+          "items": {
+            "type": "string"
+          },
+          "title": "Evidence Ids",
+          "type": "array"
+        },
+        "outcome": {
+          "$ref": "#/$defs/CriterionOutcome"
+        },
+        "reasons": {
+          "default": [],
+          "items": {
+            "type": "string"
+          },
+          "title": "Reasons",
+          "type": "array"
+        },
+        "scope_fingerprint": {
+          "pattern": "^[a-fA-F0-9]{64}$",
+          "title": "Scope Fingerprint",
+          "type": "string"
+        }
+      },
+      "required": [
+        "criterion",
+        "outcome",
+        "scope_fingerprint"
+      ],
+      "title": "MeasurementEvidenceTrace",
+      "type": "object"
+    },
+    "MeasurementInformationScope": {
+      "description": "Decision-relevant information scope; private latent entropy is deliberately absent.",
+      "enum": [
+        "query_targets",
+        "intervention_outcomes",
+        "decision_regret"
+      ],
+      "title": "MeasurementInformationScope",
+      "type": "string"
+    },
+    "MeasurementValueBasis": {
+      "description": "What a supported numeric measurement value actually represents.",
+      "enum": [
+        "intervention_decision_evsi"
+      ],
+      "title": "MeasurementValueBasis",
+      "type": "string"
+    },
+    "OntologyTerm": {
+      "additionalProperties": false,
+      "description": "An extensible biological term, optionally grounded in an ontology.",
+      "properties": {
+        "identifier": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Identifier"
+        },
+        "label": {
+          "minLength": 1,
+          "title": "Label",
+          "type": "string"
+        },
+        "namespace": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Namespace"
+        }
+      },
+      "required": [
+        "label"
+      ],
+      "title": "OntologyTerm",
+      "type": "object"
+    },
+    "ProvenanceRecord": {
+      "additionalProperties": false,
+      "description": "Minimum audit trail attached to every produced belief or forecast.",
+      "properties": {
+        "calibration_data_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Calibration Data Id"
+        },
+        "code_revision": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Code Revision"
+        },
+        "context_fingerprint": {
+          "pattern": "^[a-fA-F0-9]{64}$",
+          "title": "Context Fingerprint",
+          "type": "string"
+        },
+        "generated_at": {
+          "format": "date-time",
+          "title": "Generated At",
+          "type": "string"
+        },
+        "history_fingerprint": {
+          "pattern": "^[a-fA-F0-9]{64}$",
+          "title": "History Fingerprint",
+          "type": "string"
+        },
+        "history_structure_fingerprint": {
+          "pattern": "^[a-fA-F0-9]{64}$",
+          "title": "History Structure Fingerprint",
+          "type": "string"
+        },
+        "model_fingerprint": {
+          "pattern": "^[a-fA-F0-9]{64}$",
+          "title": "Model Fingerprint",
+          "type": "string"
+        },
+        "model_id": {
+          "minLength": 1,
+          "title": "Model Id",
+          "type": "string"
+        },
+        "model_version": {
+          "minLength": 1,
+          "title": "Model Version",
+          "type": "string"
+        },
+        "posterior_schema_id": {
+          "minLength": 1,
+          "title": "Posterior Schema Id",
+          "type": "string"
+        },
+        "query_fingerprint": {
+          "pattern": "^[a-fA-F0-9]{64}$",
+          "title": "Query Fingerprint",
+          "type": "string"
+        },
+        "schema_version": {
+          "const": "2.0",
+          "default": "2.0",
+          "title": "Schema Version",
+          "type": "string"
+        },
+        "seed": {
+          "minimum": 0,
+          "title": "Seed",
+          "type": "integer"
+        },
+        "source_event_fingerprints": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "title": "Source Event Fingerprints",
+          "type": "object"
+        },
+        "source_event_ids": {
+          "default": [],
+          "items": {
+            "type": "string"
+          },
+          "title": "Source Event Ids",
+          "type": "array"
+        },
+        "support_envelope_fingerprint": {
+          "anyOf": [
+            {
+              "pattern": "^[a-fA-F0-9]{64}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Support Envelope Fingerprint"
+        },
+        "support_envelope_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Support Envelope Id"
+        },
+        "training_support_fingerprint": {
+          "anyOf": [
+            {
+              "pattern": "^[a-fA-F0-9]{64}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Training Support Fingerprint"
+        },
+        "training_support_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Training Support Id"
+        },
+        "validation_evidence_fingerprints": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "title": "Validation Evidence Fingerprints",
+          "type": "object"
+        },
+        "validation_evidence_ids": {
+          "default": [],
+          "items": {
+            "type": "string"
+          },
+          "title": "Validation Evidence Ids",
+          "type": "array"
+        },
+        "warnings": {
+          "default": [],
+          "items": {
+            "type": "string"
+          },
+          "title": "Warnings",
+          "type": "array"
+        }
+      },
+      "required": [
+        "model_id",
+        "model_version",
+        "model_fingerprint",
+        "posterior_schema_id",
+        "query_fingerprint",
+        "history_fingerprint",
+        "history_structure_fingerprint",
+        "context_fingerprint",
+        "seed"
+      ],
+      "title": "ProvenanceRecord",
+      "type": "object"
+    },
+    "QueryReadinessReport": {
+      "additionalProperties": false,
+      "properties": {
+        "abstention_required": {
+          "title": "Abstention Required",
+          "type": "boolean"
+        },
+        "calibration": {
+          "$ref": "#/$defs/CriterionOutcome"
+        },
+        "causal": {
+          "$ref": "#/$defs/CriterionOutcome"
+        },
+        "control_requested": {
+          "title": "Control Requested",
+          "type": "boolean"
+        },
+        "decision_uncertainty": {
+          "$ref": "#/$defs/CriterionOutcome"
+        },
+        "identifiability": {
+          "$ref": "#/$defs/CriterionOutcome"
+        },
+        "measurement_model": {
+          "$ref": "#/$defs/CriterionOutcome"
+        },
+        "reasons": {
+          "default": [],
+          "items": {
+            "type": "string"
+          },
+          "title": "Reasons",
+          "type": "array"
+        },
+        "sufficiency": {
+          "$ref": "#/$defs/CriterionOutcome"
+        },
+        "support": {
+          "$ref": "#/$defs/CriterionOutcome"
+        },
+        "valid_for_control": {
+          "title": "Valid For Control",
+          "type": "boolean"
+        },
+        "valid_for_measurement_selection": {
+          "title": "Valid For Measurement Selection",
+          "type": "boolean"
+        },
+        "valid_for_prediction": {
+          "title": "Valid For Prediction",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "support",
+        "sufficiency",
+        "identifiability",
+        "decision_uncertainty",
+        "calibration",
+        "causal",
+        "measurement_model",
+        "control_requested",
+        "valid_for_prediction",
+        "valid_for_control",
+        "valid_for_measurement_selection",
+        "abstention_required"
+      ],
+      "title": "QueryReadinessReport",
+      "type": "object"
+    },
+    "ScenarioReference": {
+      "additionalProperties": false,
+      "properties": {
+        "fingerprint": {
+          "pattern": "^[a-fA-F0-9]{64}$",
+          "title": "Fingerprint",
+          "type": "string"
+        },
+        "scenario_id": {
+          "minLength": 1,
+          "title": "Scenario Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "scenario_id",
+        "fingerprint"
+      ],
+      "title": "ScenarioReference",
+      "type": "object"
+    },
+    "SubjectKind": {
+      "description": "The biological estimand represented by a belief.",
+      "enum": [
+        "individual_cell",
+        "clone_lineage",
+        "population",
+        "spatial_niche"
+      ],
+      "title": "SubjectKind",
+      "type": "string"
+    },
+    "SupportStatus": {
+      "enum": [
+        "supported",
+        "not_evaluated",
+        "unsupported"
+      ],
+      "title": "SupportStatus",
+      "type": "string"
+    },
+    "TargetAggregation": {
+      "additionalProperties": false,
+      "description": "The estimand level and summary represented by a query output.",
+      "properties": {
+        "experimental_unit": {
+          "minLength": 1,
+          "title": "Experimental Unit",
+          "type": "string"
+        },
+        "statistic": {
+          "$ref": "#/$defs/AggregationStatistic"
+        },
+        "subject_kind": {
+          "$ref": "#/$defs/SubjectKind"
+        }
+      },
+      "required": [
+        "subject_kind",
+        "statistic",
+        "experimental_unit"
+      ],
+      "title": "TargetAggregation",
+      "type": "object"
+    },
+    "TransportReport": {
+      "additionalProperties": false,
+      "properties": {
+        "assumptions": {
+          "default": [],
+          "items": {
+            "type": "string"
+          },
+          "title": "Assumptions",
+          "type": "array"
+        },
+        "evidence_ids": {
+          "default": [],
+          "items": {
+            "type": "string"
+          },
+          "title": "Evidence Ids",
+          "type": "array"
+        },
+        "notes": {
+          "default": [],
+          "items": {
+            "type": "string"
+          },
+          "title": "Notes",
+          "type": "array"
+        },
+        "source_domain": {
+          "anyOf": [
+            {
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Source Domain"
+        },
+        "status": {
+          "$ref": "#/$defs/TransportStatus"
+        },
+        "target_domain": {
+          "anyOf": [
+            {
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Target Domain"
+        }
+      },
+      "required": [
+        "status"
+      ],
+      "title": "TransportReport",
+      "type": "object"
+    },
+    "TransportStatus": {
+      "enum": [
+        "within_support",
+        "transported",
+        "extrapolated",
+        "not_evaluated",
+        "unsupported"
+      ],
+      "title": "TransportStatus",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Auditable assay decision; deliberately separate from the belief itself.",
+  "properties": {
+    "abstention_reasons": {
+      "default": [],
+      "items": {
+        "type": "string"
+      },
+      "title": "Abstention Reasons",
+      "type": "array"
+    },
+    "assays": {
+      "items": {
+        "$ref": "#/$defs/AssayReference"
+      },
+      "minItems": 1,
+      "title": "Assays",
+      "type": "array"
+    },
+    "candidates": {
+      "items": {
+        "$ref": "#/$defs/ScenarioReference"
+      },
+      "minItems": 2,
+      "title": "Candidates",
+      "type": "array"
+    },
+    "causal_status": {
+      "$ref": "#/$defs/CausalStatus"
+    },
+    "causal_support": {
+      "$ref": "#/$defs/CausalSupportReport"
+    },
+    "evaluations": {
+      "items": {
+        "$ref": "#/$defs/AssayEvaluation"
+      },
+      "title": "Evaluations",
+      "type": "array"
+    },
+    "minimum_net_decision_value": {
+      "minimum": 0,
+      "title": "Minimum Net Decision Value",
+      "type": "number"
+    },
+    "objective_fingerprint": {
+      "pattern": "^[a-fA-F0-9]{64}$",
+      "title": "Objective Fingerprint",
+      "type": "string"
+    },
+    "objective_id": {
+      "minLength": 1,
+      "title": "Objective Id",
+      "type": "string"
+    },
+    "parent_belief_id": {
+      "format": "uuid",
+      "title": "Parent Belief Id",
+      "type": "string"
+    },
+    "provenance": {
+      "$ref": "#/$defs/ProvenanceRecord"
+    },
+    "query_fingerprint": {
+      "pattern": "^[a-fA-F0-9]{64}$",
+      "title": "Query Fingerprint",
+      "type": "string"
+    },
+    "rationale": {
+      "minLength": 1,
+      "title": "Rationale",
+      "type": "string"
+    },
+    "readiness": {
+      "$ref": "#/$defs/QueryReadinessReport"
+    },
+    "recommendation_id": {
+      "minLength": 1,
+      "title": "Recommendation Id",
+      "type": "string"
+    },
+    "request_fingerprint": {
+      "pattern": "^[a-fA-F0-9]{64}$",
+      "title": "Request Fingerprint",
+      "type": "string"
+    },
+    "request_id": {
+      "minLength": 1,
+      "title": "Request Id",
+      "type": "string"
+    },
+    "schema_version": {
+      "const": "2.0",
+      "default": "2.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "seed": {
+      "minimum": 0,
+      "title": "Seed",
+      "type": "integer"
+    },
+    "selected_assay_id": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Selected Assay Id"
+    },
+    "status": {
+      "$ref": "#/$defs/MeasurementDecisionStatus"
+    },
+    "transport": {
+      "$ref": "#/$defs/TransportReport"
+    },
+    "utility_units": {
+      "minLength": 1,
+      "title": "Utility Units",
+      "type": "string"
+    }
+  },
+  "required": [
+    "recommendation_id",
+    "status",
+    "parent_belief_id",
+    "query_fingerprint",
+    "request_id",
+    "request_fingerprint",
+    "objective_id",
+    "objective_fingerprint",
+    "candidates",
+    "assays",
+    "evaluations",
+    "readiness",
+    "causal_status",
+    "causal_support",
+    "transport",
+    "minimum_net_decision_value",
+    "utility_units",
+    "rationale",
+    "seed",
+    "provenance"
+  ],
+  "title": "MeasurementRecommendation",
+  "type": "object"
+}

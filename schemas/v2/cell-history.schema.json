@@ -1,0 +1,1687 @@
+{
+  "$defs": {
+    "ActualPerturbation": {
+      "additionalProperties": false,
+      "properties": {
+        "efficiency": {
+          "anyOf": [
+            {
+              "maximum": 1,
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Efficiency"
+        },
+        "evidence_event_ids": {
+          "default": [],
+          "items": {
+            "type": "string"
+          },
+          "title": "Evidence Event Ids",
+          "type": "array"
+        },
+        "status": {
+          "$ref": "#/$defs/PerturbationStatus"
+        }
+      },
+      "required": [
+        "status"
+      ],
+      "title": "ActualPerturbation",
+      "type": "object"
+    },
+    "ArtifactRef": {
+      "additionalProperties": false,
+      "description": "Content-addressed reference for arrays, images, tables, or posterior samples.",
+      "properties": {
+        "dimensions": {
+          "default": [],
+          "items": {
+            "type": "string"
+          },
+          "title": "Dimensions",
+          "type": "array"
+        },
+        "dtype": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Dtype"
+        },
+        "media_type": {
+          "minLength": 1,
+          "title": "Media Type",
+          "type": "string"
+        },
+        "schema_version": {
+          "const": "2.0",
+          "default": "2.0",
+          "title": "Schema Version",
+          "type": "string"
+        },
+        "sha256": {
+          "pattern": "^[a-fA-F0-9]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        },
+        "shape": {
+          "default": [],
+          "items": {
+            "type": "integer"
+          },
+          "title": "Shape",
+          "type": "array"
+        },
+        "uri": {
+          "minLength": 1,
+          "title": "Uri",
+          "type": "string"
+        }
+      },
+      "required": [
+        "uri",
+        "sha256",
+        "media_type"
+      ],
+      "title": "ArtifactRef",
+      "type": "object"
+    },
+    "AssayMetadata": {
+      "additionalProperties": false,
+      "properties": {
+        "assay_id": {
+          "minLength": 1,
+          "title": "Assay Id",
+          "type": "string"
+        },
+        "attributes": {
+          "additionalProperties": {
+            "$ref": "#/$defs/JsonValue"
+          },
+          "title": "Attributes",
+          "type": "object"
+        },
+        "batch": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Batch"
+        },
+        "capture_efficiency": {
+          "anyOf": [
+            {
+              "maximum": 1,
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Capture Efficiency"
+        },
+        "detection_limits": {
+          "additionalProperties": {
+            "$ref": "#/$defs/Quantity"
+          },
+          "title": "Detection Limits",
+          "type": "object"
+        },
+        "instrument": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Instrument"
+        },
+        "library_size": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Library Size"
+        },
+        "operator": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Operator"
+        },
+        "plate_position": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Plate Position"
+        },
+        "processing_delay_seconds": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Processing Delay Seconds"
+        },
+        "segmentation_confidence": {
+          "anyOf": [
+            {
+              "maximum": 1,
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Segmentation Confidence"
+        },
+        "staining_panel": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Staining Panel"
+        }
+      },
+      "required": [
+        "assay_id"
+      ],
+      "title": "AssayMetadata",
+      "type": "object"
+    },
+    "AssignmentMechanism": {
+      "description": "How exposure was assigned to the experimental unit receiving an action.",
+      "enum": [
+        "observational",
+        "assigned_nonrandom",
+        "quasi_experimental",
+        "randomized"
+      ],
+      "title": "AssignmentMechanism",
+      "type": "string"
+    },
+    "BeliefSubject": {
+      "additionalProperties": false,
+      "description": "A concrete, identity-qualified biological subject of a belief or history.",
+      "properties": {
+        "biological_system": {
+          "$ref": "#/$defs/OntologyTerm"
+        },
+        "experimental_unit_id": {
+          "minLength": 1,
+          "title": "Experimental Unit Id",
+          "type": "string"
+        },
+        "experimental_unit_kind": {
+          "minLength": 1,
+          "title": "Experimental Unit Kind",
+          "type": "string"
+        },
+        "identity_basis": {
+          "$ref": "#/$defs/IdentityBasis"
+        },
+        "identity_confidence": {
+          "anyOf": [
+            {
+              "exclusiveMinimum": 0,
+              "maximum": 1,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Identity Confidence"
+        },
+        "kind": {
+          "$ref": "#/$defs/SubjectKind"
+        },
+        "member_ids": {
+          "default": [],
+          "items": {
+            "type": "string"
+          },
+          "title": "Member Ids",
+          "type": "array"
+        },
+        "membership_semantics": {
+          "minLength": 1,
+          "title": "Membership Semantics",
+          "type": "string"
+        },
+        "subject_id": {
+          "minLength": 1,
+          "title": "Subject Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "subject_id",
+        "kind",
+        "biological_system",
+        "membership_semantics",
+        "experimental_unit_kind",
+        "experimental_unit_id",
+        "identity_basis"
+      ],
+      "title": "BeliefSubject",
+      "type": "object"
+    },
+    "CensoringDirection": {
+      "enum": [
+        "below",
+        "above",
+        "interval"
+      ],
+      "title": "CensoringDirection",
+      "type": "string"
+    },
+    "CollectionEffect": {
+      "enum": [
+        "nondestructive",
+        "viability_preserving_with_known_effect",
+        "partially_destructive_population_sampling",
+        "terminal_destructive"
+      ],
+      "title": "CollectionEffect",
+      "type": "string"
+    },
+    "ContactEvent": {
+      "additionalProperties": false,
+      "properties": {
+        "communication_capacity": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Communication Capacity"
+        },
+        "contact_area": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Quantity"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "distance": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Quantity"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "duration_seconds": {
+          "default": 0,
+          "minimum": 0,
+          "title": "Duration Seconds",
+          "type": "number"
+        },
+        "event_id": {
+          "minLength": 1,
+          "title": "Event Id",
+          "type": "string"
+        },
+        "kind": {
+          "const": "contact",
+          "default": "contact",
+          "title": "Kind",
+          "type": "string"
+        },
+        "other_subject_id": {
+          "minLength": 1,
+          "title": "Other Subject Id",
+          "type": "string"
+        },
+        "schema_version": {
+          "const": "2.0",
+          "default": "2.0",
+          "title": "Schema Version",
+          "type": "string"
+        },
+        "source": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Source"
+        },
+        "subject": {
+          "$ref": "#/$defs/BeliefSubject"
+        },
+        "time_seconds": {
+          "title": "Time Seconds",
+          "type": "number"
+        }
+      },
+      "required": [
+        "event_id",
+        "subject",
+        "time_seconds",
+        "other_subject_id"
+      ],
+      "title": "ContactEvent",
+      "type": "object"
+    },
+    "DivisionEvent": {
+      "additionalProperties": false,
+      "properties": {
+        "child_ids": {
+          "items": {
+            "type": "string"
+          },
+          "minItems": 2,
+          "title": "Child Ids",
+          "type": "array"
+        },
+        "event_id": {
+          "minLength": 1,
+          "title": "Event Id",
+          "type": "string"
+        },
+        "kind": {
+          "const": "division",
+          "default": "division",
+          "title": "Kind",
+          "type": "string"
+        },
+        "partition_metadata": {
+          "additionalProperties": {
+            "$ref": "#/$defs/JsonValue"
+          },
+          "title": "Partition Metadata",
+          "type": "object"
+        },
+        "schema_version": {
+          "const": "2.0",
+          "default": "2.0",
+          "title": "Schema Version",
+          "type": "string"
+        },
+        "source": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Source"
+        },
+        "subject": {
+          "$ref": "#/$defs/BeliefSubject"
+        },
+        "time_seconds": {
+          "title": "Time Seconds",
+          "type": "number"
+        }
+      },
+      "required": [
+        "event_id",
+        "subject",
+        "time_seconds",
+        "child_ids"
+      ],
+      "title": "DivisionEvent",
+      "type": "object"
+    },
+    "EnvironmentEvent": {
+      "additionalProperties": false,
+      "properties": {
+        "duration_seconds": {
+          "minimum": 0,
+          "title": "Duration Seconds",
+          "type": "number"
+        },
+        "event_id": {
+          "minLength": 1,
+          "title": "Event Id",
+          "type": "string"
+        },
+        "kind": {
+          "const": "environment",
+          "default": "environment",
+          "title": "Kind",
+          "type": "string"
+        },
+        "schema_version": {
+          "const": "2.0",
+          "default": "2.0",
+          "title": "Schema Version",
+          "type": "string"
+        },
+        "source": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Source"
+        },
+        "spatial_region": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Spatial Region"
+        },
+        "subject": {
+          "$ref": "#/$defs/BeliefSubject"
+        },
+        "temporal_mode": {
+          "$ref": "#/$defs/EnvironmentTemporalMode"
+        },
+        "time_seconds": {
+          "title": "Time Seconds",
+          "type": "number"
+        },
+        "variables": {
+          "additionalProperties": {
+            "anyOf": [
+              {
+                "$ref": "#/$defs/Quantity"
+              },
+              {
+                "$ref": "#/$defs/JsonValue"
+              }
+            ]
+          },
+          "minProperties": 1,
+          "title": "Variables",
+          "type": "object"
+        }
+      },
+      "required": [
+        "event_id",
+        "subject",
+        "time_seconds",
+        "variables",
+        "duration_seconds",
+        "temporal_mode"
+      ],
+      "title": "EnvironmentEvent",
+      "type": "object"
+    },
+    "EnvironmentTemporalMode": {
+      "enum": [
+        "fixed",
+        "piecewise_constant",
+        "time_varying"
+      ],
+      "title": "EnvironmentTemporalMode",
+      "type": "string"
+    },
+    "EvidenceLink": {
+      "additionalProperties": false,
+      "description": "An explicit, confidence-qualified link from sampled source to belief target.",
+      "properties": {
+        "assay_row_id": {
+          "anyOf": [
+            {
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Assay Row Id"
+        },
+        "biological_replicate_id": {
+          "anyOf": [
+            {
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Biological Replicate Id"
+        },
+        "linkage_basis": {
+          "$ref": "#/$defs/IdentityBasis"
+        },
+        "linkage_confidence": {
+          "exclusiveMinimum": 0,
+          "maximum": 1,
+          "title": "Linkage Confidence",
+          "type": "number"
+        },
+        "linkage_details": {
+          "minLength": 1,
+          "title": "Linkage Details",
+          "type": "string"
+        },
+        "randomization_unit_id": {
+          "anyOf": [
+            {
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Randomization Unit Id"
+        },
+        "role": {
+          "$ref": "#/$defs/EvidenceRole"
+        },
+        "sampling_unit_id": {
+          "minLength": 1,
+          "title": "Sampling Unit Id",
+          "type": "string"
+        },
+        "source_subject": {
+          "$ref": "#/$defs/BeliefSubject"
+        },
+        "target_subject": {
+          "$ref": "#/$defs/BeliefSubject"
+        }
+      },
+      "required": [
+        "source_subject",
+        "target_subject",
+        "role",
+        "linkage_basis",
+        "linkage_confidence",
+        "linkage_details",
+        "sampling_unit_id"
+      ],
+      "title": "EvidenceLink",
+      "type": "object"
+    },
+    "EvidenceRole": {
+      "enum": [
+        "direct",
+        "ancestor",
+        "descendant",
+        "sibling",
+        "clone_aggregate",
+        "matched_population",
+        "general_population",
+        "spatial_neighbor",
+        "external_reference"
+      ],
+      "title": "EvidenceRole",
+      "type": "string"
+    },
+    "HistoryCompleteness": {
+      "additionalProperties": false,
+      "properties": {
+        "environments": {
+          "$ref": "#/$defs/RecordCompleteness",
+          "default": "unknown"
+        },
+        "interventions": {
+          "$ref": "#/$defs/RecordCompleteness",
+          "default": "unknown"
+        },
+        "lineage": {
+          "$ref": "#/$defs/RecordCompleteness",
+          "default": "unknown"
+        },
+        "neighborhood": {
+          "$ref": "#/$defs/RecordCompleteness",
+          "default": "unknown"
+        },
+        "observations": {
+          "$ref": "#/$defs/RecordCompleteness",
+          "default": "unknown"
+        }
+      },
+      "title": "HistoryCompleteness",
+      "type": "object"
+    },
+    "IdentityBasis": {
+      "description": "Observed or explicitly inferred basis for subject identity or linkage.",
+      "enum": [
+        "observed_identity",
+        "direct_tracking",
+        "viability_preserving_sampling",
+        "observed_parentage",
+        "heritable_barcode",
+        "phylogeny",
+        "probabilistic_lineage",
+        "declared_membership",
+        "experimental_unit",
+        "probabilistic_membership",
+        "spatial_region",
+        "observed_neighborhood_graph",
+        "matched_experimental_design",
+        "spatial_proximity",
+        "transport_assumption",
+        "external_reference"
+      ],
+      "title": "IdentityBasis",
+      "type": "string"
+    },
+    "InterventionEvent": {
+      "additionalProperties": false,
+      "properties": {
+        "actual_perturbation": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ActualPerturbation"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "assignment_mechanism": {
+          "$ref": "#/$defs/AssignmentMechanism"
+        },
+        "assignment_unit_id": {
+          "minLength": 1,
+          "title": "Assignment Unit Id",
+          "type": "string"
+        },
+        "assignment_unit_kind": {
+          "minLength": 1,
+          "title": "Assignment Unit Kind",
+          "type": "string"
+        },
+        "delivery_method": {
+          "minLength": 1,
+          "title": "Delivery Method",
+          "type": "string"
+        },
+        "dose": {
+          "$ref": "#/$defs/Quantity"
+        },
+        "duration_seconds": {
+          "minimum": 0,
+          "title": "Duration Seconds",
+          "type": "number"
+        },
+        "estimated_efficiency": {
+          "anyOf": [
+            {
+              "maximum": 1,
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Estimated Efficiency"
+        },
+        "event_id": {
+          "minLength": 1,
+          "title": "Event Id",
+          "type": "string"
+        },
+        "intervention_spec_id": {
+          "minLength": 1,
+          "title": "Intervention Spec Id",
+          "type": "string"
+        },
+        "intervention_type": {
+          "$ref": "#/$defs/OntologyTerm"
+        },
+        "kind": {
+          "const": "intervention",
+          "default": "intervention",
+          "title": "Kind",
+          "type": "string"
+        },
+        "matched_control": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/MatchedControl"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "mechanism": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/OntologyTerm"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "randomization_unit_id": {
+          "anyOf": [
+            {
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Randomization Unit Id"
+        },
+        "randomization_unit_kind": {
+          "anyOf": [
+            {
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Randomization Unit Kind"
+        },
+        "reversibility_status": {
+          "$ref": "#/$defs/ReversibilityStatus"
+        },
+        "schedule": {
+          "$ref": "#/$defs/InterventionSchedule"
+        },
+        "schema_version": {
+          "const": "2.0",
+          "default": "2.0",
+          "title": "Schema Version",
+          "type": "string"
+        },
+        "source": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Source"
+        },
+        "subject": {
+          "$ref": "#/$defs/BeliefSubject"
+        },
+        "target": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/OntologyTerm"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "time_seconds": {
+          "title": "Time Seconds",
+          "type": "number"
+        }
+      },
+      "required": [
+        "event_id",
+        "subject",
+        "time_seconds",
+        "intervention_spec_id",
+        "intervention_type",
+        "dose",
+        "duration_seconds",
+        "schedule",
+        "delivery_method",
+        "reversibility_status",
+        "assignment_mechanism",
+        "assignment_unit_kind",
+        "assignment_unit_id",
+        "matched_control"
+      ],
+      "title": "InterventionEvent",
+      "type": "object"
+    },
+    "InterventionSchedule": {
+      "additionalProperties": false,
+      "description": "An explicit realized or intended administration schedule.",
+      "properties": {
+        "administration_count": {
+          "minimum": 1,
+          "title": "Administration Count",
+          "type": "integer"
+        },
+        "interval_seconds": {
+          "anyOf": [
+            {
+              "exclusiveMinimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Interval Seconds"
+        },
+        "kind": {
+          "$ref": "#/$defs/ScheduleKind"
+        },
+        "washout_seconds": {
+          "minimum": 0,
+          "title": "Washout Seconds",
+          "type": "number"
+        }
+      },
+      "required": [
+        "kind",
+        "administration_count",
+        "washout_seconds"
+      ],
+      "title": "InterventionSchedule",
+      "type": "object"
+    },
+    "JsonValue": {},
+    "LineageHistory": {
+      "additionalProperties": false,
+      "properties": {
+        "clone_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Clone Id"
+        },
+        "division_times_seconds": {
+          "default": [],
+          "items": {
+            "type": "number"
+          },
+          "title": "Division Times Seconds",
+          "type": "array"
+        },
+        "generation_number": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Generation Number"
+        },
+        "inherited_measurement_ids": {
+          "default": [],
+          "items": {
+            "type": "string"
+          },
+          "title": "Inherited Measurement Ids",
+          "type": "array"
+        },
+        "lineage_barcode": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Lineage Barcode"
+        },
+        "parent_cell_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Parent Cell Id"
+        },
+        "sibling_cell_ids": {
+          "default": [],
+          "items": {
+            "type": "string"
+          },
+          "title": "Sibling Cell Ids",
+          "type": "array"
+        }
+      },
+      "title": "LineageHistory",
+      "type": "object"
+    },
+    "MatchedControl": {
+      "additionalProperties": false,
+      "description": "Explicit linkage to the control unit used for an assigned intervention.",
+      "properties": {
+        "assignment_unit_id": {
+          "minLength": 1,
+          "title": "Assignment Unit Id",
+          "type": "string"
+        },
+        "condition": {
+          "$ref": "#/$defs/OntologyTerm"
+        },
+        "contemporaneous": {
+          "title": "Contemporaneous",
+          "type": "boolean"
+        },
+        "matching_basis": {
+          "minLength": 1,
+          "title": "Matching Basis",
+          "type": "string"
+        },
+        "subject_id": {
+          "minLength": 1,
+          "title": "Subject Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "subject_id",
+        "assignment_unit_id",
+        "condition",
+        "matching_basis",
+        "contemporaneous"
+      ],
+      "title": "MatchedControl",
+      "type": "object"
+    },
+    "MeasurementUncertainty": {
+      "additionalProperties": false,
+      "properties": {
+        "distribution": {
+          "default": "unspecified",
+          "title": "Distribution",
+          "type": "string"
+        },
+        "parameters": {
+          "additionalProperties": {
+            "$ref": "#/$defs/JsonValue"
+          },
+          "title": "Parameters",
+          "type": "object"
+        },
+        "standard_error": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Standard Error"
+        }
+      },
+      "title": "MeasurementUncertainty",
+      "type": "object"
+    },
+    "MissingnessReport": {
+      "additionalProperties": false,
+      "properties": {
+        "censoring_direction": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/CensoringDirection"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "detection_limit": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Quantity"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "interval_lower": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Quantity"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "interval_upper": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Quantity"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "reason": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Reason"
+        },
+        "status": {
+          "$ref": "#/$defs/MissingnessStatus",
+          "default": "observed"
+        }
+      },
+      "title": "MissingnessReport",
+      "type": "object"
+    },
+    "MissingnessStatus": {
+      "enum": [
+        "observed",
+        "not_measured",
+        "missing",
+        "below_detection",
+        "censored",
+        "assay_failure"
+      ],
+      "title": "MissingnessStatus",
+      "type": "string"
+    },
+    "ObservationCollection": {
+      "additionalProperties": false,
+      "description": "Biological effect of collecting one observation from its sampled source.",
+      "properties": {
+        "effect": {
+          "$ref": "#/$defs/CollectionEffect"
+        },
+        "effect_description": {
+          "anyOf": [
+            {
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Effect Description"
+        },
+        "sampling_fraction": {
+          "anyOf": [
+            {
+              "exclusiveMinimum": 0,
+              "maximum": 1,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Sampling Fraction"
+        }
+      },
+      "required": [
+        "effect"
+      ],
+      "title": "ObservationCollection",
+      "type": "object"
+    },
+    "ObservationEvent": {
+      "additionalProperties": false,
+      "properties": {
+        "assay": {
+          "$ref": "#/$defs/AssayMetadata"
+        },
+        "collection": {
+          "$ref": "#/$defs/ObservationCollection"
+        },
+        "duration_seconds": {
+          "minimum": 0,
+          "title": "Duration Seconds",
+          "type": "number"
+        },
+        "event_id": {
+          "minLength": 1,
+          "title": "Event Id",
+          "type": "string"
+        },
+        "evidence_link": {
+          "$ref": "#/$defs/EvidenceLink"
+        },
+        "kind": {
+          "const": "observation",
+          "default": "observation",
+          "title": "Kind",
+          "type": "string"
+        },
+        "missingness": {
+          "$ref": "#/$defs/MissingnessReport"
+        },
+        "modality": {
+          "$ref": "#/$defs/OntologyTerm"
+        },
+        "quality": {
+          "$ref": "#/$defs/QualityReport"
+        },
+        "schema_version": {
+          "const": "2.0",
+          "default": "2.0",
+          "title": "Schema Version",
+          "type": "string"
+        },
+        "source": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Source"
+        },
+        "subject": {
+          "$ref": "#/$defs/BeliefSubject"
+        },
+        "time_seconds": {
+          "title": "Time Seconds",
+          "type": "number"
+        },
+        "uncertainty": {
+          "$ref": "#/$defs/MeasurementUncertainty"
+        },
+        "units": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Units"
+        },
+        "value": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ArtifactRef"
+            },
+            {
+              "$ref": "#/$defs/JsonValue"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Value"
+        }
+      },
+      "required": [
+        "event_id",
+        "subject",
+        "time_seconds",
+        "modality",
+        "evidence_link",
+        "collection",
+        "duration_seconds",
+        "value",
+        "assay"
+      ],
+      "title": "ObservationEvent",
+      "type": "object"
+    },
+    "OntologyTerm": {
+      "additionalProperties": false,
+      "description": "An extensible biological term, optionally grounded in an ontology.",
+      "properties": {
+        "identifier": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Identifier"
+        },
+        "label": {
+          "minLength": 1,
+          "title": "Label",
+          "type": "string"
+        },
+        "namespace": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Namespace"
+        }
+      },
+      "required": [
+        "label"
+      ],
+      "title": "OntologyTerm",
+      "type": "object"
+    },
+    "PerturbationStatus": {
+      "enum": [
+        "unknown",
+        "inferred",
+        "measured",
+        "failed"
+      ],
+      "title": "PerturbationStatus",
+      "type": "string"
+    },
+    "QualityReport": {
+      "additionalProperties": false,
+      "properties": {
+        "flags": {
+          "default": [],
+          "items": {
+            "type": "string"
+          },
+          "title": "Flags",
+          "type": "array"
+        },
+        "score": {
+          "default": 1.0,
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Score",
+          "type": "number"
+        }
+      },
+      "title": "QualityReport",
+      "type": "object"
+    },
+    "Quantity": {
+      "additionalProperties": false,
+      "properties": {
+        "units": {
+          "minLength": 1,
+          "title": "Units",
+          "type": "string"
+        },
+        "value": {
+          "title": "Value",
+          "type": "number"
+        }
+      },
+      "required": [
+        "value",
+        "units"
+      ],
+      "title": "Quantity",
+      "type": "object"
+    },
+    "RecordCompleteness": {
+      "enum": [
+        "complete",
+        "incomplete",
+        "unknown"
+      ],
+      "title": "RecordCompleteness",
+      "type": "string"
+    },
+    "ReversibilityStatus": {
+      "description": "What is actually known about reversal after an intervention ends.\n\nThis is deliberately separate from a schedule's washout interval.  Removing an\nexposure does not by itself establish that its biological effects are reversible.",
+      "enum": [
+        "reversible",
+        "irreversible",
+        "unknown"
+      ],
+      "title": "ReversibilityStatus",
+      "type": "string"
+    },
+    "ScheduleKind": {
+      "enum": [
+        "single",
+        "continuous",
+        "repeated",
+        "pulsed"
+      ],
+      "title": "ScheduleKind",
+      "type": "string"
+    },
+    "SpatialEdge": {
+      "additionalProperties": false,
+      "properties": {
+        "communication_capacity": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Communication Capacity"
+        },
+        "contact_area": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Quantity"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "contact_duration": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Quantity"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "distance": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Quantity"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "relationship": {
+          "minLength": 1,
+          "title": "Relationship",
+          "type": "string"
+        },
+        "source_id": {
+          "minLength": 1,
+          "title": "Source Id",
+          "type": "string"
+        },
+        "target_id": {
+          "minLength": 1,
+          "title": "Target Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "source_id",
+        "target_id",
+        "relationship"
+      ],
+      "title": "SpatialEdge",
+      "type": "object"
+    },
+    "SpatialGraph": {
+      "additionalProperties": false,
+      "properties": {
+        "edges": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/SpatialEdge"
+          },
+          "title": "Edges",
+          "type": "array"
+        },
+        "nodes": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/SpatialNode"
+          },
+          "title": "Nodes",
+          "type": "array"
+        }
+      },
+      "title": "SpatialGraph",
+      "type": "object"
+    },
+    "SpatialNode": {
+      "additionalProperties": false,
+      "properties": {
+        "belief_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Belief Id"
+        },
+        "features": {
+          "additionalProperties": {
+            "$ref": "#/$defs/JsonValue"
+          },
+          "title": "Features",
+          "type": "object"
+        },
+        "node_id": {
+          "minLength": 1,
+          "title": "Node Id",
+          "type": "string"
+        },
+        "node_type": {
+          "minLength": 1,
+          "title": "Node Type",
+          "type": "string"
+        }
+      },
+      "required": [
+        "node_id",
+        "node_type"
+      ],
+      "title": "SpatialNode",
+      "type": "object"
+    },
+    "SubjectKind": {
+      "description": "The biological estimand represented by a belief.",
+      "enum": [
+        "individual_cell",
+        "clone_lineage",
+        "population",
+        "spatial_niche"
+      ],
+      "title": "SubjectKind",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "description": "A frozen-top-level timeline; empty is not complete unless declared complete.",
+  "properties": {
+    "completeness": {
+      "$ref": "#/$defs/HistoryCompleteness"
+    },
+    "events": {
+      "default": [],
+      "items": {
+        "discriminator": {
+          "mapping": {
+            "contact": "#/$defs/ContactEvent",
+            "division": "#/$defs/DivisionEvent",
+            "environment": "#/$defs/EnvironmentEvent",
+            "intervention": "#/$defs/InterventionEvent",
+            "observation": "#/$defs/ObservationEvent"
+          },
+          "propertyName": "kind"
+        },
+        "oneOf": [
+          {
+            "$ref": "#/$defs/ObservationEvent"
+          },
+          {
+            "$ref": "#/$defs/InterventionEvent"
+          },
+          {
+            "$ref": "#/$defs/EnvironmentEvent"
+          },
+          {
+            "$ref": "#/$defs/DivisionEvent"
+          },
+          {
+            "$ref": "#/$defs/ContactEvent"
+          }
+        ]
+      },
+      "title": "Events",
+      "type": "array"
+    },
+    "lineage": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/LineageHistory"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "neighborhood": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/SpatialGraph"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "schema_version": {
+      "const": "2.0",
+      "default": "2.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "subject": {
+      "$ref": "#/$defs/BeliefSubject"
+    }
+  },
+  "required": [
+    "subject"
+  ],
+  "title": "CellHistory",
+  "type": "object"
+}

@@ -15,7 +15,10 @@ it:
 10. Characterize continuous dynamics and discrete event hazards/jumps.
 11. Decompose uncertainty, observability, identifiability, and OOD support.
 12. Evaluate predictive sufficiency when held-out future evidence actually permits it.
-13. Rank candidate measurements by decision-relevant uncertainty reduction per cost.
-14. Return a self-auditing belief with model/data/code provenance.
+13. Return a self-auditing belief with model/data/code provenance.
+14. In the separate measurement-decision operation, evaluate candidate assays only through a
+    calibrated assay-outcome model, hypothetical update, counterfactual replanning, and declared
+    decision utility; otherwise distinguish an unevaluated `NOT_EVALUATED` result from an
+    out-of-support or failed `UNSUPPORTED` result.
 
 The stage boundaries are extension points, not claims that the biological updates are independent.

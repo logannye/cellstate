@@ -1,0 +1,29 @@
+{
+  "artifact_schema": "sciplex3-k562-source-label-normalization",
+  "artifact_schema_version": "1.0.0",
+  "condition_identity": "source-label:<normalized source label>@<integer dose>nM; source-control@0nM for vehicle",
+  "labels_changed_by_normalization": 11,
+  "limitations": [
+    "Normalized labels remain source-scoped presentation strings.",
+    "This artifact does not establish chemical identity, mechanism, or ontology equivalence.",
+    "Cross-study intervention transport requires a separately reviewed mapping artifact."
+  ],
+  "mapping_artifact": {
+    "byte_count": 7394,
+    "encoding": "canonical_json_utf8_string_pair_array_v1",
+    "media_type": "application/json",
+    "relative_path": "mappings/source-label-to-normalized-label.json",
+    "sha256": "3ce773e9daf1342c88788edf4927130044f0e35d3378348819c567ce277bacb7"
+  },
+  "normalization": {
+    "case_folding": false,
+    "chemical_name_resolution": false,
+    "fuzzy_matching": false,
+    "ontology_mapping": false,
+    "operation": "Python str.strip() with default Unicode whitespace"
+  },
+  "normalized_label_count_including_control": 189,
+  "source_field": "obs.perturbation",
+  "source_label_count_including_control": 189,
+  "source_sha256": "603ed16c5e25401c8a7f5bb0b2b045179701017d65dcfc6aeea71722a66cd10a"
+}

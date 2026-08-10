@@ -12,8 +12,10 @@ not a biologically or clinically validated cell model.
 
 ## Architectural invariants
 
-- Keep `estimate_cell_state`, `evolve_cell_state`, and `choose_intervention` separate. Estimation,
-  forecasting, and decision-making have different scientific contracts.
+- Keep `estimate_cell_state`, `evolve_cell_state`, `choose_intervention`, and
+  `recommend_next_measurement` separate. Estimation, forecasting, control, and buying information
+  have different scientific contracts; a measurement decision must bind the exact downstream
+  candidate set and utility.
 - Every state is scoped to a declared query, targets, horizons, system boundary, and support
   envelope. Unsupported or unidentifiable requests must abstain explicitly.
 - Return posterior and predictive distributions, not point-only latent vectors. Preserve
@@ -63,10 +65,26 @@ not a biologically or clinically validated cell model.
 
 ## Current milestone
 
-Phase 0 is active. The experimental public-data/claim manifest scaffold is hardened; next freeze
-Vertical A's first query and benchmark specification and resolve belief-subject semantics in
-proposed ADR 0005. Do not begin biological model training or treat candidate datasets as admitted
-before those gates are complete.
+Phase 0 is active. The experimental public-data/claim manifest `0.3-experimental` supports
+canonical repeated claim assessments, exact loss/metric eligibility, layered permission
+resolution, content-addressed dataset slices, interval-valued evidence clocks, and executable
+representability proofs. Schema v2 enforces typed subjects, destructive evidence, bounded query
+support, query-compiled state, perturbation realization, scientific readiness/abstention, causal
+status, and standalone decision-oriented measurement selection. The Replogle K562 destructive-
+population proof and the GSE141064 Live-seq individual functional-recorder proof passed on
+2026-08-09 without authorizing data use or admitting either source for model training. The first
+Vertical A component benchmark is now frozen around the corrected sci-Plex3 K562 24-hour endpoint,
+with exact well/plate partitions and an explicit `COMPONENT_BENCHMARK` result. Its assessment and
+permission gates pass, but its executable metric, leakage, baseline, and performance gates have not
+run, so it is not scientifically admitted. The experimental biological-bundle contract and first
+population assay-response scaffold are now in place. The scaffold exhaustively maps all original
+model stages, exposes no public cell-state operation, contains no trained weights, and rejects
+execution. Its direct context-and-assignment to 24-hour assay response is not a hidden-state belief.
+Contract v0.1 cannot authorize execution from declarations: exact bytes, loaded interfaces,
+validation-result semantics, and query-derived prerequisites still require trusted verifiers. That
+verifier boundary is the active gate, followed by a provenance-bound training, calibration,
+baseline, and locked-test evaluation path. No biological runtime or validated belief may be
+registered before its separate operation-specific admission gates pass.
 
 `docs/roadmap.md` is the sole authority for sequence and status. The full target architecture lives
 in `docs/architecture/full-buildout.md`; accepted rationale lives in ADRs. The sanitized local audit
@@ -79,7 +97,7 @@ model.
 
 - Read `README.md`, `docs/architecture/overview.md`, `docs/architecture/data-contracts.md`,
   `docs/validation/scientific-validation.md`, `docs/architecture/full-buildout.md`, and
-  `docs/roadmap.md` before changing biological semantics or adding a backend. Read proposed ADR 0005
+  `docs/roadmap.md` before changing biological semantics or adding a backend. Read accepted ADR 0005
   before changing subject or sampling semantics.
 - Preserve user changes in a dirty worktree. Keep changes focused and add acceptance tests in
   proportion to scientific and software risk.

@@ -1,0 +1,85 @@
+{
+  "application": {
+    "application_unit": "one recovered-nucleus ordered count vector",
+    "applies_to": [
+      "observed_sample",
+      "predicted_posterior_sample"
+    ],
+    "apply_before": [
+      "marginal_crps",
+      "joint_energy_projection",
+      "vehicle_relative_pseudobulk_effect",
+      "four_dose_profile",
+      "marginal_interval_coverage",
+      "marginal_interval_width"
+    ],
+    "symmetry_requirement": "apply the identical transform independently to every observed and predicted sample"
+  },
+  "artifact_schema": "sciplex3-k562-panel-only-scoring-transform",
+  "artifact_schema_version": "1.0.0",
+  "declared_panel": {
+    "feature_count": 2000,
+    "ordered_feature_keys_encoded_byte_count": 50290,
+    "ordered_feature_keys_encoding": "canonical_json_utf8_string_array_v1_ordered",
+    "ordered_feature_keys_sha256": "8b9e0e71d9bfc79a5e1db29f73bc30006bf117a29db8abf63b1607403629401f",
+    "panel_artifact": {
+      "artifact_id": "sciplex3-train-feature-panel",
+      "byte_count": 922201,
+      "media_type": "application/json",
+      "sha256": "3935f749cf7feb45883f8ddadcbbbffc71749c7452126e7f53eba16f32585b66",
+      "uri": "https://raw.githubusercontent.com/logannye/cellstate/main/benchmarks/artifacts/sciplex3-k562-24h-v1/feature-panel.json"
+    }
+  },
+  "input_contract": {
+    "coordinate_order": "exact declared_panel ordered feature-key order",
+    "coordinate_value_domain": "finite nonnegative integer raw UMI count",
+    "external_denominator_inputs": [],
+    "feature_count": 2000,
+    "full_source_axis_input_allowed": false,
+    "raw_value_schema": "one exact-length ordered vector of raw integer UMI counts on the declared 2,000-feature panel"
+  },
+  "output_contract": {
+    "coordinate_order": "unchanged from the exact declared panel order",
+    "feature_count": 2000,
+    "value_domain": "finite nonnegative real panel_logCP10k value"
+  },
+  "scoring_transform": {
+    "denominator_definition": "panel_total = sum(count_i for i in the exact ordered 2,000-feature panel)",
+    "denominator_scope": "declared_ordered_2000_feature_panel_only",
+    "formula": "log1p(10000 * count_i / panel_total)",
+    "log_base": "e",
+    "scale": 10000,
+    "transformation_id": "panel-only-natural-log-cp10k",
+    "transformation_version": "1.0.0"
+  },
+  "train_feature_selection_transform": {
+    "full_source_axis_denominator_used": true,
+    "purpose": "TRAIN-only feature ranking and selection evidence",
+    "source_metadata": {
+      "evaluation_requires_counts_for_each_evaluated_record": true,
+      "fit_statistics": "none",
+      "formula": "log1p(10000 * count / library_size)",
+      "input": "raw integer UMI count vector for one source record",
+      "library_size": "sum of all source-axis UMI counts for that record",
+      "log_base": "e",
+      "preparation_or_fit_requires_heldout_counts": false,
+      "scale": 10000,
+      "transformation_id": "natural-log-cp10k",
+      "transformation_version": "1.0.0",
+      "zero_library_policy": "error"
+    },
+    "used_for_benchmark_scoring": false
+  },
+  "validation_policy": {
+    "failure_action": "fail the metric evaluation and therefore block benchmark admission; do not drop, exclude, impute, renormalize, clip, or substitute the sample",
+    "fatal_conditions": [
+      "coordinate_order_missing_or_not_exactly_bound",
+      "nonfinite_coordinate",
+      "noninteger_coordinate",
+      "negative_coordinate",
+      "panel_total_less_than_or_equal_to_zero",
+      "vector_length_not_exactly_2000"
+    ],
+    "zero_panel_total_policy": "error_fail_evaluation_no_exclusion_or_imputation"
+  }
+}

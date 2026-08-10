@@ -2,6 +2,7 @@
 
 from .linear_gaussian import (
     LinearGaussianConfig,
+    LinearGaussianMeasurementPolicy,
     LinearGaussianPlanner,
     LinearGaussianReference,
     LinearObservationConfig,
@@ -11,6 +12,7 @@ from .linear_gaussian import (
 
 __all__ = [
     "LinearGaussianConfig",
+    "LinearGaussianMeasurementPolicy",
     "LinearGaussianPlanner",
     "LinearGaussianReference",
     "LinearObservationConfig",

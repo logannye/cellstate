@@ -1,0 +1,50 @@
+{
+  "artifact_schema": "sciplex3-k562-target-semantics",
+  "artifact_schema_version": "1.0.0",
+  "assay_endpoint": "destructive 24-hour sci-RNA-seq endpoint",
+  "feature_axis": {
+    "count": 2000,
+    "ordered_feature_keys_encoded_byte_count": 50290,
+    "ordered_feature_keys_encoding": "canonical_json_utf8_string_array_v1_ordered",
+    "ordered_feature_keys_sha256": "8b9e0e71d9bfc79a5e1db29f73bc30006bf117a29db8abf63b1607403629401f",
+    "panel_artifact": {
+      "artifact_id": "sciplex3-train-feature-panel",
+      "byte_count": 922201,
+      "media_type": "application/json",
+      "sha256": "3935f749cf7feb45883f8ddadcbbbffc71749c7452126e7f53eba16f32585b66",
+      "uri": "https://raw.githubusercontent.com/logannye/cellstate/main/benchmarks/artifacts/sciplex3-k562-24h-v1/feature-panel.json"
+    },
+    "selection_partition_role": "train"
+  },
+  "population_boundary": "recovered K562 nuclei from one independently treated well",
+  "reference_control": "same-plate wells with zero active compound under the common source-matched vehicle background; no-action means no modeled active-compound action",
+  "scoring_semantics": {
+    "full_source_axis_counts_required": false,
+    "panel_total": "sum of the exact 2,000 declared ordered raw-count coordinates for each observed or predicted sample",
+    "scoring_transform_artifact": {
+      "artifact_id": "sciplex3-panel-only-scoring-transform",
+      "byte_count": 3596,
+      "media_type": "application/json",
+      "sha256": "6968740ed833e482b83b73d6315c9ef4c1caca0ba1d9bb92ce09ffdca86c8f57",
+      "uri": "https://raw.githubusercontent.com/logannye/cellstate/main/benchmarks/vertical-a/sciplex3-k562-24h-v1/support/scoring-transform.json"
+    },
+    "zero_panel_total_policy": "error_fail_evaluation_no_exclusion_or_imputation"
+  },
+  "target_key": "cellstate:sciplex3-k562-24h-train-2000-raw-umi-distribution",
+  "target_units": "raw_integer_umi_count_vector_ordered_train_derived_2000_feature_panel",
+  "target_value_schema": {
+    "artifact_id": "sciplex3-panel-count-target-value-schema",
+    "byte_count": 2287,
+    "media_type": "application/json",
+    "sha256": "b2463271246eca932824ad4d0089aaf3c924afcedec865dec8e04c4bbf7b23e2",
+    "uri": "https://raw.githubusercontent.com/logannye/cellstate/main/benchmarks/vertical-a/sciplex3-k562-24h-v1/support/target-value-schema.json"
+  },
+  "truth_conditions": {
+    "is_cell_trajectory": false,
+    "is_latent_living_cell_state": false,
+    "is_total_population_size": false,
+    "is_universal_cell_state_feature_space": false,
+    "is_viability": false,
+    "values_are_integer_umi_counts": true
+  }
+}

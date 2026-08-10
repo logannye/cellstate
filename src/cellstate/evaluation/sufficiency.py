@@ -2,8 +2,10 @@
 
 from __future__ import annotations
 
-from cellstate.domain.belief import SufficiencyReport
-from cellstate.domain.common import SupportStatus, require_finite
+import math
+
+from cellstate.domain.belief import EvaluationStatus, SufficiencyReport
+from cellstate.domain.common import CriterionOutcome, require_finite
 
 
 def evaluate_history_information_gain(
@@ -31,10 +33,13 @@ def evaluate_history_information_gain(
         else "Raw history materially improves prediction; the state is incomplete."
     )
     return SufficiencyReport(
-        status=SupportStatus.SUPPORTED,
+        evaluation_status=EvaluationStatus.EVALUATED,
+        outcome=(CriterionOutcome.PASSED if gain <= tolerance else CriterionOutcome.FAILED),
         state_only_loss=state_only_loss,
         state_plus_history_loss=state_plus_history_loss,
         history_information_gain=gain,
+        markov_sufficiency_score=math.exp(-max(gain, 0.0)),
+        maximum_history_information_gain=tolerance,
         metric=metric,
         notes=(note,),
     )

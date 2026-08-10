@@ -1,0 +1,290 @@
+{
+  "$defs": {
+    "BenchmarkPartitionRole": {
+      "enum": [
+        "train",
+        "calibration",
+        "model_selection_validation",
+        "untouched_test",
+        "external_validation"
+      ],
+      "title": "BenchmarkPartitionRole",
+      "type": "string"
+    },
+    "BiologicalStagePort": {
+      "description": "Original framework stages plus the narrow component's support infrastructure.\n\nThe first eighteen named biological stages are the complete port surface from the original\nproposed ``CellStateModelBundle`` skeleton.  The remaining support ports let a component be\nimplemented and benchmarked without pretending that it is a current-state belief backend.",
+      "enum": [
+        "query_compiler",
+        "reference_prior",
+        "observation_models",
+        "evidence_transfer_models",
+        "intervention_realization_model",
+        "transition_model",
+        "division_and_inheritance_model",
+        "cell_interaction_model",
+        "extracellular_transport_model",
+        "functional_decoders",
+        "mechanistic_constraints",
+        "posterior_inference_engine",
+        "model_ensemble",
+        "uncertainty_calibrator",
+        "ood_detector",
+        "sufficiency_evaluator",
+        "identifiability_analyzer",
+        "value_of_information_engine",
+        "exact_artifact_resolver",
+        "query_scope_validator",
+        "train_cal_data_loader",
+        "action_context_encoder",
+        "population_assay_response_distribution_model",
+        "strict_support_ood_gate",
+        "artifact_provenance_writer"
+      ],
+      "title": "BiologicalStagePort",
+      "type": "string"
+    },
+    "BundleContractKind": {
+      "description": "Scientific scope of an artifact, not a readiness or admission assertion.",
+      "enum": [
+        "component_scaffold",
+        "component_model",
+        "biological_model_bundle"
+      ],
+      "title": "BundleContractKind",
+      "type": "string"
+    },
+    "BundleContractReference": {
+      "additionalProperties": false,
+      "description": "Content identity for one canonical contract payload.",
+      "properties": {
+        "artifact": {
+          "$ref": "#/$defs/ContentAddressedArtifact"
+        },
+        "contract_id": {
+          "minLength": 1,
+          "title": "Contract Id",
+          "type": "string"
+        },
+        "contract_version": {
+          "minLength": 1,
+          "title": "Contract Version",
+          "type": "string"
+        }
+      },
+      "required": [
+        "contract_id",
+        "contract_version",
+        "artifact"
+      ],
+      "title": "BundleContractReference",
+      "type": "object"
+    },
+    "ContentAddressedArtifact": {
+      "additionalProperties": false,
+      "properties": {
+        "artifact_id": {
+          "minLength": 1,
+          "title": "Artifact Id",
+          "type": "string"
+        },
+        "byte_count": {
+          "exclusiveMinimum": 0,
+          "title": "Byte Count",
+          "type": "integer"
+        },
+        "media_type": {
+          "minLength": 1,
+          "title": "Media Type",
+          "type": "string"
+        },
+        "sha256": {
+          "pattern": "^[a-fA-F0-9]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        },
+        "uri": {
+          "minLength": 1,
+          "title": "Uri",
+          "type": "string"
+        }
+      },
+      "required": [
+        "artifact_id",
+        "uri",
+        "sha256",
+        "byte_count",
+        "media_type"
+      ],
+      "title": "ContentAddressedArtifact",
+      "type": "object"
+    },
+    "DirectPopulationResponseSemantics": {
+      "additionalProperties": false,
+      "description": "Fail-closed meaning of the endpoint-only component computation.\n\nLiteral fields prevent a future endpoint or its matched vehicle observations from being\nrelabeled as a pre-cutoff prior merely to satisfy a cell-state estimator interface.",
+      "properties": {
+        "computation": {
+          "const": "direct_population_assay_response",
+          "default": "direct_population_assay_response",
+          "title": "Computation",
+          "type": "string"
+        },
+        "endpoint_observations": {
+          "const": "future_target_only",
+          "default": "future_target_only",
+          "title": "Endpoint Observations",
+          "type": "string"
+        },
+        "inference_inputs": {
+          "const": "static_context_and_assigned_action_only",
+          "default": "static_context_and_assigned_action_only",
+          "title": "Inference Inputs",
+          "type": "string"
+        },
+        "matched_control_observations": {
+          "const": "endpoint_comparator_only",
+          "default": "endpoint_comparator_only",
+          "title": "Matched Control Observations",
+          "type": "string"
+        }
+      },
+      "title": "DirectPopulationResponseSemantics",
+      "type": "object"
+    },
+    "ModelOperation": {
+      "description": "Public runtime operation a support envelope may eventually register.",
+      "enum": [
+        "choose_intervention",
+        "estimate_cell_state",
+        "evolve_cell_state",
+        "recommend_next_measurement"
+      ],
+      "title": "ModelOperation",
+      "type": "string"
+    },
+    "ValidationEvidenceKind": {
+      "description": "Scientific role of a validation result; artifact names never imply this role.",
+      "enum": [
+        "locked_component_evaluation",
+        "model_selection",
+        "port_implementation_validation",
+        "runtime_operation_validation",
+        "support_ood_validation",
+        "uncertainty_calibration"
+      ],
+      "title": "ValidationEvidenceKind",
+      "type": "string"
+    },
+    "ValidationEvidenceRequirement": {
+      "additionalProperties": false,
+      "description": "Typed evidence role and exact benchmark partition roles required by an envelope.",
+      "properties": {
+        "evidence_id": {
+          "minLength": 1,
+          "title": "Evidence Id",
+          "type": "string"
+        },
+        "evidence_kind": {
+          "$ref": "#/$defs/ValidationEvidenceKind"
+        },
+        "partition_roles": {
+          "items": {
+            "$ref": "#/$defs/BenchmarkPartitionRole"
+          },
+          "minItems": 1,
+          "title": "Partition Roles",
+          "type": "array"
+        }
+      },
+      "required": [
+        "evidence_id",
+        "evidence_kind",
+        "partition_roles"
+      ],
+      "title": "ValidationEvidenceRequirement",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Exact scientific and runtime scope against which a bundle is assessed.",
+  "properties": {
+    "benchmark": {
+      "$ref": "#/$defs/BundleContractReference"
+    },
+    "bundle_kind": {
+      "$ref": "#/$defs/BundleContractKind"
+    },
+    "direct_population_response": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/DirectPopulationResponseSemantics"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "envelope_id": {
+      "minLength": 1,
+      "title": "Envelope Id",
+      "type": "string"
+    },
+    "envelope_version": {
+      "minLength": 1,
+      "title": "Envelope Version",
+      "type": "string"
+    },
+    "notes": {
+      "items": {
+        "type": "string"
+      },
+      "minItems": 1,
+      "title": "Notes",
+      "type": "array"
+    },
+    "query": {
+      "$ref": "#/$defs/BundleContractReference"
+    },
+    "required_ports": {
+      "items": {
+        "$ref": "#/$defs/BiologicalStagePort"
+      },
+      "minItems": 1,
+      "title": "Required Ports",
+      "type": "array"
+    },
+    "required_validation_evidence": {
+      "default": [],
+      "items": {
+        "$ref": "#/$defs/ValidationEvidenceRequirement"
+      },
+      "title": "Required Validation Evidence",
+      "type": "array"
+    },
+    "runtime_operations": {
+      "default": [],
+      "items": {
+        "$ref": "#/$defs/ModelOperation"
+      },
+      "title": "Runtime Operations",
+      "type": "array"
+    },
+    "schema_version": {
+      "const": "0.1-experimental",
+      "default": "0.1-experimental",
+      "title": "Schema Version",
+      "type": "string"
+    }
+  },
+  "required": [
+    "envelope_id",
+    "envelope_version",
+    "bundle_kind",
+    "query",
+    "benchmark",
+    "required_ports",
+    "notes"
+  ],
+  "title": "BiologicalSupportEnvelope",
+  "type": "object"
+}

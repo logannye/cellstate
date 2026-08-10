@@ -68,13 +68,24 @@ evidential status:
 - mechanistic extrapolation;
 - unsupported.
 
+The public boundary keeps four computations separate:
+
+1. `estimate_cell_state` constructs the query-conditioned belief;
+2. `evolve_cell_state` propagates that belief through one declared scenario;
+3. `choose_intervention` compares an objective over a bounded candidate set; and
+4. `recommend_next_measurement` evaluates whether buying one candidate assay improves that same
+   downstream decision enough to justify its cost, delay, and collection effect.
+
+The fourth operation consumes a standalone `MeasurementDecisionRequest` and returns a standalone
+`MeasurementRecommendation`. It never mutates the belief or treats an estimator's internal
+uncertainty ranking as a decision result.
+
 ## Belief subject and evidence semantics
 
-The first schema evolution must prevent a common scientific category error. Destructive assays
-sample different cells at different times; those observations do not constitute a longitudinal
-history of one cell.
+Schema v2 prevents a common scientific category error: destructive assays sample different cells
+at different times, and those observations do not constitute a longitudinal history of one cell.
 
-The domain should distinguish at least:
+The active domain distinguishes:
 
 | Belief subject | Identity evidence | Permitted interpretation |
 | --- | --- | --- |
@@ -115,7 +126,8 @@ Controlled stochastic dynamics + event hazards/jumps
 Typed target × horizon predictive distributions
     ├── calibration and predictive-sufficiency evaluation
     ├── OOD/support decision
-    └── measurement/intervention planning, only after validation
+    ├── intervention planning, only after validation
+    └── standalone measurement decision, only with validated EVSI components
 ```
 
 ### Intended package growth
@@ -224,8 +236,8 @@ never the only retained representation.
 The evidence manifest graph has separate responsibilities:
 
 - a **dataset manifest** records scientific identity, experimental structure, use terms,
-  capabilities, scoped claim assessments, and acquired source-artifact records with retrieval time,
-  resolved bytes, and checksums;
+  capabilities, independently scoped claim/loss/metric assessments, and acquired source-artifact
+  records with retrieval time, resolved bytes, and checksums;
 - a **normalization manifest** records transformations and source-row provenance; and
 - a **split manifest** records immutable train, calibration, and test membership.
 
@@ -260,7 +272,11 @@ Eligibility is not one Boolean. A dataset can be eligible for some roles and for
 | Spatial-context effect | Spatial coordinates/neighborhood plus adequate samples or interventions for the claim |
 | Future functional target | Outcome measured after the inference cutoff at the appropriate subject/population level |
 
-Loss functions and metrics consume only examples whose capability mask makes them eligible.
+Loss functions and metrics consume only examples authorized by an exact assessment reference:
+`(dataset-manifest fingerprint, assessment ID, assessment fingerprint)`. A loss assessment never
+authorizes model selection or testing, a diagnostic metric never graduates a scientific claim, and
+a declared split unit remains only a requirement until a content-addressed split manifest proves
+membership.
 
 ## Candidate evidence portfolio
 
@@ -547,9 +563,13 @@ mostly-U2OS JUMP morphology, SHARE-seq baselines, and DepMap stable context. The
 only under declared transport assumptions; they cannot serve as direct K562/A549 validation unless
 an exact overlapping system and protocol are independently verified.
 
-**First releasable query:** given cell line, baseline context, compound or genetic intervention,
-dose, and horizon, estimate a calibrated distribution over supported future transcriptional targets
-and abstain outside observed systems/interventions/horizons.
+**First releasable query:** the complete, deliberately unfrozen estimand is maintained in the
+[Vertical A scientific estimand](../verticals/vertical-a-estimand.md). In brief: given a typed
+cultured-cell population, cutoff-safe baseline evidence and causal history, a bounded compound or
+genetic intervention and environment, and a named horizon, estimate calibrated distributions over
+supported future transcriptional targets with explicit realization uncertainty, causal status,
+transport assumptions, and abstention. The query is frozen only after its contract and real-data
+representability gates pass.
 
 **Why first:** it has the densest intervention coverage, tractable culture environments, replicated
 controls, and overlapping public systems. It exercises the full data and validation spine before
@@ -573,13 +593,35 @@ backend must surface transport uncertainty and may not imply they were measured 
 ## Planning is a gated downstream capability
 
 Measurement value-of-information and intervention choice must wait until calibrated target decoders
-exist. A planner integrates over:
+exist. An intervention planner integrates over:
 
 - the full current posterior;
 - candidate intervention/environment uncertainty;
 - query target and horizon;
 - predictive and transport uncertainty;
 - cost, dose, timing, toxicity, and feasibility constraints.
+
+Measurement selection is a separate nested decision calculation. For candidate assay `a`, supported
+gross EVSI has the form
+
+```text
+E_{Y_a | B}[max_u E[utility(u, Z) | B, Y_a]]
+    - max_u E[utility(u, Z) | B]
+```
+
+and net value subtracts the explicitly declared assay, delay, and collection-effect penalties. A
+backend may report that quantity only if it has:
+
+- a calibrated assay-outcome model for `Y_a` under the current belief;
+- a valid hypothetical posterior update for every integrated assay outcome;
+- counterfactual replanning over the same objective and ordered intervention candidates; and
+- a declared decision utility over supported query targets and horizons.
+
+Entropy, marginal variance, or posterior covariance reduction does not meet this definition.
+`NOT_EVALUATED` means the calculation was not performed; `UNSUPPORTED` means a required component
+failed or lies outside support; `ABSTAINED` means supported numeric values do not clear the declared
+threshold. None uses numeric sentinels. The linear-Gaussian contract reference intentionally
+returns `NOT_EVALUATED`; it is not a measurement-value model.
 
 Retrospective hidden-intervention experiments can evaluate pseudo-prospective ranking and regret.
 They do not replace real prospective laboratory validation. No planner may propose arbitrary latent
@@ -596,6 +638,7 @@ coordinates or unsupported interventions simply because the transition model ret
 - No random-cell test split presented as intervention or donor generalization.
 - No validation based mainly on clusters, embeddings, or reconstruction.
 - No numeric output when a target decoder, unit, horizon, factor, or support condition is absent.
+- No assay recommendation based only on entropy, variance, or covariance shrinkage.
 
 The mature system should be judged by a narrower and more defensible statement:
 

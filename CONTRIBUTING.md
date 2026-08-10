@@ -16,5 +16,7 @@ URLs, exact checksums, and reviewed license/use terms; placeholder hashes and gu
 are not acceptable. Dataset, donor, well, clone, intervention, or other shared experimental units
 must remain together in benchmark splits as required by the study design. Synthetic fixtures may
 test software behavior but cannot support a biological validation claim. The manifest contract is
-currently `0.1-experimental`; its generated JSON Schema is structural, and admission requires Python
-model validation of the cross-field scientific invariants.
+currently `0.3-experimental`; its generated JSON Schema is structural, and use requires Python model
+validation of the cross-field scientific invariants plus exact manifest, slice, and assessment
+fingerprint references. Representability proofs require the Python verifier and do not authorize
+data use. Never treat a reviewed manifest or accession as dataset-wide eligibility.

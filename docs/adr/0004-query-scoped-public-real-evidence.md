@@ -66,8 +66,9 @@ this ADR; `docs/roadmap.md` is the sole sequencing authority.
 
 - The next implementation milestone is data governance and a frozen benchmark, not a large neural
   model.
-- Schema v1 remains the stable contract kernel. Breaking subject, sampling, causal-support, and
-  support-envelope semantics require an explicit schema v2 migration.
+- Core runtime schema v2 is now active; immutable v1 schemas remain historical wire evidence.
+  Breaking subject, sampling, causal-support, support-envelope, or dataset-eligibility semantics
+  require an explicit version and migration decision.
 - A backend may graduate for one named query while remaining unsupported for others.
 - Public data can support rigorous retrospective and pseudo-prospective validation, but cannot by
   itself validate a universal virtual cell or arbitrary counterfactual planning.

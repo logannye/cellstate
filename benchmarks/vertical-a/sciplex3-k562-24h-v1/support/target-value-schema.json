@@ -1,0 +1,49 @@
+{
+  "artifact_schema": "sciplex3-k562-panel-count-target-value-schema",
+  "artifact_schema_version": "1.1.0",
+  "feature_axis": {
+    "feature_count": 2000,
+    "ordered_feature_keys_encoded_byte_count": 50290,
+    "ordered_feature_keys_encoding": "canonical_json_utf8_string_array_v1_ordered",
+    "ordered_feature_keys_sha256": "8b9e0e71d9bfc79a5e1db29f73bc30006bf117a29db8abf63b1607403629401f",
+    "panel_artifact": {
+      "artifact_id": "sciplex3-train-feature-panel",
+      "byte_count": 922201,
+      "media_type": "application/json",
+      "sha256": "3935f749cf7feb45883f8ddadcbbbffc71749c7452126e7f53eba16f32585b66",
+      "uri": "https://raw.githubusercontent.com/logannye/cellstate/main/benchmarks/artifacts/sciplex3-k562-24h-v1/feature-panel.json"
+    }
+  },
+  "raw_value_contract": {
+    "coordinate_value_domain": "finite nonnegative integer raw UMI count",
+    "feature_count": 2000,
+    "feature_order": "exactly the bound ordered feature-key array",
+    "serialization_or_adapter_requirement": "supply and verify the exact ordered-feature SHA-256 before evaluation",
+    "units": "raw_integer_umi_count_vector_ordered_train_derived_2000_feature_panel"
+  },
+  "scoring_input_sufficiency": {
+    "external_inputs_required": [],
+    "full_source_axis_counts_required": false,
+    "statement": "The declared raw 2,000-coordinate target contains every value needed to compute the scoring denominator."
+  },
+  "scoring_transform_artifact": {
+    "artifact_id": "sciplex3-panel-only-scoring-transform",
+    "byte_count": 3596,
+    "media_type": "application/json",
+    "sha256": "6968740ed833e482b83b73d6315c9ef4c1caca0ba1d9bb92ce09ffdca86c8f57",
+    "uri": "https://raw.githubusercontent.com/logannye/cellstate/main/benchmarks/vertical-a/sciplex3-k562-24h-v1/support/scoring-transform.json"
+  },
+  "validation_policy": {
+    "failure_action": "error and block evaluation with no exclusion or imputation",
+    "fatal_conditions": [
+      "coordinate_order_missing_or_mismatch",
+      "nonfinite_coordinate",
+      "noninteger_coordinate",
+      "negative_coordinate",
+      "panel_total_less_than_or_equal_to_zero",
+      "vector_length_not_exactly_2000"
+    ]
+  },
+  "value_schema_id": "sciplex3-k562-24h-panel-count-target-value-schema",
+  "value_schema_version": "1.1.0"
+}

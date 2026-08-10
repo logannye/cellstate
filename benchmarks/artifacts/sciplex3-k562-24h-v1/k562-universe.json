@@ -1,0 +1,104 @@
+{
+  "artifact_schema": "sciplex3-k562-record-universe",
+  "artifact_schema_version": "1.0.0",
+  "composite_well_count": 1536,
+  "composite_well_identity": {
+    "definition": "compact JSON string array of the obs field values [plate, well]",
+    "encoding": "canonical_json_utf8_string_array_v1",
+    "kind": "COMPOSITE_SOURCE_FIELDS",
+    "source_fields": [
+      "plate",
+      "well"
+    ]
+  },
+  "composite_well_ids_encoded_byte_count": 45889,
+  "composite_well_ids_encoding": "canonical_json_utf8_string_array_v1",
+  "composite_well_ids_sha256": "eaccd2bacd34c35a2cf9603bd6c387fb7765150f91496af3be7701a9abce2ea7",
+  "condition_group_count": 753,
+  "control_well_count": 32,
+  "dose_unit": "nM",
+  "dose_values_nm": [
+    10,
+    100,
+    1000,
+    10000
+  ],
+  "endpoint_hours": 24,
+  "membership_artifacts": {
+    "plate_ids": {
+      "byte_count": 153,
+      "encoding": "canonical_json_utf8_string_array_v1",
+      "media_type": "application/json",
+      "relative_path": "memberships/universe-plate-ids.json",
+      "sha256": "d2c7e190c29753513e10412e42adf3323676a135439a1c7f9c7699a1d5899d9b"
+    },
+    "record_ids": {
+      "byte_count": 5291356,
+      "encoding": "canonical_json_utf8_string_array_v1",
+      "media_type": "application/json",
+      "relative_path": "memberships/universe-record-ids.json",
+      "sha256": "5d3b5c1288fe104d104851a03304dddfbe6814608fd4dcf8b565134fffdd2428"
+    },
+    "record_to_well": {
+      "byte_count": 10819022,
+      "encoding": "canonical_json_utf8_string_pair_array_v1",
+      "media_type": "application/json",
+      "relative_path": "memberships/universe-record-to-well.json",
+      "sha256": "c18ba250f9dd3aa0c1b19c18291a79ec15376c0a0b25cf2c179c95ad03ee9aed"
+    },
+    "well_ids": {
+      "byte_count": 45889,
+      "encoding": "canonical_json_utf8_string_array_v1",
+      "media_type": "application/json",
+      "relative_path": "memberships/universe-well-ids.json",
+      "sha256": "eaccd2bacd34c35a2cf9603bd6c387fb7765150f91496af3be7701a9abce2ea7"
+    },
+    "well_to_condition": {
+      "byte_count": 106897,
+      "encoding": "canonical_json_utf8_string_pair_array_v1",
+      "media_type": "application/json",
+      "relative_path": "memberships/universe-well-to-condition.json",
+      "sha256": "599a23889bc4deae974fbd49d2d42eef16693b13f531e14a8c7ac0fb51fc8338"
+    }
+  },
+  "plate_ids_encoded_byte_count": 153,
+  "plate_ids_encoding": "canonical_json_utf8_string_array_v1",
+  "plate_ids_sha256": "d2c7e190c29753513e10412e42adf3323676a135439a1c7f9c7699a1d5899d9b",
+  "population_unit": "independently_treated_well",
+  "record_count": 173652,
+  "record_id_field": "_index",
+  "record_ids_encoded_byte_count": 5291356,
+  "record_ids_encoding": "canonical_json_utf8_string_array_v1",
+  "record_ids_sha256": "5d3b5c1288fe104d104851a03304dddfbe6814608fd4dcf8b565134fffdd2428",
+  "record_to_well_encoded_byte_count": 10819022,
+  "record_to_well_encoding": "canonical_json_utf8_string_pair_array_v1",
+  "record_to_well_sha256": "c18ba250f9dd3aa0c1b19c18291a79ec15376c0a0b25cf2c179c95ad03ee9aed",
+  "replicate_values": [
+    "rep1",
+    "rep2"
+  ],
+  "selector": {
+    "cell_line": "K562"
+  },
+  "semantic_boundary": {
+    "cells_are_destructive_samples": true,
+    "cells_are_independent_biological_replicates": false,
+    "plates_are_split_assignment_and_protected_parent_units": true,
+    "wells_are_intervention_randomization_population_and_metric_units": true
+  },
+  "source_perturbation_count": 188,
+  "source_row_indices_encoded_byte_count": 1540278,
+  "source_row_indices_encoding": "canonical_json_utf8_decimal_string_array_v1",
+  "source_row_indices_sha256": "1bce68e4c0873c45b9e4c5603ae3463a10ae279d316a7bdc5ed2cf754c1a8f3a",
+  "source_sha256": "603ed16c5e25401c8a7f5bb0b2b045179701017d65dcfc6aeea71722a66cd10a",
+  "treated_condition_group_count": 752,
+  "treated_condition_replicate_values": [
+    "rep1",
+    "rep2"
+  ],
+  "treated_well_count": 1504,
+  "treated_wells_per_condition": 2,
+  "well_to_condition_encoded_byte_count": 106897,
+  "well_to_condition_encoding": "canonical_json_utf8_string_pair_array_v1",
+  "well_to_condition_sha256": "599a23889bc4deae974fbd49d2d42eef16693b13f531e14a8c7ac0fb51fc8338"
+}
