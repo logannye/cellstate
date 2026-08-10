@@ -5,7 +5,17 @@ from uuid import uuid4
 
 import numpy as np
 import pytest
-from conftest import observation_factory, query_factory, request_factory
+from conftest import (
+    SYNTHETIC_TEST_OPTIONS,
+    environment_factory,
+    environment_spec_factory,
+    intervention_factory,
+    intervention_spec_factory,
+    observation_factory,
+    query_factory,
+    request_factory,
+    subject_factory,
+)
 from pydantic import ValidationError
 
 from cellstate import (
@@ -13,15 +23,11 @@ from cellstate import (
     AssayMetadata,
     CellHistory,
     CensoringDirection,
-    EnvironmentEvent,
-    EnvironmentVariableSpec,
     EstimateCellStateRequest,
     EvolutionScenario,
     HistoryCompleteness,
     InferenceOptions,
-    InterventionEvent,
     InterventionObjective,
-    InterventionSpec,
     MeasurementUncertainty,
     MissingnessReport,
     MissingnessStatus,
@@ -33,6 +39,7 @@ from cellstate import (
     PrecisionRequirement,
     Quantity,
     RecordCompleteness,
+    ReversibilityStatus,
     StateQuery,
     StaticContext,
     choose_intervention,
@@ -54,8 +61,18 @@ from cellstate.domain import (
     StateFactor,
     StateForecast,
     SufficiencyReport,
-    SupportStatus,
 )
+from cellstate.domain.belief import (
+    BeliefStatus,
+    CausalEstimandBinding,
+    CausalSupportReport,
+    DimensionIdentifiability,
+    EvaluationStatus,
+    QueryReadinessReport,
+)
+from cellstate.domain.common import CausalStatus, CriterionOutcome
+from cellstate.domain.events import AssignmentMechanism
+from cellstate.domain.scenarios import PlanStatus, TransportReport, TransportStatus
 from cellstate.errors import CapabilityError, ContractViolationError, PosteriorCompatibilityError
 from cellstate.ports import CapabilityReport
 from cellstate.reference import (
@@ -96,26 +113,22 @@ def test_interval_censoring_is_explicit_and_cannot_carry_an_imputed_value() -> N
         interval_upper=Quantity(value=0.3, units="relative"),
     )
     with pytest.raises(ValidationError, match="not as an imputed value"):
-        ObservationEvent(
+        observation_factory(
             event_id="censored",
-            subject_id="cell-1",
             time_seconds=0,
-            modality=OntologyTerm(label="transcriptome"),
+            modality="transcriptome",
             value=0.2,
             units="relative",
             missingness=report,
-            assay=AssayMetadata(assay_id="rna"),
         )
     with pytest.raises(ValidationError, match="units"):
-        ObservationEvent(
+        observation_factory(
             event_id="censored",
-            subject_id="cell-1",
             time_seconds=0,
-            modality=OntologyTerm(label="transcriptome"),
+            modality="transcriptome",
             value=None,
             units="kg",
             missingness=report,
-            assay=AssayMetadata(assay_id="rna"),
         )
 
 
@@ -123,13 +136,13 @@ def test_lineage_and_spatial_contracts_reject_self_edges_and_negative_geometry()
     with pytest.raises(ValidationError, match="children"):
         DivisionEvent(
             event_id="division",
-            subject_id="cell-1",
+            subject=subject_factory(),
             time_seconds=1,
             child_ids=("cell-1", "child-2"),
         )
     with pytest.raises(ValidationError, match="parent"):
         CellHistory(
-            subject_id="cell-1",
+            subject=subject_factory(),
             lineage=LineageHistory(parent_cell_id="cell-1"),
         )
     with pytest.raises(ValidationError, match="nonnegative"):
@@ -142,11 +155,11 @@ def test_lineage_and_spatial_contracts_reject_self_edges_and_negative_geometry()
 
 
 def test_history_requires_realization_evidence_to_be_present() -> None:
-    intervention = InterventionEvent(
+    intervention = intervention_factory(
         event_id="edit",
-        subject_id="cell-1",
         time_seconds=0,
-        intervention_type=OntologyTerm(label="genetic edit"),
+        intervention_type="genetic edit",
+        intervention_spec_id="genetic-edit",
         actual_perturbation=ActualPerturbation(
             status=PerturbationStatus.MEASURED,
             efficiency=0.8,
@@ -154,7 +167,7 @@ def test_history_requires_realization_evidence_to_be_present() -> None:
         ),
     )
     with pytest.raises(ValidationError, match="same history"):
-        CellHistory(subject_id="cell-1", events=(intervention,))
+        CellHistory(subject=subject_factory(), events=(intervention,))
 
 
 def test_query_rejects_dangling_precision_and_duplicate_members() -> None:
@@ -191,8 +204,8 @@ def test_query_rejects_dangling_precision_and_duplicate_members() -> None:
         StateQuery.model_validate(
             {**query.model_dump(), "target_outputs": (*query.target_outputs, *query.target_outputs)}
         )
-    duplicate_intervention = InterventionSpec(kind=OntologyTerm(label="drug"))
-    with pytest.raises(ValidationError, match="intervention specifications"):
+    duplicate_intervention = intervention_spec_factory()
+    with pytest.raises(ValidationError, match="specification IDs"):
         StateQuery.model_validate(
             {
                 **query.model_dump(),
@@ -204,24 +217,34 @@ def test_query_rejects_dangling_precision_and_duplicate_members() -> None:
 def test_sufficiency_report_enforces_its_defining_identity() -> None:
     with pytest.raises(ValidationError, match="must equal"):
         SufficiencyReport(
-            status=SupportStatus.SUPPORTED,
+            evaluation_status=EvaluationStatus.EVALUATED,
+            outcome=CriterionOutcome.PASSED,
             state_only_loss=1,
             state_plus_history_loss=0.5,
             history_information_gain=0.2,
+            markov_sufficiency_score=0.8,
+            maximum_history_information_gain=0.3,
         )
     with pytest.raises(ValidationError, match="finite"):
         SufficiencyReport(
-            status=SupportStatus.SUPPORTED,
+            evaluation_status=EvaluationStatus.EVALUATED,
+            outcome=CriterionOutcome.PASSED,
             state_only_loss=float("inf"),
             state_plus_history_loss=0.5,
             history_information_gain=float("inf"),
+            markov_sufficiency_score=0.8,
+            maximum_history_information_gain=0.3,
         )
 
 
 def test_belief_rejects_factor_provenance_and_marginal_contradictions(
     model: LinearGaussianReference,
 ) -> None:
-    belief = estimate_cell_state(request_factory(), estimator=model)
+    belief = estimate_cell_state(
+        request_factory(),
+        estimator=model,
+        options=SYNTHETIC_TEST_OPTIONS,
+    )
     evidence_payload = belief.model_dump(mode="python")
     factor = next(item for item in evidence_payload["factors"] if item["factor"] == "slow_memory")
     factor["evidence_event_ids"] = ("unknown-event",)
@@ -235,31 +258,33 @@ def test_belief_rejects_factor_provenance_and_marginal_contradictions(
         CellStateBelief.model_validate(marginal_payload)
 
 
-def test_belief_complete_and_recommendation_labels_are_conservative(
+def test_structural_completeness_does_not_override_scientific_readiness(
     model: LinearGaussianReference,
 ) -> None:
-    belief = estimate_cell_state(request_factory(), estimator=model)
-    recommendation_payload = belief.model_dump(mode="python")
-    recommendation_payload["next_measurement"] = {
-        "status": "supported",
-        "assay_id": "not-a-candidate",
-        "expected_value_of_information": 1,
-        "cost": 1,
-    }
-    with pytest.raises(ValidationError, match="declared"):
-        CellStateBelief.model_validate(recommendation_payload)
+    belief = estimate_cell_state(
+        request_factory(),
+        estimator=model,
+        options=SYNTHETIC_TEST_OPTIONS,
+    )
+    embedded_measurement = belief.model_dump(mode="python")
+    embedded_measurement["next_measurement"] = {"status": "not_evaluated"}
+    with pytest.raises(ValidationError, match="Extra inputs"):
+        CellStateBelief.model_validate(embedded_measurement)
 
     complete_payload = belief.model_dump(mode="python")
     complete_payload["status"] = "complete"
-    with pytest.raises(ValidationError, match="complete belief"):
-        CellStateBelief.model_validate(complete_payload)
+    structurally_complete = CellStateBelief.model_validate(complete_payload)
+    assert structurally_complete.status is BeliefStatus.COMPLETE
+    assert structurally_complete.readiness.abstention_required
+    assert not structurally_complete.readiness.valid_for_prediction
+    assert not structurally_complete.readiness.valid_for_control
 
 
 def _acute_scenario(**updates: object) -> EvolutionScenario:
     payload: dict[str, object] = {
         "scenario_id": "baseline",
         "horizon_name": "acute",
-        "subject_id": "cell-1",
+        "subject": subject_factory(),
         "start_time_seconds": 10,
         "end_time_seconds": 70,
     }
@@ -309,18 +334,27 @@ def test_planning_requires_one_comparable_query_horizon(
     scenario_update: dict[str, object],
     message: str,
 ) -> None:
-    belief = estimate_cell_state(request_factory(), estimator=model)
+    belief = estimate_cell_state(
+        request_factory(),
+        estimator=model,
+        options=SYNTHETIC_TEST_OPTIONS,
+    )
     with pytest.raises(ContractViolationError, match=message):
         choose_intervention(
             belief,
             objective=_acute_objective(**objective_update),
             candidates=(_acute_scenario(**scenario_update),),
             planner=LinearGaussianPlanner(model),
+            options=SYNTHETIC_TEST_OPTIONS,
         )
 
 
 def test_planning_rejects_duplicate_candidates(model: LinearGaussianReference) -> None:
-    belief = estimate_cell_state(request_factory(), estimator=model)
+    belief = estimate_cell_state(
+        request_factory(),
+        estimator=model,
+        options=SYNTHETIC_TEST_OPTIONS,
+    )
     candidate = _acute_scenario()
     with pytest.raises(ContractViolationError, match="IDs"):
         choose_intervention(
@@ -328,17 +362,23 @@ def test_planning_rejects_duplicate_candidates(model: LinearGaussianReference) -
             objective=_acute_objective(),
             candidates=(candidate, candidate),
             planner=LinearGaussianPlanner(model),
+            options=SYNTHETIC_TEST_OPTIONS,
         )
 
 
 def test_forecast_contract_covers_query_target_and_horizon_exactly(
     model: LinearGaussianReference,
 ) -> None:
-    belief = estimate_cell_state(request_factory(), estimator=model)
+    belief = estimate_cell_state(
+        request_factory(),
+        estimator=model,
+        options=SYNTHETIC_TEST_OPTIONS,
+    )
     forecast = evolve_cell_state(
         belief,
         scenario=_acute_scenario(),
         evolution_model=model,
+        options=SYNTHETIC_TEST_OPTIONS,
     )
     target_payload = forecast.model_dump(mode="python")
     target_payload["target_predictions"][0]["target"]["weight"] = 2
@@ -365,7 +405,11 @@ def test_recursive_and_evolution_paths_reject_incompatible_posteriors(
     model: LinearGaussianReference,
 ) -> None:
     request = request_factory()
-    belief = estimate_cell_state(request, estimator=model)
+    belief = estimate_cell_state(
+        request,
+        estimator=model,
+        options=SYNTHETIC_TEST_OPTIONS,
+    )
     other_model = _different_reference_model()
     recursive = EstimateCellStateRequest(
         query=request.query,
@@ -375,12 +419,25 @@ def test_recursive_and_evolution_paths_reject_incompatible_posteriors(
         previous_belief=belief,
     )
     with pytest.raises(PosteriorCompatibilityError):
-        estimate_cell_state(recursive, estimator=other_model)
+        estimate_cell_state(
+            recursive,
+            estimator=other_model,
+            options=SYNTHETIC_TEST_OPTIONS,
+        )
     with pytest.raises(PosteriorCompatibilityError):
-        evolve_cell_state(belief, scenario=_acute_scenario(), evolution_model=other_model)
+        evolve_cell_state(
+            belief,
+            scenario=_acute_scenario(),
+            evolution_model=other_model,
+            options=SYNTHETIC_TEST_OPTIONS,
+        )
     with pytest.raises(PosteriorCompatibilityError):
-        other_model.evolve(belief, _acute_scenario(), options=InferenceOptions())
-    other_belief = estimate_cell_state(request, estimator=other_model)
+        other_model.evolve(belief, _acute_scenario(), options=SYNTHETIC_TEST_OPTIONS)
+    other_belief = estimate_cell_state(
+        request,
+        estimator=other_model,
+        options=SYNTHETIC_TEST_OPTIONS,
+    )
     assert other_belief.belief_id != belief.belief_id
 
 
@@ -391,11 +448,7 @@ def test_recursive_and_evolution_paths_reject_incompatible_posteriors(
             lambda query: StateQuery.model_validate(
                 {
                     **query.model_dump(),
-                    "environment_space": (
-                        EnvironmentVariableSpec(
-                            variable=OntologyTerm(label="nutrient"), units="mM"
-                        ),
-                    ),
+                    "environment_space": (environment_spec_factory(units="mM", required=False),),
                 }
             ),
             "mM",
@@ -404,9 +457,7 @@ def test_recursive_and_evolution_paths_reject_incompatible_posteriors(
             lambda query: StateQuery.model_validate(
                 {
                     **query.model_dump(),
-                    "intervention_space": (
-                        InterventionSpec(kind=OntologyTerm(label="drug"), dose_units="molar"),
-                    ),
+                    "intervention_space": (intervention_spec_factory(dose_units="molar"),),
                 }
             ),
             "molar",
@@ -420,16 +471,24 @@ def test_capability_preflight_checks_declared_units(
 ) -> None:
     query = query_transform(query_factory())
     with pytest.raises(CapabilityError, match=message):
-        estimate_cell_state(request_factory(query=query), estimator=model)
+        estimate_cell_state(
+            request_factory(query=query),
+            estimator=model,
+            options=SYNTHETIC_TEST_OPTIONS,
+        )
 
 
 def test_reference_observation_model_rejects_wrong_units(
     model: LinearGaussianReference,
 ) -> None:
     event = observation_factory().model_copy(update={"units": "kg"})
-    request = request_factory(history=CellHistory(subject_id="cell-1", events=(event,)))
+    request = request_factory(history=CellHistory(subject=subject_factory(), events=(event,)))
     with pytest.raises(CapabilityError, match="units"):
-        estimate_cell_state(request, estimator=model)
+        estimate_cell_state(
+            request,
+            estimator=model,
+            options=SYNTHETIC_TEST_OPTIONS,
+        )
 
 
 @pytest.mark.parametrize(
@@ -487,17 +546,25 @@ def test_reference_never_interprets_unknown_causal_history_as_no_event(
         static_context=base.static_context,
     )
     with pytest.raises(CapabilityError, match=message):
-        estimate_cell_state(request, estimator=model)
+        estimate_cell_state(
+            request,
+            estimator=model,
+            options=SYNTHETIC_TEST_OPTIONS,
+        )
 
 
 def test_recursive_request_detects_changed_content_under_the_same_event_id(
     model: LinearGaussianReference,
 ) -> None:
     first = request_factory()
-    belief = estimate_cell_state(first, estimator=model)
+    belief = estimate_cell_state(
+        first,
+        estimator=model,
+        options=SYNTHETIC_TEST_OPTIONS,
+    )
     changed = observation_factory(event_id="obs-0", value=10)
     history = CellHistory(
-        subject_id="cell-1",
+        subject=subject_factory(),
         events=(changed,),
         completeness=first.history.completeness,
     )
@@ -515,7 +582,11 @@ def test_recursive_diagnostics_retain_all_previously_assimilated_evidence(
     model: LinearGaussianReference,
 ) -> None:
     first = request_factory(as_of_seconds=5)
-    previous = estimate_cell_state(first, estimator=model)
+    previous = estimate_cell_state(
+        first,
+        estimator=model,
+        options=SYNTHETIC_TEST_OPTIONS,
+    )
     recursive = EstimateCellStateRequest(
         query=first.query,
         history=first.history,
@@ -523,8 +594,16 @@ def test_recursive_diagnostics_retain_all_previously_assimilated_evidence(
         static_context=first.static_context,
         previous_belief=previous,
     )
-    recursive_belief = estimate_cell_state(recursive, estimator=model)
-    batch_belief = estimate_cell_state(request_factory(as_of_seconds=10), estimator=model)
+    recursive_belief = estimate_cell_state(
+        recursive,
+        estimator=model,
+        options=SYNTHETIC_TEST_OPTIONS,
+    )
+    batch_belief = estimate_cell_state(
+        request_factory(as_of_seconds=10),
+        estimator=model,
+        options=SYNTHETIC_TEST_OPTIONS,
+    )
 
     recursive_factors = {factor.factor: factor for factor in recursive_belief.factors}
     batch_factors = {factor.factor: factor for factor in batch_belief.factors}
@@ -532,23 +611,33 @@ def test_recursive_diagnostics_retain_all_previously_assimilated_evidence(
     assert recursive_factors[StateFactor.SLOW_MEMORY].evidence_status is (
         batch_factors[StateFactor.SLOW_MEMORY].evidence_status
     )
-    assert recursive_belief.diagnostics.observability == batch_belief.diagnostics.observability
+    assert recursive_belief.diagnostics.identifiability == batch_belief.diagnostics.identifiability
 
 
 def test_environment_keys_are_canonical_and_same_time_conflicts_are_rejected(
     model: LinearGaussianReference,
 ) -> None:
-    canonical = EnvironmentEvent(
+    base_query = query_factory()
+    environment_query = StateQuery.model_validate(
+        {
+            **base_query.model_dump(),
+            "system_boundary": "cell_and_soluble_environment",
+            "environment_space": (environment_spec_factory(),),
+            "evidence_policy": base_query.evidence_policy.model_copy(
+                update={"lookback_seconds": 10.0}
+            ),
+        }
+    )
+    canonical = environment_factory(
         event_id="canonical",
-        subject_id="cell-1",
         time_seconds=0,
+        duration_seconds=10,
         variables={"Nutrient": Quantity(value=1, units="relative")},
     )
     assert tuple(canonical.variables) == ("nutrient",)
     with pytest.raises(ValidationError, match="unique case-insensitively"):
-        EnvironmentEvent(
+        environment_factory(
             event_id="collision",
-            subject_id="cell-1",
             time_seconds=0,
             variables={
                 "Nutrient": Quantity(value=1, units="relative"),
@@ -557,21 +646,25 @@ def test_environment_keys_are_canonical_and_same_time_conflicts_are_rejected(
         )
 
     first = canonical.model_copy(update={"event_id": "a"})
-    second = EnvironmentEvent(
+    second = environment_factory(
         event_id="b",
-        subject_id="cell-1",
         time_seconds=0,
+        duration_seconds=10,
         variables={"nutrient": Quantity(value=2, units="relative")},
     )
-    history = CellHistory(subject_id="cell-1", events=(first, second))
-    with pytest.raises(CapabilityError, match="conflicting same-time"):
-        estimate_cell_state(request_factory(history=history), estimator=model)
+    history = CellHistory(subject=subject_factory(), events=(first, second))
+    with pytest.raises(ValidationError, match="conflicting overlapping intervals"):
+        request_factory(history=history, query=environment_query)
 
     regional = canonical.model_copy(update={"event_id": "regional", "spatial_region": "niche-A"})
     with pytest.raises(CapabilityError, match="spatially regional"):
         estimate_cell_state(
-            request_factory(history=CellHistory(subject_id="cell-1", events=(regional,))),
+            request_factory(
+                history=CellHistory(subject=subject_factory(), events=(regional,)),
+                query=environment_query,
+            ),
             estimator=model,
+            options=SYNTHETIC_TEST_OPTIONS,
         )
 
 
@@ -590,7 +683,11 @@ def test_reference_rejects_context_it_does_not_condition_on(
         static_context=donor_context,
     )
     with pytest.raises(CapabilityError, match="static context"):
-        estimate_cell_state(donor_request, estimator=model)
+        estimate_cell_state(
+            donor_request,
+            estimator=model,
+            options=SYNTHETIC_TEST_OPTIONS,
+        )
 
     population_request = EstimateCellStateRequest(
         query=base.query,
@@ -600,7 +697,11 @@ def test_reference_rejects_context_it_does_not_condition_on(
         population_context=PopulationContext(same_sample_subject_ids=("cell-2",)),
     )
     with pytest.raises(CapabilityError, match="population context"):
-        estimate_cell_state(population_request, estimator=model)
+        estimate_cell_state(
+            population_request,
+            estimator=model,
+            options=SYNTHETIC_TEST_OPTIONS,
+        )
 
 
 @pytest.mark.parametrize(
@@ -609,7 +710,7 @@ def test_reference_rejects_context_it_does_not_condition_on(
         (
             DivisionEvent(
                 event_id="division",
-                subject_id="cell-1",
+                subject=subject_factory(),
                 time_seconds=1,
                 child_ids=("child-1", "child-2"),
             ),
@@ -618,7 +719,7 @@ def test_reference_rejects_context_it_does_not_condition_on(
         (
             ContactEvent(
                 event_id="contact",
-                subject_id="cell-1",
+                subject=subject_factory(),
                 time_seconds=1,
                 other_subject_id="cell-2",
             ),
@@ -631,33 +732,39 @@ def test_reference_rejects_unmodeled_discrete_and_contact_events(
     event: object,
     message: str,
 ) -> None:
-    history = CellHistory.model_validate({"subject_id": "cell-1", "events": (event,)})
+    history = CellHistory.model_validate({"subject": subject_factory(), "events": (event,)})
     with pytest.raises(CapabilityError, match=message):
-        estimate_cell_state(request_factory(history=history), estimator=model)
+        estimate_cell_state(
+            request_factory(history=history),
+            estimator=model,
+            options=SYNTHETIC_TEST_OPTIONS,
+        )
 
 
 def test_scenarios_cannot_leave_the_query_control_space(
     model: LinearGaussianReference,
 ) -> None:
-    belief = estimate_cell_state(request_factory(), estimator=model)
-    cytokine = InterventionEvent(
+    belief = estimate_cell_state(
+        request_factory(),
+        estimator=model,
+        options=SYNTHETIC_TEST_OPTIONS,
+    )
+    cytokine = intervention_factory(
         event_id="cytokine",
-        subject_id="cell-1",
         time_seconds=10,
         duration_seconds=1,
-        intervention_type=OntologyTerm(label="cytokine"),
-        dose=Quantity(value=1, units="relative"),
-        estimated_efficiency=1,
+        intervention_type="cytokine",
+        estimated_efficiency=None,
     )
-    with pytest.raises(ContractViolationError, match="intervention space"):
+    with pytest.raises(ContractViolationError, match="bounded action space"):
         evolve_cell_state(
             belief,
             scenario=_acute_scenario(interventions=(cytokine,)),
             evolution_model=model,
+            options=SYNTHETIC_TEST_OPTIONS,
         )
-    environment = EnvironmentEvent(
+    environment = environment_factory(
         event_id="environment",
-        subject_id="cell-1",
         time_seconds=10,
         variables={"nutrient": Quantity(value=1, units="relative")},
     )
@@ -666,13 +773,18 @@ def test_scenarios_cannot_leave_the_query_control_space(
             belief,
             scenario=_acute_scenario(environments=(environment,)),
             evolution_model=model,
+            options=SYNTHETIC_TEST_OPTIONS,
         )
 
 
 def test_target_objective_units_must_match_query_output(
     model: LinearGaussianReference,
 ) -> None:
-    belief = estimate_cell_state(request_factory(), estimator=model)
+    belief = estimate_cell_state(
+        request_factory(),
+        estimator=model,
+        options=SYNTHETIC_TEST_OPTIONS,
+    )
     objective = InterventionObjective(
         objective_id="target",
         horizon_name="acute",
@@ -690,6 +802,7 @@ def test_target_objective_units_must_match_query_output(
             objective=objective,
             candidates=(_acute_scenario(),),
             planner=LinearGaussianPlanner(model),
+            options=SYNTHETIC_TEST_OPTIONS,
         )
 
 
@@ -725,7 +838,57 @@ def test_sample_posterior_artifacts_have_an_explicit_axis_convention() -> None:
 
 def test_capability_and_candidate_scores_cannot_contradict_their_labels() -> None:
     with pytest.raises(ValidationError, match="cannot declare"):
-        CapabilityReport(supported=True, unsupported_outputs=("survival",))
+        CapabilityReport(
+            supported=True,
+            scope_fingerprint="a" * 64,
+            unsupported_outputs=("survival",),
+        )
+
+    query = query_factory()
+    target = query.target_outputs[0]
+    causal_support = CausalSupportReport(
+        evaluation_status=EvaluationStatus.EVALUATED,
+        outcome=CriterionOutcome.PASSED,
+        causal_status=CausalStatus.IDENTIFIED_POPULATION_EFFECT,
+        identification_basis="randomized intervention",
+        identification_design=AssignmentMechanism.RANDOMIZED,
+        estimands=(
+            CausalEstimandBinding(
+                target=target.term,
+                horizon_name="acute",
+                aggregation=target.aggregation,
+                intervention_spec_ids=("drug",),
+                comparator="randomized control wells",
+                scenario_id="candidate",
+                scenario_fingerprint="d" * 64,
+            ),
+        ),
+        evidence_ids=("trial-1",),
+        evidence_fingerprints={"trial-1": "b" * 64},
+        source_scope="reference population",
+        target_scope="query population",
+    )
+    readiness = QueryReadinessReport(
+        support=CriterionOutcome.PASSED,
+        sufficiency=CriterionOutcome.PASSED,
+        identifiability=CriterionOutcome.PASSED,
+        decision_uncertainty=CriterionOutcome.PASSED,
+        calibration=CriterionOutcome.PASSED,
+        causal=CriterionOutcome.PASSED,
+        measurement_model=CriterionOutcome.PASSED,
+        control_requested=True,
+        valid_for_prediction=True,
+        valid_for_control=True,
+        valid_for_measurement_selection=True,
+        abstention_required=False,
+    )
+    transport = TransportReport(status=TransportStatus.WITHIN_SUPPORT)
+    candidate_context = {
+        "causal_status": CausalStatus.IDENTIFIED_POPULATION_EFFECT,
+        "causal_support": causal_support,
+        "transport": transport,
+        "readiness": readiness,
+    }
     with pytest.raises(ValidationError, match="selection score"):
         CandidateEvaluation(
             scenario_id="candidate",
@@ -733,9 +896,14 @@ def test_capability_and_candidate_scores_cannot_contradict_their_labels() -> Non
             uncertainty_penalty=0.2,
             selection_score=1,
             supported=True,
+            **candidate_context,
         )
     with pytest.raises(ValidationError, match="requires all utility"):
-        CandidateEvaluation(scenario_id="candidate", supported=True)
+        CandidateEvaluation(
+            scenario_id="candidate",
+            supported=True,
+            **candidate_context,
+        )
     with pytest.raises(ValidationError, match="numeric utility sentinels"):
         CandidateEvaluation(
             scenario_id="candidate",
@@ -743,16 +911,14 @@ def test_capability_and_candidate_scores_cannot_contradict_their_labels() -> Non
             uncertainty_penalty=0,
             selection_score=0,
             supported=False,
+            **candidate_context,
         )
 
 
 def test_realized_perturbation_evidence_must_be_an_observed_measurement() -> None:
-    intervention = InterventionEvent(
+    intervention = intervention_factory(
         event_id="edit",
-        subject_id="cell-1",
         time_seconds=0,
-        intervention_type=OntologyTerm(label="drug"),
-        dose=Quantity(value=1, units="relative"),
         duration_seconds=1,
         actual_perturbation=ActualPerturbation(
             status=PerturbationStatus.MEASURED,
@@ -761,7 +927,7 @@ def test_realized_perturbation_evidence_must_be_an_observed_measurement() -> Non
         ),
     )
     with pytest.raises(ValidationError, match="observed measurement events"):
-        CellHistory(subject_id="cell-1", events=(intervention,))
+        CellHistory(subject=subject_factory(), events=(intervention,))
 
     early_measurement = observation_factory(event_id="target-engagement", time_seconds=0)
     measured_later = intervention.model_copy(
@@ -776,7 +942,7 @@ def test_realized_perturbation_evidence_must_be_an_observed_measurement() -> Non
         }
     )
     with pytest.raises(ValidationError, match="cannot predate"):
-        CellHistory(subject_id="cell-1", events=(early_measurement, measured_later))
+        CellHistory(subject=subject_factory(), events=(early_measurement, measured_later))
 
 
 @pytest.mark.parametrize(
@@ -798,9 +964,13 @@ def test_reference_rejects_measurement_details_it_cannot_condition_on(
     model: LinearGaussianReference,
     event: ObservationEvent,
 ) -> None:
-    request = request_factory(history=CellHistory(subject_id="cell-1", events=(event,)))
+    request = request_factory(history=CellHistory(subject=subject_factory(), events=(event,)))
     with pytest.raises(CapabilityError):
-        estimate_cell_state(request, estimator=model)
+        estimate_cell_state(
+            request,
+            estimator=model,
+            options=SYNTHETIC_TEST_OPTIONS,
+        )
 
 
 def test_observed_status_requires_a_direct_measurement_at_the_belief_time(
@@ -809,24 +979,29 @@ def test_observed_status_requires_a_direct_measurement_at_the_belief_time(
     old_event = observation_factory(modality="functional_readout", time_seconds=0, value=0.5)
     old_belief = estimate_cell_state(
         request_factory(
-            history=CellHistory(subject_id="cell-1", events=(old_event,)),
+            history=CellHistory(subject=subject_factory(), events=(old_event,)),
             as_of_seconds=10,
         ),
         estimator=model,
+        options=SYNTHETIC_TEST_OPTIONS,
     )
     old_factor = next(
         factor for factor in old_belief.factors if factor.factor is StateFactor.FUNCTIONAL_CAPACITY
     )
     assert old_factor.evidence_status is not EvidenceStatus.OBSERVED
-    assert "functional_capacity" not in old_belief.diagnostics.observability.observed
+    assert (
+        old_belief.diagnostics.identifiability.dimension_status["functional_capacity"]
+        is not DimensionIdentifiability.DIRECTLY_OBSERVED
+    )
 
     current_event = observation_factory(modality="functional_readout", time_seconds=10, value=0.5)
     current_belief = estimate_cell_state(
         request_factory(
-            history=CellHistory(subject_id="cell-1", events=(current_event,)),
+            history=CellHistory(subject=subject_factory(), events=(current_event,)),
             as_of_seconds=10,
         ),
         estimator=model,
+        options=SYNTHETIC_TEST_OPTIONS,
     )
     current_factor = next(
         factor
@@ -834,7 +1009,10 @@ def test_observed_status_requires_a_direct_measurement_at_the_belief_time(
         if factor.factor is StateFactor.FUNCTIONAL_CAPACITY
     )
     assert current_factor.evidence_status is EvidenceStatus.OBSERVED
-    assert "functional_capacity" in current_belief.diagnostics.observability.observed
+    assert (
+        current_belief.diagnostics.identifiability.dimension_status["functional_capacity"]
+        is DimensionIdentifiability.DIRECTLY_OBSERVED
+    )
 
 
 def test_confounded_readout_does_not_claim_identifiable_factors() -> None:
@@ -855,40 +1033,43 @@ def test_confounded_readout_does_not_claim_identifiable_factors() -> None:
     event = observation_factory(time_seconds=10)
     belief = estimate_cell_state(
         request_factory(
-            history=CellHistory(subject_id="cell-1", events=(event,)),
+            history=CellHistory(subject=subject_factory(), events=(event,)),
             as_of_seconds=10,
         ),
         estimator=model,
+        options=SYNTHETIC_TEST_OPTIONS,
     )
     factors = {factor.factor: factor for factor in belief.factors}
     assert factors[StateFactor.SLOW_MEMORY].evidence_status is EvidenceStatus.UNIDENTIFIABLE
     assert factors[StateFactor.SIGNALING].evidence_status is EvidenceStatus.UNIDENTIFIABLE
-    assert {"memory", "signaling"} <= set(belief.diagnostics.observability.unidentifiable)
+    dimension_status = belief.diagnostics.identifiability.dimension_status
+    assert dimension_status["memory"] is DimensionIdentifiability.UNIDENTIFIABLE
+    assert dimension_status["signaling"] is DimensionIdentifiability.UNIDENTIFIABLE
 
 
 def test_reference_prior_epoch_is_invariant_to_non_evidence_records(
     model: LinearGaussianReference,
 ) -> None:
     empty = estimate_cell_state(
-        request_factory(history=CellHistory(subject_id="cell-1"), as_of_seconds=10),
+        request_factory(history=CellHistory(subject=subject_factory()), as_of_seconds=10),
         estimator=model,
+        options=SYNTHETIC_TEST_OPTIONS,
     )
-    not_measured = ObservationEvent(
+    not_measured = observation_factory(
         event_id="not-measured",
-        subject_id="cell-1",
         time_seconds=5,
-        modality=OntologyTerm(label="transcriptome"),
+        modality="transcriptome",
         value=None,
         units="relative",
         missingness=MissingnessReport(status=MissingnessStatus.NOT_MEASURED),
-        assay=AssayMetadata(assay_id="rna"),
     )
     with_missing_record = estimate_cell_state(
         request_factory(
-            history=CellHistory(subject_id="cell-1", events=(not_measured,)),
+            history=CellHistory(subject=subject_factory(), events=(not_measured,)),
             as_of_seconds=10,
         ),
         estimator=model,
+        options=SYNTHETIC_TEST_OPTIONS,
     )
     assert np.allclose(
         empty.joint_posterior.mean,
@@ -911,6 +1092,15 @@ def test_reference_configuration_rejects_empty_factor_timescales() -> None:
         LinearGaussianConfig.model_validate(payload)
 
 
+def test_reference_configuration_requires_canonical_species_keys() -> None:
+    config = minimal_reference_config()
+    assert "ncbitaxon:9606" in config.supported_species_keys
+    payload = config.model_dump(mode="python")
+    payload["supported_species_keys"] = ("NCBITaxon:9606",)
+    with pytest.raises(ValidationError, match="canonical ontology identity"):
+        LinearGaussianConfig.model_validate(payload)
+
+
 def test_reference_preflight_rejects_target_specific_intervention_semantics(
     model: LinearGaussianReference,
 ) -> None:
@@ -919,75 +1109,91 @@ def test_reference_preflight_rejects_target_specific_intervention_semantics(
         {
             **base.model_dump(mode="python"),
             "intervention_space": (
-                InterventionSpec(
-                    kind=OntologyTerm(label="drug"),
+                intervention_spec_factory(
                     target=OntologyTerm(label="kinase-X"),
                 ),
             ),
         }
     )
     with pytest.raises(CapabilityError, match="target"):
-        estimate_cell_state(request_factory(query=query), estimator=model)
+        estimate_cell_state(
+            request_factory(query=query),
+            estimator=model,
+            options=SYNTHETIC_TEST_OPTIONS,
+        )
 
 
 @pytest.mark.parametrize(
-    "unsupported_field",
+    ("unsupported_field", "message"),
     [
-        {"delivery_method": "viral"},
-        {"reversible": False},
+        ({"delivery_method": "viral"}, "drug"),
+        ({"reversibility_status": ReversibilityStatus.IRREVERSIBLE}, "reversibility"),
     ],
 )
-def test_reference_rejects_intervention_semantics_it_does_not_model(
+def test_reference_preflight_rejects_intervention_semantics_it_does_not_model(
     model: LinearGaussianReference,
     unsupported_field: dict[str, object],
+    message: str,
 ) -> None:
-    intervention = InterventionEvent(
-        event_id="drug",
-        subject_id="cell-1",
-        time_seconds=10,
-        intervention_type=OntologyTerm(label="drug"),
-        dose=Quantity(value=1, units="relative"),
-        duration_seconds=10,
-        estimated_efficiency=1,
-        **unsupported_field,
+    delivery = str(unsupported_field.get("delivery_method", "synthetic_reference"))
+    reversibility_status = unsupported_field.get(
+        "reversibility_status", ReversibilityStatus.REVERSIBLE
     )
-    belief = estimate_cell_state(request_factory(), estimator=model)
-    with pytest.raises(CapabilityError, match="reversibility"):
-        evolve_cell_state(
-            belief,
-            scenario=_acute_scenario(interventions=(intervention,)),
-            evolution_model=model,
+    assert isinstance(reversibility_status, ReversibilityStatus)
+    custom_query = StateQuery.model_validate(
+        {
+            **query_factory().model_dump(),
+            "intervention_space": (
+                intervention_spec_factory(
+                    delivery_methods=(delivery,),
+                    allowed_reversibility_statuses=(reversibility_status,),
+                ),
+            ),
+        }
+    )
+    with pytest.raises(CapabilityError, match=message):
+        estimate_cell_state(
+            request_factory(query=custom_query),
+            estimator=model,
+            options=SYNTHETIC_TEST_OPTIONS,
         )
 
 
 def test_forecasts_make_ongoing_intervention_persistence_explicit(
     model: LinearGaussianReference,
 ) -> None:
-    ongoing = InterventionEvent(
+    ongoing = intervention_factory(
         event_id="ongoing-drug",
-        subject_id="cell-1",
         time_seconds=0,
-        intervention_type=OntologyTerm(label="drug"),
-        dose=Quantity(value=1, units="relative"),
         duration_seconds=100,
         estimated_efficiency=1,
     )
     history = CellHistory(
-        subject_id="cell-1",
+        subject=subject_factory(),
         events=(observation_factory(), ongoing),
     )
-    belief = estimate_cell_state(request_factory(history=history), estimator=model)
+    belief = estimate_cell_state(
+        request_factory(history=history),
+        estimator=model,
+        options=SYNTHETIC_TEST_OPTIONS,
+    )
     assert tuple(event.event_id for event in belief.context.active_interventions) == (
         "ongoing-drug",
     )
 
     with pytest.raises(ContractViolationError, match="active interventions"):
-        evolve_cell_state(belief, scenario=_acute_scenario(), evolution_model=model)
+        evolve_cell_state(
+            belief,
+            scenario=_acute_scenario(),
+            evolution_model=model,
+            options=SYNTHETIC_TEST_OPTIONS,
+        )
 
     continued = evolve_cell_state(
         belief,
         scenario=_acute_scenario(inherit_active_interventions=True),
         evolution_model=model,
+        options=SYNTHETIC_TEST_OPTIONS,
     )
     cleared = evolve_cell_state(
         belief,
@@ -996,22 +1202,24 @@ def test_forecasts_make_ongoing_intervention_persistence_explicit(
             inherit_active_interventions=False,
         ),
         evolution_model=model,
+        options=SYNTHETIC_TEST_OPTIONS,
     )
     assert continued.joint_posterior != cleared.joint_posterior
 
 
-def test_plan_selection_must_maximize_its_reported_score(
+def test_reference_plan_abstains_without_candidate_scientific_support(
     model: LinearGaussianReference,
 ) -> None:
-    belief = estimate_cell_state(request_factory(), estimator=model)
-    intervention = InterventionEvent(
+    belief = estimate_cell_state(
+        request_factory(),
+        estimator=model,
+        options=SYNTHETIC_TEST_OPTIONS,
+    )
+    intervention = intervention_factory(
         event_id="drug",
-        subject_id="cell-1",
         time_seconds=10,
-        intervention_type=OntologyTerm(label="drug"),
-        dose=Quantity(value=1, units="relative"),
         duration_seconds=10,
-        estimated_efficiency=1,
+        estimated_efficiency=None,
     )
     baseline = _acute_scenario()
     stimulated = _acute_scenario(scenario_id="stimulated", interventions=(intervention,))
@@ -1020,11 +1228,15 @@ def test_plan_selection_must_maximize_its_reported_score(
         objective=_acute_objective(),
         candidates=(baseline, stimulated),
         planner=LinearGaussianPlanner(model),
+        options=SYNTHETIC_TEST_OPTIONS,
     )
-    assert plan.selected_scenario_id == "stimulated"
+    assert plan.status is PlanStatus.ABSTAINED
+    assert plan.selected_scenario_id is None
+    assert plan.abstention_reasons
+    assert all(not evaluation.supported for evaluation in plan.evaluations)
     payload = plan.model_dump(mode="python")
     payload["selected_scenario_id"] = "baseline"
-    with pytest.raises(ValidationError, match="highest selection score"):
+    with pytest.raises(ValidationError, match="abstaining plan cannot select"):
         InterventionPlan.model_validate(payload)
 
 
@@ -1035,22 +1247,34 @@ def test_public_boundaries_reject_backend_results_not_bound_to_inputs(
 
     class WrongSubjectEstimator:
         descriptor = model.descriptor
+        query_compiler = model.query_compiler
 
-        def capabilities(self, query: StateQuery):
-            return model.capabilities(query)
+        def capabilities(self, request, state_specification):
+            return model.capabilities(request, state_specification)
 
         def estimate(self, request: EstimateCellStateRequest, *, options: InferenceOptions):
             return model.estimate(request, options=options).model_copy(
-                update={"subject_id": "wrong-cell"}
+                update={"subject": subject_factory("wrong-cell")}
             )
 
-    with pytest.raises(ContractViolationError, match="wrong subject"):
-        estimate_cell_state(request, estimator=WrongSubjectEstimator())
+    with pytest.raises(ContractViolationError, match="wrong typed subject"):
+        estimate_cell_state(
+            request,
+            estimator=WrongSubjectEstimator(),
+            options=SYNTHETIC_TEST_OPTIONS,
+        )
 
-    belief = estimate_cell_state(request, estimator=model)
+    belief = estimate_cell_state(
+        request,
+        estimator=model,
+        options=SYNTHETIC_TEST_OPTIONS,
+    )
 
     class WrongParentEvolution:
         descriptor = model.descriptor
+
+        def capabilities(self, belief, scenario):
+            return model.capabilities(belief, scenario)
 
         def evolve(
             self,
@@ -1068,12 +1292,16 @@ def test_public_boundaries_reject_backend_results_not_bound_to_inputs(
             belief,
             scenario=_acute_scenario(),
             evolution_model=WrongParentEvolution(),
+            options=SYNTHETIC_TEST_OPTIONS,
         )
 
     planner = LinearGaussianPlanner(model)
 
     class WrongObjectivePlanner:
         descriptor = planner.descriptor
+
+        def capabilities(self, belief, objective, candidates):
+            return planner.capabilities(belief, objective, candidates)
 
         def choose(
             self,
@@ -1093,32 +1321,31 @@ def test_public_boundaries_reject_backend_results_not_bound_to_inputs(
             objective=_acute_objective(),
             candidates=(_acute_scenario(),),
             planner=WrongObjectivePlanner(),
+            options=SYNTHETIC_TEST_OPTIONS,
         )
 
 
 def test_estimator_cannot_label_intervention_provenance_as_observed_factor_evidence(
     model: LinearGaussianReference,
 ) -> None:
-    intervention = InterventionEvent(
+    intervention = intervention_factory(
         event_id="historical-drug",
-        subject_id="cell-1",
         time_seconds=0,
-        intervention_type=OntologyTerm(label="drug"),
-        dose=Quantity(value=1, units="relative"),
         duration_seconds=1,
         estimated_efficiency=1,
     )
     history = CellHistory(
-        subject_id="cell-1",
+        subject=subject_factory(),
         events=(observation_factory(), intervention),
     )
     request = request_factory(history=history)
 
     class WrongEvidenceEstimator:
         descriptor = model.descriptor
+        query_compiler = model.query_compiler
 
-        def capabilities(self, query: StateQuery):
-            return model.capabilities(query)
+        def capabilities(self, request, state_specification):
+            return model.capabilities(request, state_specification)
 
         def estimate(self, request: EstimateCellStateRequest, *, options: InferenceOptions):
             belief = model.estimate(request, options=options)
@@ -1136,15 +1363,28 @@ def test_estimator_cannot_label_intervention_provenance_as_observed_factor_evide
             return belief.model_copy(update={"factors": factors})
 
     with pytest.raises(ContractViolationError, match="observed factor evidence"):
-        estimate_cell_state(request, estimator=WrongEvidenceEstimator())
+        estimate_cell_state(
+            request,
+            estimator=WrongEvidenceEstimator(),
+            options=SYNTHETIC_TEST_OPTIONS,
+        )
 
 
 def test_plan_and_forecast_validators_cover_derived_artifacts(
     model: LinearGaussianReference,
 ) -> None:
-    belief = estimate_cell_state(request_factory(), estimator=model)
+    belief = estimate_cell_state(
+        request_factory(),
+        estimator=model,
+        options=SYNTHETIC_TEST_OPTIONS,
+    )
     scenario = _acute_scenario()
-    forecast = evolve_cell_state(belief, scenario=scenario, evolution_model=model)
+    forecast = evolve_cell_state(
+        belief,
+        scenario=scenario,
+        evolution_model=model,
+        options=SYNTHETIC_TEST_OPTIONS,
+    )
     forecast_payload = forecast.model_dump(mode="python")
     factor = next(item for item in forecast_payload["factors"] if item["factor"] == "slow_memory")
     factor["posterior"]["mean"] = (999.0,)
@@ -1164,6 +1404,7 @@ def test_plan_and_forecast_validators_cover_derived_artifacts(
         objective=_acute_objective(),
         candidates=(scenario,),
         planner=LinearGaussianPlanner(model),
+        options=SYNTHETIC_TEST_OPTIONS,
     )
     plan_payload = plan.model_dump(mode="python")
     plan_payload["evaluations"] = ()

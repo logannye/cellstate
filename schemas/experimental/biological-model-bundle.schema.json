@@ -1,0 +1,381 @@
+{
+  "$defs": {
+    "BiologicalStagePort": {
+      "description": "Original framework stages plus the narrow component's support infrastructure.\n\nThe first eighteen named biological stages are the complete port surface from the original\nproposed ``CellStateModelBundle`` skeleton.  The remaining support ports let a component be\nimplemented and benchmarked without pretending that it is a current-state belief backend.",
+      "enum": [
+        "query_compiler",
+        "reference_prior",
+        "observation_models",
+        "evidence_transfer_models",
+        "intervention_realization_model",
+        "transition_model",
+        "division_and_inheritance_model",
+        "cell_interaction_model",
+        "extracellular_transport_model",
+        "functional_decoders",
+        "mechanistic_constraints",
+        "posterior_inference_engine",
+        "model_ensemble",
+        "uncertainty_calibrator",
+        "ood_detector",
+        "sufficiency_evaluator",
+        "identifiability_analyzer",
+        "value_of_information_engine",
+        "exact_artifact_resolver",
+        "query_scope_validator",
+        "train_cal_data_loader",
+        "action_context_encoder",
+        "population_assay_response_distribution_model",
+        "strict_support_ood_gate",
+        "artifact_provenance_writer"
+      ],
+      "title": "BiologicalStagePort",
+      "type": "string"
+    },
+    "BundleContractKind": {
+      "description": "Scientific scope of an artifact, not a readiness or admission assertion.",
+      "enum": [
+        "component_scaffold",
+        "component_model",
+        "biological_model_bundle"
+      ],
+      "title": "BundleContractKind",
+      "type": "string"
+    },
+    "BundleContractReference": {
+      "additionalProperties": false,
+      "description": "Content identity for one canonical contract payload.",
+      "properties": {
+        "artifact": {
+          "$ref": "#/$defs/ContentAddressedArtifact"
+        },
+        "contract_id": {
+          "minLength": 1,
+          "title": "Contract Id",
+          "type": "string"
+        },
+        "contract_version": {
+          "minLength": 1,
+          "title": "Contract Version",
+          "type": "string"
+        }
+      },
+      "required": [
+        "contract_id",
+        "contract_version",
+        "artifact"
+      ],
+      "title": "BundleContractReference",
+      "type": "object"
+    },
+    "ContentAddressedArtifact": {
+      "additionalProperties": false,
+      "properties": {
+        "artifact_id": {
+          "minLength": 1,
+          "title": "Artifact Id",
+          "type": "string"
+        },
+        "byte_count": {
+          "exclusiveMinimum": 0,
+          "title": "Byte Count",
+          "type": "integer"
+        },
+        "media_type": {
+          "minLength": 1,
+          "title": "Media Type",
+          "type": "string"
+        },
+        "sha256": {
+          "pattern": "^[a-fA-F0-9]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        },
+        "uri": {
+          "minLength": 1,
+          "title": "Uri",
+          "type": "string"
+        }
+      },
+      "required": [
+        "artifact_id",
+        "uri",
+        "sha256",
+        "byte_count",
+        "media_type"
+      ],
+      "title": "ContentAddressedArtifact",
+      "type": "object"
+    },
+    "ModelOperation": {
+      "description": "Public runtime operation a support envelope may eventually register.",
+      "enum": [
+        "choose_intervention",
+        "estimate_cell_state",
+        "evolve_cell_state",
+        "recommend_next_measurement"
+      ],
+      "title": "ModelOperation",
+      "type": "string"
+    },
+    "ModelOperationImplementationBinding": {
+      "additionalProperties": false,
+      "description": "Exact high-level runtime declaration; stage ports alone cannot register an API.",
+      "properties": {
+        "implementation": {
+          "$ref": "#/$defs/PortImplementationBinding"
+        },
+        "operation": {
+          "$ref": "#/$defs/ModelOperation"
+        },
+        "rationale": {
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Rationale",
+          "type": "array"
+        },
+        "validation_evidence_ids": {
+          "default": [],
+          "items": {
+            "type": "string"
+          },
+          "title": "Validation Evidence Ids",
+          "type": "array"
+        }
+      },
+      "required": [
+        "operation",
+        "implementation",
+        "rationale"
+      ],
+      "title": "ModelOperationImplementationBinding",
+      "type": "object"
+    },
+    "ModelPortBinding": {
+      "additionalProperties": false,
+      "description": "One complete, evidence-aware entry in the bundle support-port map.",
+      "properties": {
+        "disposition": {
+          "$ref": "#/$defs/PortDisposition"
+        },
+        "implementation": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/PortImplementationBinding"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "port": {
+          "$ref": "#/$defs/BiologicalStagePort"
+        },
+        "rationale": {
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Rationale",
+          "type": "array"
+        },
+        "validation_evidence_ids": {
+          "default": [],
+          "items": {
+            "type": "string"
+          },
+          "title": "Validation Evidence Ids",
+          "type": "array"
+        }
+      },
+      "required": [
+        "port",
+        "disposition",
+        "rationale"
+      ],
+      "title": "ModelPortBinding",
+      "type": "object"
+    },
+    "PortDisposition": {
+      "description": "Honest implementation state for one explicitly mapped port.",
+      "enum": [
+        "required",
+        "provided",
+        "planned",
+        "not_applicable",
+        "unsupported"
+      ],
+      "title": "PortDisposition",
+      "type": "string"
+    },
+    "PortImplementationBinding": {
+      "additionalProperties": false,
+      "description": "Versioned code declaration for one port, not proof that its bytes can execute.",
+      "properties": {
+        "code_artifact": {
+          "$ref": "#/$defs/ContentAddressedArtifact"
+        },
+        "entrypoint": {
+          "anyOf": [
+            {
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Entrypoint"
+        },
+        "implementation_id": {
+          "minLength": 1,
+          "title": "Implementation Id",
+          "type": "string"
+        },
+        "implementation_version": {
+          "minLength": 1,
+          "title": "Implementation Version",
+          "type": "string"
+        },
+        "interface": {
+          "minLength": 1,
+          "title": "Interface",
+          "type": "string"
+        },
+        "kind": {
+          "$ref": "#/$defs/PortImplementationKind"
+        }
+      },
+      "required": [
+        "implementation_id",
+        "implementation_version",
+        "interface",
+        "kind",
+        "code_artifact"
+      ],
+      "title": "PortImplementationBinding",
+      "type": "object"
+    },
+    "PortImplementationKind": {
+      "description": "Structural declaration kind; neither value is executable evidence.",
+      "enum": [
+        "specification_only",
+        "python_entry_point"
+      ],
+      "title": "PortImplementationKind",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Exhaustive declaration of one component or full biological model bundle.",
+  "properties": {
+    "benchmark": {
+      "$ref": "#/$defs/BundleContractReference"
+    },
+    "bundle_id": {
+      "minLength": 1,
+      "title": "Bundle Id",
+      "type": "string"
+    },
+    "bundle_kind": {
+      "$ref": "#/$defs/BundleContractKind"
+    },
+    "bundle_version": {
+      "minLength": 1,
+      "title": "Bundle Version",
+      "type": "string"
+    },
+    "description": {
+      "minLength": 1,
+      "title": "Description",
+      "type": "string"
+    },
+    "model_artifact": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/ContentAddressedArtifact"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "operation_implementations": {
+      "default": [],
+      "items": {
+        "$ref": "#/$defs/ModelOperationImplementationBinding"
+      },
+      "title": "Operation Implementations",
+      "type": "array"
+    },
+    "ports": {
+      "items": {
+        "$ref": "#/$defs/ModelPortBinding"
+      },
+      "minItems": 1,
+      "title": "Ports",
+      "type": "array"
+    },
+    "posterior_schema_id": {
+      "anyOf": [
+        {
+          "minLength": 1,
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Posterior Schema Id"
+    },
+    "query": {
+      "$ref": "#/$defs/BundleContractReference"
+    },
+    "schema_version": {
+      "const": "0.1-experimental",
+      "default": "0.1-experimental",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "support_envelope": {
+      "$ref": "#/$defs/BundleContractReference"
+    },
+    "training_run": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/BundleContractReference"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "validation_evidence": {
+      "default": [],
+      "items": {
+        "$ref": "#/$defs/BundleContractReference"
+      },
+      "title": "Validation Evidence",
+      "type": "array"
+    }
+  },
+  "required": [
+    "bundle_id",
+    "bundle_version",
+    "bundle_kind",
+    "description",
+    "query",
+    "benchmark",
+    "support_envelope",
+    "ports"
+  ],
+  "title": "BiologicalModelBundleContract",
+  "type": "object"
+}

@@ -1,0 +1,290 @@
+{
+  "$defs": {
+    "BundleAdmissionBlockerCode": {
+      "description": "Machine-readable v0.1 gates that declarations cannot satisfy.",
+      "enum": [
+        "artifact_bytes_unresolved",
+        "implementation_interfaces_unverified",
+        "query_derived_operation_prerequisites_unverified",
+        "validation_results_unverified"
+      ],
+      "title": "BundleAdmissionBlockerCode",
+      "type": "string"
+    },
+    "BundleReadiness": {
+      "additionalProperties": false,
+      "description": "Derived readiness result; no field is accepted on the source bundle contract.",
+      "properties": {
+        "admission_blocker_codes": {
+          "items": {
+            "$ref": "#/$defs/BundleAdmissionBlockerCode"
+          },
+          "title": "Admission Blocker Codes",
+          "type": "array"
+        },
+        "artifact_bytes_resolved": {
+          "title": "Artifact Bytes Resolved",
+          "type": "boolean"
+        },
+        "benchmark_admission_ready": {
+          "title": "Benchmark Admission Ready",
+          "type": "boolean"
+        },
+        "benchmark_binding_verified": {
+          "title": "Benchmark Binding Verified",
+          "type": "boolean"
+        },
+        "blockers": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Blockers",
+          "type": "array"
+        },
+        "bundle_fingerprint": {
+          "pattern": "^[a-fA-F0-9]{64}$",
+          "title": "Bundle Fingerprint",
+          "type": "string"
+        },
+        "calibration_binding_verified": {
+          "title": "Calibration Binding Verified",
+          "type": "boolean"
+        },
+        "component_evaluation_complete": {
+          "title": "Component Evaluation Complete",
+          "type": "boolean"
+        },
+        "component_executable": {
+          "title": "Component Executable",
+          "type": "boolean"
+        },
+        "component_execution_allowed": {
+          "title": "Component Execution Allowed",
+          "type": "boolean"
+        },
+        "component_model_declared": {
+          "title": "Component Model Declared",
+          "type": "boolean"
+        },
+        "implementation_interfaces_verified": {
+          "title": "Implementation Interfaces Verified",
+          "type": "boolean"
+        },
+        "implementation_scope_binding_verified": {
+          "title": "Implementation Scope Binding Verified",
+          "type": "boolean"
+        },
+        "lifecycle_stage": {
+          "$ref": "#/$defs/ComponentLifecycleStage"
+        },
+        "model_selection_binding_verified": {
+          "title": "Model Selection Binding Verified",
+          "type": "boolean"
+        },
+        "query_binding_verified": {
+          "title": "Query Binding Verified",
+          "type": "boolean"
+        },
+        "query_derived_prerequisites_verified": {
+          "title": "Query Derived Prerequisites Verified",
+          "type": "boolean"
+        },
+        "required_ports_evidenced": {
+          "title": "Required Ports Evidenced",
+          "type": "boolean"
+        },
+        "required_ports_executable": {
+          "title": "Required Ports Executable",
+          "type": "boolean"
+        },
+        "required_ports_provided": {
+          "title": "Required Ports Provided",
+          "type": "boolean"
+        },
+        "runnable": {
+          "title": "Runnable",
+          "type": "boolean"
+        },
+        "runtime_operations_bound": {
+          "title": "Runtime Operations Bound",
+          "type": "boolean"
+        },
+        "runtime_operations_evidenced": {
+          "title": "Runtime Operations Evidenced",
+          "type": "boolean"
+        },
+        "runtime_operations_executable": {
+          "title": "Runtime Operations Executable",
+          "type": "boolean"
+        },
+        "runtime_registration_allowed": {
+          "title": "Runtime Registration Allowed",
+          "type": "boolean"
+        },
+        "runtime_surface_declared": {
+          "title": "Runtime Surface Declared",
+          "type": "boolean"
+        },
+        "scientifically_admitted": {
+          "title": "Scientifically Admitted",
+          "type": "boolean"
+        },
+        "support_envelope_binding_verified": {
+          "title": "Support Envelope Binding Verified",
+          "type": "boolean"
+        },
+        "training_binding_verified": {
+          "title": "Training Binding Verified",
+          "type": "boolean"
+        },
+        "validation_bindings_verified": {
+          "title": "Validation Bindings Verified",
+          "type": "boolean"
+        },
+        "validation_evidence_semantics_verified": {
+          "title": "Validation Evidence Semantics Verified",
+          "type": "boolean"
+        },
+        "validation_results_verified": {
+          "title": "Validation Results Verified",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "bundle_fingerprint",
+        "lifecycle_stage",
+        "query_binding_verified",
+        "benchmark_binding_verified",
+        "support_envelope_binding_verified",
+        "training_binding_verified",
+        "calibration_binding_verified",
+        "model_selection_binding_verified",
+        "validation_bindings_verified",
+        "validation_evidence_semantics_verified",
+        "implementation_scope_binding_verified",
+        "artifact_bytes_resolved",
+        "implementation_interfaces_verified",
+        "validation_results_verified",
+        "query_derived_prerequisites_verified",
+        "required_ports_provided",
+        "required_ports_executable",
+        "required_ports_evidenced",
+        "benchmark_admission_ready",
+        "component_evaluation_complete",
+        "component_executable",
+        "scientifically_admitted",
+        "component_model_declared",
+        "component_execution_allowed",
+        "runtime_surface_declared",
+        "runtime_operations_bound",
+        "runtime_operations_executable",
+        "runtime_operations_evidenced",
+        "runtime_registration_allowed",
+        "runnable",
+        "admission_blocker_codes",
+        "blockers"
+      ],
+      "title": "BundleReadiness",
+      "type": "object"
+    },
+    "ComponentLifecycleStage": {
+      "description": "Derived component progress; stages are never declared on a source bundle.",
+      "enum": [
+        "scaffold",
+        "trained_candidate",
+        "calibrated_candidate",
+        "model_selected_frozen",
+        "component_evaluated",
+        "component_gates_passed"
+      ],
+      "title": "ComponentLifecycleStage",
+      "type": "string"
+    },
+    "PopulationAssayResponseBlocker": {
+      "additionalProperties": false,
+      "properties": {
+        "code": {
+          "$ref": "#/$defs/PopulationAssayResponseBlockerCode"
+        },
+        "detail": {
+          "minLength": 1,
+          "title": "Detail",
+          "type": "string"
+        }
+      },
+      "required": [
+        "code",
+        "detail"
+      ],
+      "title": "PopulationAssayResponseBlocker",
+      "type": "object"
+    },
+    "PopulationAssayResponseBlockerCode": {
+      "description": "Machine-readable reasons that keep this component fail closed.",
+      "enum": [
+        "action_or_dose_mismatch",
+        "baselines_not_executed",
+        "bundle_not_runnable",
+        "causal_status_overclaim",
+        "current_hidden_state_unsupported",
+        "endpoint_target_leakage",
+        "environment_unsupported",
+        "evaluation_case_mismatch",
+        "evaluation_case_unknown",
+        "horizon_mismatch",
+        "intervention_realization_unidentified",
+        "metric_implementations_absent",
+        "model_artifact_absent",
+        "partition_role_mismatch",
+        "point_only_output_unsupported",
+        "pre_cutoff_evidence_unsupported",
+        "query_mismatch",
+        "runtime_support_not_admitted",
+        "source_duplicate_audit_unassessed",
+        "survival_viability_unsupported",
+        "target_mismatch",
+        "training_partition_violation",
+        "transport_unsupported",
+        "untouched_test_mutation",
+        "validation_evidence_absent"
+      ],
+      "title": "PopulationAssayResponseBlockerCode",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Derived request and bundle readiness; no readiness Boolean is caller supplied.",
+  "properties": {
+    "bundle_readiness": {
+      "$ref": "#/$defs/BundleReadiness"
+    },
+    "readiness_blockers": {
+      "items": {
+        "$ref": "#/$defs/PopulationAssayResponseBlocker"
+      },
+      "minItems": 1,
+      "title": "Readiness Blockers",
+      "type": "array"
+    },
+    "scope_blockers": {
+      "default": [],
+      "items": {
+        "$ref": "#/$defs/PopulationAssayResponseBlocker"
+      },
+      "title": "Scope Blockers",
+      "type": "array"
+    },
+    "task_fingerprint": {
+      "pattern": "^[a-fA-F0-9]{64}$",
+      "title": "Task Fingerprint",
+      "type": "string"
+    }
+  },
+  "required": [
+    "task_fingerprint",
+    "bundle_readiness",
+    "readiness_blockers"
+  ],
+  "title": "PopulationAssayResponsePreflight",
+  "type": "object"
+}

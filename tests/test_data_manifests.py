@@ -1,20 +1,23 @@
 from __future__ import annotations
 
 from datetime import UTC, date, datetime
+from hashlib import sha256
 
 import pytest
 from pydantic import ValidationError
 
 from cellstate.data import (
     DATASET_MANIFEST_SCHEMA_VERSION,
+    AssessmentScope,
     AssignmentMechanism,
-    ClaimEligibility,
-    ClaimScope,
-    ClaimStatus,
+    ClaimAssessment,
     DatasetCapabilities,
     DatasetManifest,
+    DatasetSliceKind,
+    DatasetSliceSpec,
     DataUseCase,
     DataUsePolicy,
+    EligibilityStatus,
     EnvironmentCapability,
     EnvironmentVariable,
     ExperimentalDesign,
@@ -22,6 +25,7 @@ from cellstate.data import (
     ExperimentalUnitSpec,
     FunctionalCapability,
     FunctionalReadout,
+    FunctionalReadoutDerivation,
     IdentificationBasis,
     InterventionCapability,
     LineageCapability,
@@ -92,17 +96,17 @@ def scope(
     system_boundary: SystemBoundary = SystemBoundary.POPULATION,
     modalities: tuple[OntologyTerm, ...] = (),
     interventions: tuple[OntologyTerm, ...] = (),
-    outputs: tuple[OntologyTerm, ...] = (),
+    readout_ids: tuple[str, ...] = (),
     environments: tuple[OntologyTerm, ...] = (),
     horizons: tuple[float, ...] = (),
-) -> ClaimScope:
-    return ClaimScope(
+) -> AssessmentScope:
+    return AssessmentScope(
         subject_kind=subject_kind,
         system_boundary=system_boundary,
         biological_systems=(term("cultured cell population"),),
         modalities=modalities,
         intervention_kinds=interventions,
-        functional_outputs=outputs,
+        functional_readout_ids=readout_ids,
         environment_variables=environments,
         horizons_seconds=horizons,
         inference_cutoff_seconds=0.0 if horizons else None,
@@ -111,12 +115,13 @@ def scope(
 
 def eligible(
     claim: ScientificClaim,
-    claim_scope: ClaimScope,
+    claim_scope: AssessmentScope,
     *,
     basis: IdentificationBasis = IdentificationBasis.DESCRIPTIVE,
-    status: ClaimStatus = ClaimStatus.ELIGIBLE,
-) -> ClaimEligibility:
-    return ClaimEligibility(
+    status: EligibilityStatus = EligibilityStatus.ELIGIBLE,
+) -> ClaimAssessment:
+    return ClaimAssessment(
+        assessment_id=f"{claim.value}-{claim_scope.fingerprint[:12]}",
         claim=claim,
         status=status,
         identification_basis=basis,
@@ -124,7 +129,7 @@ def eligible(
         evidence_source_ids=("processed", "metadata"),
         evidence_notes=("The declared experimental structure supports this scoped role.",),
         assumptions=("Exchangeability holds within the declared scope.",)
-        if status is ClaimStatus.CONDITIONALLY_ELIGIBLE
+        if status is EligibilityStatus.CONDITIONALLY_ELIGIBLE
         else (),
     )
 
@@ -227,8 +232,10 @@ def manifest_factory() -> DatasetManifest:
         functional=FunctionalCapability(
             outputs=(
                 FunctionalReadout(
+                    readout_id="viability-24h",
                     output=viability,
                     source_ids=("processed",),
+                    value_field="viability_fraction",
                     units="fraction",
                     aggregation_level=ExperimentalUnitLevel.WELL,
                     subject_alignment=SubjectAlignment.SAME_POPULATION,
@@ -255,7 +262,7 @@ def manifest_factory() -> DatasetManifest:
     intervention_scope = scope(
         modalities=(transcriptome,),
         interventions=(drug,),
-        outputs=(viability,),
+        readout_ids=("viability-24h",),
         environments=(culture_medium,),
         horizons=(86400.0,),
     )
@@ -286,9 +293,18 @@ def manifest_factory() -> DatasetManifest:
                 attribution_requirements=("Cite the source publication.",),
             ),
         ),
+        slice_spec=DatasetSliceSpec(
+            kind=DatasetSliceKind.WHOLE_ARTIFACT,
+            slice_id="public-study-1-whole-artifact",
+            selection_source_ids=("processed",),
+            record_id_field="cell_id",
+            selected_record_ids_sha256="b" * 64,
+            selected_record_count=100,
+            selected_subject_count=10,
+        ),
         experimental_design=design,
         capabilities=capabilities,
-        claim_eligibility=(
+        claim_assessments=(
             eligible(ScientificClaim.SAMPLE_LEVEL_MULTIMODAL_FUSION, sample_fusion_scope),
             eligible(
                 ScientificClaim.INTERVENTION_EFFECT,
@@ -315,6 +331,8 @@ def test_manifest_round_trip_schema_fingerprint_and_strictness() -> None:
     assert manifest.schema_version == DATASET_MANIFEST_SCHEMA_VERSION
     assert DatasetManifest.model_validate_json(manifest.model_dump_json()) == manifest
     assert revalidate(manifest).fingerprint == manifest.fingerprint
+    assert DatasetManifest.model_validate_json(manifest.canonical_json_bytes) == manifest
+    assert sha256(manifest.canonical_json_bytes).hexdigest() == manifest.fingerprint
     with pytest.raises(ValidationError):
         DatasetManifest.model_validate({**manifest.model_dump(mode="python"), "version": 1})
     with pytest.raises(ValidationError):
@@ -430,7 +448,7 @@ def test_use_policy_is_complete_source_scoped_and_executable() -> None:
     incomplete_policy = manifest.use_policies[0].model_copy(
         update={"source_ids": ("raw", "processed", "metadata")}
     )
-    with pytest.raises(ValidationError, match="cover every source exactly once"):
+    with pytest.raises(ValidationError, match="cover every source"):
         revalidate(manifest, use_policies=(incomplete_policy,))
 
 
@@ -480,7 +498,7 @@ def test_multimodal_claims_distinguish_same_cell_from_same_sample() -> None:
         scope(modalities=(term("transcriptome"), term("surface proteome"))),
     )
     with pytest.raises(ValidationError, match="correctly aligned modalities"):
-        revalidate(manifest, claim_eligibility=(same_cell_claim,))
+        revalidate(manifest, claim_assessments=(same_cell_claim,))
     mismatched = manifest.capabilities.modalities[1].model_copy(
         update={"alignment_key_field": "different_sample_id"}
     )
@@ -491,7 +509,7 @@ def test_multimodal_claims_distinguish_same_cell_from_same_sample() -> None:
         revalidate(
             manifest,
             capabilities=capabilities,
-            claim_eligibility=(manifest.claim_eligibility[0],),
+            claim_assessments=(manifest.claim_assessments[0],),
         )
 
 
@@ -502,9 +520,9 @@ def test_claim_scope_references_declared_capabilities() -> None:
         scope(modalities=(term("metabolome"),)),
     )
     with pytest.raises(ValidationError, match="unsupported modality"):
-        revalidate(manifest, claim_eligibility=(bad,))
+        revalidate(manifest, claim_assessments=(bad,))
     with pytest.raises(ValidationError, match="exactly one inference cutoff"):
-        ClaimScope(
+        AssessmentScope(
             subject_kind=SamplingSubjectKind.POPULATION,
             system_boundary=SystemBoundary.POPULATION,
             biological_systems=(term("cell"),),
@@ -521,7 +539,7 @@ def test_claim_explanations_reject_whitespace_only_entries() -> None:
         payload = base.model_dump(mode="python")
         payload[field] = (" \t",)
         with pytest.raises(ValidationError, match="nonempty after trimming"):
-            ClaimEligibility.model_validate(payload)
+            ClaimAssessment.model_validate(payload)
 
 
 def test_conditional_claims_receive_the_same_capability_gates() -> None:
@@ -530,10 +548,10 @@ def test_conditional_claims_receive_the_same_capability_gates() -> None:
         ScientificClaim.POPULATION_DYNAMICS,
         scope(horizons=(3600.0,)),
         basis=IdentificationBasis.ASSOCIATIONAL,
-        status=ClaimStatus.CONDITIONALLY_ELIGIBLE,
+        status=EligibilityStatus.CONDITIONALLY_ELIGIBLE,
     )
     with pytest.raises(ValidationError, match="linked populations"):
-        revalidate(manifest, claim_eligibility=(conditional,))
+        revalidate(manifest, claim_assessments=(conditional,))
 
 
 def test_population_dynamics_rejects_unlinked_endpoint_sampling() -> None:
@@ -553,7 +571,7 @@ def test_population_dynamics_rejects_unlinked_endpoint_sampling() -> None:
         basis=IdentificationBasis.ASSOCIATIONAL,
     )
     with pytest.raises(ValidationError, match="repeated linked populations"):
-        revalidate(manifest, experimental_design=design, claim_eligibility=(population_claim,))
+        revalidate(manifest, experimental_design=design, claim_assessments=(population_claim,))
 
 
 def test_individual_dynamics_requires_nondestructive_same_cell_modality() -> None:
@@ -580,7 +598,7 @@ def test_individual_dynamics_requires_nondestructive_same_cell_modality() -> Non
         basis=IdentificationBasis.ASSOCIATIONAL,
     )
     with pytest.raises(ValidationError, match="nondestructive same-cell evidence"):
-        revalidate(manifest, experimental_design=design, claim_eligibility=(claim,))
+        revalidate(manifest, experimental_design=design, claim_assessments=(claim,))
 
 
 def test_lineage_fate_requires_future_fate_output() -> None:
@@ -627,7 +645,7 @@ def test_lineage_fate_requires_future_fate_output() -> None:
             manifest,
             experimental_design=design,
             capabilities=capabilities,
-            claim_eligibility=(claim,),
+            claim_assessments=(claim,),
         )
 
 
@@ -642,7 +660,16 @@ def test_future_function_requires_comparable_time_and_horizon_coverage() -> None
     with pytest.raises(ValidationError, match="does not cover the claim horizon"):
         revalidate(manifest, capabilities=capabilities)
     derived = manifest.capabilities.functional.outputs[0].model_copy(
-        update={"status": ReadoutStatus.DERIVED}
+        update={
+            "status": ReadoutStatus.DERIVED,
+            "derivation": FunctionalReadoutDerivation(
+                method_id="fixture-viability-derivation",
+                method_version="1",
+                method_sha256="c" * 64,
+                source_value_fields=("viability_fraction",),
+                formula="identity(viability_fraction)",
+            ),
+        }
     )
     capabilities = manifest.capabilities.model_copy(
         update={"functional": FunctionalCapability(outputs=(derived,))}
@@ -669,7 +696,7 @@ def test_intervention_and_selection_claims_require_scoped_randomized_evidence() 
         ScientificClaim.RETROSPECTIVE_INTERVENTION_SELECTION,
         scope(
             modalities=(term("transcriptome"),),
-            outputs=(term("cell viability"),),
+            readout_ids=("viability-24h",),
             horizons=(86400.0,),
         ),
         basis=IdentificationBasis.RANDOMIZED_WITHIN_STUDY,
@@ -678,7 +705,7 @@ def test_intervention_and_selection_claims_require_scoped_randomized_evidence() 
         revalidate(
             manifest,
             capabilities=no_intervention,
-            claim_eligibility=(selection,),
+            claim_assessments=(selection,),
         )
     with pytest.raises(ValidationError, match="must remain conditional"):
         eligible(
@@ -704,12 +731,12 @@ def test_intervention_functional_endpoint_must_cover_claim_horizon() -> None:
     capabilities = manifest.capabilities.model_copy(
         update={"functional": FunctionalCapability(outputs=(too_early,))}
     )
-    intervention_claim = manifest.claim_eligibility[1]
+    intervention_claim = manifest.claim_assessments[1]
     with pytest.raises(ValidationError, match="does not cover the claim horizon"):
         revalidate(
             manifest,
             capabilities=capabilities,
-            claim_eligibility=(intervention_claim,),
+            claim_assessments=(intervention_claim,),
         )
 
 
@@ -717,12 +744,12 @@ def test_counterfactual_generalization_fails_without_structured_transport_scope(
     manifest = manifest_factory()
     counterfactual = eligible(
         ScientificClaim.COUNTERFACTUAL_GENERALIZATION,
-        manifest.claim_eligibility[1].scope,
+        manifest.claim_assessments[1].scope,
         basis=IdentificationBasis.TRANSPORTED_UNDER_ASSUMPTIONS,
-        status=ClaimStatus.CONDITIONALLY_ELIGIBLE,
+        status=EligibilityStatus.CONDITIONALLY_ELIGIBLE,
     )
     with pytest.raises(ValidationError, match="structured transport scope"):
-        revalidate(manifest, claim_eligibility=(counterfactual,))
+        revalidate(manifest, claim_assessments=(counterfactual,))
 
 
 def test_measurement_evidence_cannot_be_documentation_only_or_mislabeled() -> None:
@@ -765,8 +792,8 @@ def test_spatial_claim_requires_cell_resolved_evidence_and_boundary() -> None:
         scope(system_boundary=SystemBoundary.SPATIAL_TISSUE_NICHE),
         basis=IdentificationBasis.ASSOCIATIONAL,
     )
-    with pytest.raises(ValidationError, match="cell-resolved evidence"):
-        revalidate(manifest, capabilities=capabilities, claim_eligibility=(spatial_claim,))
+    with pytest.raises(ValidationError, match="cell-resolved spatial capability"):
+        revalidate(manifest, capabilities=capabilities, claim_assessments=(spatial_claim,))
 
 
 def test_spatial_claim_requires_a_modality_linked_to_spatial_alignment() -> None:
@@ -791,8 +818,8 @@ def test_spatial_claim_requires_a_modality_linked_to_spatial_alignment() -> None
         ),
         basis=IdentificationBasis.ASSOCIATIONAL,
     )
-    with pytest.raises(ValidationError, match="aligned to the spatial evidence"):
-        revalidate(manifest, capabilities=capabilities, claim_eligibility=(spatial_claim,))
+    with pytest.raises(ValidationError, match=r"aligned to (its|the) spatial evidence"):
+        revalidate(manifest, capabilities=capabilities, claim_assessments=(spatial_claim,))
 
     spatial_modality = manifest.capabilities.modalities[0].model_copy(
         update={
@@ -809,8 +836,8 @@ def test_spatial_claim_requires_a_modality_linked_to_spatial_alignment() -> None
     assert revalidate(
         manifest,
         capabilities=linked_capabilities,
-        claim_eligibility=(spatial_claim,),
-    ).claim_eligibility == (spatial_claim,)
+        claim_assessments=(spatial_claim,),
+    ).claim_assessments == (spatial_claim,)
 
 
 def test_environment_and_sampling_timing_assertions_are_cross_checked() -> None:
@@ -867,7 +894,7 @@ def test_supported_dynamics_horizon_must_fit_observed_timepoints() -> None:
         basis=IdentificationBasis.ASSOCIATIONAL,
     )
     with pytest.raises(ValidationError, match="horizon exceeds observed temporal support"):
-        revalidate(manifest, claim_eligibility=(overlong,))
+        revalidate(manifest, claim_assessments=(overlong,))
 
 
 def test_supported_dynamics_cutoff_must_be_observed() -> None:
@@ -881,22 +908,23 @@ def test_supported_dynamics_cutoff_must_be_observed() -> None:
         basis=IdentificationBasis.ASSOCIATIONAL,
     )
     with pytest.raises(ValidationError, match="inference cutoff lies outside"):
-        revalidate(manifest, claim_eligibility=(claim,))
+        revalidate(manifest, claim_assessments=(claim,))
 
 
 def test_supported_claim_evidence_must_reach_each_scoped_capability() -> None:
     manifest = manifest_factory()
     claim_scope = scope(modalities=(term("transcriptome"),), horizons=(86400.0,))
-    disconnected = ClaimEligibility(
+    disconnected = ClaimAssessment(
+        assessment_id="disconnected-population-dynamics",
         claim=ScientificClaim.POPULATION_DYNAMICS,
-        status=ClaimStatus.ELIGIBLE,
+        status=EligibilityStatus.ELIGIBLE,
         identification_basis=IdentificationBasis.ASSOCIATIONAL,
         scope=claim_scope,
         evidence_source_ids=("raw",),
         evidence_notes=("Raw counts alone do not establish the timing structure.",),
     )
     with pytest.raises(ValidationError, match="scoped timing"):
-        revalidate(manifest, claim_eligibility=(disconnected,))
+        revalidate(manifest, claim_assessments=(disconnected,))
 
 
 def test_ungated_and_unconditioned_supported_claims_fail_closed() -> None:
@@ -906,24 +934,24 @@ def test_ungated_and_unconditioned_supported_claims_fail_closed() -> None:
         ScientificClaim.SNAPSHOT_STATE_PRIOR,
     ):
         with pytest.raises(ValidationError, match=r"scoped|measurement modality"):
-            revalidate(manifest, claim_eligibility=(eligible(claim, scope()),))
+            revalidate(manifest, claim_assessments=(eligible(claim, scope()),))
 
     counterfactual = eligible(
         ScientificClaim.COUNTERFACTUAL_GENERALIZATION,
         scope(),
         basis=IdentificationBasis.TRANSPORTED_UNDER_ASSUMPTIONS,
-        status=ClaimStatus.CONDITIONALLY_ELIGIBLE,
+        status=EligibilityStatus.CONDITIONALLY_ELIGIBLE,
     )
     with pytest.raises(ValidationError, match="structured transport scope"):
-        revalidate(manifest, claim_eligibility=(counterfactual,))
+        revalidate(manifest, claim_assessments=(counterfactual,))
 
     functional = eligible(
         ScientificClaim.FUNCTIONAL_OUTCOME,
-        scope(outputs=(term("cell viability"),), horizons=(86400.0,)),
+        scope(readout_ids=("viability-24h",), horizons=(86400.0,)),
         basis=IdentificationBasis.RANDOMIZED_WITHIN_STUDY,
     )
     with pytest.raises(ValidationError, match="conditioning modalities"):
-        revalidate(manifest, claim_eligibility=(functional,))
+        revalidate(manifest, claim_assessments=(functional,))
 
 
 def test_functional_units_and_field_clock_claims_fail_closed() -> None:
@@ -966,12 +994,12 @@ def test_functional_units_and_field_clock_claims_fail_closed() -> None:
     capabilities = manifest.capabilities.model_copy(
         update={"functional": FunctionalCapability(outputs=(field_timed,))}
     )
-    claim_scope = ClaimScope(
+    claim_scope = AssessmentScope(
         subject_kind=SamplingSubjectKind.POPULATION,
         system_boundary=SystemBoundary.POPULATION,
         biological_systems=(term("cultured cell population"),),
         modalities=(term("transcriptome"),),
-        functional_outputs=(term("cell viability"),),
+        functional_readout_ids=("viability-24h",),
         horizons_seconds=(86400.0,),
         inference_cutoff_field="prediction_time",
     )
@@ -979,10 +1007,10 @@ def test_functional_units_and_field_clock_claims_fail_closed() -> None:
         ScientificClaim.FUNCTIONAL_OUTCOME,
         claim_scope,
         basis=IdentificationBasis.ASSOCIATIONAL,
-        status=ClaimStatus.CONDITIONALLY_ELIGIBLE,
+        status=EligibilityStatus.CONDITIONALLY_ELIGIBLE,
     )
     with pytest.raises(ValidationError, match="field-clock future outcomes are unsupported"):
-        revalidate(manifest, capabilities=capabilities, claim_eligibility=(claim,))
+        revalidate(manifest, capabilities=capabilities, claim_assessments=(claim,))
 
 
 def test_individual_dynamics_rejects_any_destructive_conditioning_modality() -> None:
@@ -1030,7 +1058,7 @@ def test_individual_dynamics_rejects_any_destructive_conditioning_modality() -> 
             manifest,
             experimental_design=design,
             capabilities=capabilities,
-            claim_eligibility=(claim,),
+            claim_assessments=(claim,),
         )
 
 
@@ -1041,7 +1069,7 @@ def test_assay_measurement_claim_must_cite_raw_modality_evidence() -> None:
         scope(modalities=(term("transcriptome"),)),
     )
     with pytest.raises(ValidationError, match="must cite each scoped modality's raw source"):
-        revalidate(manifest, claim_eligibility=(claim,))
+        revalidate(manifest, claim_assessments=(claim,))
 
     raw_backed = claim.model_copy(update={"evidence_source_ids": ("raw",)})
-    assert revalidate(manifest, claim_eligibility=(raw_backed,)).claim_eligibility == (raw_backed,)
+    assert revalidate(manifest, claim_assessments=(raw_backed,)).claim_assessments == (raw_backed,)

@@ -1,0 +1,115 @@
+{
+  "$defs": {
+    "IdentityBasis": {
+      "description": "Observed or explicitly inferred basis for subject identity or linkage.",
+      "enum": [
+        "observed_identity",
+        "direct_tracking",
+        "viability_preserving_sampling",
+        "observed_parentage",
+        "heritable_barcode",
+        "phylogeny",
+        "probabilistic_lineage",
+        "declared_membership",
+        "experimental_unit",
+        "probabilistic_membership",
+        "spatial_region",
+        "observed_neighborhood_graph",
+        "matched_experimental_design",
+        "spatial_proximity",
+        "transport_assumption",
+        "external_reference"
+      ],
+      "title": "IdentityBasis",
+      "type": "string"
+    },
+    "OntologyTerm": {
+      "additionalProperties": false,
+      "description": "An extensible biological term, optionally grounded in an ontology.",
+      "properties": {
+        "identifier": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Identifier"
+        },
+        "label": {
+          "minLength": 1,
+          "title": "Label",
+          "type": "string"
+        },
+        "namespace": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Namespace"
+        }
+      },
+      "required": [
+        "label"
+      ],
+      "title": "OntologyTerm",
+      "type": "object"
+    },
+    "SubjectKind": {
+      "description": "The biological estimand represented by a belief.",
+      "enum": [
+        "individual_cell",
+        "clone_lineage",
+        "population",
+        "spatial_niche"
+      ],
+      "title": "SubjectKind",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Query-level requirements for the concrete subject being estimated.",
+  "properties": {
+    "allowed_identity_bases": {
+      "items": {
+        "$ref": "#/$defs/IdentityBasis"
+      },
+      "minItems": 1,
+      "title": "Allowed Identity Bases",
+      "type": "array"
+    },
+    "biological_system": {
+      "$ref": "#/$defs/OntologyTerm"
+    },
+    "experimental_unit_kind": {
+      "minLength": 1,
+      "title": "Experimental Unit Kind",
+      "type": "string"
+    },
+    "kind": {
+      "$ref": "#/$defs/SubjectKind"
+    },
+    "membership_semantics": {
+      "minLength": 1,
+      "title": "Membership Semantics",
+      "type": "string"
+    }
+  },
+  "required": [
+    "kind",
+    "biological_system",
+    "membership_semantics",
+    "experimental_unit_kind",
+    "allowed_identity_bases"
+  ],
+  "title": "SubjectSpecification",
+  "type": "object"
+}

@@ -1,0 +1,675 @@
+{
+  "$defs": {
+    "ActualPerturbation": {
+      "additionalProperties": false,
+      "properties": {
+        "efficiency": {
+          "anyOf": [
+            {
+              "maximum": 1,
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Efficiency"
+        },
+        "evidence_event_ids": {
+          "default": [],
+          "items": {
+            "type": "string"
+          },
+          "title": "Evidence Event Ids",
+          "type": "array"
+        },
+        "status": {
+          "$ref": "#/$defs/PerturbationStatus"
+        }
+      },
+      "required": [
+        "status"
+      ],
+      "title": "ActualPerturbation",
+      "type": "object"
+    },
+    "AssignmentMechanism": {
+      "description": "How exposure was assigned to the experimental unit receiving an action.",
+      "enum": [
+        "observational",
+        "assigned_nonrandom",
+        "quasi_experimental",
+        "randomized"
+      ],
+      "title": "AssignmentMechanism",
+      "type": "string"
+    },
+    "BeliefSubject": {
+      "additionalProperties": false,
+      "description": "A concrete, identity-qualified biological subject of a belief or history.",
+      "properties": {
+        "biological_system": {
+          "$ref": "#/$defs/OntologyTerm"
+        },
+        "experimental_unit_id": {
+          "minLength": 1,
+          "title": "Experimental Unit Id",
+          "type": "string"
+        },
+        "experimental_unit_kind": {
+          "minLength": 1,
+          "title": "Experimental Unit Kind",
+          "type": "string"
+        },
+        "identity_basis": {
+          "$ref": "#/$defs/IdentityBasis"
+        },
+        "identity_confidence": {
+          "anyOf": [
+            {
+              "exclusiveMinimum": 0,
+              "maximum": 1,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Identity Confidence"
+        },
+        "kind": {
+          "$ref": "#/$defs/SubjectKind"
+        },
+        "member_ids": {
+          "default": [],
+          "items": {
+            "type": "string"
+          },
+          "title": "Member Ids",
+          "type": "array"
+        },
+        "membership_semantics": {
+          "minLength": 1,
+          "title": "Membership Semantics",
+          "type": "string"
+        },
+        "subject_id": {
+          "minLength": 1,
+          "title": "Subject Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "subject_id",
+        "kind",
+        "biological_system",
+        "membership_semantics",
+        "experimental_unit_kind",
+        "experimental_unit_id",
+        "identity_basis"
+      ],
+      "title": "BeliefSubject",
+      "type": "object"
+    },
+    "EnvironmentEvent": {
+      "additionalProperties": false,
+      "properties": {
+        "duration_seconds": {
+          "minimum": 0,
+          "title": "Duration Seconds",
+          "type": "number"
+        },
+        "event_id": {
+          "minLength": 1,
+          "title": "Event Id",
+          "type": "string"
+        },
+        "kind": {
+          "const": "environment",
+          "default": "environment",
+          "title": "Kind",
+          "type": "string"
+        },
+        "schema_version": {
+          "const": "2.0",
+          "default": "2.0",
+          "title": "Schema Version",
+          "type": "string"
+        },
+        "source": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Source"
+        },
+        "spatial_region": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Spatial Region"
+        },
+        "subject": {
+          "$ref": "#/$defs/BeliefSubject"
+        },
+        "temporal_mode": {
+          "$ref": "#/$defs/EnvironmentTemporalMode"
+        },
+        "time_seconds": {
+          "title": "Time Seconds",
+          "type": "number"
+        },
+        "variables": {
+          "additionalProperties": {
+            "anyOf": [
+              {
+                "$ref": "#/$defs/Quantity"
+              },
+              {
+                "$ref": "#/$defs/JsonValue"
+              }
+            ]
+          },
+          "minProperties": 1,
+          "title": "Variables",
+          "type": "object"
+        }
+      },
+      "required": [
+        "event_id",
+        "subject",
+        "time_seconds",
+        "variables",
+        "duration_seconds",
+        "temporal_mode"
+      ],
+      "title": "EnvironmentEvent",
+      "type": "object"
+    },
+    "EnvironmentTemporalMode": {
+      "enum": [
+        "fixed",
+        "piecewise_constant",
+        "time_varying"
+      ],
+      "title": "EnvironmentTemporalMode",
+      "type": "string"
+    },
+    "IdentityBasis": {
+      "description": "Observed or explicitly inferred basis for subject identity or linkage.",
+      "enum": [
+        "observed_identity",
+        "direct_tracking",
+        "viability_preserving_sampling",
+        "observed_parentage",
+        "heritable_barcode",
+        "phylogeny",
+        "probabilistic_lineage",
+        "declared_membership",
+        "experimental_unit",
+        "probabilistic_membership",
+        "spatial_region",
+        "observed_neighborhood_graph",
+        "matched_experimental_design",
+        "spatial_proximity",
+        "transport_assumption",
+        "external_reference"
+      ],
+      "title": "IdentityBasis",
+      "type": "string"
+    },
+    "InterventionEvent": {
+      "additionalProperties": false,
+      "properties": {
+        "actual_perturbation": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ActualPerturbation"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "assignment_mechanism": {
+          "$ref": "#/$defs/AssignmentMechanism"
+        },
+        "assignment_unit_id": {
+          "minLength": 1,
+          "title": "Assignment Unit Id",
+          "type": "string"
+        },
+        "assignment_unit_kind": {
+          "minLength": 1,
+          "title": "Assignment Unit Kind",
+          "type": "string"
+        },
+        "delivery_method": {
+          "minLength": 1,
+          "title": "Delivery Method",
+          "type": "string"
+        },
+        "dose": {
+          "$ref": "#/$defs/Quantity"
+        },
+        "duration_seconds": {
+          "minimum": 0,
+          "title": "Duration Seconds",
+          "type": "number"
+        },
+        "estimated_efficiency": {
+          "anyOf": [
+            {
+              "maximum": 1,
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Estimated Efficiency"
+        },
+        "event_id": {
+          "minLength": 1,
+          "title": "Event Id",
+          "type": "string"
+        },
+        "intervention_spec_id": {
+          "minLength": 1,
+          "title": "Intervention Spec Id",
+          "type": "string"
+        },
+        "intervention_type": {
+          "$ref": "#/$defs/OntologyTerm"
+        },
+        "kind": {
+          "const": "intervention",
+          "default": "intervention",
+          "title": "Kind",
+          "type": "string"
+        },
+        "matched_control": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/MatchedControl"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "mechanism": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/OntologyTerm"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "randomization_unit_id": {
+          "anyOf": [
+            {
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Randomization Unit Id"
+        },
+        "randomization_unit_kind": {
+          "anyOf": [
+            {
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Randomization Unit Kind"
+        },
+        "reversibility_status": {
+          "$ref": "#/$defs/ReversibilityStatus"
+        },
+        "schedule": {
+          "$ref": "#/$defs/InterventionSchedule"
+        },
+        "schema_version": {
+          "const": "2.0",
+          "default": "2.0",
+          "title": "Schema Version",
+          "type": "string"
+        },
+        "source": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Source"
+        },
+        "subject": {
+          "$ref": "#/$defs/BeliefSubject"
+        },
+        "target": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/OntologyTerm"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "time_seconds": {
+          "title": "Time Seconds",
+          "type": "number"
+        }
+      },
+      "required": [
+        "event_id",
+        "subject",
+        "time_seconds",
+        "intervention_spec_id",
+        "intervention_type",
+        "dose",
+        "duration_seconds",
+        "schedule",
+        "delivery_method",
+        "reversibility_status",
+        "assignment_mechanism",
+        "assignment_unit_kind",
+        "assignment_unit_id",
+        "matched_control"
+      ],
+      "title": "InterventionEvent",
+      "type": "object"
+    },
+    "InterventionSchedule": {
+      "additionalProperties": false,
+      "description": "An explicit realized or intended administration schedule.",
+      "properties": {
+        "administration_count": {
+          "minimum": 1,
+          "title": "Administration Count",
+          "type": "integer"
+        },
+        "interval_seconds": {
+          "anyOf": [
+            {
+              "exclusiveMinimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Interval Seconds"
+        },
+        "kind": {
+          "$ref": "#/$defs/ScheduleKind"
+        },
+        "washout_seconds": {
+          "minimum": 0,
+          "title": "Washout Seconds",
+          "type": "number"
+        }
+      },
+      "required": [
+        "kind",
+        "administration_count",
+        "washout_seconds"
+      ],
+      "title": "InterventionSchedule",
+      "type": "object"
+    },
+    "JsonValue": {},
+    "MatchedControl": {
+      "additionalProperties": false,
+      "description": "Explicit linkage to the control unit used for an assigned intervention.",
+      "properties": {
+        "assignment_unit_id": {
+          "minLength": 1,
+          "title": "Assignment Unit Id",
+          "type": "string"
+        },
+        "condition": {
+          "$ref": "#/$defs/OntologyTerm"
+        },
+        "contemporaneous": {
+          "title": "Contemporaneous",
+          "type": "boolean"
+        },
+        "matching_basis": {
+          "minLength": 1,
+          "title": "Matching Basis",
+          "type": "string"
+        },
+        "subject_id": {
+          "minLength": 1,
+          "title": "Subject Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "subject_id",
+        "assignment_unit_id",
+        "condition",
+        "matching_basis",
+        "contemporaneous"
+      ],
+      "title": "MatchedControl",
+      "type": "object"
+    },
+    "OntologyTerm": {
+      "additionalProperties": false,
+      "description": "An extensible biological term, optionally grounded in an ontology.",
+      "properties": {
+        "identifier": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Identifier"
+        },
+        "label": {
+          "minLength": 1,
+          "title": "Label",
+          "type": "string"
+        },
+        "namespace": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Namespace"
+        }
+      },
+      "required": [
+        "label"
+      ],
+      "title": "OntologyTerm",
+      "type": "object"
+    },
+    "PerturbationStatus": {
+      "enum": [
+        "unknown",
+        "inferred",
+        "measured",
+        "failed"
+      ],
+      "title": "PerturbationStatus",
+      "type": "string"
+    },
+    "Quantity": {
+      "additionalProperties": false,
+      "properties": {
+        "units": {
+          "minLength": 1,
+          "title": "Units",
+          "type": "string"
+        },
+        "value": {
+          "title": "Value",
+          "type": "number"
+        }
+      },
+      "required": [
+        "value",
+        "units"
+      ],
+      "title": "Quantity",
+      "type": "object"
+    },
+    "ReversibilityStatus": {
+      "description": "What is actually known about reversal after an intervention ends.\n\nThis is deliberately separate from a schedule's washout interval.  Removing an\nexposure does not by itself establish that its biological effects are reversible.",
+      "enum": [
+        "reversible",
+        "irreversible",
+        "unknown"
+      ],
+      "title": "ReversibilityStatus",
+      "type": "string"
+    },
+    "ScheduleKind": {
+      "enum": [
+        "single",
+        "continuous",
+        "repeated",
+        "pulsed"
+      ],
+      "title": "ScheduleKind",
+      "type": "string"
+    },
+    "SubjectKind": {
+      "description": "The biological estimand represented by a belief.",
+      "enum": [
+        "individual_cell",
+        "clone_lineage",
+        "population",
+        "spatial_niche"
+      ],
+      "title": "SubjectKind",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "end_time_seconds": {
+      "title": "End Time Seconds",
+      "type": "number"
+    },
+    "environments": {
+      "default": [],
+      "items": {
+        "$ref": "#/$defs/EnvironmentEvent"
+      },
+      "title": "Environments",
+      "type": "array"
+    },
+    "horizon_name": {
+      "minLength": 1,
+      "title": "Horizon Name",
+      "type": "string"
+    },
+    "inherit_active_interventions": {
+      "anyOf": [
+        {
+          "type": "boolean"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Inherit Active Interventions"
+    },
+    "inherit_current_environment": {
+      "anyOf": [
+        {
+          "type": "boolean"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Inherit Current Environment"
+    },
+    "interventions": {
+      "default": [],
+      "items": {
+        "$ref": "#/$defs/InterventionEvent"
+      },
+      "title": "Interventions",
+      "type": "array"
+    },
+    "scenario_id": {
+      "minLength": 1,
+      "title": "Scenario Id",
+      "type": "string"
+    },
+    "schema_version": {
+      "const": "2.0",
+      "default": "2.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "start_time_seconds": {
+      "title": "Start Time Seconds",
+      "type": "number"
+    },
+    "subject": {
+      "$ref": "#/$defs/BeliefSubject"
+    }
+  },
+  "required": [
+    "scenario_id",
+    "horizon_name",
+    "subject",
+    "start_time_seconds",
+    "end_time_seconds"
+  ],
+  "title": "EvolutionScenario",
+  "type": "object"
+}

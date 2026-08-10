@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import pytest
 
-from cellstate.domain import SupportStatus
+from cellstate.domain import CriterionOutcome, EvaluationStatus
 from cellstate.evaluation import empirical_interval_coverage, evaluate_history_information_gain
 from cellstate.training import LossKind, default_training_objective
 
@@ -14,7 +14,8 @@ def test_history_information_gain_reports_incomplete_state() -> None:
         tolerance=0.1,
         metric="negative_log_likelihood",
     )
-    assert report.status is SupportStatus.SUPPORTED
+    assert report.evaluation_status is EvaluationStatus.EVALUATED
+    assert report.outcome is CriterionOutcome.FAILED
     assert report.history_information_gain == pytest.approx(0.5)
     assert "incomplete" in report.notes[0]
 

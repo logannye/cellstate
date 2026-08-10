@@ -1,0 +1,4772 @@
+{
+  "$defs": {
+    "AcceptanceGroupOperator": {
+      "enum": [
+        "all",
+        "any"
+      ],
+      "title": "AcceptanceGroupOperator",
+      "type": "string"
+    },
+    "AcceptanceThresholds": {
+      "additionalProperties": false,
+      "description": "Numerical scientific-validity gates compiled with a query.",
+      "properties": {
+        "maximum_calibration_error": {
+          "minimum": 0,
+          "title": "Maximum Calibration Error",
+          "type": "number"
+        },
+        "maximum_counterfactual_uncertainty": {
+          "minimum": 0,
+          "title": "Maximum Counterfactual Uncertainty",
+          "type": "number"
+        },
+        "maximum_decision_uncertainty": {
+          "minimum": 0,
+          "title": "Maximum Decision Uncertainty",
+          "type": "number"
+        },
+        "maximum_history_information_gain": {
+          "minimum": 0,
+          "title": "Maximum History Information Gain",
+          "type": "number"
+        },
+        "maximum_ood_score": {
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Maximum Ood Score",
+          "type": "number"
+        },
+        "minimum_calibration_coverage": {
+          "exclusiveMinimum": 0,
+          "maximum": 1,
+          "title": "Minimum Calibration Coverage",
+          "type": "number"
+        },
+        "minimum_identifiability": {
+          "exclusiveMinimum": 0,
+          "maximum": 1,
+          "title": "Minimum Identifiability",
+          "type": "number"
+        }
+      },
+      "required": [
+        "maximum_ood_score",
+        "maximum_history_information_gain",
+        "minimum_calibration_coverage",
+        "maximum_calibration_error",
+        "maximum_counterfactual_uncertainty",
+        "maximum_decision_uncertainty",
+        "minimum_identifiability"
+      ],
+      "title": "AcceptanceThresholds",
+      "type": "object"
+    },
+    "AggregationStatistic": {
+      "description": "How a target is aggregated over its typed biological subject.",
+      "enum": [
+        "individual",
+        "joint_distribution",
+        "distribution",
+        "mean",
+        "sum",
+        "fraction",
+        "rate",
+        "hazard"
+      ],
+      "title": "AggregationStatistic",
+      "type": "string"
+    },
+    "AssayPurpose": {
+      "description": "Declared use of an assay inside one query.",
+      "enum": [
+        "target_endpoint",
+        "measurement_selection"
+      ],
+      "title": "AssayPurpose",
+      "type": "string"
+    },
+    "AssaySpec": {
+      "additionalProperties": false,
+      "properties": {
+        "assay_id": {
+          "minLength": 1,
+          "title": "Assay Id",
+          "type": "string"
+        },
+        "collection": {
+          "$ref": "#/$defs/ObservationCollection"
+        },
+        "cost": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Cost"
+        },
+        "cost_units": {
+          "anyOf": [
+            {
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Cost Units"
+        },
+        "modality": {
+          "$ref": "#/$defs/OntologyTerm"
+        },
+        "protocol_reference": {
+          "$ref": "#/$defs/VersionedReference"
+        },
+        "purposes": {
+          "items": {
+            "$ref": "#/$defs/AssayPurpose"
+          },
+          "minItems": 1,
+          "title": "Purposes",
+          "type": "array"
+        },
+        "turnaround_seconds": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Turnaround Seconds"
+        }
+      },
+      "required": [
+        "assay_id",
+        "modality",
+        "protocol_reference",
+        "collection",
+        "purposes"
+      ],
+      "title": "AssaySpec",
+      "type": "object"
+    },
+    "AssessmentKind": {
+      "enum": [
+        "claim",
+        "loss",
+        "metric"
+      ],
+      "title": "AssessmentKind",
+      "type": "string"
+    },
+    "AssignmentMechanism": {
+      "description": "How exposure was assigned to the experimental unit receiving an action.",
+      "enum": [
+        "observational",
+        "assigned_nonrandom",
+        "quasi_experimental",
+        "randomized"
+      ],
+      "title": "AssignmentMechanism",
+      "type": "string"
+    },
+    "AuditCheckStatus": {
+      "enum": [
+        "passed",
+        "failed",
+        "not_assessed"
+      ],
+      "title": "AuditCheckStatus",
+      "type": "string"
+    },
+    "BaselineApplicabilityRule": {
+      "additionalProperties": false,
+      "properties": {
+        "allowed_subject_kinds": {
+          "items": {
+            "$ref": "#/$defs/SubjectKind"
+          },
+          "minItems": 1,
+          "title": "Allowed Subject Kinds",
+          "type": "array"
+        },
+        "minimum_horizon_count": {
+          "exclusiveMinimum": 0,
+          "title": "Minimum Horizon Count",
+          "type": "integer"
+        },
+        "minimum_target_count": {
+          "exclusiveMinimum": 0,
+          "title": "Minimum Target Count",
+          "type": "integer"
+        },
+        "requires_environment_space": {
+          "default": false,
+          "title": "Requires Environment Space",
+          "type": "boolean"
+        },
+        "requires_intervention_space": {
+          "default": false,
+          "title": "Requires Intervention Space",
+          "type": "boolean"
+        },
+        "requires_pre_cutoff_target_observation": {
+          "default": false,
+          "title": "Requires Pre Cutoff Target Observation",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "allowed_subject_kinds",
+        "minimum_target_count",
+        "minimum_horizon_count"
+      ],
+      "title": "BaselineApplicabilityRule",
+      "type": "object"
+    },
+    "BaselineDefinitionReference": {
+      "additionalProperties": false,
+      "properties": {
+        "baseline_fingerprint": {
+          "pattern": "^[a-fA-F0-9]{64}$",
+          "title": "Baseline Fingerprint",
+          "type": "string"
+        },
+        "baseline_id": {
+          "minLength": 1,
+          "title": "Baseline Id",
+          "type": "string"
+        },
+        "baseline_version": {
+          "minLength": 1,
+          "title": "Baseline Version",
+          "type": "string"
+        }
+      },
+      "required": [
+        "baseline_id",
+        "baseline_version",
+        "baseline_fingerprint"
+      ],
+      "title": "BaselineDefinitionReference",
+      "type": "object"
+    },
+    "BaselineMarginMode": {
+      "enum": [
+        "absolute_difference",
+        "relative_fraction"
+      ],
+      "title": "BaselineMarginMode",
+      "type": "string"
+    },
+    "BaselineRequirement": {
+      "enum": [
+        "noninferior",
+        "superior"
+      ],
+      "title": "BaselineRequirement",
+      "type": "string"
+    },
+    "BaselineRun": {
+      "additionalProperties": false,
+      "properties": {
+        "applicability_rule_fingerprint": {
+          "pattern": "^[a-fA-F0-9]{64}$",
+          "title": "Applicability Rule Fingerprint",
+          "type": "string"
+        },
+        "baseline": {
+          "$ref": "#/$defs/BaselineDefinitionReference"
+        },
+        "blockers": {
+          "default": [],
+          "items": {
+            "type": "string"
+          },
+          "title": "Blockers",
+          "type": "array"
+        },
+        "metric_results": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/MetricResult"
+          },
+          "title": "Metric Results",
+          "type": "array"
+        },
+        "notes": {
+          "default": [],
+          "items": {
+            "type": "string"
+          },
+          "title": "Notes",
+          "type": "array"
+        },
+        "prediction_artifact": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ContentAddressedArtifact"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "status": {
+          "$ref": "#/$defs/BaselineRunStatus"
+        }
+      },
+      "required": [
+        "baseline",
+        "status",
+        "applicability_rule_fingerprint"
+      ],
+      "title": "BaselineRun",
+      "type": "object"
+    },
+    "BaselineRunStatus": {
+      "enum": [
+        "passed",
+        "failed",
+        "not_applicable",
+        "crashed",
+        "not_run"
+      ],
+      "title": "BaselineRunStatus",
+      "type": "string"
+    },
+    "BenchmarkAcceptanceGroup": {
+      "additionalProperties": false,
+      "properties": {
+        "child_group_ids": {
+          "default": [],
+          "items": {
+            "type": "string"
+          },
+          "title": "Child Group Ids",
+          "type": "array"
+        },
+        "group_id": {
+          "minLength": 1,
+          "title": "Group Id",
+          "type": "string"
+        },
+        "operator": {
+          "$ref": "#/$defs/AcceptanceGroupOperator"
+        },
+        "rule_ids": {
+          "default": [],
+          "items": {
+            "type": "string"
+          },
+          "title": "Rule Ids",
+          "type": "array"
+        }
+      },
+      "required": [
+        "group_id",
+        "operator"
+      ],
+      "title": "BenchmarkAcceptanceGroup",
+      "type": "object"
+    },
+    "BenchmarkAcceptancePolicy": {
+      "additionalProperties": false,
+      "properties": {
+        "groups": {
+          "items": {
+            "$ref": "#/$defs/BenchmarkAcceptanceGroup"
+          },
+          "minItems": 1,
+          "title": "Groups",
+          "type": "array"
+        },
+        "policy_id": {
+          "minLength": 1,
+          "title": "Policy Id",
+          "type": "string"
+        },
+        "policy_version": {
+          "minLength": 1,
+          "title": "Policy Version",
+          "type": "string"
+        },
+        "root_group_id": {
+          "minLength": 1,
+          "title": "Root Group Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "policy_id",
+        "policy_version",
+        "root_group_id",
+        "groups"
+      ],
+      "title": "BenchmarkAcceptancePolicy",
+      "type": "object"
+    },
+    "BenchmarkAcceptanceRule": {
+      "additionalProperties": false,
+      "properties": {
+        "absolute_threshold": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Absolute Threshold"
+        },
+        "baseline_comparator": {
+          "anyOf": [
+            {
+              "discriminator": {
+                "mapping": {
+                  "best_applicable_baseline": "#/$defs/BestApplicableBaselineComparator",
+                  "exact_baseline": "#/$defs/ExactBaselineComparator"
+                },
+                "propertyName": "kind"
+              },
+              "oneOf": [
+                {
+                  "$ref": "#/$defs/ExactBaselineComparator"
+                },
+                {
+                  "$ref": "#/$defs/BestApplicableBaselineComparator"
+                }
+              ]
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Baseline Comparator"
+        },
+        "baseline_margin": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Baseline Margin"
+        },
+        "baseline_margin_mode": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/BaselineMarginMode"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "baseline_requirement": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/BaselineRequirement"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "comparison": {
+          "$ref": "#/$defs/ThresholdComparison"
+        },
+        "confidence_level": {
+          "anyOf": [
+            {
+              "exclusiveMaximum": 1,
+              "exclusiveMinimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Confidence Level"
+        },
+        "estimate": {
+          "$ref": "#/$defs/ThresholdEstimate"
+        },
+        "metric": {
+          "$ref": "#/$defs/MetricDefinitionReference"
+        },
+        "partition_id": {
+          "minLength": 1,
+          "title": "Partition Id",
+          "type": "string"
+        },
+        "rationale": {
+          "minLength": 1,
+          "title": "Rationale",
+          "type": "string"
+        },
+        "rule_id": {
+          "minLength": 1,
+          "title": "Rule Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "rule_id",
+        "metric",
+        "partition_id",
+        "comparison",
+        "estimate",
+        "rationale"
+      ],
+      "title": "BenchmarkAcceptanceRule",
+      "type": "object"
+    },
+    "BenchmarkAdmission": {
+      "additionalProperties": false,
+      "properties": {
+        "admission_id": {
+          "minLength": 1,
+          "title": "Admission Id",
+          "type": "string"
+        },
+        "admission_version": {
+          "minLength": 1,
+          "title": "Admission Version",
+          "type": "string"
+        },
+        "baseline_runs": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/BaselineRun"
+          },
+          "title": "Baseline Runs",
+          "type": "array"
+        },
+        "definition_fingerprint": {
+          "pattern": "^[a-fA-F0-9]{64}$",
+          "title": "Definition Fingerprint",
+          "type": "string"
+        },
+        "evidence_resolutions": {
+          "items": {
+            "$ref": "#/$defs/EvidenceResolutionBinding"
+          },
+          "minItems": 1,
+          "title": "Evidence Resolutions",
+          "type": "array"
+        },
+        "leakage_audit_fingerprint": {
+          "anyOf": [
+            {
+              "pattern": "^[a-fA-F0-9]{64}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Leakage Audit Fingerprint"
+        },
+        "metric_results": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/MetricResult"
+          },
+          "title": "Metric Results",
+          "type": "array"
+        },
+        "paired_baseline_comparisons": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/PairedBaselineComparisonResult"
+          },
+          "title": "Paired Baseline Comparisons",
+          "type": "array"
+        },
+        "reasons": {
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Reasons",
+          "type": "array"
+        },
+        "reviewed_by": {
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Reviewed By",
+          "type": "array"
+        },
+        "reviewed_on": {
+          "format": "date",
+          "title": "Reviewed On",
+          "type": "string"
+        },
+        "schema_version": {
+          "const": "0.1-experimental",
+          "default": "0.1-experimental",
+          "title": "Schema Version",
+          "type": "string"
+        },
+        "status": {
+          "$ref": "#/$defs/BenchmarkAdmissionStatus"
+        }
+      },
+      "required": [
+        "admission_id",
+        "admission_version",
+        "definition_fingerprint",
+        "status",
+        "evidence_resolutions",
+        "reasons",
+        "reviewed_by",
+        "reviewed_on"
+      ],
+      "title": "BenchmarkAdmission",
+      "type": "object"
+    },
+    "BenchmarkAdmissionStatus": {
+      "enum": [
+        "blocked",
+        "component_benchmark",
+        "technical_only",
+        "admitted"
+      ],
+      "title": "BenchmarkAdmissionStatus",
+      "type": "string"
+    },
+    "BenchmarkBaselineDefinition": {
+      "additionalProperties": false,
+      "properties": {
+        "applicability": {
+          "$ref": "#/$defs/BaselineApplicabilityRule"
+        },
+        "baseline_id": {
+          "minLength": 1,
+          "title": "Baseline Id",
+          "type": "string"
+        },
+        "baseline_version": {
+          "minLength": 1,
+          "title": "Baseline Version",
+          "type": "string"
+        },
+        "fixed_model_artifact": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ContentAddressedArtifact"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "implementation_binding": {
+          "discriminator": {
+            "mapping": {
+              "executable": "#/$defs/ExecutableImplementationBinding",
+              "specification_only": "#/$defs/SpecificationOnlyImplementationBinding"
+            },
+            "propertyName": "kind"
+          },
+          "oneOf": [
+            {
+              "$ref": "#/$defs/ExecutableImplementationBinding"
+            },
+            {
+              "$ref": "#/$defs/SpecificationOnlyImplementationBinding"
+            }
+          ],
+          "title": "Implementation Binding"
+        },
+        "parameters": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/BenchmarkParameter"
+          },
+          "title": "Parameters",
+          "type": "array"
+        },
+        "query_fingerprint": {
+          "pattern": "^[a-fA-F0-9]{64}$",
+          "title": "Query Fingerprint",
+          "type": "string"
+        },
+        "schema_version": {
+          "const": "0.1-experimental",
+          "default": "0.1-experimental",
+          "title": "Schema Version",
+          "type": "string"
+        },
+        "seeds": {
+          "items": {
+            "type": "integer"
+          },
+          "minItems": 1,
+          "title": "Seeds",
+          "type": "array"
+        },
+        "training_partition_ids": {
+          "default": [],
+          "items": {
+            "type": "string"
+          },
+          "title": "Training Partition Ids",
+          "type": "array"
+        }
+      },
+      "required": [
+        "baseline_id",
+        "baseline_version",
+        "query_fingerprint",
+        "implementation_binding",
+        "applicability",
+        "seeds"
+      ],
+      "title": "BenchmarkBaselineDefinition",
+      "type": "object"
+    },
+    "BenchmarkDefinition": {
+      "additionalProperties": false,
+      "properties": {
+        "acceptance_policy": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/BenchmarkAcceptancePolicy"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "acceptance_rules": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/BenchmarkAcceptanceRule"
+          },
+          "title": "Acceptance Rules",
+          "type": "array"
+        },
+        "baselines": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/BenchmarkBaselineDefinition"
+          },
+          "title": "Baselines",
+          "type": "array"
+        },
+        "benchmark_id": {
+          "minLength": 1,
+          "title": "Benchmark Id",
+          "type": "string"
+        },
+        "benchmark_version": {
+          "minLength": 1,
+          "title": "Benchmark Version",
+          "type": "string"
+        },
+        "description": {
+          "minLength": 1,
+          "title": "Description",
+          "type": "string"
+        },
+        "design_status": {
+          "$ref": "#/$defs/BenchmarkLifecycle"
+        },
+        "evaluation_case_set": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/BenchmarkEvaluationCaseSet"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "evidence_bindings": {
+          "items": {
+            "$ref": "#/$defs/BenchmarkEvidenceBinding"
+          },
+          "minItems": 1,
+          "title": "Evidence Bindings",
+          "type": "array"
+        },
+        "intent": {
+          "$ref": "#/$defs/BenchmarkIntent"
+        },
+        "metrics": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/BenchmarkMetricDefinition"
+          },
+          "title": "Metrics",
+          "type": "array"
+        },
+        "notes": {
+          "default": [],
+          "items": {
+            "type": "string"
+          },
+          "title": "Notes",
+          "type": "array"
+        },
+        "query": {
+          "$ref": "#/$defs/StateQueryBinding"
+        },
+        "schema_version": {
+          "const": "0.1-experimental",
+          "default": "0.1-experimental",
+          "title": "Schema Version",
+          "type": "string"
+        },
+        "scope": {
+          "$ref": "#/$defs/BenchmarkScope"
+        },
+        "split_plan": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/BenchmarkSplitPlan"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "supersedes_version": {
+          "anyOf": [
+            {
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Supersedes Version"
+        },
+        "title": {
+          "minLength": 1,
+          "title": "Title",
+          "type": "string"
+        }
+      },
+      "required": [
+        "benchmark_id",
+        "benchmark_version",
+        "title",
+        "description",
+        "design_status",
+        "intent",
+        "query",
+        "scope",
+        "evidence_bindings"
+      ],
+      "title": "BenchmarkDefinition",
+      "type": "object"
+    },
+    "BenchmarkEvaluationCase": {
+      "additionalProperties": false,
+      "properties": {
+        "case_id": {
+          "minLength": 1,
+          "title": "Case Id",
+          "type": "string"
+        },
+        "context_fingerprint": {
+          "pattern": "^[a-fA-F0-9]{64}$",
+          "title": "Context Fingerprint",
+          "type": "string"
+        },
+        "context_id": {
+          "minLength": 1,
+          "title": "Context Id",
+          "type": "string"
+        },
+        "evaluation_unit_id": {
+          "minLength": 1,
+          "title": "Evaluation Unit Id",
+          "type": "string"
+        },
+        "horizon_name": {
+          "minLength": 1,
+          "title": "Horizon Name",
+          "type": "string"
+        },
+        "intervention_spec_ids": {
+          "items": {
+            "type": "string"
+          },
+          "maxItems": 1,
+          "title": "Intervention Spec Ids",
+          "type": "array"
+        },
+        "matched_control_evaluation_unit_ids": {
+          "default": [],
+          "items": {
+            "type": "string"
+          },
+          "title": "Matched Control Evaluation Unit Ids",
+          "type": "array"
+        },
+        "matching_stratum_fingerprint": {
+          "pattern": "^[a-fA-F0-9]{64}$",
+          "title": "Matching Stratum Fingerprint",
+          "type": "string"
+        },
+        "matching_stratum_id": {
+          "minLength": 1,
+          "title": "Matching Stratum Id",
+          "type": "string"
+        },
+        "partition_id": {
+          "minLength": 1,
+          "title": "Partition Id",
+          "type": "string"
+        },
+        "prediction_subject_id": {
+          "minLength": 1,
+          "title": "Prediction Subject Id",
+          "type": "string"
+        },
+        "role": {
+          "$ref": "#/$defs/EvaluationCaseRole"
+        },
+        "target_output_keys": {
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Target Output Keys",
+          "type": "array"
+        }
+      },
+      "required": [
+        "case_id",
+        "partition_id",
+        "evaluation_unit_id",
+        "prediction_subject_id",
+        "context_id",
+        "context_fingerprint",
+        "matching_stratum_id",
+        "matching_stratum_fingerprint",
+        "intervention_spec_ids",
+        "horizon_name",
+        "target_output_keys",
+        "role"
+      ],
+      "title": "BenchmarkEvaluationCase",
+      "type": "object"
+    },
+    "BenchmarkEvaluationCaseSet": {
+      "additionalProperties": false,
+      "properties": {
+        "case_artifact": {
+          "$ref": "#/$defs/ContentAddressedArtifact"
+        },
+        "case_count": {
+          "exclusiveMinimum": 0,
+          "title": "Case Count",
+          "type": "integer"
+        },
+        "case_set_id": {
+          "minLength": 1,
+          "title": "Case Set Id",
+          "type": "string"
+        },
+        "case_set_version": {
+          "minLength": 1,
+          "title": "Case Set Version",
+          "type": "string"
+        },
+        "cases": {
+          "items": {
+            "$ref": "#/$defs/BenchmarkEvaluationCase"
+          },
+          "minItems": 1,
+          "title": "Cases",
+          "type": "array"
+        },
+        "cases_encoding": {
+          "const": "canonical_json_utf8_evaluation_case_array_v1",
+          "default": "canonical_json_utf8_evaluation_case_array_v1",
+          "title": "Cases Encoding",
+          "type": "string"
+        },
+        "contexts": {
+          "items": {
+            "$ref": "#/$defs/EvaluationContextBinding"
+          },
+          "minItems": 1,
+          "title": "Contexts",
+          "type": "array"
+        },
+        "evaluation_unit": {
+          "$ref": "#/$defs/ExperimentalUnitBinding"
+        },
+        "intervention_case_counts": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/EvaluationInterventionMultiplicity"
+          },
+          "title": "Intervention Case Counts",
+          "type": "array"
+        },
+        "no_action_control_case_count": {
+          "minimum": 0,
+          "title": "No Action Control Case Count",
+          "type": "integer"
+        },
+        "partition_memberships": {
+          "items": {
+            "$ref": "#/$defs/EvaluationCasePartitionBinding"
+          },
+          "minItems": 1,
+          "title": "Partition Memberships",
+          "type": "array"
+        },
+        "query_fingerprint": {
+          "pattern": "^[a-fA-F0-9]{64}$",
+          "title": "Query Fingerprint",
+          "type": "string"
+        },
+        "schema_version": {
+          "const": "0.1-experimental",
+          "default": "0.1-experimental",
+          "title": "Schema Version",
+          "type": "string"
+        }
+      },
+      "required": [
+        "case_set_id",
+        "case_set_version",
+        "query_fingerprint",
+        "evaluation_unit",
+        "contexts",
+        "case_artifact",
+        "case_count",
+        "partition_memberships",
+        "no_action_control_case_count",
+        "cases"
+      ],
+      "title": "BenchmarkEvaluationCaseSet",
+      "type": "object"
+    },
+    "BenchmarkEvidenceBinding": {
+      "additionalProperties": false,
+      "properties": {
+        "assessment_identity": {
+          "discriminator": {
+            "mapping": {
+              "claim": "#/$defs/ClaimAssessmentIdentity",
+              "loss": "#/$defs/LossAssessmentIdentity",
+              "metric": "#/$defs/MetricAssessmentIdentity"
+            },
+            "propertyName": "assessment_kind"
+          },
+          "oneOf": [
+            {
+              "$ref": "#/$defs/ClaimAssessmentIdentity"
+            },
+            {
+              "$ref": "#/$defs/LossAssessmentIdentity"
+            },
+            {
+              "$ref": "#/$defs/MetricAssessmentIdentity"
+            }
+          ],
+          "title": "Assessment Identity"
+        },
+        "assessment_kind": {
+          "$ref": "#/$defs/AssessmentKind"
+        },
+        "assessment_reference": {
+          "$ref": "#/$defs/DatasetAssessmentReference"
+        },
+        "binding_id": {
+          "minLength": 1,
+          "title": "Binding Id",
+          "type": "string"
+        },
+        "dataset_id": {
+          "minLength": 1,
+          "title": "Dataset Id",
+          "type": "string"
+        },
+        "dataset_version": {
+          "minLength": 1,
+          "title": "Dataset Version",
+          "type": "string"
+        },
+        "manifest_artifact": {
+          "$ref": "#/$defs/ContentAddressedArtifact"
+        },
+        "manifest_fingerprint": {
+          "pattern": "^[a-fA-F0-9]{64}$",
+          "title": "Manifest Fingerprint",
+          "type": "string"
+        },
+        "physical_dataset_binding_id": {
+          "minLength": 1,
+          "title": "Physical Dataset Binding Id",
+          "type": "string"
+        },
+        "representability_proof_fingerprint": {
+          "anyOf": [
+            {
+              "pattern": "^[a-fA-F0-9]{64}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Representability Proof Fingerprint"
+        },
+        "required_split_unit": {
+          "$ref": "#/$defs/ExperimentalUnitBinding"
+        },
+        "scope_binding": {
+          "$ref": "#/$defs/EvidenceScopeBinding"
+        }
+      },
+      "required": [
+        "binding_id",
+        "physical_dataset_binding_id",
+        "dataset_id",
+        "dataset_version",
+        "manifest_artifact",
+        "manifest_fingerprint",
+        "assessment_reference",
+        "assessment_kind",
+        "assessment_identity",
+        "scope_binding",
+        "required_split_unit"
+      ],
+      "title": "BenchmarkEvidenceBinding",
+      "type": "object"
+    },
+    "BenchmarkIntent": {
+      "enum": [
+        "scientific",
+        "component_benchmark",
+        "technical_fixture"
+      ],
+      "title": "BenchmarkIntent",
+      "type": "string"
+    },
+    "BenchmarkLeakageAudit": {
+      "additionalProperties": false,
+      "properties": {
+        "audit_id": {
+          "minLength": 1,
+          "title": "Audit Id",
+          "type": "string"
+        },
+        "audit_version": {
+          "minLength": 1,
+          "title": "Audit Version",
+          "type": "string"
+        },
+        "checks": {
+          "items": {
+            "$ref": "#/$defs/LeakageAuditCheck"
+          },
+          "minItems": 1,
+          "title": "Checks",
+          "type": "array"
+        },
+        "evaluated_partition_ids": {
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Evaluated Partition Ids",
+          "type": "array"
+        },
+        "implementation": {
+          "$ref": "#/$defs/VersionedImplementation"
+        },
+        "report_artifact": {
+          "$ref": "#/$defs/ContentAddressedArtifact"
+        },
+        "reviewed_by": {
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Reviewed By",
+          "type": "array"
+        },
+        "reviewed_on": {
+          "format": "date",
+          "title": "Reviewed On",
+          "type": "string"
+        },
+        "schema_version": {
+          "const": "0.1-experimental",
+          "default": "0.1-experimental",
+          "title": "Schema Version",
+          "type": "string"
+        },
+        "split_plan_fingerprint": {
+          "pattern": "^[a-fA-F0-9]{64}$",
+          "title": "Split Plan Fingerprint",
+          "type": "string"
+        }
+      },
+      "required": [
+        "audit_id",
+        "audit_version",
+        "split_plan_fingerprint",
+        "implementation",
+        "report_artifact",
+        "evaluated_partition_ids",
+        "checks",
+        "reviewed_by",
+        "reviewed_on"
+      ],
+      "title": "BenchmarkLeakageAudit",
+      "type": "object"
+    },
+    "BenchmarkLifecycle": {
+      "enum": [
+        "draft",
+        "frozen",
+        "superseded"
+      ],
+      "title": "BenchmarkLifecycle",
+      "type": "string"
+    },
+    "BenchmarkMetricDefinition": {
+      "additionalProperties": false,
+      "properties": {
+        "aggregation": {
+          "$ref": "#/$defs/MetricAggregation"
+        },
+        "direction": {
+          "$ref": "#/$defs/MetricDirection"
+        },
+        "evaluation_partition_ids": {
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Evaluation Partition Ids",
+          "type": "array"
+        },
+        "evaluation_unit": {
+          "$ref": "#/$defs/ExperimentalUnitBinding"
+        },
+        "evidence_binding_ids": {
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Evidence Binding Ids",
+          "type": "array"
+        },
+        "family": {
+          "$ref": "#/$defs/MetricFamily"
+        },
+        "formula": {
+          "minLength": 1,
+          "title": "Formula",
+          "type": "string"
+        },
+        "horizon_names": {
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Horizon Names",
+          "type": "array"
+        },
+        "implementation_binding": {
+          "discriminator": {
+            "mapping": {
+              "executable": "#/$defs/ExecutableImplementationBinding",
+              "specification_only": "#/$defs/SpecificationOnlyImplementationBinding"
+            },
+            "propertyName": "kind"
+          },
+          "oneOf": [
+            {
+              "$ref": "#/$defs/ExecutableImplementationBinding"
+            },
+            {
+              "$ref": "#/$defs/SpecificationOnlyImplementationBinding"
+            }
+          ],
+          "title": "Implementation Binding"
+        },
+        "metric_id": {
+          "minLength": 1,
+          "title": "Metric Id",
+          "type": "string"
+        },
+        "metric_version": {
+          "minLength": 1,
+          "title": "Metric Version",
+          "type": "string"
+        },
+        "minimum_coverage": {
+          "anyOf": [
+            {
+              "exclusiveMinimum": 0,
+              "maximum": 1,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Minimum Coverage"
+        },
+        "minimum_evaluation_units": {
+          "exclusiveMinimum": 0,
+          "title": "Minimum Evaluation Units",
+          "type": "integer"
+        },
+        "missingness_policy": {
+          "$ref": "#/$defs/MetricMissingnessPolicy"
+        },
+        "parameters": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/BenchmarkParameter"
+          },
+          "title": "Parameters",
+          "type": "array"
+        },
+        "prediction_representation": {
+          "$ref": "#/$defs/PredictionRepresentation"
+        },
+        "query_fingerprint": {
+          "pattern": "^[a-fA-F0-9]{64}$",
+          "title": "Query Fingerprint",
+          "type": "string"
+        },
+        "schema_version": {
+          "const": "0.1-experimental",
+          "default": "0.1-experimental",
+          "title": "Schema Version",
+          "type": "string"
+        },
+        "target_output_keys": {
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Target Output Keys",
+          "type": "array"
+        },
+        "target_representation": {
+          "$ref": "#/$defs/TargetRepresentation"
+        },
+        "uncertainty": {
+          "$ref": "#/$defs/MetricUncertaintySpec"
+        },
+        "units": {
+          "minLength": 1,
+          "title": "Units",
+          "type": "string"
+        },
+        "weighting": {
+          "$ref": "#/$defs/MetricWeightingPolicy"
+        }
+      },
+      "required": [
+        "metric_id",
+        "metric_version",
+        "family",
+        "query_fingerprint",
+        "evidence_binding_ids",
+        "evaluation_partition_ids",
+        "target_output_keys",
+        "horizon_names",
+        "implementation_binding",
+        "prediction_representation",
+        "target_representation",
+        "evaluation_unit",
+        "aggregation",
+        "weighting",
+        "direction",
+        "units",
+        "formula",
+        "missingness_policy",
+        "uncertainty",
+        "minimum_evaluation_units"
+      ],
+      "title": "BenchmarkMetricDefinition",
+      "type": "object"
+    },
+    "BenchmarkParameter": {
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "minLength": 1,
+          "title": "Name",
+          "type": "string"
+        },
+        "value": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "integer"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "boolean"
+            }
+          ],
+          "title": "Value"
+        }
+      },
+      "required": [
+        "name",
+        "value"
+      ],
+      "title": "BenchmarkParameter",
+      "type": "object"
+    },
+    "BenchmarkPartition": {
+      "additionalProperties": false,
+      "properties": {
+        "membership": {
+          "discriminator": {
+            "mapping": {
+              "explicit_membership": "#/$defs/ExplicitPartitionMembership",
+              "generated_membership": "#/$defs/PartitionGenerationSpec"
+            },
+            "propertyName": "kind"
+          },
+          "oneOf": [
+            {
+              "$ref": "#/$defs/ExplicitPartitionMembership"
+            },
+            {
+              "$ref": "#/$defs/PartitionGenerationSpec"
+            }
+          ],
+          "title": "Membership"
+        },
+        "partition_id": {
+          "minLength": 1,
+          "title": "Partition Id",
+          "type": "string"
+        },
+        "physical_dataset_binding_id": {
+          "minLength": 1,
+          "title": "Physical Dataset Binding Id",
+          "type": "string"
+        },
+        "role": {
+          "$ref": "#/$defs/BenchmarkPartitionRole"
+        }
+      },
+      "required": [
+        "partition_id",
+        "role",
+        "physical_dataset_binding_id",
+        "membership"
+      ],
+      "title": "BenchmarkPartition",
+      "type": "object"
+    },
+    "BenchmarkPartitionRole": {
+      "enum": [
+        "train",
+        "calibration",
+        "model_selection_validation",
+        "untouched_test",
+        "external_validation"
+      ],
+      "title": "BenchmarkPartitionRole",
+      "type": "string"
+    },
+    "BenchmarkScope": {
+      "additionalProperties": false,
+      "properties": {
+        "biological_system": {
+          "$ref": "#/$defs/OntologyTerm"
+        },
+        "estimand": {
+          "minLength": 1,
+          "title": "Estimand",
+          "type": "string"
+        },
+        "forecast_causal_status": {
+          "$ref": "#/$defs/CausalStatus"
+        },
+        "horizon_names": {
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Horizon Names",
+          "type": "array"
+        },
+        "inference_cutoff_field": {
+          "anyOf": [
+            {
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Inference Cutoff Field"
+        },
+        "inference_cutoff_seconds": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Inference Cutoff Seconds"
+        },
+        "intervention_spec_ids": {
+          "default": [],
+          "items": {
+            "type": "string"
+          },
+          "title": "Intervention Spec Ids",
+          "type": "array"
+        },
+        "query_fingerprint": {
+          "pattern": "^[a-fA-F0-9]{64}$",
+          "title": "Query Fingerprint",
+          "type": "string"
+        },
+        "reference_estimand_causal_status": {
+          "$ref": "#/$defs/CausalStatus"
+        },
+        "scientific_claims": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/ScientificClaim"
+          },
+          "title": "Scientific Claims",
+          "type": "array"
+        },
+        "scope_id": {
+          "minLength": 1,
+          "title": "Scope Id",
+          "type": "string"
+        },
+        "subject_kind": {
+          "$ref": "#/$defs/SubjectKind"
+        },
+        "system_boundary": {
+          "$ref": "#/$defs/SystemBoundary"
+        },
+        "target_output_keys": {
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Target Output Keys",
+          "type": "array"
+        }
+      },
+      "required": [
+        "scope_id",
+        "query_fingerprint",
+        "subject_kind",
+        "system_boundary",
+        "biological_system",
+        "target_output_keys",
+        "horizon_names",
+        "reference_estimand_causal_status",
+        "forecast_causal_status",
+        "estimand"
+      ],
+      "title": "BenchmarkScope",
+      "type": "object"
+    },
+    "BenchmarkSplitPlan": {
+      "additionalProperties": false,
+      "properties": {
+        "partitions": {
+          "items": {
+            "$ref": "#/$defs/BenchmarkPartition"
+          },
+          "minItems": 1,
+          "title": "Partitions",
+          "type": "array"
+        },
+        "protected_group_closures": {
+          "items": {
+            "$ref": "#/$defs/ProtectedGroupClosure"
+          },
+          "minItems": 1,
+          "title": "Protected Group Closures",
+          "type": "array"
+        },
+        "query_fingerprint": {
+          "pattern": "^[a-fA-F0-9]{64}$",
+          "title": "Query Fingerprint",
+          "type": "string"
+        },
+        "schema_version": {
+          "const": "0.1-experimental",
+          "default": "0.1-experimental",
+          "title": "Schema Version",
+          "type": "string"
+        },
+        "split_id": {
+          "minLength": 1,
+          "title": "Split Id",
+          "type": "string"
+        },
+        "split_version": {
+          "minLength": 1,
+          "title": "Split Version",
+          "type": "string"
+        },
+        "universes": {
+          "items": {
+            "$ref": "#/$defs/PartitionUniverse"
+          },
+          "minItems": 1,
+          "title": "Universes",
+          "type": "array"
+        }
+      },
+      "required": [
+        "split_id",
+        "split_version",
+        "query_fingerprint",
+        "universes",
+        "protected_group_closures",
+        "partitions"
+      ],
+      "title": "BenchmarkSplitPlan",
+      "type": "object"
+    },
+    "BestApplicableBaselineComparator": {
+      "additionalProperties": false,
+      "properties": {
+        "baselines": {
+          "items": {
+            "$ref": "#/$defs/BaselineDefinitionReference"
+          },
+          "minItems": 1,
+          "title": "Baselines",
+          "type": "array"
+        },
+        "kind": {
+          "const": "best_applicable_baseline",
+          "default": "best_applicable_baseline",
+          "title": "Kind",
+          "type": "string"
+        }
+      },
+      "required": [
+        "baselines"
+      ],
+      "title": "BestApplicableBaselineComparator",
+      "type": "object"
+    },
+    "CanonicalIdMembership": {
+      "additionalProperties": false,
+      "properties": {
+        "encoding": {
+          "const": "canonical_json_utf8_string_array_v1",
+          "default": "canonical_json_utf8_string_array_v1",
+          "title": "Encoding",
+          "type": "string"
+        },
+        "id_count": {
+          "exclusiveMinimum": 0,
+          "title": "Id Count",
+          "type": "integer"
+        },
+        "ids_artifact": {
+          "$ref": "#/$defs/ContentAddressedArtifact"
+        }
+      },
+      "required": [
+        "ids_artifact",
+        "id_count"
+      ],
+      "title": "CanonicalIdMembership",
+      "type": "object"
+    },
+    "CategoricalDomain": {
+      "additionalProperties": false,
+      "description": "An explicit finite set of permitted categorical values.",
+      "properties": {
+        "kind": {
+          "const": "categorical",
+          "default": "categorical",
+          "title": "Kind",
+          "type": "string"
+        },
+        "values": {
+          "items": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "integer"
+              },
+              {
+                "type": "number"
+              },
+              {
+                "type": "boolean"
+              }
+            ]
+          },
+          "minItems": 1,
+          "title": "Values",
+          "type": "array"
+        }
+      },
+      "required": [
+        "values"
+      ],
+      "title": "CategoricalDomain",
+      "type": "object"
+    },
+    "CausalStatus": {
+      "description": "Identification basis attached to a prediction or decision.",
+      "enum": [
+        "predictive_association",
+        "identified_population_effect",
+        "transported_under_assumptions",
+        "mechanistic_extrapolation",
+        "unsupported"
+      ],
+      "title": "CausalStatus",
+      "type": "string"
+    },
+    "CensoringDirection": {
+      "enum": [
+        "below",
+        "above",
+        "interval"
+      ],
+      "title": "CensoringDirection",
+      "type": "string"
+    },
+    "ClaimAssessmentIdentity": {
+      "additionalProperties": false,
+      "properties": {
+        "assessment_kind": {
+          "const": "claim",
+          "default": "claim",
+          "title": "Assessment Kind",
+          "type": "string"
+        },
+        "claim": {
+          "$ref": "#/$defs/ScientificClaim"
+        }
+      },
+      "required": [
+        "claim"
+      ],
+      "title": "ClaimAssessmentIdentity",
+      "type": "object"
+    },
+    "CollectionEffect": {
+      "enum": [
+        "nondestructive",
+        "viability_preserving_with_known_effect",
+        "partially_destructive_population_sampling",
+        "terminal_destructive"
+      ],
+      "title": "CollectionEffect",
+      "type": "string"
+    },
+    "CompositeIdentityEncoding": {
+      "description": "Collision-safe canonical encodings supported for composite unit identities.",
+      "enum": [
+        "canonical_json_utf8_string_array_v1"
+      ],
+      "title": "CompositeIdentityEncoding",
+      "type": "string"
+    },
+    "ConstraintCategory": {
+      "enum": [
+        "safety",
+        "manufacturing",
+        "feasibility"
+      ],
+      "title": "ConstraintCategory",
+      "type": "string"
+    },
+    "ConstraintSpec": {
+      "additionalProperties": false,
+      "properties": {
+        "category": {
+          "$ref": "#/$defs/ConstraintCategory"
+        },
+        "constraint_id": {
+          "minLength": 1,
+          "title": "Constraint Id",
+          "type": "string"
+        },
+        "description": {
+          "minLength": 1,
+          "title": "Description",
+          "type": "string"
+        },
+        "strength": {
+          "$ref": "#/$defs/ConstraintStrength"
+        }
+      },
+      "required": [
+        "constraint_id",
+        "category",
+        "description",
+        "strength"
+      ],
+      "title": "ConstraintSpec",
+      "type": "object"
+    },
+    "ConstraintStrength": {
+      "enum": [
+        "hard",
+        "soft"
+      ],
+      "title": "ConstraintStrength",
+      "type": "string"
+    },
+    "ContentAddressedArtifact": {
+      "additionalProperties": false,
+      "properties": {
+        "artifact_id": {
+          "minLength": 1,
+          "title": "Artifact Id",
+          "type": "string"
+        },
+        "byte_count": {
+          "exclusiveMinimum": 0,
+          "title": "Byte Count",
+          "type": "integer"
+        },
+        "media_type": {
+          "minLength": 1,
+          "title": "Media Type",
+          "type": "string"
+        },
+        "sha256": {
+          "pattern": "^[a-fA-F0-9]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        },
+        "uri": {
+          "minLength": 1,
+          "title": "Uri",
+          "type": "string"
+        }
+      },
+      "required": [
+        "artifact_id",
+        "uri",
+        "sha256",
+        "byte_count",
+        "media_type"
+      ],
+      "title": "ContentAddressedArtifact",
+      "type": "object"
+    },
+    "DatasetAssessmentReference": {
+      "additionalProperties": false,
+      "properties": {
+        "assessment_fingerprint": {
+          "pattern": "^[a-fA-F0-9]{64}$",
+          "title": "Assessment Fingerprint",
+          "type": "string"
+        },
+        "assessment_id": {
+          "minLength": 1,
+          "title": "Assessment Id",
+          "type": "string"
+        },
+        "dataset_manifest_fingerprint": {
+          "pattern": "^[a-fA-F0-9]{64}$",
+          "title": "Dataset Manifest Fingerprint",
+          "type": "string"
+        }
+      },
+      "required": [
+        "dataset_manifest_fingerprint",
+        "assessment_id",
+        "assessment_fingerprint"
+      ],
+      "title": "DatasetAssessmentReference",
+      "type": "object"
+    },
+    "EnvironmentTemporalMode": {
+      "enum": [
+        "fixed",
+        "piecewise_constant",
+        "time_varying"
+      ],
+      "title": "EnvironmentTemporalMode",
+      "type": "string"
+    },
+    "EnvironmentVariableSpec": {
+      "additionalProperties": false,
+      "properties": {
+        "allowed_temporal_modes": {
+          "items": {
+            "$ref": "#/$defs/EnvironmentTemporalMode"
+          },
+          "minItems": 1,
+          "title": "Allowed Temporal Modes",
+          "type": "array"
+        },
+        "default_value": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Quantity"
+            },
+            {
+              "type": "string"
+            },
+            {
+              "type": "integer"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Default Value"
+        },
+        "domain": {
+          "discriminator": {
+            "mapping": {
+              "categorical": "#/$defs/CategoricalDomain",
+              "numeric": "#/$defs/NumericDomain"
+            },
+            "propertyName": "kind"
+          },
+          "oneOf": [
+            {
+              "$ref": "#/$defs/NumericDomain"
+            },
+            {
+              "$ref": "#/$defs/CategoricalDomain"
+            }
+          ],
+          "title": "Domain"
+        },
+        "duration_seconds": {
+          "$ref": "#/$defs/ScalarRange"
+        },
+        "missing_history_policy": {
+          "$ref": "#/$defs/MissingHistoryPolicy"
+        },
+        "required": {
+          "title": "Required",
+          "type": "boolean"
+        },
+        "variable": {
+          "$ref": "#/$defs/OntologyTerm"
+        }
+      },
+      "required": [
+        "variable",
+        "domain",
+        "duration_seconds",
+        "required",
+        "allowed_temporal_modes",
+        "missing_history_policy"
+      ],
+      "title": "EnvironmentVariableSpec",
+      "type": "object"
+    },
+    "EvaluationCasePartitionBinding": {
+      "additionalProperties": false,
+      "properties": {
+        "evaluation_unit_ids": {
+          "$ref": "#/$defs/CanonicalIdMembership"
+        },
+        "partition_id": {
+          "minLength": 1,
+          "title": "Partition Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "partition_id",
+        "evaluation_unit_ids"
+      ],
+      "title": "EvaluationCasePartitionBinding",
+      "type": "object"
+    },
+    "EvaluationCaseRole": {
+      "enum": [
+        "treated",
+        "matched_no_action_control"
+      ],
+      "title": "EvaluationCaseRole",
+      "type": "string"
+    },
+    "EvaluationContextBinding": {
+      "additionalProperties": false,
+      "properties": {
+        "context_artifact": {
+          "$ref": "#/$defs/ContentAddressedArtifact"
+        },
+        "context_fingerprint": {
+          "pattern": "^[a-fA-F0-9]{64}$",
+          "title": "Context Fingerprint",
+          "type": "string"
+        },
+        "context_id": {
+          "minLength": 1,
+          "title": "Context Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "context_id",
+        "context_fingerprint",
+        "context_artifact"
+      ],
+      "title": "EvaluationContextBinding",
+      "type": "object"
+    },
+    "EvaluationInterventionMultiplicity": {
+      "additionalProperties": false,
+      "properties": {
+        "case_count": {
+          "exclusiveMinimum": 0,
+          "title": "Case Count",
+          "type": "integer"
+        },
+        "intervention_spec_id": {
+          "minLength": 1,
+          "title": "Intervention Spec Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "intervention_spec_id",
+        "case_count"
+      ],
+      "title": "EvaluationInterventionMultiplicity",
+      "type": "object"
+    },
+    "EvidenceEnvironmentMapping": {
+      "additionalProperties": false,
+      "properties": {
+        "assessment_environment_variable_key": {
+          "minLength": 1,
+          "title": "Assessment Environment Variable Key",
+          "type": "string"
+        },
+        "domain_mapping_artifact": {
+          "$ref": "#/$defs/ContentAddressedArtifact"
+        },
+        "environment_spec_fingerprint": {
+          "pattern": "^[a-fA-F0-9]{64}$",
+          "title": "Environment Spec Fingerprint",
+          "type": "string"
+        },
+        "environment_variable_key": {
+          "minLength": 1,
+          "title": "Environment Variable Key",
+          "type": "string"
+        }
+      },
+      "required": [
+        "environment_variable_key",
+        "environment_spec_fingerprint",
+        "assessment_environment_variable_key",
+        "domain_mapping_artifact"
+      ],
+      "title": "EvidenceEnvironmentMapping",
+      "type": "object"
+    },
+    "EvidenceInterventionMapping": {
+      "additionalProperties": false,
+      "properties": {
+        "assessment_intervention_kind_key": {
+          "minLength": 1,
+          "title": "Assessment Intervention Kind Key",
+          "type": "string"
+        },
+        "domain_mapping_artifact": {
+          "$ref": "#/$defs/ContentAddressedArtifact"
+        },
+        "intervention_spec_fingerprint": {
+          "pattern": "^[a-fA-F0-9]{64}$",
+          "title": "Intervention Spec Fingerprint",
+          "type": "string"
+        },
+        "intervention_spec_id": {
+          "minLength": 1,
+          "title": "Intervention Spec Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "intervention_spec_id",
+        "intervention_spec_fingerprint",
+        "assessment_intervention_kind_key",
+        "domain_mapping_artifact"
+      ],
+      "title": "EvidenceInterventionMapping",
+      "type": "object"
+    },
+    "EvidencePolicy": {
+      "additionalProperties": false,
+      "description": "Cutoff-safe observation channels admissible for state estimation.",
+      "properties": {
+        "allowed_evidence_roles": {
+          "items": {
+            "$ref": "#/$defs/EvidenceRole"
+          },
+          "minItems": 1,
+          "title": "Allowed Evidence Roles",
+          "type": "array"
+        },
+        "allowed_modalities": {
+          "items": {
+            "$ref": "#/$defs/OntologyTerm"
+          },
+          "minItems": 1,
+          "title": "Allowed Modalities",
+          "type": "array"
+        },
+        "include_at_cutoff": {
+          "title": "Include At Cutoff",
+          "type": "boolean"
+        },
+        "lookback_seconds": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Lookback Seconds"
+        },
+        "minimum_observed_measurements": {
+          "minimum": 0,
+          "title": "Minimum Observed Measurements",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "include_at_cutoff",
+        "allowed_modalities",
+        "allowed_evidence_roles",
+        "minimum_observed_measurements"
+      ],
+      "title": "EvidencePolicy",
+      "type": "object"
+    },
+    "EvidenceResolutionBinding": {
+      "additionalProperties": false,
+      "properties": {
+        "assessment_reference": {
+          "$ref": "#/$defs/DatasetAssessmentReference"
+        },
+        "evidence_binding_id": {
+          "minLength": 1,
+          "title": "Evidence Binding Id",
+          "type": "string"
+        },
+        "resolution_fingerprint": {
+          "pattern": "^[a-fA-F0-9]{64}$",
+          "title": "Resolution Fingerprint",
+          "type": "string"
+        }
+      },
+      "required": [
+        "evidence_binding_id",
+        "assessment_reference",
+        "resolution_fingerprint"
+      ],
+      "title": "EvidenceResolutionBinding",
+      "type": "object"
+    },
+    "EvidenceRole": {
+      "enum": [
+        "direct",
+        "ancestor",
+        "descendant",
+        "sibling",
+        "clone_aggregate",
+        "matched_population",
+        "general_population",
+        "spatial_neighbor",
+        "external_reference"
+      ],
+      "title": "EvidenceRole",
+      "type": "string"
+    },
+    "EvidenceScopeBinding": {
+      "additionalProperties": false,
+      "description": "Typed exact map from one frozen query to one exact assessment scope.",
+      "properties": {
+        "assessment_scope_fingerprint": {
+          "pattern": "^[a-fA-F0-9]{64}$",
+          "title": "Assessment Scope Fingerprint",
+          "type": "string"
+        },
+        "environment_mappings": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/EvidenceEnvironmentMapping"
+          },
+          "title": "Environment Mappings",
+          "type": "array"
+        },
+        "horizon_names": {
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Horizon Names",
+          "type": "array"
+        },
+        "intervention_mappings": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/EvidenceInterventionMapping"
+          },
+          "title": "Intervention Mappings",
+          "type": "array"
+        },
+        "scientific_claims": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/ScientificClaim"
+          },
+          "title": "Scientific Claims",
+          "type": "array"
+        },
+        "target_mappings": {
+          "items": {
+            "$ref": "#/$defs/EvidenceTargetMapping"
+          },
+          "minItems": 1,
+          "title": "Target Mappings",
+          "type": "array"
+        }
+      },
+      "required": [
+        "assessment_scope_fingerprint",
+        "target_mappings",
+        "horizon_names"
+      ],
+      "title": "EvidenceScopeBinding",
+      "type": "object"
+    },
+    "EvidenceTargetMapping": {
+      "additionalProperties": false,
+      "description": "Exact query target mapped to the assessment members that realize it.",
+      "properties": {
+        "aggregation_unit": {
+          "$ref": "#/$defs/ExperimentalUnitBinding"
+        },
+        "assessment_functional_readout_ids": {
+          "default": [],
+          "items": {
+            "type": "string"
+          },
+          "title": "Assessment Functional Readout Ids",
+          "type": "array"
+        },
+        "assessment_modalities": {
+          "default": [],
+          "items": {
+            "type": "string"
+          },
+          "title": "Assessment Modalities",
+          "type": "array"
+        },
+        "semantics_artifact": {
+          "$ref": "#/$defs/ContentAddressedArtifact"
+        },
+        "target_aggregation": {
+          "$ref": "#/$defs/TargetAggregation"
+        },
+        "target_output_fingerprint": {
+          "pattern": "^[a-fA-F0-9]{64}$",
+          "title": "Target Output Fingerprint",
+          "type": "string"
+        },
+        "target_output_key": {
+          "minLength": 1,
+          "title": "Target Output Key",
+          "type": "string"
+        },
+        "target_units": {
+          "minLength": 1,
+          "title": "Target Units",
+          "type": "string"
+        }
+      },
+      "required": [
+        "target_output_key",
+        "target_output_fingerprint",
+        "target_units",
+        "target_aggregation",
+        "aggregation_unit",
+        "semantics_artifact"
+      ],
+      "title": "EvidenceTargetMapping",
+      "type": "object"
+    },
+    "ExactBaselineComparator": {
+      "additionalProperties": false,
+      "properties": {
+        "baseline": {
+          "$ref": "#/$defs/BaselineDefinitionReference"
+        },
+        "kind": {
+          "const": "exact_baseline",
+          "default": "exact_baseline",
+          "title": "Kind",
+          "type": "string"
+        }
+      },
+      "required": [
+        "baseline"
+      ],
+      "title": "ExactBaselineComparator",
+      "type": "object"
+    },
+    "ExcludedPartitionMembership": {
+      "additionalProperties": false,
+      "properties": {
+        "assignment_unit_ids": {
+          "$ref": "#/$defs/CanonicalIdMembership"
+        },
+        "descendant_closure_artifact": {
+          "$ref": "#/$defs/ContentAddressedArtifact"
+        },
+        "reason_codes_artifact": {
+          "$ref": "#/$defs/ContentAddressedArtifact"
+        },
+        "record_ids": {
+          "$ref": "#/$defs/CanonicalIdMembership"
+        }
+      },
+      "required": [
+        "assignment_unit_ids",
+        "record_ids",
+        "descendant_closure_artifact",
+        "reason_codes_artifact"
+      ],
+      "title": "ExcludedPartitionMembership",
+      "type": "object"
+    },
+    "ExecutableImplementationBinding": {
+      "additionalProperties": false,
+      "properties": {
+        "golden_fixture_artifact": {
+          "$ref": "#/$defs/ContentAddressedArtifact"
+        },
+        "implementation": {
+          "$ref": "#/$defs/VersionedImplementation"
+        },
+        "kind": {
+          "const": "executable",
+          "default": "executable",
+          "title": "Kind",
+          "type": "string"
+        },
+        "specification_artifact": {
+          "$ref": "#/$defs/ContentAddressedArtifact"
+        }
+      },
+      "required": [
+        "specification_artifact",
+        "implementation",
+        "golden_fixture_artifact"
+      ],
+      "title": "ExecutableImplementationBinding",
+      "type": "object"
+    },
+    "ExperimentalUnitBinding": {
+      "additionalProperties": false,
+      "properties": {
+        "identity": {
+          "$ref": "#/$defs/UnitIdentityExpression"
+        },
+        "level": {
+          "$ref": "#/$defs/ExperimentalUnitLevel"
+        }
+      },
+      "required": [
+        "level",
+        "identity"
+      ],
+      "title": "ExperimentalUnitBinding",
+      "type": "object"
+    },
+    "ExperimentalUnitLevel": {
+      "enum": [
+        "organism",
+        "donor",
+        "tissue",
+        "clone",
+        "culture",
+        "organoid",
+        "plate",
+        "well",
+        "sample",
+        "cell",
+        "spatial_region"
+      ],
+      "title": "ExperimentalUnitLevel",
+      "type": "string"
+    },
+    "ExplicitPartitionMembership": {
+      "additionalProperties": false,
+      "properties": {
+        "assignment_unit": {
+          "$ref": "#/$defs/ExperimentalUnitBinding"
+        },
+        "assignment_unit_ids": {
+          "$ref": "#/$defs/CanonicalIdMembership"
+        },
+        "descendant_closure_artifact": {
+          "$ref": "#/$defs/ContentAddressedArtifact"
+        },
+        "kind": {
+          "const": "explicit_membership",
+          "default": "explicit_membership",
+          "title": "Kind",
+          "type": "string"
+        },
+        "protected_group_memberships": {
+          "items": {
+            "$ref": "#/$defs/ProtectedGroupMembership"
+          },
+          "minItems": 1,
+          "title": "Protected Group Memberships",
+          "type": "array"
+        },
+        "record_ids": {
+          "$ref": "#/$defs/CanonicalIdMembership"
+        },
+        "record_unit": {
+          "$ref": "#/$defs/ExperimentalUnitBinding"
+        },
+        "schema_version": {
+          "const": "0.1-experimental",
+          "default": "0.1-experimental",
+          "title": "Schema Version",
+          "type": "string"
+        }
+      },
+      "required": [
+        "assignment_unit",
+        "assignment_unit_ids",
+        "record_unit",
+        "record_ids",
+        "descendant_closure_artifact",
+        "protected_group_memberships"
+      ],
+      "title": "ExplicitPartitionMembership",
+      "type": "object"
+    },
+    "FutureAssayObservationEndpoint": {
+      "additionalProperties": false,
+      "properties": {
+        "assay_id": {
+          "minLength": 1,
+          "title": "Assay Id",
+          "type": "string"
+        },
+        "kind": {
+          "const": "future_assay_observation",
+          "default": "future_assay_observation",
+          "title": "Kind",
+          "type": "string"
+        },
+        "protocol_reference": {
+          "$ref": "#/$defs/VersionedReference"
+        }
+      },
+      "required": [
+        "assay_id",
+        "protocol_reference"
+      ],
+      "title": "FutureAssayObservationEndpoint",
+      "type": "object"
+    },
+    "IdentityBasis": {
+      "description": "Observed or explicitly inferred basis for subject identity or linkage.",
+      "enum": [
+        "observed_identity",
+        "direct_tracking",
+        "viability_preserving_sampling",
+        "observed_parentage",
+        "heritable_barcode",
+        "phylogeny",
+        "probabilistic_lineage",
+        "declared_membership",
+        "experimental_unit",
+        "probabilistic_membership",
+        "spatial_region",
+        "observed_neighborhood_graph",
+        "matched_experimental_design",
+        "spatial_proximity",
+        "transport_assumption",
+        "external_reference"
+      ],
+      "title": "IdentityBasis",
+      "type": "string"
+    },
+    "IntegerRange": {
+      "additionalProperties": false,
+      "properties": {
+        "maximum": {
+          "minimum": 1,
+          "title": "Maximum",
+          "type": "integer"
+        },
+        "minimum": {
+          "minimum": 1,
+          "title": "Minimum",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "minimum",
+        "maximum"
+      ],
+      "title": "IntegerRange",
+      "type": "object"
+    },
+    "InterventionSpec": {
+      "additionalProperties": false,
+      "description": "A bounded action family; matching names or units alone never establishes support.",
+      "properties": {
+        "allowed_assignment_mechanisms": {
+          "items": {
+            "$ref": "#/$defs/AssignmentMechanism"
+          },
+          "minItems": 1,
+          "title": "Allowed Assignment Mechanisms",
+          "type": "array"
+        },
+        "allowed_reversibility_statuses": {
+          "items": {
+            "$ref": "#/$defs/ReversibilityStatus"
+          },
+          "minItems": 1,
+          "title": "Allowed Reversibility Statuses",
+          "type": "array"
+        },
+        "assignment_unit_kind": {
+          "minLength": 1,
+          "title": "Assignment Unit Kind",
+          "type": "string"
+        },
+        "delivery_methods": {
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Delivery Methods",
+          "type": "array"
+        },
+        "dose_domain": {
+          "$ref": "#/$defs/NumericDomain"
+        },
+        "duration_seconds": {
+          "$ref": "#/$defs/ScalarRange"
+        },
+        "kind": {
+          "$ref": "#/$defs/OntologyTerm"
+        },
+        "mechanisms": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/OntologyTerm"
+          },
+          "title": "Mechanisms",
+          "type": "array"
+        },
+        "randomization_unit_kind": {
+          "anyOf": [
+            {
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Randomization Unit Kind"
+        },
+        "realization_evidence": {
+          "$ref": "#/$defs/RealizationEvidenceRequirement"
+        },
+        "require_matched_control": {
+          "title": "Require Matched Control",
+          "type": "boolean"
+        },
+        "require_randomization_unit": {
+          "title": "Require Randomization Unit",
+          "type": "boolean"
+        },
+        "schedule": {
+          "$ref": "#/$defs/ScheduleDomain"
+        },
+        "spec_id": {
+          "minLength": 1,
+          "title": "Spec Id",
+          "type": "string"
+        },
+        "target": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/OntologyTerm"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        }
+      },
+      "required": [
+        "spec_id",
+        "kind",
+        "dose_domain",
+        "duration_seconds",
+        "schedule",
+        "delivery_methods",
+        "allowed_reversibility_statuses",
+        "allowed_assignment_mechanisms",
+        "assignment_unit_kind",
+        "require_randomization_unit",
+        "require_matched_control",
+        "realization_evidence"
+      ],
+      "title": "InterventionSpec",
+      "type": "object"
+    },
+    "LatentQuantityEndpoint": {
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "const": "latent_quantity",
+          "default": "latent_quantity",
+          "title": "Kind",
+          "type": "string"
+        },
+        "model_reference": {
+          "$ref": "#/$defs/VersionedReference"
+        }
+      },
+      "required": [
+        "model_reference"
+      ],
+      "title": "LatentQuantityEndpoint",
+      "type": "object"
+    },
+    "LeakageAuditCheck": {
+      "additionalProperties": false,
+      "properties": {
+        "blockers": {
+          "default": [],
+          "items": {
+            "type": "string"
+          },
+          "title": "Blockers",
+          "type": "array"
+        },
+        "check_id": {
+          "minLength": 1,
+          "title": "Check Id",
+          "type": "string"
+        },
+        "comparisons_completed": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Comparisons Completed"
+        },
+        "comparisons_expected": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Comparisons Expected"
+        },
+        "kind": {
+          "$ref": "#/$defs/LeakageCheckKind"
+        },
+        "notes": {
+          "default": [],
+          "items": {
+            "type": "string"
+          },
+          "title": "Notes",
+          "type": "array"
+        },
+        "overlap_count": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Overlap Count"
+        },
+        "partition_ids": {
+          "default": [],
+          "items": {
+            "type": "string"
+          },
+          "title": "Partition Ids",
+          "type": "array"
+        },
+        "physical_dataset_binding_id": {
+          "anyOf": [
+            {
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Physical Dataset Binding Id"
+        },
+        "protected_unit": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ExperimentalUnitBinding"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "report_locator": {
+          "minLength": 1,
+          "title": "Report Locator",
+          "type": "string"
+        },
+        "status": {
+          "$ref": "#/$defs/AuditCheckStatus"
+        }
+      },
+      "required": [
+        "check_id",
+        "kind",
+        "status",
+        "report_locator"
+      ],
+      "title": "LeakageAuditCheck",
+      "type": "object"
+    },
+    "LeakageCheckKind": {
+      "enum": [
+        "record_membership_disjoint",
+        "protected_group_disjoint",
+        "source_duplicate_disjoint",
+        "preprocessing_fit_isolated",
+        "target_derivation_isolated",
+        "temporal_cutoff_respected"
+      ],
+      "title": "LeakageCheckKind",
+      "type": "string"
+    },
+    "LossAssessmentIdentity": {
+      "additionalProperties": false,
+      "properties": {
+        "assessment_kind": {
+          "const": "loss",
+          "default": "loss",
+          "title": "Assessment Kind",
+          "type": "string"
+        },
+        "loss_kind": {
+          "$ref": "#/$defs/LossKind"
+        }
+      },
+      "required": [
+        "loss_kind"
+      ],
+      "title": "LossAssessmentIdentity",
+      "type": "object"
+    },
+    "LossKind": {
+      "enum": [
+        "multi_horizon_future",
+        "functional_outcome",
+        "intervention_effect",
+        "lineage_transition",
+        "held_out_modality",
+        "mechanistic_consistency",
+        "uncertainty_calibration",
+        "state_complexity"
+      ],
+      "title": "LossKind",
+      "type": "string"
+    },
+    "MetricAggregation": {
+      "enum": [
+        "mean",
+        "median",
+        "pooled_record"
+      ],
+      "title": "MetricAggregation",
+      "type": "string"
+    },
+    "MetricAssessmentIdentity": {
+      "additionalProperties": false,
+      "properties": {
+        "assessment_kind": {
+          "const": "metric",
+          "default": "metric",
+          "title": "Assessment Kind",
+          "type": "string"
+        },
+        "metric_family": {
+          "$ref": "#/$defs/MetricFamily"
+        },
+        "metric_id": {
+          "minLength": 1,
+          "pattern": "^[a-z][a-z0-9_.-]*$",
+          "title": "Metric Id",
+          "type": "string"
+        },
+        "partition_purpose": {
+          "$ref": "#/$defs/MetricPartitionPurpose"
+        }
+      },
+      "required": [
+        "metric_id",
+        "metric_family",
+        "partition_purpose"
+      ],
+      "title": "MetricAssessmentIdentity",
+      "type": "object"
+    },
+    "MetricDefinitionReference": {
+      "additionalProperties": false,
+      "properties": {
+        "metric_fingerprint": {
+          "pattern": "^[a-fA-F0-9]{64}$",
+          "title": "Metric Fingerprint",
+          "type": "string"
+        },
+        "metric_id": {
+          "minLength": 1,
+          "title": "Metric Id",
+          "type": "string"
+        },
+        "metric_version": {
+          "minLength": 1,
+          "title": "Metric Version",
+          "type": "string"
+        }
+      },
+      "required": [
+        "metric_id",
+        "metric_version",
+        "metric_fingerprint"
+      ],
+      "title": "MetricDefinitionReference",
+      "type": "object"
+    },
+    "MetricDependenceKind": {
+      "enum": [
+        "experimental_unit",
+        "intervention_condition",
+        "environment_condition",
+        "subject_group"
+      ],
+      "title": "MetricDependenceKind",
+      "type": "string"
+    },
+    "MetricDependenceUnit": {
+      "additionalProperties": false,
+      "properties": {
+        "dependence_id": {
+          "minLength": 1,
+          "title": "Dependence Id",
+          "type": "string"
+        },
+        "experimental_unit": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ExperimentalUnitBinding"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "identity": {
+          "$ref": "#/$defs/UnitIdentityExpression"
+        },
+        "kind": {
+          "$ref": "#/$defs/MetricDependenceKind"
+        },
+        "parent_dependence_ids": {
+          "default": [],
+          "items": {
+            "type": "string"
+          },
+          "title": "Parent Dependence Ids",
+          "type": "array"
+        },
+        "record_to_group_artifact": {
+          "$ref": "#/$defs/ContentAddressedArtifact"
+        }
+      },
+      "required": [
+        "dependence_id",
+        "kind",
+        "identity",
+        "record_to_group_artifact"
+      ],
+      "title": "MetricDependenceUnit",
+      "type": "object"
+    },
+    "MetricDirection": {
+      "enum": [
+        "minimize",
+        "maximize"
+      ],
+      "title": "MetricDirection",
+      "type": "string"
+    },
+    "MetricFamily": {
+      "description": "Broad metric semantics; concrete benchmark metrics remain separately versioned.",
+      "enum": [
+        "predictive_proper_score",
+        "calibration",
+        "population_distribution",
+        "intervention_effect",
+        "intervention_ranking",
+        "event_or_survival",
+        "lineage",
+        "ood_or_selective_risk",
+        "predictive_sufficiency",
+        "decision_utility"
+      ],
+      "title": "MetricFamily",
+      "type": "string"
+    },
+    "MetricMissingnessPolicy": {
+      "enum": [
+        "error_on_missing",
+        "complete_independent_units",
+        "mask_with_reported_denominator"
+      ],
+      "title": "MetricMissingnessPolicy",
+      "type": "string"
+    },
+    "MetricPartitionPurpose": {
+      "description": "Prospective partition role; membership belongs to a later split manifest.",
+      "enum": [
+        "calibration",
+        "model_selection_validation",
+        "untouched_test",
+        "external_validation"
+      ],
+      "title": "MetricPartitionPurpose",
+      "type": "string"
+    },
+    "MetricResamplingScheme": {
+      "enum": [
+        "iid_evaluation_unit",
+        "clustered",
+        "multiway_clustered",
+        "blocked_permutation"
+      ],
+      "title": "MetricResamplingScheme",
+      "type": "string"
+    },
+    "MetricResult": {
+      "additionalProperties": false,
+      "properties": {
+        "evaluated_case_ids": {
+          "$ref": "#/$defs/CanonicalIdMembership"
+        },
+        "evaluated_evaluation_units": {
+          "exclusiveMinimum": 0,
+          "title": "Evaluated Evaluation Units",
+          "type": "integer"
+        },
+        "lower_confidence_bound": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Lower Confidence Bound"
+        },
+        "metric": {
+          "$ref": "#/$defs/MetricDefinitionReference"
+        },
+        "partition_id": {
+          "minLength": 1,
+          "title": "Partition Id",
+          "type": "string"
+        },
+        "result_artifact": {
+          "$ref": "#/$defs/ContentAddressedArtifact"
+        },
+        "upper_confidence_bound": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Upper Confidence Bound"
+        },
+        "value": {
+          "title": "Value",
+          "type": "number"
+        }
+      },
+      "required": [
+        "metric",
+        "partition_id",
+        "value",
+        "evaluated_evaluation_units",
+        "evaluated_case_ids",
+        "result_artifact"
+      ],
+      "title": "MetricResult",
+      "type": "object"
+    },
+    "MetricUncertaintySpec": {
+      "additionalProperties": false,
+      "properties": {
+        "confidence_level": {
+          "exclusiveMaximum": 1,
+          "exclusiveMinimum": 0,
+          "title": "Confidence Level",
+          "type": "number"
+        },
+        "dependence_units": {
+          "items": {
+            "$ref": "#/$defs/MetricDependenceUnit"
+          },
+          "minItems": 1,
+          "title": "Dependence Units",
+          "type": "array"
+        },
+        "method": {
+          "discriminator": {
+            "mapping": {
+              "executable": "#/$defs/ExecutableImplementationBinding",
+              "specification_only": "#/$defs/SpecificationOnlyImplementationBinding"
+            },
+            "propertyName": "kind"
+          },
+          "oneOf": [
+            {
+              "$ref": "#/$defs/ExecutableImplementationBinding"
+            },
+            {
+              "$ref": "#/$defs/SpecificationOnlyImplementationBinding"
+            }
+          ],
+          "title": "Method"
+        },
+        "resample_count": {
+          "exclusiveMinimum": 0,
+          "title": "Resample Count",
+          "type": "integer"
+        },
+        "resampling_scheme": {
+          "$ref": "#/$defs/MetricResamplingScheme"
+        }
+      },
+      "required": [
+        "method",
+        "resampling_scheme",
+        "dependence_units",
+        "confidence_level",
+        "resample_count"
+      ],
+      "title": "MetricUncertaintySpec",
+      "type": "object"
+    },
+    "MetricWeightingPolicy": {
+      "additionalProperties": false,
+      "properties": {
+        "fixed_weights_artifact": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ContentAddressedArtifact"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "forbid_implicit_record_count_weighting": {
+          "const": true,
+          "default": true,
+          "title": "Forbid Implicit Record Count Weighting",
+          "type": "boolean"
+        },
+        "group_dependence_id": {
+          "anyOf": [
+            {
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Group Dependence Id"
+        },
+        "scheme": {
+          "$ref": "#/$defs/MetricWeightingScheme"
+        }
+      },
+      "required": [
+        "scheme"
+      ],
+      "title": "MetricWeightingPolicy",
+      "type": "object"
+    },
+    "MetricWeightingScheme": {
+      "enum": [
+        "equal_evaluation_unit",
+        "equal_group_then_equal_evaluation_unit",
+        "content_addressed_fixed",
+        "record_count_weighted"
+      ],
+      "title": "MetricWeightingScheme",
+      "type": "string"
+    },
+    "MissingHistoryPolicy": {
+      "enum": [
+        "reject",
+        "represent_as_unknown",
+        "use_declared_default"
+      ],
+      "title": "MissingHistoryPolicy",
+      "type": "string"
+    },
+    "MissingnessStatus": {
+      "enum": [
+        "observed",
+        "not_measured",
+        "missing",
+        "below_detection",
+        "censored",
+        "assay_failure"
+      ],
+      "title": "MissingnessStatus",
+      "type": "string"
+    },
+    "NumericDomain": {
+      "additionalProperties": false,
+      "description": "A closed, finite numeric domain with mandatory units.",
+      "properties": {
+        "kind": {
+          "const": "numeric",
+          "default": "numeric",
+          "title": "Kind",
+          "type": "string"
+        },
+        "maximum": {
+          "title": "Maximum",
+          "type": "number"
+        },
+        "minimum": {
+          "title": "Minimum",
+          "type": "number"
+        },
+        "units": {
+          "minLength": 1,
+          "title": "Units",
+          "type": "string"
+        }
+      },
+      "required": [
+        "minimum",
+        "maximum",
+        "units"
+      ],
+      "title": "NumericDomain",
+      "type": "object"
+    },
+    "ObservationCollection": {
+      "additionalProperties": false,
+      "description": "Biological effect of collecting one observation from its sampled source.",
+      "properties": {
+        "effect": {
+          "$ref": "#/$defs/CollectionEffect"
+        },
+        "effect_description": {
+          "anyOf": [
+            {
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Effect Description"
+        },
+        "sampling_fraction": {
+          "anyOf": [
+            {
+              "exclusiveMinimum": 0,
+              "maximum": 1,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Sampling Fraction"
+        }
+      },
+      "required": [
+        "effect"
+      ],
+      "title": "ObservationCollection",
+      "type": "object"
+    },
+    "OntologyTerm": {
+      "additionalProperties": false,
+      "description": "An extensible biological term, optionally grounded in an ontology.",
+      "properties": {
+        "identifier": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Identifier"
+        },
+        "label": {
+          "minLength": 1,
+          "title": "Label",
+          "type": "string"
+        },
+        "namespace": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Namespace"
+        }
+      },
+      "required": [
+        "label"
+      ],
+      "title": "OntologyTerm",
+      "type": "object"
+    },
+    "OutputSpec": {
+      "additionalProperties": false,
+      "properties": {
+        "aggregation": {
+          "$ref": "#/$defs/TargetAggregation"
+        },
+        "censoring": {
+          "$ref": "#/$defs/TargetCensoringSemantics"
+        },
+        "endpoint": {
+          "discriminator": {
+            "mapping": {
+              "future_assay_observation": "#/$defs/FutureAssayObservationEndpoint",
+              "latent_quantity": "#/$defs/LatentQuantityEndpoint",
+              "versioned_transform": "#/$defs/VersionedTransformEndpoint"
+            },
+            "propertyName": "kind"
+          },
+          "oneOf": [
+            {
+              "$ref": "#/$defs/FutureAssayObservationEndpoint"
+            },
+            {
+              "$ref": "#/$defs/LatentQuantityEndpoint"
+            },
+            {
+              "$ref": "#/$defs/VersionedTransformEndpoint"
+            }
+          ],
+          "title": "Endpoint"
+        },
+        "functional": {
+          "title": "Functional",
+          "type": "boolean"
+        },
+        "missingness": {
+          "$ref": "#/$defs/TargetMissingnessSemantics"
+        },
+        "supported_horizon_names": {
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Supported Horizon Names",
+          "type": "array"
+        },
+        "term": {
+          "$ref": "#/$defs/OntologyTerm"
+        },
+        "units": {
+          "minLength": 1,
+          "title": "Units",
+          "type": "string"
+        },
+        "value_schema_reference": {
+          "$ref": "#/$defs/VersionedReference"
+        },
+        "weight": {
+          "exclusiveMinimum": 0,
+          "title": "Weight",
+          "type": "number"
+        }
+      },
+      "required": [
+        "term",
+        "units",
+        "aggregation",
+        "endpoint",
+        "value_schema_reference",
+        "missingness",
+        "censoring",
+        "supported_horizon_names",
+        "weight",
+        "functional"
+      ],
+      "title": "OutputSpec",
+      "type": "object"
+    },
+    "PairedBaselineComparisonResult": {
+      "additionalProperties": false,
+      "properties": {
+        "baseline": {
+          "$ref": "#/$defs/BaselineDefinitionReference"
+        },
+        "bound_kind": {
+          "$ref": "#/$defs/PairedConfidenceBoundKind"
+        },
+        "comparison_id": {
+          "minLength": 1,
+          "title": "Comparison Id",
+          "type": "string"
+        },
+        "confidence_level": {
+          "exclusiveMaximum": 1,
+          "exclusiveMinimum": 0,
+          "title": "Confidence Level",
+          "type": "number"
+        },
+        "dependence_ids": {
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Dependence Ids",
+          "type": "array"
+        },
+        "effect_definition": {
+          "enum": [
+            "candidate_minus_baseline_v1",
+            "candidate_minus_baseline_over_abs_baseline_v1"
+          ],
+          "title": "Effect Definition",
+          "type": "string"
+        },
+        "effect_scale": {
+          "$ref": "#/$defs/BaselineMarginMode"
+        },
+        "evaluated_case_ids": {
+          "$ref": "#/$defs/CanonicalIdMembership"
+        },
+        "metric": {
+          "$ref": "#/$defs/MetricDefinitionReference"
+        },
+        "one_sided_confidence_bound": {
+          "title": "One Sided Confidence Bound",
+          "type": "number"
+        },
+        "paired_block_membership_artifact": {
+          "$ref": "#/$defs/ContentAddressedArtifact"
+        },
+        "partition_id": {
+          "minLength": 1,
+          "title": "Partition Id",
+          "type": "string"
+        },
+        "point_effect": {
+          "title": "Point Effect",
+          "type": "number"
+        },
+        "result_artifact": {
+          "$ref": "#/$defs/ContentAddressedArtifact"
+        }
+      },
+      "required": [
+        "comparison_id",
+        "metric",
+        "partition_id",
+        "baseline",
+        "effect_scale",
+        "effect_definition",
+        "point_effect",
+        "one_sided_confidence_bound",
+        "bound_kind",
+        "confidence_level",
+        "evaluated_case_ids",
+        "dependence_ids",
+        "paired_block_membership_artifact",
+        "result_artifact"
+      ],
+      "title": "PairedBaselineComparisonResult",
+      "type": "object"
+    },
+    "PairedConfidenceBoundKind": {
+      "enum": [
+        "lower",
+        "upper"
+      ],
+      "title": "PairedConfidenceBoundKind",
+      "type": "string"
+    },
+    "PartitionGenerationSpec": {
+      "additionalProperties": false,
+      "properties": {
+        "assignment_unit": {
+          "$ref": "#/$defs/ExperimentalUnitBinding"
+        },
+        "generator": {
+          "$ref": "#/$defs/VersionedImplementation"
+        },
+        "kind": {
+          "const": "generated_membership",
+          "default": "generated_membership",
+          "title": "Kind",
+          "type": "string"
+        },
+        "materialized_membership": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ExplicitPartitionMembership"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "parameters": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/BenchmarkParameter"
+          },
+          "title": "Parameters",
+          "type": "array"
+        },
+        "schema_version": {
+          "const": "0.1-experimental",
+          "default": "0.1-experimental",
+          "title": "Schema Version",
+          "type": "string"
+        },
+        "seed": {
+          "minimum": 0,
+          "title": "Seed",
+          "type": "integer"
+        },
+        "source_universe_fingerprint": {
+          "pattern": "^[a-fA-F0-9]{64}$",
+          "title": "Source Universe Fingerprint",
+          "type": "string"
+        },
+        "stratification_fields": {
+          "default": [],
+          "items": {
+            "type": "string"
+          },
+          "title": "Stratification Fields",
+          "type": "array"
+        }
+      },
+      "required": [
+        "generator",
+        "source_universe_fingerprint",
+        "assignment_unit",
+        "seed"
+      ],
+      "title": "PartitionGenerationSpec",
+      "type": "object"
+    },
+    "PartitionUniverse": {
+      "additionalProperties": false,
+      "properties": {
+        "assignment_unit": {
+          "$ref": "#/$defs/ExperimentalUnitBinding"
+        },
+        "assignment_unit_ids": {
+          "$ref": "#/$defs/CanonicalIdMembership"
+        },
+        "descendant_closure_artifact": {
+          "$ref": "#/$defs/ContentAddressedArtifact"
+        },
+        "exclusions": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ExcludedPartitionMembership"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "physical_dataset_binding_id": {
+          "minLength": 1,
+          "title": "Physical Dataset Binding Id",
+          "type": "string"
+        },
+        "record_ids": {
+          "$ref": "#/$defs/CanonicalIdMembership"
+        },
+        "record_unit": {
+          "$ref": "#/$defs/ExperimentalUnitBinding"
+        },
+        "slice_fingerprint": {
+          "pattern": "^[a-fA-F0-9]{64}$",
+          "title": "Slice Fingerprint",
+          "type": "string"
+        }
+      },
+      "required": [
+        "physical_dataset_binding_id",
+        "slice_fingerprint",
+        "assignment_unit",
+        "assignment_unit_ids",
+        "record_unit",
+        "record_ids",
+        "descendant_closure_artifact"
+      ],
+      "title": "PartitionUniverse",
+      "type": "object"
+    },
+    "PerturbationStatus": {
+      "enum": [
+        "unknown",
+        "inferred",
+        "measured",
+        "failed"
+      ],
+      "title": "PerturbationStatus",
+      "type": "string"
+    },
+    "PrecisionRequirement": {
+      "additionalProperties": false,
+      "properties": {
+        "confidence": {
+          "anyOf": [
+            {
+              "exclusiveMinimum": 0,
+              "maximum": 1,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Confidence"
+        },
+        "horizon_name": {
+          "minLength": 1,
+          "title": "Horizon Name",
+          "type": "string"
+        },
+        "maximum_error": {
+          "exclusiveMinimum": 0,
+          "title": "Maximum Error",
+          "type": "number"
+        },
+        "metric": {
+          "minLength": 1,
+          "title": "Metric",
+          "type": "string"
+        },
+        "target": {
+          "$ref": "#/$defs/OntologyTerm"
+        },
+        "units": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Units"
+        }
+      },
+      "required": [
+        "target",
+        "horizon_name",
+        "metric",
+        "maximum_error"
+      ],
+      "title": "PrecisionRequirement",
+      "type": "object"
+    },
+    "PredictionHorizon": {
+      "additionalProperties": false,
+      "properties": {
+        "duration_seconds": {
+          "exclusiveMinimum": 0,
+          "title": "Duration Seconds",
+          "type": "number"
+        },
+        "name": {
+          "minLength": 1,
+          "title": "Name",
+          "type": "string"
+        },
+        "timescale": {
+          "$ref": "#/$defs/Timescale"
+        }
+      },
+      "required": [
+        "name",
+        "duration_seconds",
+        "timescale"
+      ],
+      "title": "PredictionHorizon",
+      "type": "object"
+    },
+    "PredictionRepresentation": {
+      "enum": [
+        "posterior_samples",
+        "distribution_parameters",
+        "probabilities",
+        "point_estimate"
+      ],
+      "title": "PredictionRepresentation",
+      "type": "string"
+    },
+    "ProtectedGroupBinding": {
+      "additionalProperties": false,
+      "properties": {
+        "reasons": {
+          "items": {
+            "$ref": "#/$defs/ProtectedGroupReason"
+          },
+          "minItems": 1,
+          "title": "Reasons",
+          "type": "array"
+        },
+        "unit": {
+          "$ref": "#/$defs/ExperimentalUnitBinding"
+        }
+      },
+      "required": [
+        "unit",
+        "reasons"
+      ],
+      "title": "ProtectedGroupBinding",
+      "type": "object"
+    },
+    "ProtectedGroupClosure": {
+      "additionalProperties": false,
+      "properties": {
+        "assignment_unit": {
+          "$ref": "#/$defs/ExperimentalUnitBinding"
+        },
+        "forbid_random_record_splitting": {
+          "const": true,
+          "default": true,
+          "title": "Forbid Random Record Splitting",
+          "type": "boolean"
+        },
+        "forbid_shared_protected_groups": {
+          "const": true,
+          "default": true,
+          "title": "Forbid Shared Protected Groups",
+          "type": "boolean"
+        },
+        "physical_dataset_binding_id": {
+          "minLength": 1,
+          "title": "Physical Dataset Binding Id",
+          "type": "string"
+        },
+        "protected_groups": {
+          "items": {
+            "$ref": "#/$defs/ProtectedGroupBinding"
+          },
+          "minItems": 1,
+          "title": "Protected Groups",
+          "type": "array"
+        },
+        "record_unit": {
+          "$ref": "#/$defs/ExperimentalUnitBinding"
+        },
+        "unit_ancestry": {
+          "items": {
+            "$ref": "#/$defs/ExperimentalUnitBinding"
+          },
+          "minItems": 1,
+          "title": "Unit Ancestry",
+          "type": "array"
+        }
+      },
+      "required": [
+        "physical_dataset_binding_id",
+        "unit_ancestry",
+        "record_unit",
+        "assignment_unit",
+        "protected_groups"
+      ],
+      "title": "ProtectedGroupClosure",
+      "type": "object"
+    },
+    "ProtectedGroupMembership": {
+      "additionalProperties": false,
+      "properties": {
+        "membership": {
+          "$ref": "#/$defs/CanonicalIdMembership"
+        },
+        "unit": {
+          "$ref": "#/$defs/ExperimentalUnitBinding"
+        }
+      },
+      "required": [
+        "unit",
+        "membership"
+      ],
+      "title": "ProtectedGroupMembership",
+      "type": "object"
+    },
+    "ProtectedGroupReason": {
+      "enum": [
+        "default_split",
+        "sampling_subject",
+        "biological_replicate",
+        "randomization",
+        "objective_required_split",
+        "metric_evaluation",
+        "split_assignment"
+      ],
+      "title": "ProtectedGroupReason",
+      "type": "string"
+    },
+    "Quantity": {
+      "additionalProperties": false,
+      "properties": {
+        "units": {
+          "minLength": 1,
+          "title": "Units",
+          "type": "string"
+        },
+        "value": {
+          "title": "Value",
+          "type": "number"
+        }
+      },
+      "required": [
+        "value",
+        "units"
+      ],
+      "title": "Quantity",
+      "type": "object"
+    },
+    "QueryConstraints": {
+      "additionalProperties": false,
+      "description": "Non-metric constraints whose violation requires abstention.",
+      "properties": {
+        "allow_transport": {
+          "title": "Allow Transport",
+          "type": "boolean"
+        },
+        "allowed_combinations": {
+          "default": [],
+          "items": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "title": "Allowed Combinations",
+          "type": "array"
+        },
+        "assay_cost_units": {
+          "anyOf": [
+            {
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Assay Cost Units"
+        },
+        "forbidden_combinations": {
+          "default": [],
+          "items": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "title": "Forbidden Combinations",
+          "type": "array"
+        },
+        "maximum_assay_delay_seconds": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Maximum Assay Delay Seconds"
+        },
+        "maximum_intervention_combination_order": {
+          "minimum": 1,
+          "title": "Maximum Intervention Combination Order",
+          "type": "integer"
+        },
+        "maximum_total_assay_cost": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Maximum Total Assay Cost"
+        },
+        "named_constraints": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/ConstraintSpec"
+          },
+          "title": "Named Constraints",
+          "type": "array"
+        },
+        "require_complete_environment_history": {
+          "title": "Require Complete Environment History",
+          "type": "boolean"
+        },
+        "require_complete_intervention_history": {
+          "title": "Require Complete Intervention History",
+          "type": "boolean"
+        },
+        "require_complete_lineage_history": {
+          "title": "Require Complete Lineage History",
+          "type": "boolean"
+        },
+        "require_complete_neighborhood_history": {
+          "title": "Require Complete Neighborhood History",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "maximum_intervention_combination_order",
+        "require_complete_intervention_history",
+        "require_complete_environment_history",
+        "require_complete_lineage_history",
+        "require_complete_neighborhood_history",
+        "allow_transport"
+      ],
+      "title": "QueryConstraints",
+      "type": "object"
+    },
+    "QueryParameterAxis": {
+      "additionalProperties": false,
+      "properties": {
+        "axis_id": {
+          "minLength": 1,
+          "title": "Axis Id",
+          "type": "string"
+        },
+        "query_path": {
+          "minLength": 1,
+          "title": "Query Path",
+          "type": "string"
+        },
+        "values": {
+          "items": {
+            "$ref": "#/$defs/QueryParameterValue"
+          },
+          "minItems": 1,
+          "title": "Values",
+          "type": "array"
+        }
+      },
+      "required": [
+        "axis_id",
+        "query_path",
+        "values"
+      ],
+      "title": "QueryParameterAxis",
+      "type": "object"
+    },
+    "QueryParameterGrid": {
+      "additionalProperties": false,
+      "properties": {
+        "allowed_combinations_artifact": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ContentAddressedArtifact"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "authoritative": {
+          "const": false,
+          "default": false,
+          "title": "Authoritative",
+          "type": "boolean"
+        },
+        "axes": {
+          "items": {
+            "$ref": "#/$defs/QueryParameterAxis"
+          },
+          "minItems": 1,
+          "title": "Axes",
+          "type": "array"
+        },
+        "grid_id": {
+          "minLength": 1,
+          "title": "Grid Id",
+          "type": "string"
+        },
+        "grid_version": {
+          "minLength": 1,
+          "title": "Grid Version",
+          "type": "string"
+        },
+        "query_fingerprint": {
+          "pattern": "^[a-fA-F0-9]{64}$",
+          "title": "Query Fingerprint",
+          "type": "string"
+        }
+      },
+      "required": [
+        "grid_id",
+        "grid_version",
+        "query_fingerprint",
+        "axes"
+      ],
+      "title": "QueryParameterGrid",
+      "type": "object"
+    },
+    "QueryParameterValue": {
+      "additionalProperties": false,
+      "properties": {
+        "canonical_json": {
+          "minLength": 1,
+          "title": "Canonical Json",
+          "type": "string"
+        },
+        "value_id": {
+          "minLength": 1,
+          "title": "Value Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "value_id",
+        "canonical_json"
+      ],
+      "title": "QueryParameterValue",
+      "type": "object"
+    },
+    "RealizationEvidenceRequirement": {
+      "additionalProperties": false,
+      "description": "Per-action evidence expected for the latent realized perturbation.\n\nGaps are support/readiness findings, not malformed-event errors. In particular, UNKNOWN may be\nan allowed status even with a nonzero evidence minimum when observations quantify uncertainty\nwithout identifying an efficiency.",
+      "properties": {
+        "allowed_modalities": {
+          "items": {
+            "$ref": "#/$defs/OntologyTerm"
+          },
+          "title": "Allowed Modalities",
+          "type": "array"
+        },
+        "allowed_statuses": {
+          "items": {
+            "$ref": "#/$defs/PerturbationStatus"
+          },
+          "minItems": 1,
+          "title": "Allowed Statuses",
+          "type": "array"
+        },
+        "minimum_evidence_events": {
+          "minimum": 0,
+          "title": "Minimum Evidence Events",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "allowed_statuses",
+        "allowed_modalities",
+        "minimum_evidence_events"
+      ],
+      "title": "RealizationEvidenceRequirement",
+      "type": "object"
+    },
+    "ReversibilityStatus": {
+      "description": "What is actually known about reversal after an intervention ends.\n\nThis is deliberately separate from a schedule's washout interval.  Removing an\nexposure does not by itself establish that its biological effects are reversible.",
+      "enum": [
+        "reversible",
+        "irreversible",
+        "unknown"
+      ],
+      "title": "ReversibilityStatus",
+      "type": "string"
+    },
+    "ScalarRange": {
+      "additionalProperties": false,
+      "description": "A closed finite range for values whose units are fixed by the field name.",
+      "properties": {
+        "maximum": {
+          "title": "Maximum",
+          "type": "number"
+        },
+        "minimum": {
+          "title": "Minimum",
+          "type": "number"
+        }
+      },
+      "required": [
+        "minimum",
+        "maximum"
+      ],
+      "title": "ScalarRange",
+      "type": "object"
+    },
+    "ScheduleDomain": {
+      "additionalProperties": false,
+      "description": "Finite support for intervention administration and washout schedules.",
+      "properties": {
+        "administration_count": {
+          "$ref": "#/$defs/IntegerRange"
+        },
+        "allowed_kinds": {
+          "items": {
+            "$ref": "#/$defs/ScheduleKind"
+          },
+          "minItems": 1,
+          "title": "Allowed Kinds",
+          "type": "array"
+        },
+        "interval_seconds": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ScalarRange"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "washout_seconds": {
+          "$ref": "#/$defs/ScalarRange"
+        }
+      },
+      "required": [
+        "allowed_kinds",
+        "administration_count",
+        "interval_seconds",
+        "washout_seconds"
+      ],
+      "title": "ScheduleDomain",
+      "type": "object"
+    },
+    "ScheduleKind": {
+      "enum": [
+        "single",
+        "continuous",
+        "repeated",
+        "pulsed"
+      ],
+      "title": "ScheduleKind",
+      "type": "string"
+    },
+    "ScientificClaim": {
+      "enum": [
+        "assay_measurement_model",
+        "snapshot_state_prior",
+        "same_cell_multimodal_fusion",
+        "sample_level_multimodal_fusion",
+        "population_dynamics",
+        "individual_longitudinal_dynamics",
+        "intervention_effect",
+        "counterfactual_generalization",
+        "lineage_fate",
+        "spatial_context",
+        "functional_outcome",
+        "retrospective_intervention_selection"
+      ],
+      "title": "ScientificClaim",
+      "type": "string"
+    },
+    "SpecificationOnlyImplementationBinding": {
+      "additionalProperties": false,
+      "properties": {
+        "blockers": {
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Blockers",
+          "type": "array"
+        },
+        "kind": {
+          "const": "specification_only",
+          "default": "specification_only",
+          "title": "Kind",
+          "type": "string"
+        },
+        "specification_artifact": {
+          "$ref": "#/$defs/ContentAddressedArtifact"
+        }
+      },
+      "required": [
+        "specification_artifact",
+        "blockers"
+      ],
+      "title": "SpecificationOnlyImplementationBinding",
+      "type": "object"
+    },
+    "StateQuery": {
+      "additionalProperties": false,
+      "description": "A task-specific definition of predictive and interventional sufficiency.",
+      "properties": {
+        "acceptance_thresholds": {
+          "$ref": "#/$defs/AcceptanceThresholds"
+        },
+        "available_assays": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/AssaySpec"
+          },
+          "title": "Available Assays",
+          "type": "array"
+        },
+        "constraints": {
+          "$ref": "#/$defs/QueryConstraints"
+        },
+        "environment_space": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/EnvironmentVariableSpec"
+          },
+          "title": "Environment Space",
+          "type": "array"
+        },
+        "evidence_policy": {
+          "$ref": "#/$defs/EvidencePolicy"
+        },
+        "intervention_space": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/InterventionSpec"
+          },
+          "title": "Intervention Space",
+          "type": "array"
+        },
+        "precision_requirements": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/PrecisionRequirement"
+          },
+          "title": "Precision Requirements",
+          "type": "array"
+        },
+        "prediction_horizons": {
+          "items": {
+            "$ref": "#/$defs/PredictionHorizon"
+          },
+          "minItems": 1,
+          "title": "Prediction Horizons",
+          "type": "array"
+        },
+        "schema_version": {
+          "const": "2.0",
+          "default": "2.0",
+          "title": "Schema Version",
+          "type": "string"
+        },
+        "subject": {
+          "$ref": "#/$defs/SubjectSpecification"
+        },
+        "system_boundary": {
+          "$ref": "#/$defs/SystemBoundary"
+        },
+        "target_outputs": {
+          "items": {
+            "$ref": "#/$defs/OutputSpec"
+          },
+          "minItems": 1,
+          "title": "Target Outputs",
+          "type": "array"
+        },
+        "temporal_resolution_seconds": {
+          "exclusiveMinimum": 0,
+          "title": "Temporal Resolution Seconds",
+          "type": "number"
+        }
+      },
+      "required": [
+        "subject",
+        "system_boundary",
+        "temporal_resolution_seconds",
+        "prediction_horizons",
+        "target_outputs",
+        "evidence_policy",
+        "acceptance_thresholds",
+        "constraints"
+      ],
+      "title": "StateQuery",
+      "type": "object"
+    },
+    "StateQueryBinding": {
+      "additionalProperties": false,
+      "properties": {
+        "parameter_grid": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/QueryParameterGrid"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "query_artifact": {
+          "$ref": "#/$defs/ContentAddressedArtifact"
+        },
+        "query_fingerprint": {
+          "pattern": "^[a-fA-F0-9]{64}$",
+          "title": "Query Fingerprint",
+          "type": "string"
+        },
+        "query_id": {
+          "minLength": 1,
+          "title": "Query Id",
+          "type": "string"
+        },
+        "query_schema_version": {
+          "const": "2.0",
+          "title": "Query Schema Version",
+          "type": "string"
+        },
+        "query_version": {
+          "minLength": 1,
+          "title": "Query Version",
+          "type": "string"
+        },
+        "schema_version": {
+          "const": "0.1-experimental",
+          "default": "0.1-experimental",
+          "title": "Schema Version",
+          "type": "string"
+        },
+        "state_query": {
+          "$ref": "#/$defs/StateQuery"
+        }
+      },
+      "required": [
+        "query_id",
+        "query_version",
+        "query_schema_version",
+        "query_fingerprint",
+        "query_artifact",
+        "state_query"
+      ],
+      "title": "StateQueryBinding",
+      "type": "object"
+    },
+    "SubjectKind": {
+      "description": "The biological estimand represented by a belief.",
+      "enum": [
+        "individual_cell",
+        "clone_lineage",
+        "population",
+        "spatial_niche"
+      ],
+      "title": "SubjectKind",
+      "type": "string"
+    },
+    "SubjectSpecification": {
+      "additionalProperties": false,
+      "description": "Query-level requirements for the concrete subject being estimated.",
+      "properties": {
+        "allowed_identity_bases": {
+          "items": {
+            "$ref": "#/$defs/IdentityBasis"
+          },
+          "minItems": 1,
+          "title": "Allowed Identity Bases",
+          "type": "array"
+        },
+        "biological_system": {
+          "$ref": "#/$defs/OntologyTerm"
+        },
+        "experimental_unit_kind": {
+          "minLength": 1,
+          "title": "Experimental Unit Kind",
+          "type": "string"
+        },
+        "kind": {
+          "$ref": "#/$defs/SubjectKind"
+        },
+        "membership_semantics": {
+          "minLength": 1,
+          "title": "Membership Semantics",
+          "type": "string"
+        }
+      },
+      "required": [
+        "kind",
+        "biological_system",
+        "membership_semantics",
+        "experimental_unit_kind",
+        "allowed_identity_bases"
+      ],
+      "title": "SubjectSpecification",
+      "type": "object"
+    },
+    "SystemBoundary": {
+      "enum": [
+        "isolated_cell",
+        "cell_and_soluble_environment",
+        "cell_and_neighbors",
+        "clone",
+        "population",
+        "spatial_tissue_niche"
+      ],
+      "title": "SystemBoundary",
+      "type": "string"
+    },
+    "TargetAggregation": {
+      "additionalProperties": false,
+      "description": "The estimand level and summary represented by a query output.",
+      "properties": {
+        "experimental_unit": {
+          "minLength": 1,
+          "title": "Experimental Unit",
+          "type": "string"
+        },
+        "statistic": {
+          "$ref": "#/$defs/AggregationStatistic"
+        },
+        "subject_kind": {
+          "$ref": "#/$defs/SubjectKind"
+        }
+      },
+      "required": [
+        "subject_kind",
+        "statistic",
+        "experimental_unit"
+      ],
+      "title": "TargetAggregation",
+      "type": "object"
+    },
+    "TargetCensoringPolicy": {
+      "enum": [
+        "reject_censored",
+        "model_with_assay_limits",
+        "model_with_recorded_bounds",
+        "not_applicable"
+      ],
+      "title": "TargetCensoringPolicy",
+      "type": "string"
+    },
+    "TargetCensoringSemantics": {
+      "additionalProperties": false,
+      "properties": {
+        "allowed_directions": {
+          "items": {
+            "$ref": "#/$defs/CensoringDirection"
+          },
+          "title": "Allowed Directions",
+          "type": "array"
+        },
+        "policy": {
+          "$ref": "#/$defs/TargetCensoringPolicy"
+        }
+      },
+      "required": [
+        "policy",
+        "allowed_directions"
+      ],
+      "title": "TargetCensoringSemantics",
+      "type": "object"
+    },
+    "TargetMissingnessPolicy": {
+      "enum": [
+        "require_observed",
+        "model_explicitly",
+        "exclude_with_declared_reason",
+        "not_applicable"
+      ],
+      "title": "TargetMissingnessPolicy",
+      "type": "string"
+    },
+    "TargetMissingnessSemantics": {
+      "additionalProperties": false,
+      "properties": {
+        "policy": {
+          "$ref": "#/$defs/TargetMissingnessPolicy"
+        },
+        "reportable_statuses": {
+          "items": {
+            "$ref": "#/$defs/MissingnessStatus"
+          },
+          "title": "Reportable Statuses",
+          "type": "array"
+        }
+      },
+      "required": [
+        "policy",
+        "reportable_statuses"
+      ],
+      "title": "TargetMissingnessSemantics",
+      "type": "object"
+    },
+    "TargetRepresentation": {
+      "enum": [
+        "count_matrix",
+        "continuous",
+        "categorical",
+        "event_time",
+        "empirical_distribution"
+      ],
+      "title": "TargetRepresentation",
+      "type": "string"
+    },
+    "ThresholdComparison": {
+      "enum": [
+        "less_than",
+        "less_than_or_equal",
+        "greater_than",
+        "greater_than_or_equal"
+      ],
+      "title": "ThresholdComparison",
+      "type": "string"
+    },
+    "ThresholdEstimate": {
+      "enum": [
+        "point",
+        "lower_confidence_bound",
+        "upper_confidence_bound"
+      ],
+      "title": "ThresholdEstimate",
+      "type": "string"
+    },
+    "Timescale": {
+      "enum": [
+        "fast",
+        "intermediate",
+        "slow"
+      ],
+      "title": "Timescale",
+      "type": "string"
+    },
+    "UnitIdentityExpression": {
+      "additionalProperties": false,
+      "description": "Typed, content-stable expression for an experimental-unit identity.\n\nSource-field order is significant for a composite expression. The declared JSON-array\nencoding prevents delimiter collisions and requires each source value to be represented as\nits exact UTF-8 string value before canonical JSON serialization.",
+      "properties": {
+        "composite_encoding": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/CompositeIdentityEncoding"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "constant_value": {
+          "anyOf": [
+            {
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Constant Value"
+        },
+        "kind": {
+          "$ref": "#/$defs/UnitIdentityExpressionKind"
+        },
+        "source_fields": {
+          "default": [],
+          "items": {
+            "type": "string"
+          },
+          "title": "Source Fields",
+          "type": "array"
+        }
+      },
+      "required": [
+        "kind"
+      ],
+      "title": "UnitIdentityExpression",
+      "type": "object"
+    },
+    "UnitIdentityExpressionKind": {
+      "description": "How one canonical experimental-unit identity is obtained.",
+      "enum": [
+        "source_field",
+        "composite_source_fields",
+        "manifest_constant"
+      ],
+      "title": "UnitIdentityExpressionKind",
+      "type": "string"
+    },
+    "VersionedImplementation": {
+      "additionalProperties": false,
+      "properties": {
+        "code_artifact": {
+          "$ref": "#/$defs/ContentAddressedArtifact"
+        },
+        "entrypoint": {
+          "minLength": 1,
+          "title": "Entrypoint",
+          "type": "string"
+        },
+        "implementation_id": {
+          "minLength": 1,
+          "title": "Implementation Id",
+          "type": "string"
+        },
+        "implementation_version": {
+          "minLength": 1,
+          "title": "Implementation Version",
+          "type": "string"
+        },
+        "runtime": {
+          "minLength": 1,
+          "title": "Runtime",
+          "type": "string"
+        }
+      },
+      "required": [
+        "implementation_id",
+        "implementation_version",
+        "code_artifact",
+        "entrypoint",
+        "runtime"
+      ],
+      "title": "VersionedImplementation",
+      "type": "object"
+    },
+    "VersionedReference": {
+      "additionalProperties": false,
+      "description": "Immutable identity for a protocol, model, or target transformation.",
+      "properties": {
+        "fingerprint": {
+          "pattern": "^[a-fA-F0-9]{64}$",
+          "title": "Fingerprint",
+          "type": "string"
+        },
+        "reference_id": {
+          "minLength": 1,
+          "title": "Reference Id",
+          "type": "string"
+        },
+        "version": {
+          "minLength": 1,
+          "title": "Version",
+          "type": "string"
+        }
+      },
+      "required": [
+        "reference_id",
+        "version",
+        "fingerprint"
+      ],
+      "title": "VersionedReference",
+      "type": "object"
+    },
+    "VersionedTransformEndpoint": {
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "const": "versioned_transform",
+          "default": "versioned_transform",
+          "title": "Kind",
+          "type": "string"
+        },
+        "source_term": {
+          "$ref": "#/$defs/OntologyTerm"
+        },
+        "transformation_reference": {
+          "$ref": "#/$defs/VersionedReference"
+        }
+      },
+      "required": [
+        "source_term",
+        "transformation_reference"
+      ],
+      "title": "VersionedTransformEndpoint",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "admission": {
+      "$ref": "#/$defs/BenchmarkAdmission"
+    },
+    "definition": {
+      "$ref": "#/$defs/BenchmarkDefinition"
+    },
+    "leakage_audit": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/BenchmarkLeakageAudit"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "schema_version": {
+      "const": "0.1-experimental",
+      "default": "0.1-experimental",
+      "title": "Schema Version",
+      "type": "string"
+    }
+  },
+  "required": [
+    "definition",
+    "admission"
+  ],
+  "title": "BenchmarkArtifact",
+  "type": "object"
+}

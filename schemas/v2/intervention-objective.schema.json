@@ -1,0 +1,141 @@
+{
+  "$defs": {
+    "ObjectiveDirection": {
+      "enum": [
+        "maximize",
+        "minimize",
+        "target"
+      ],
+      "title": "ObjectiveDirection",
+      "type": "string"
+    },
+    "ObjectiveTerm": {
+      "additionalProperties": false,
+      "properties": {
+        "direction": {
+          "$ref": "#/$defs/ObjectiveDirection"
+        },
+        "target": {
+          "$ref": "#/$defs/OntologyTerm"
+        },
+        "target_value": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Quantity"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "weight": {
+          "default": 1.0,
+          "exclusiveMinimum": 0,
+          "title": "Weight",
+          "type": "number"
+        }
+      },
+      "required": [
+        "target",
+        "direction"
+      ],
+      "title": "ObjectiveTerm",
+      "type": "object"
+    },
+    "OntologyTerm": {
+      "additionalProperties": false,
+      "description": "An extensible biological term, optionally grounded in an ontology.",
+      "properties": {
+        "identifier": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Identifier"
+        },
+        "label": {
+          "minLength": 1,
+          "title": "Label",
+          "type": "string"
+        },
+        "namespace": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Namespace"
+        }
+      },
+      "required": [
+        "label"
+      ],
+      "title": "OntologyTerm",
+      "type": "object"
+    },
+    "Quantity": {
+      "additionalProperties": false,
+      "properties": {
+        "units": {
+          "minLength": 1,
+          "title": "Units",
+          "type": "string"
+        },
+        "value": {
+          "title": "Value",
+          "type": "number"
+        }
+      },
+      "required": [
+        "value",
+        "units"
+      ],
+      "title": "Quantity",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "horizon_name": {
+      "minLength": 1,
+      "title": "Horizon Name",
+      "type": "string"
+    },
+    "objective_id": {
+      "minLength": 1,
+      "title": "Objective Id",
+      "type": "string"
+    },
+    "risk_aversion": {
+      "default": 0,
+      "minimum": 0,
+      "title": "Risk Aversion",
+      "type": "number"
+    },
+    "terms": {
+      "items": {
+        "$ref": "#/$defs/ObjectiveTerm"
+      },
+      "minItems": 1,
+      "title": "Terms",
+      "type": "array"
+    }
+  },
+  "required": [
+    "objective_id",
+    "horizon_name",
+    "terms"
+  ],
+  "title": "InterventionObjective",
+  "type": "object"
+}

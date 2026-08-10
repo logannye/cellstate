@@ -11,7 +11,7 @@ auditable foundation for virtual-cell modeling that can answer questions of the 
 > what state must we believe it is in to predict its future molecular and functional behavior under
 > the interventions, environments, and horizons named by the query?
 
-The framework separates three operations:
+The framework separates four top-level operations:
 
 ```python
 belief = estimate_cell_state(request, estimator=model)
@@ -22,13 +22,38 @@ plan = choose_intervention(
     candidates=candidates,
     planner=planner,
 )
+measurement = recommend_next_measurement(
+    belief,
+    request=measurement_request,
+    policy=measurement_policy,
+)
 ```
+
+The measurement operation is its own decision problem, not a field inferred opportunistically while
+estimating the belief. It binds an intervention objective, an ordered candidate set, candidate
+assays, collection timing, a decision deadline, utility units, and assay, delay, and collection
+penalties. A numeric expected value of sample information (EVSI) is supportable only when a backend
+has a calibrated assay-outcome model, can perform the hypothetical posterior update, can replan the
+counterfactual intervention decision after each possible outcome, and has a declared decision
+utility. Posterior covariance reduction alone is not EVSI.
 
 > **Project status -- pre-alpha contract kernel:** the repository currently contains strict public
 > contracts, scientific diagnostics, and an intentionally narrow linear-Gaussian reference backend
 > for software integration tests. It does **not** yet contain a biologically or clinically validated
-> cell model. The current development focus is the public-real-data governance and frozen benchmark
-> layer required before building the first biological backend.
+> cell model. Schema v2 now enforces the semantic spine needed before the first benchmark or
+> biological backend can be frozen, including a standalone measurement-decision contract. The
+> contract reference returns `NOT_EVALUATED` for assay value because it has no calibrated EVSI
+> pipeline. The contract and scoped-eligibility adversarial gates are complete. Two
+> content-addressed real-data representability proofs pass, and a corrected sci-Plex3 K562 24-hour
+> component benchmark is frozen with exact well-level cases and plate-level splits. It remains
+> deliberately non-admitted: metric implementations, leakage audit, mandatory baselines, and
+> performance thresholds have not passed. The complete biological support-port map and a
+> content-addressed population assay-response scaffold are now checked in. That scaffold is not a
+> hidden-state estimator and rejects every prediction call. Contract version 0.1 also refuses to
+> treat declared hashes or Python entry-point strings as execution receipts: exact bytes, loaded
+> interfaces, validation-result semantics, and query-derived prerequisites still need trusted
+> verifiers. The active gate is that verifier boundary, followed by a provenance-bound training,
+> calibration, baseline, and evaluation path for the exact component.
 
 ## Scientific thesis
 
@@ -123,7 +148,9 @@ flowchart LR
     U["Future intervention and environment"] --> D
     D --> Z["Target by horizon predictive distributions"]
     Z --> V["Calibration, sufficiency, and OOD"]
-    Z --> A["Intervention and assay selection"]
+    Z --> A["Intervention selection"]
+    B --> M["Standalone measurement-decision request"]
+    Z --> M
 ```
 
 The planned production model is a hierarchical hybrid controlled state-space model with:
@@ -203,9 +230,22 @@ Passing software tests is not biological validation. Graduation is versioned and
 
 ## Development roadmap
 
-The contract kernel is complete enough to support the next milestone: freeze Vertical A's query
-family and subject semantics, finish the experimental dataset/benchmark manifest graph, and admit
-the first checksum- and license-reviewed public datasets before writing a biological model.
+The contract kernel is undergoing a deliberate semantic-alignment pass before a biological backend
+is permitted to make validated claims.
+Belief-subject and destructive-evidence semantics, bounded query support, query compilation,
+perturbation realization, scientific readiness and abstention, causal status, decision-oriented
+measurement selection, and scoped real-data eligibility are implemented. Reviewed Replogle K562
+and GSE141064 Live-seq proofs now demonstrate that destructive population evidence and
+viability-preserving same-cell future-function evidence remain representable as different
+estimands. The corrected sci-Plex3 K562 24-hour component benchmark now freezes the first exact
+population query, physical splits, authoritative cases, metric semantics, mandatory baselines, and
+acceptance policy without pretending those planned implementations have run. The biological-bundle
+contract now exhaustively classifies the original model stages and keeps the first direct population
+assay-response scaffold outside all four public cell-state operations. Its v0.1 admission path is
+intentionally hard-closed until exact artifact resolution, interface conformance, result validation,
+and query-dependent prerequisites become executable checks. The next milestone is to implement that
+trusted verifier boundary and then evaluate the component behind it, starting with its mandatory
+baselines; it is not yet a biological runtime.
 
 The [project roadmap](docs/roadmap.md) is the sole authority for implementation order and graduation
 status. The [full buildout architecture](docs/architecture/full-buildout.md) defines the target
@@ -216,24 +256,47 @@ evidence.
 ## What the repository contains today
 
 - Strict, frozen-top-level, JSON-schema-versioned contracts for queries, histories, observations,
-  context, lineage, beliefs, forecasts, and plans.
+  context, lineage, beliefs, forecasts, intervention plans, and measurement decisions.
+- Typed individual-cell, clone/lineage, population, and spatial-niche subjects with explicit
+  evidence linkage, sampling unit, collection effect, and target aggregation.
+- A query compiler whose fingerprinted active/excluded factor specification travels with every
+  belief and forecast.
+- Request- and scenario-scoped capability preflights, scientific-readiness thresholds, causal and
+  transport labels, and typed abstention rather than plausible-looking unsupported answers.
 - A canonical event history with timing, provenance, missingness, intended interventions, and
   measured or inferred realization.
-- Separate estimation, controlled-evolution, and planning ports.
+- Separate estimation, controlled-evolution, intervention-planning, and measurement-policy ports.
 - Structured intrinsic and context factors with explicit observability and identifiability.
 - Joint posterior distributions and target-by-horizon forecast distributions.
 - A Kalman-style reference backend with recursive filtering, controlled evolution, sampling, and
   fail-closed capability checks.
+- A standalone measurement-decision boundary whose contract reference returns `NOT_EVALUATED`
+  instead of reporting covariance shrinkage as decision value.
 - Backend-independent calibration, sufficiency, and composable training primitives.
-- An **experimental** public-real dataset-manifest scaffold for source hashes, use restrictions,
-  experimental units, sampling linkage, modality alignment, and scoped capability assessment.
+- An **experimental** `0.3-experimental` public-real dataset ledger with source hashes, layered use
+  restrictions, experimental units, sampling linkage, modality alignment, repeated canonical claim
+  assessments, exact functional readouts, independently gated loss/metric eligibility,
+  content-addressed slices, and interval-aware evidence clocks.
+- Executable representability proofs for a Replogle K562 destructive population snapshot and a
+  GSE141064 Live-seq individual functional recorder. These prove contract representability only;
+  both results keep `use_authorized=false` and admit no biological benchmark.
+- A frozen, content-addressed sci-Plex3 K562 24-hour component benchmark with exact source bytes,
+  output schema, well-level cases, physical plate splits, planned metrics/baselines, and a
+  fail-closed acceptance policy. Its performance gates are unrun and it is not scientifically
+  admitted.
+- An experimental biological-bundle and support-envelope contract with an exhaustive stage-port
+  map, operation-specific prerequisites, content-addressed training/calibration/validation
+  bindings, and a derived component lifecycle. The first sci-Plex3 population assay-response
+  scaffold binds the exact benchmark but contains no weights, exposes no public cell-state
+  operation, and cannot emit a prediction or belief.
 - Generated JSON Schemas, documentation, strict typing, linting, and CI across supported Python
   versions.
 
 The reference backend deliberately rejects biology it does not implement. Its outputs are examples
-of contract behavior, not estimates of real cellular state. No dataset manifest has yet been
-admitted, no real-data golden slice or frozen biological benchmark is checked in, and no biological
-backend is registered.
+of contract behavior, not estimates of real cellular state. Reviewed representability artifacts
+and one frozen component benchmark are checked in, but no benchmark has passed biological
+performance admission and no biological backend is registered. The checked-in population-response
+scaffold is an admission boundary and implementation target, not a working biological model.
 
 ## Quick start
 
@@ -245,14 +308,19 @@ uv run --no-editable python examples/estimate_state.py
 uv run --no-editable pytest
 ```
 
-The public API requires an explicit model; there is no scientifically meaningless default:
+The public API requires an explicit model; there is no scientifically meaningless default. Valid
+beliefs and forecasts return even when their scientific-readiness report requires abstention, so
+callers can inspect the structured reasons without an override:
 
 ```python
-from cellstate import estimate_cell_state
+from cellstate import InferenceOptions, estimate_cell_state
 from cellstate.reference import LinearGaussianReference, minimal_reference_config
 
 model = LinearGaussianReference(minimal_reference_config())
-belief = estimate_cell_state(request, estimator=model)
+options = InferenceOptions(seed=0)
+belief = estimate_cell_state(request, estimator=model, options=options)
+if belief.readiness.abstention_required:
+    print(belief.readiness.reasons)
 ```
 
 Propagate the full belief rather than only its mean:
@@ -264,6 +332,7 @@ forecast = evolve_cell_state(
     belief,
     scenario=scenario,
     evolution_model=model,
+    options=options,
 )
 
 for prediction in forecast.target_predictions:
@@ -286,6 +355,9 @@ before implementing biology.
 - No silent extrapolation beyond the model's intervention, environment, context, or assay support.
 - No intervention planning before target prediction, uncertainty, OOD, and calibration have passed
   their gates.
+- No assay recommendation from posterior covariance reduction alone; supported EVSI requires a
+  calibrated assay-outcome model, hypothetical update, counterfactual replanning, and decision
+  utility.
 
 ## Contributing
 

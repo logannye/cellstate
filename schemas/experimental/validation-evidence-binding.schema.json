@@ -1,0 +1,209 @@
+{
+  "$defs": {
+    "BiologicalStagePort": {
+      "description": "Original framework stages plus the narrow component's support infrastructure.\n\nThe first eighteen named biological stages are the complete port surface from the original\nproposed ``CellStateModelBundle`` skeleton.  The remaining support ports let a component be\nimplemented and benchmarked without pretending that it is a current-state belief backend.",
+      "enum": [
+        "query_compiler",
+        "reference_prior",
+        "observation_models",
+        "evidence_transfer_models",
+        "intervention_realization_model",
+        "transition_model",
+        "division_and_inheritance_model",
+        "cell_interaction_model",
+        "extracellular_transport_model",
+        "functional_decoders",
+        "mechanistic_constraints",
+        "posterior_inference_engine",
+        "model_ensemble",
+        "uncertainty_calibrator",
+        "ood_detector",
+        "sufficiency_evaluator",
+        "identifiability_analyzer",
+        "value_of_information_engine",
+        "exact_artifact_resolver",
+        "query_scope_validator",
+        "train_cal_data_loader",
+        "action_context_encoder",
+        "population_assay_response_distribution_model",
+        "strict_support_ood_gate",
+        "artifact_provenance_writer"
+      ],
+      "title": "BiologicalStagePort",
+      "type": "string"
+    },
+    "ContentAddressedArtifact": {
+      "additionalProperties": false,
+      "properties": {
+        "artifact_id": {
+          "minLength": 1,
+          "title": "Artifact Id",
+          "type": "string"
+        },
+        "byte_count": {
+          "exclusiveMinimum": 0,
+          "title": "Byte Count",
+          "type": "integer"
+        },
+        "media_type": {
+          "minLength": 1,
+          "title": "Media Type",
+          "type": "string"
+        },
+        "sha256": {
+          "pattern": "^[a-fA-F0-9]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        },
+        "uri": {
+          "minLength": 1,
+          "title": "Uri",
+          "type": "string"
+        }
+      },
+      "required": [
+        "artifact_id",
+        "uri",
+        "sha256",
+        "byte_count",
+        "media_type"
+      ],
+      "title": "ContentAddressedArtifact",
+      "type": "object"
+    },
+    "ModelOperation": {
+      "description": "Public runtime operation a support envelope may eventually register.",
+      "enum": [
+        "choose_intervention",
+        "estimate_cell_state",
+        "evolve_cell_state",
+        "recommend_next_measurement"
+      ],
+      "title": "ModelOperation",
+      "type": "string"
+    },
+    "ValidationEvidenceKind": {
+      "description": "Scientific role of a validation result; artifact names never imply this role.",
+      "enum": [
+        "locked_component_evaluation",
+        "model_selection",
+        "port_implementation_validation",
+        "runtime_operation_validation",
+        "support_ood_validation",
+        "uncertainty_calibration"
+      ],
+      "title": "ValidationEvidenceKind",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Typed result manifest tied to exact cases and one implementation scope.",
+  "properties": {
+    "benchmark_fingerprint": {
+      "pattern": "^[a-fA-F0-9]{64}$",
+      "title": "Benchmark Fingerprint",
+      "type": "string"
+    },
+    "covered_operations": {
+      "default": [],
+      "items": {
+        "$ref": "#/$defs/ModelOperation"
+      },
+      "title": "Covered Operations",
+      "type": "array"
+    },
+    "covered_ports": {
+      "items": {
+        "$ref": "#/$defs/BiologicalStagePort"
+      },
+      "minItems": 1,
+      "title": "Covered Ports",
+      "type": "array"
+    },
+    "evaluation_case_ids": {
+      "items": {
+        "type": "string"
+      },
+      "minItems": 1,
+      "title": "Evaluation Case Ids",
+      "type": "array"
+    },
+    "evidence_artifacts": {
+      "items": {
+        "$ref": "#/$defs/ContentAddressedArtifact"
+      },
+      "minItems": 1,
+      "title": "Evidence Artifacts",
+      "type": "array"
+    },
+    "evidence_id": {
+      "minLength": 1,
+      "title": "Evidence Id",
+      "type": "string"
+    },
+    "evidence_kind": {
+      "$ref": "#/$defs/ValidationEvidenceKind"
+    },
+    "evidence_version": {
+      "minLength": 1,
+      "title": "Evidence Version",
+      "type": "string"
+    },
+    "implementation_scope_fingerprint": {
+      "pattern": "^[a-fA-F0-9]{64}$",
+      "title": "Implementation Scope Fingerprint",
+      "type": "string"
+    },
+    "model_artifact_fingerprint": {
+      "pattern": "^[a-fA-F0-9]{64}$",
+      "title": "Model Artifact Fingerprint",
+      "type": "string"
+    },
+    "partition_ids": {
+      "items": {
+        "type": "string"
+      },
+      "minItems": 1,
+      "title": "Partition Ids",
+      "type": "array"
+    },
+    "query_fingerprint": {
+      "pattern": "^[a-fA-F0-9]{64}$",
+      "title": "Query Fingerprint",
+      "type": "string"
+    },
+    "schema_version": {
+      "const": "0.1-experimental",
+      "default": "0.1-experimental",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "support_envelope_fingerprint": {
+      "pattern": "^[a-fA-F0-9]{64}$",
+      "title": "Support Envelope Fingerprint",
+      "type": "string"
+    },
+    "training_run_fingerprint": {
+      "pattern": "^[a-fA-F0-9]{64}$",
+      "title": "Training Run Fingerprint",
+      "type": "string"
+    }
+  },
+  "required": [
+    "evidence_id",
+    "evidence_version",
+    "evidence_kind",
+    "query_fingerprint",
+    "benchmark_fingerprint",
+    "support_envelope_fingerprint",
+    "training_run_fingerprint",
+    "model_artifact_fingerprint",
+    "implementation_scope_fingerprint",
+    "partition_ids",
+    "evaluation_case_ids",
+    "covered_ports",
+    "evidence_artifacts"
+  ],
+  "title": "ValidationEvidenceBinding",
+  "type": "object"
+}

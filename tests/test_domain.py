@@ -1,20 +1,23 @@
 from __future__ import annotations
 
 import pytest
-from conftest import observation_factory, query_factory, request_factory
+from conftest import (
+    assay_spec_factory,
+    observation_factory,
+    query_factory,
+    request_factory,
+    subject_factory,
+)
 from pydantic import ValidationError
 
 from cellstate import (
     ActualPerturbation,
-    AssayMetadata,
-    AssaySpec,
     CellHistory,
     EstimateCellStateRequest,
     EvidenceRole,
     MissingnessReport,
     MissingnessStatus,
     ObservationEvent,
-    OntologyTerm,
     PerturbationStatus,
     PredictionHorizon,
     StateQuery,
@@ -22,11 +25,14 @@ from cellstate import (
 )
 from cellstate.domain import (
     EvolutionScenario,
+    OntologyTerm,
     ParametricDistribution,
     SpatialEdge,
     SpatialGraph,
     SpatialNode,
 )
+from cellstate.domain.common import canonical_fingerprint
+from cellstate.domain.subjects import IdentityBasis
 
 
 def test_observed_zero_is_not_missing() -> None:
@@ -48,40 +54,61 @@ def test_observation_rejects_incoherent_missingness(
     status: MissingnessStatus, value: object
 ) -> None:
     with pytest.raises(ValidationError):
-        ObservationEvent(
+        observation_factory(
             event_id="bad",
-            subject_id="cell-1",
             time_seconds=0,
-            modality=OntologyTerm(label="transcriptome"),
+            modality="transcriptome",
             value=value,
             missingness=MissingnessReport(status=status),
-            assay=AssayMetadata(assay_id="rna"),
         )
 
 
 def test_history_is_canonical_and_has_stable_fingerprint() -> None:
     early = observation_factory(event_id="early", time_seconds=1)
     late = observation_factory(event_id="late", time_seconds=2)
-    first = CellHistory(subject_id="cell-1", events=(late, early))
-    second = CellHistory(subject_id="cell-1", events=(early, late))
+    first = CellHistory(subject=subject_factory(), events=(late, early))
+    second = CellHistory(subject=subject_factory(), events=(early, late))
     assert [event.event_id for event in first.events] == ["early", "late"]
     assert first.fingerprint == second.fingerprint
     assert first.through(1) == (early,)
     assert first.between(1, 2) == (late,)
 
 
+def test_canonical_fingerprint_normalizes_ieee_signed_zero() -> None:
+    assert canonical_fingerprint({"cutoff": 0.0}) == canonical_fingerprint({"cutoff": -0.0})
+
+
+def test_ontology_identity_uses_a_qualified_namespace_and_identifier() -> None:
+    curie = OntologyTerm(label="K562", identifier="CVCL:0004")
+    split_curie = OntologyTerm(label="K-562", identifier="0004", namespace="cvcl")
+    unrelated = OntologyTerm(
+        label="Unrelated concept",
+        identifier="0004",
+        namespace="fake",
+    )
+    assert curie.key == split_curie.key == "cvcl:0004"
+    assert unrelated.key != curie.key
+    with pytest.raises(ValidationError, match="unqualified ontology identifier"):
+        OntologyTerm(label="Ambiguous", identifier="0004")
+    with pytest.raises(ValidationError, match="prefix must match"):
+        OntologyTerm(label="Mismatch", identifier="CVCL:0004", namespace="FAKE")
+
+
 def test_history_rejects_duplicate_ids_and_mixed_subjects() -> None:
     duplicate = observation_factory(event_id="same")
     with pytest.raises(ValidationError, match="event IDs"):
-        CellHistory(subject_id="cell-1", events=(duplicate, duplicate))
-    other = duplicate.model_copy(update={"event_id": "other", "subject_id": "cell-2"})
+        CellHistory(subject=subject_factory(), events=(duplicate, duplicate))
+    other = observation_factory(
+        event_id="other",
+        subject=subject_factory("cell-2"),
+    )
     with pytest.raises(ValidationError, match="history subject"):
-        CellHistory(subject_id="cell-1", events=(duplicate, other))
+        CellHistory(subject=subject_factory(), events=(duplicate, other))
 
 
 def test_request_rejects_future_evidence() -> None:
     future = observation_factory(time_seconds=11)
-    history = CellHistory(subject_id="cell-1", events=(future,))
+    history = CellHistory(subject=subject_factory(), events=(future,))
     with pytest.raises(ValidationError, match="after as_of_seconds"):
         request_factory(history=history, as_of_seconds=10)
 
@@ -90,12 +117,16 @@ def test_query_rejects_duplicate_horizon_and_assay_names() -> None:
     query = query_factory()
     horizon = PredictionHorizon(name="same", duration_seconds=1, timescale=Timescale.FAST)
     with pytest.raises(ValidationError, match="horizon names"):
-        StateQuery(
-            system_boundary=query.system_boundary,
-            prediction_horizons=(horizon, horizon.model_copy(update={"duration_seconds": 2})),
-            target_outputs=query.target_outputs,
+        StateQuery.model_validate(
+            {
+                **query.model_dump(),
+                "prediction_horizons": (
+                    horizon,
+                    horizon.model_copy(update={"duration_seconds": 2}),
+                ),
+            }
         )
-    assay = AssaySpec(assay_id="same", modality=OntologyTerm(label="rna"))
+    assay = assay_spec_factory(assay_id="same", modality="rna")
     with pytest.raises(ValidationError, match="assay IDs"):
         query.model_copy(update={"available_assays": (assay, assay)}).model_validate(
             query.model_copy(update={"available_assays": (assay, assay)}).model_dump()
@@ -115,7 +146,7 @@ def test_scenario_rejects_invalid_interval() -> None:
         EvolutionScenario(
             scenario_id="bad",
             horizon_name="acute",
-            subject_id="cell-1",
+            subject=subject_factory(),
             start_time_seconds=10,
             end_time_seconds=10,
         )
@@ -130,8 +161,8 @@ def test_strict_models_reject_unknown_fields() -> None:
 
 def test_schema_versions_are_enforced() -> None:
     payload = query_factory().model_dump()
-    payload["schema_version"] = "2.0"
-    with pytest.raises(ValidationError, match=r"1\.0"):
+    payload["schema_version"] = "1.0"
+    with pytest.raises(ValidationError, match=r"2\.0"):
         StateQuery.model_validate(payload)
 
 
@@ -146,21 +177,15 @@ def test_parametric_distribution_rejects_non_psd_covariance() -> None:
 
 
 def test_lineage_evidence_names_its_source_subject() -> None:
-    with pytest.raises(ValidationError, match="source_subject_id"):
-        observation_factory().model_copy(
-            update={"evidence_role": EvidenceRole.SIBLING}
-        ).model_validate(
-            {
-                **observation_factory().model_dump(),
-                "evidence_role": "sibling",
-            }
-        )
-    sibling = ObservationEvent.model_validate(
-        {
-            **observation_factory().model_dump(),
-            "evidence_role": "sibling",
-            "source_subject_id": "sibling-1",
-        }
+    payload = observation_factory().model_dump()
+    payload["evidence_link"]["role"] = "sibling"
+    payload["evidence_link"].pop("source_subject")
+    with pytest.raises(ValidationError, match="source_subject"):
+        ObservationEvent.model_validate(payload)
+    sibling = observation_factory(
+        evidence_role=EvidenceRole.SIBLING,
+        source_subject=subject_factory("sibling-1"),
+        linkage_basis=IdentityBasis.HERITABLE_BARCODE,
     )
     assert sibling.subject_id == "cell-1"
     assert sibling.source_subject_id == "sibling-1"

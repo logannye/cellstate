@@ -240,13 +240,20 @@ Graduation gate:
 
 Deliverables:
 
-- Decision-relevant value-of-information over query targets, candidate interventions,
-  environments, and horizons.
+- A standalone `recommend_next_measurement` operation whose request binds a parent belief,
+  intervention objective, ordered candidate scenarios, candidate assays, timing, utility units, and
+  assay, delay, and collection-effect penalties.
+- Decision-relevant EVSI over query targets, candidate interventions, environments, and horizons,
+  backed by a calibrated assay-outcome model, hypothetical posterior updates, counterfactual
+  replanning, and declared decision utility.
 - Risk-aware intervention simulation using full predictive distributions.
 - Constraint handling for dose, timing, cost, toxicity, and experimental feasibility.
 - Retrospective blinded/pseudo-prospective ranking benchmarks on hidden interventions.
 - A fail-closed planner that rejects incompatible model versions, targets, units, horizons, and OOD
   candidates.
+- A fail-closed measurement policy that distinguishes `NOT_EVALUATED` calculations from
+  `UNSUPPORTED` components and threshold-based `ABSTAINED` decisions, all without numeric
+  sentinels; covariance shrinkage alone never counts as EVSI.
 
 Graduation gate:
 
@@ -261,20 +268,75 @@ Graduation gate:
 
 ## Immediate implementation queue
 
-The next development work should proceed in this order:
+**Active gate -- executable first population component:** the schema-v2 semantic spine and manifest
+`0.3-experimental` eligibility ledger pass their contract and adversarial reviews. On 2026-08-09,
+content-addressed proofs demonstrated that Replogle K562 destructive single-cell data can represent
+a population snapshot and that a GSE141064 Live-seq slice can represent an individual same-cell
+future-function relationship without fabricated linkage. Step 8 then froze the corrected
+sci-Plex3 K562 24-hour component benchmark: 173,652 real nuclei, 1,536 independent well subjects,
+16 protected plates, 752 exact compound-dose actions, four materialized partitions, authoritative
+well-level cases, a training-derived 2,000-feature output schema, and prespecified metrics,
+baselines, and paired acceptance rules. Its exact assessment and benchmark-use permission gates
+pass. Its executable scoring, leakage, baseline, and performance gates remain deliberately
+incomplete, so it is `COMPONENT_BENCHMARK`, not scientifically admitted. Step 9 approved an
+exhaustive biological support-port map and bound a non-runnable direct population assay-response
+scaffold to the exact artifacts. The component is intentionally separate from hidden-state
+estimation and exposes none of the four public operations. Contract v0.1 keeps every bundle at
+`SCAFFOLD`: declared hashes and entry-point strings cannot substitute for resolved bytes, verified
+interfaces, validated results, or query-derived prerequisites. The next implementation gate is that
+trusted verifier boundary, followed by executable training, calibration, baselines, and locked
+evaluation; it must not present unrun performance as a validated biological belief.
 
-1. **Completed foundation:** harden the experimental dataset capability/claim manifest scaffold;
-   normalization and split manifests remain separate follow-on contracts.
-2. Freeze Vertical A's first query specification, outputs, horizons, intervention/dose scope,
-   causal status, metrics, and mandatory baselines.
-3. Resolve the individual/clone/population/spatial-niche belief-subject contract in ADR 0005 and
-   decide whether it requires schema v2.
-4. Define the frozen benchmark and split manifests plus leakage validators before acquiring data.
-5. Build immutable acquisition plus provenance/checksum and use-policy verification.
-6. Admit and ingest a small real-data golden slice from one K562 perturbation dataset, then Live-seq
-   for a separate longitudinal contract test.
-7. Implement the RNA observation baseline and simple population-response baselines before a deep
-   biological model.
+The next development work proceeds in this order:
 
-That sequence creates a reproducible scientific spine early, exercises both individual and
-population semantics, and gives every later model a trustworthy comparison target.
+1. **Completed 2026-08-09:** record this pause and keep the current query and candidate sources
+   explicitly unfrozen.
+2. **Completed 2026-08-09:** draft the complete Vertical A estimand, including belief subject and aggregation, inference
+   cutoff, admissible pre-cutoff evidence, intervention timing and realization evidence, target
+   timing and units, causal class, and transport assumptions.
+3. **Completed 2026-08-09:** accept and expand ADR 0005, including an explicit schema-v2 and
+   compatibility decision.
+4. **Completed 2026-08-09:** implement v2 contracts for typed subjects and destructive evidence,
+   bounded action/environment spaces, a compiled active-state specification,
+   perturbation-realization belief, and query-scoped support, validity, causal-status, and
+   abstention semantics. Identified effects additionally require typed query/scenario estimands,
+   eligible designs, and content-addressed support and validation evidence.
+5. **Completed 2026-08-09:** restore decision-oriented next-measurement selection as a separately
+   parameterized fourth public operation. Its public contract binds at least two semantically
+   distinct ordered candidate regimes, exact decision-set and causal evidence, timing, transport,
+   and every collection cost. A supported numeric EVSI requires calibrated assay outcomes,
+   hypothetical updating, counterfactual replanning, and decision utility. The non-biological
+   reference returns `NOT_EVALUATED`, never a covariance proxy. This completes the software
+   contract only; biological EVSI remains gated on real-data validation in Phase 7.
+6. **Completed 2026-08-09:** allow repeated, independently scoped dataset claim assessments and
+   separate metric/loss eligibility. Manifest `0.3-experimental` now binds canonical scopes, exact
+   readouts, claim references, evidence sources, split safety, and layered legal permission; metric
+   families whose benchmark semantics are not yet typed remain ineligible.
+7. **Completed 2026-08-09:** add content-addressed dataset slices, interval-valued evidence clocks,
+   and executable reviewed representability proofs. Replogle K562 proves destructive population-
+   snapshot semantics; GSE141064 Live-seq proves viability-preserving same-cell future-function
+   semantics. Both keep legal use unauthorized and all unsupported scientific casts explicit.
+8. **Completed 2026-08-09:** freeze Vertical A's first component query, benchmark, split semantics,
+   metrics, mandatory baselines, and acceptance policy on corrected sci-Plex3 K562 data. The
+   content-addressed artifact passes exact claim, loss, metric, split, source, and permission
+   resolution while remaining non-admitted until executable performance gates run.
+9. **Completed 2026-08-09:** approve an exhaustive biological model-bundle/support-port contract and
+   bind the first exact population assay-response scaffold behind it. The contract binds
+   content-addressed training, calibration, model-selection, validation, implementation, and
+   benchmark declarations, but v0.1 deliberately cannot convert declarations into execution
+   receipts. The sci-Plex3 scaffold remains at `SCAFFOLD`, exposes no estimator, evolution,
+   planning, or measurement operation, and cannot emit either a response distribution or
+   `CellStateBelief` until trusted verification and the component's scientific gates pass.
+
+The immediate next work is to implement a trusted artifact resolver and admission-receipt boundary:
+resolve and hash-check every consumed byte, load and verify each declared interface, validate typed
+result semantics, and derive conditional prerequisites from the exact query. Then implement the
+immutable data loader and mandatory baseline suite, followed by the first candidate distribution
+model, using `p1` for parameter fitting, `p2` for calibration, `p3` for model selection and freezing,
+and `p4` only for untouched evaluation. Passing that component lifecycle would authorize only the
+exact assay-response API; a hidden-state backend still requires its own observation/prior,
+inference, dynamics, sufficiency, identifiability, and operation-specific evidence.
+
+This sequence corrects the semantic spine before adapters or models depend on it. It preserves the
+existing manifest work while ensuring the first implementation cannot satisfy software contracts by
+violating the scientific estimand.

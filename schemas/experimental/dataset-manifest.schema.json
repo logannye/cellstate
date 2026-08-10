@@ -10,6 +10,115 @@
       "title": "AccessMode",
       "type": "string"
     },
+    "AssessmentScope": {
+      "additionalProperties": false,
+      "properties": {
+        "biological_systems": {
+          "items": {
+            "$ref": "#/$defs/OntologyTerm"
+          },
+          "minItems": 1,
+          "title": "Biological Systems",
+          "type": "array"
+        },
+        "environment_variables": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/OntologyTerm"
+          },
+          "title": "Environment Variables",
+          "type": "array"
+        },
+        "functional_readout_ids": {
+          "default": [],
+          "items": {
+            "type": "string"
+          },
+          "title": "Functional Readout Ids",
+          "type": "array"
+        },
+        "horizon_windows": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/TemporalWindow"
+          },
+          "title": "Horizon Windows",
+          "type": "array"
+        },
+        "horizons_seconds": {
+          "default": [],
+          "items": {
+            "type": "number"
+          },
+          "title": "Horizons Seconds",
+          "type": "array"
+        },
+        "inference_cutoff_field": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Inference Cutoff Field"
+        },
+        "inference_cutoff_seconds": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Inference Cutoff Seconds"
+        },
+        "inference_cutoff_window": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/TemporalWindow"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "intervention_kinds": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/OntologyTerm"
+          },
+          "title": "Intervention Kinds",
+          "type": "array"
+        },
+        "modalities": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/OntologyTerm"
+          },
+          "title": "Modalities",
+          "type": "array"
+        },
+        "subject_kind": {
+          "$ref": "#/$defs/SamplingSubjectKind"
+        },
+        "system_boundary": {
+          "$ref": "#/$defs/SystemBoundary"
+        }
+      },
+      "required": [
+        "subject_kind",
+        "system_boundary",
+        "biological_systems"
+      ],
+      "title": "AssessmentScope",
+      "type": "object"
+    },
     "AssignmentMechanism": {
       "enum": [
         "none",
@@ -21,9 +130,14 @@
       "title": "AssignmentMechanism",
       "type": "string"
     },
-    "ClaimEligibility": {
+    "ClaimAssessment": {
       "additionalProperties": false,
       "properties": {
+        "assessment_id": {
+          "minLength": 1,
+          "title": "Assessment Id",
+          "type": "string"
+        },
         "assumptions": {
           "default": [],
           "items": {
@@ -59,123 +173,122 @@
           "title": "Evidence Source Ids",
           "type": "array"
         },
+        "execution_source_ids": {
+          "anyOf": [
+            {
+              "items": {
+                "type": "string"
+              },
+              "minItems": 1,
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Execution Source Ids"
+        },
         "identification_basis": {
           "$ref": "#/$defs/IdentificationBasis"
         },
         "scope": {
-          "$ref": "#/$defs/ClaimScope"
+          "$ref": "#/$defs/AssessmentScope"
         },
         "status": {
-          "$ref": "#/$defs/ClaimStatus"
+          "$ref": "#/$defs/EligibilityStatus"
         }
       },
       "required": [
+        "assessment_id",
         "claim",
         "status",
         "identification_basis",
         "scope"
       ],
-      "title": "ClaimEligibility",
+      "title": "ClaimAssessment",
       "type": "object"
     },
-    "ClaimScope": {
+    "ClaimAssessmentReference": {
       "additionalProperties": false,
       "properties": {
-        "biological_systems": {
-          "items": {
-            "$ref": "#/$defs/OntologyTerm"
-          },
-          "minItems": 1,
-          "title": "Biological Systems",
-          "type": "array"
+        "assessment_fingerprint": {
+          "pattern": "^[a-fA-F0-9]{64}$",
+          "title": "Assessment Fingerprint",
+          "type": "string"
         },
-        "environment_variables": {
-          "default": [],
-          "items": {
-            "$ref": "#/$defs/OntologyTerm"
-          },
-          "title": "Environment Variables",
-          "type": "array"
-        },
-        "functional_outputs": {
-          "default": [],
-          "items": {
-            "$ref": "#/$defs/OntologyTerm"
-          },
-          "title": "Functional Outputs",
-          "type": "array"
-        },
-        "horizons_seconds": {
-          "default": [],
-          "items": {
-            "type": "number"
-          },
-          "title": "Horizons Seconds",
-          "type": "array"
-        },
-        "inference_cutoff_field": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "title": "Inference Cutoff Field"
-        },
-        "inference_cutoff_seconds": {
-          "anyOf": [
-            {
-              "type": "number"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "title": "Inference Cutoff Seconds"
-        },
-        "intervention_kinds": {
-          "default": [],
-          "items": {
-            "$ref": "#/$defs/OntologyTerm"
-          },
-          "title": "Intervention Kinds",
-          "type": "array"
-        },
-        "modalities": {
-          "default": [],
-          "items": {
-            "$ref": "#/$defs/OntologyTerm"
-          },
-          "title": "Modalities",
-          "type": "array"
-        },
-        "subject_kind": {
-          "$ref": "#/$defs/SamplingSubjectKind"
-        },
-        "system_boundary": {
-          "$ref": "#/$defs/SystemBoundary"
+        "assessment_id": {
+          "minLength": 1,
+          "title": "Assessment Id",
+          "type": "string"
         }
       },
       "required": [
-        "subject_kind",
-        "system_boundary",
-        "biological_systems"
+        "assessment_id",
+        "assessment_fingerprint"
       ],
-      "title": "ClaimScope",
+      "title": "ClaimAssessmentReference",
       "type": "object"
     },
-    "ClaimStatus": {
-      "enum": [
-        "eligible",
-        "conditionally_eligible",
-        "ineligible",
-        "not_assessed"
+    "CohortSelectionStage": {
+      "additionalProperties": false,
+      "description": "One auditable attrition step in a content-addressed cohort selection.",
+      "properties": {
+        "criterion": {
+          "minLength": 1,
+          "title": "Criterion",
+          "type": "string"
+        },
+        "input_record_count": {
+          "exclusiveMinimum": 0,
+          "title": "Input Record Count",
+          "type": "integer"
+        },
+        "output_record_count": {
+          "exclusiveMinimum": 0,
+          "title": "Output Record Count",
+          "type": "integer"
+        },
+        "source_ids": {
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Source Ids",
+          "type": "array"
+        },
+        "stage_id": {
+          "minLength": 1,
+          "title": "Stage Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "stage_id",
+        "input_record_count",
+        "output_record_count",
+        "criterion",
+        "source_ids"
       ],
-      "title": "ClaimStatus",
+      "title": "CohortSelectionStage",
+      "type": "object"
+    },
+    "CompositeIdentityEncoding": {
+      "description": "Collision-safe canonical encodings supported for composite unit identities.",
+      "enum": [
+        "canonical_json_utf8_string_array_v1"
+      ],
+      "title": "CompositeIdentityEncoding",
+      "type": "string"
+    },
+    "ControlPredicateValueType": {
+      "enum": [
+        "string",
+        "integer",
+        "number",
+        "boolean"
+      ],
+      "title": "ControlPredicateValueType",
       "type": "string"
     },
     "DataUseCase": {
@@ -297,6 +410,144 @@
       "title": "DatasetCapabilities",
       "type": "object"
     },
+    "DatasetSliceKind": {
+      "description": "Whether the reviewed dataset is an entire record axis or an exact selected cohort.",
+      "enum": [
+        "whole_artifact",
+        "content_addressed_selection"
+      ],
+      "title": "DatasetSliceKind",
+      "type": "string"
+    },
+    "DatasetSliceSpec": {
+      "additionalProperties": false,
+      "description": "Exact record membership to which one manifest's design and assessments apply.",
+      "properties": {
+        "kind": {
+          "$ref": "#/$defs/DatasetSliceKind"
+        },
+        "record_id_field": {
+          "minLength": 1,
+          "title": "Record Id Field",
+          "type": "string"
+        },
+        "selected_record_count": {
+          "exclusiveMinimum": 0,
+          "title": "Selected Record Count",
+          "type": "integer"
+        },
+        "selected_record_ids_encoding": {
+          "const": "canonical_json_utf8_string_array_v1",
+          "default": "canonical_json_utf8_string_array_v1",
+          "title": "Selected Record Ids Encoding",
+          "type": "string"
+        },
+        "selected_record_ids_sha256": {
+          "pattern": "^[a-fA-F0-9]{64}$",
+          "title": "Selected Record Ids Sha256",
+          "type": "string"
+        },
+        "selected_record_ids_uri": {
+          "anyOf": [
+            {
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Selected Record Ids Uri"
+        },
+        "selected_subject_count": {
+          "exclusiveMinimum": 0,
+          "title": "Selected Subject Count",
+          "type": "integer"
+        },
+        "selection_source_ids": {
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Selection Source Ids",
+          "type": "array"
+        },
+        "selection_stages": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/CohortSelectionStage"
+          },
+          "title": "Selection Stages",
+          "type": "array"
+        },
+        "selector_id": {
+          "anyOf": [
+            {
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Selector Id"
+        },
+        "selector_sha256": {
+          "anyOf": [
+            {
+              "pattern": "^[a-fA-F0-9]{64}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Selector Sha256"
+        },
+        "selector_version": {
+          "anyOf": [
+            {
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Selector Version"
+        },
+        "slice_id": {
+          "minLength": 1,
+          "title": "Slice Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "kind",
+        "slice_id",
+        "selection_source_ids",
+        "record_id_field",
+        "selected_record_ids_sha256",
+        "selected_record_count",
+        "selected_subject_count"
+      ],
+      "title": "DatasetSliceSpec",
+      "type": "object"
+    },
+    "EligibilityStatus": {
+      "enum": [
+        "eligible",
+        "conditionally_eligible",
+        "ineligible",
+        "not_assessed"
+      ],
+      "title": "EligibilityStatus",
+      "type": "string"
+    },
     "EnvironmentCapability": {
       "additionalProperties": false,
       "properties": {
@@ -409,6 +660,17 @@
           ],
           "default": null
         },
+        "randomized_endpoint_contrast": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/RandomizedEndpointContrast"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
         "sampling": {
           "$ref": "#/$defs/SamplingDesign"
         },
@@ -450,9 +712,28 @@
       "additionalProperties": false,
       "properties": {
         "id_field": {
-          "minLength": 1,
-          "title": "Id Field",
-          "type": "string"
+          "anyOf": [
+            {
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Id Field"
+        },
+        "identity": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/UnitIdentityExpression"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
         },
         "level": {
           "$ref": "#/$defs/ExperimentalUnitLevel"
@@ -479,7 +760,6 @@
       },
       "required": [
         "level",
-        "id_field",
         "source_ids"
       ],
       "title": "ExperimentalUnitSpec",
@@ -516,6 +796,17 @@
           "title": "Alignment Key Field",
           "type": "string"
         },
+        "derivation": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/FunctionalReadoutDerivation"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
         "measurement_time_field": {
           "anyOf": [
             {
@@ -540,8 +831,24 @@
           "default": null,
           "title": "Measurement Time Seconds"
         },
+        "measurement_time_window": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/TemporalWindow"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
         "output": {
           "$ref": "#/$defs/OntologyTerm"
+        },
+        "readout_id": {
+          "minLength": 1,
+          "title": "Readout Id",
+          "type": "string"
         },
         "source_ids": {
           "items": {
@@ -561,11 +868,18 @@
           "minLength": 1,
           "title": "Units",
           "type": "string"
+        },
+        "value_field": {
+          "minLength": 1,
+          "title": "Value Field",
+          "type": "string"
         }
       },
       "required": [
+        "readout_id",
         "output",
         "source_ids",
+        "value_field",
         "units",
         "aggregation_level",
         "subject_alignment",
@@ -574,6 +888,49 @@
         "status"
       ],
       "title": "FunctionalReadout",
+      "type": "object"
+    },
+    "FunctionalReadoutDerivation": {
+      "additionalProperties": false,
+      "description": "Content-addressed derivation for a functional value retained in a source artifact.",
+      "properties": {
+        "formula": {
+          "minLength": 1,
+          "title": "Formula",
+          "type": "string"
+        },
+        "method_id": {
+          "minLength": 1,
+          "title": "Method Id",
+          "type": "string"
+        },
+        "method_sha256": {
+          "pattern": "^[a-fA-F0-9]{64}$",
+          "title": "Method Sha256",
+          "type": "string"
+        },
+        "method_version": {
+          "minLength": 1,
+          "title": "Method Version",
+          "type": "string"
+        },
+        "source_value_fields": {
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Source Value Fields",
+          "type": "array"
+        }
+      },
+      "required": [
+        "method_id",
+        "method_version",
+        "method_sha256",
+        "source_value_fields",
+        "formula"
+      ],
+      "title": "FunctionalReadoutDerivation",
       "type": "object"
     },
     "IdentificationBasis": {
@@ -704,6 +1061,271 @@
       "title": "LineageResolution",
       "type": "string"
     },
+    "LossEligibilityAssessment": {
+      "additionalProperties": false,
+      "properties": {
+        "assessment_id": {
+          "minLength": 1,
+          "title": "Assessment Id",
+          "type": "string"
+        },
+        "assumptions": {
+          "default": [],
+          "items": {
+            "type": "string"
+          },
+          "title": "Assumptions",
+          "type": "array"
+        },
+        "blockers": {
+          "default": [],
+          "items": {
+            "type": "string"
+          },
+          "title": "Blockers",
+          "type": "array"
+        },
+        "data_source_ids": {
+          "default": [],
+          "items": {
+            "type": "string"
+          },
+          "title": "Data Source Ids",
+          "type": "array"
+        },
+        "evidence_notes": {
+          "default": [],
+          "items": {
+            "type": "string"
+          },
+          "title": "Evidence Notes",
+          "type": "array"
+        },
+        "loss_kind": {
+          "$ref": "#/$defs/LossKind"
+        },
+        "required_split_unit": {
+          "$ref": "#/$defs/ExperimentalUnitLevel"
+        },
+        "scope": {
+          "$ref": "#/$defs/AssessmentScope"
+        },
+        "status": {
+          "$ref": "#/$defs/EligibilityStatus"
+        },
+        "supporting_claim_assessments": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/ClaimAssessmentReference"
+          },
+          "title": "Supporting Claim Assessments",
+          "type": "array"
+        }
+      },
+      "required": [
+        "assessment_id",
+        "status",
+        "scope",
+        "required_split_unit",
+        "loss_kind"
+      ],
+      "title": "LossEligibilityAssessment",
+      "type": "object"
+    },
+    "LossKind": {
+      "enum": [
+        "multi_horizon_future",
+        "functional_outcome",
+        "intervention_effect",
+        "lineage_transition",
+        "held_out_modality",
+        "mechanistic_consistency",
+        "uncertainty_calibration",
+        "state_complexity"
+      ],
+      "title": "LossKind",
+      "type": "string"
+    },
+    "MatchedControlDefinition": {
+      "additionalProperties": false,
+      "description": "Exact conjunctive control predicate and matching stratum for an endpoint contrast.",
+      "properties": {
+        "predicates": {
+          "items": {
+            "$ref": "#/$defs/MatchedControlPredicate"
+          },
+          "minItems": 2,
+          "title": "Predicates",
+          "type": "array"
+        },
+        "source_ids": {
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Source Ids",
+          "type": "array"
+        },
+        "stratum_identity": {
+          "$ref": "#/$defs/UnitIdentityExpression"
+        }
+      },
+      "required": [
+        "predicates",
+        "stratum_identity",
+        "source_ids"
+      ],
+      "title": "MatchedControlDefinition",
+      "type": "object"
+    },
+    "MatchedControlPredicate": {
+      "additionalProperties": false,
+      "description": "One typed scalar equality in a conjunctive control definition.",
+      "properties": {
+        "equals": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "integer"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "boolean"
+            }
+          ],
+          "title": "Equals"
+        },
+        "source_field": {
+          "minLength": 1,
+          "title": "Source Field",
+          "type": "string"
+        },
+        "value_type": {
+          "$ref": "#/$defs/ControlPredicateValueType"
+        }
+      },
+      "required": [
+        "source_field",
+        "value_type",
+        "equals"
+      ],
+      "title": "MatchedControlPredicate",
+      "type": "object"
+    },
+    "MetricEligibilityAssessment": {
+      "additionalProperties": false,
+      "properties": {
+        "assessment_id": {
+          "minLength": 1,
+          "title": "Assessment Id",
+          "type": "string"
+        },
+        "assumptions": {
+          "default": [],
+          "items": {
+            "type": "string"
+          },
+          "title": "Assumptions",
+          "type": "array"
+        },
+        "blockers": {
+          "default": [],
+          "items": {
+            "type": "string"
+          },
+          "title": "Blockers",
+          "type": "array"
+        },
+        "data_source_ids": {
+          "default": [],
+          "items": {
+            "type": "string"
+          },
+          "title": "Data Source Ids",
+          "type": "array"
+        },
+        "evidence_notes": {
+          "default": [],
+          "items": {
+            "type": "string"
+          },
+          "title": "Evidence Notes",
+          "type": "array"
+        },
+        "metric_family": {
+          "$ref": "#/$defs/MetricFamily"
+        },
+        "metric_id": {
+          "minLength": 1,
+          "pattern": "^[a-z][a-z0-9_.-]*$",
+          "title": "Metric Id",
+          "type": "string"
+        },
+        "partition_purpose": {
+          "$ref": "#/$defs/MetricPartitionPurpose"
+        },
+        "required_split_unit": {
+          "$ref": "#/$defs/ExperimentalUnitLevel"
+        },
+        "scope": {
+          "$ref": "#/$defs/AssessmentScope"
+        },
+        "status": {
+          "$ref": "#/$defs/EligibilityStatus"
+        },
+        "supporting_claim_assessments": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/ClaimAssessmentReference"
+          },
+          "title": "Supporting Claim Assessments",
+          "type": "array"
+        }
+      },
+      "required": [
+        "assessment_id",
+        "status",
+        "scope",
+        "required_split_unit",
+        "metric_id",
+        "metric_family",
+        "partition_purpose"
+      ],
+      "title": "MetricEligibilityAssessment",
+      "type": "object"
+    },
+    "MetricFamily": {
+      "description": "Broad metric semantics; concrete benchmark metrics remain separately versioned.",
+      "enum": [
+        "predictive_proper_score",
+        "calibration",
+        "population_distribution",
+        "intervention_effect",
+        "intervention_ranking",
+        "event_or_survival",
+        "lineage",
+        "ood_or_selective_risk",
+        "predictive_sufficiency",
+        "decision_utility"
+      ],
+      "title": "MetricFamily",
+      "type": "string"
+    },
+    "MetricPartitionPurpose": {
+      "description": "Prospective partition role; membership belongs to a later split manifest.",
+      "enum": [
+        "calibration",
+        "model_selection_validation",
+        "untouched_test",
+        "external_validation"
+      ],
+      "title": "MetricPartitionPurpose",
+      "type": "string"
+    },
     "ModalitySpec": {
       "additionalProperties": false,
       "properties": {
@@ -720,6 +1342,17 @@
           "default": null,
           "title": "Alignment Group"
         },
+        "alignment_identity": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/UnitIdentityExpression"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
         "alignment_key_field": {
           "anyOf": [
             {
@@ -732,6 +1365,28 @@
           ],
           "default": null,
           "title": "Alignment Key Field"
+        },
+        "alignment_unit": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ExperimentalUnitLevel"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "collection_time_window": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/TemporalWindow"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
         },
         "destructive": {
           "title": "Destructive",
@@ -902,6 +1557,45 @@
       "title": "PublicRealDataOrigin",
       "type": "object"
     },
+    "RandomizedEndpointContrast": {
+      "additionalProperties": false,
+      "description": "A randomized post-assignment endpoint with explicitly absent baseline measurement.",
+      "properties": {
+        "assignment_time_seconds": {
+          "title": "Assignment Time Seconds",
+          "type": "number"
+        },
+        "baseline_observation_present": {
+          "const": false,
+          "default": false,
+          "title": "Baseline Observation Present",
+          "type": "boolean"
+        },
+        "endpoint_time_seconds": {
+          "title": "Endpoint Time Seconds",
+          "type": "number"
+        },
+        "matched_control": {
+          "$ref": "#/$defs/MatchedControlDefinition"
+        },
+        "source_ids": {
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Source Ids",
+          "type": "array"
+        }
+      },
+      "required": [
+        "assignment_time_seconds",
+        "endpoint_time_seconds",
+        "matched_control",
+        "source_ids"
+      ],
+      "title": "RandomizedEndpointContrast",
+      "type": "object"
+    },
     "ReadoutStatus": {
       "enum": [
         "direct",
@@ -968,9 +1662,28 @@
           "title": "Source Time Units"
         },
         "subject_id_field": {
-          "minLength": 1,
-          "title": "Subject Id Field",
-          "type": "string"
+          "anyOf": [
+            {
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Subject Id Field"
+        },
+        "subject_identity": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/UnitIdentityExpression"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
         },
         "subject_kind": {
           "$ref": "#/$defs/SamplingSubjectKind"
@@ -989,12 +1702,23 @@
           ],
           "default": null,
           "title": "Time Field"
+        },
+        "time_window_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Time Window Id"
         }
       },
       "required": [
         "subject_kind",
         "subject_unit",
-        "subject_id_field",
         "source_ids",
         "mode",
         "linkage"
@@ -1275,6 +1999,47 @@
       "title": "SystemBoundary",
       "type": "string"
     },
+    "TemporalWindow": {
+      "additionalProperties": false,
+      "description": "Closed experiment-relative interval; never coerced to a representative midpoint.",
+      "properties": {
+        "earliest_seconds": {
+          "title": "Earliest Seconds",
+          "type": "number"
+        },
+        "latest_seconds": {
+          "title": "Latest Seconds",
+          "type": "number"
+        },
+        "reference_event": {
+          "minLength": 1,
+          "title": "Reference Event",
+          "type": "string"
+        },
+        "source_ids": {
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Source Ids",
+          "type": "array"
+        },
+        "window_id": {
+          "minLength": 1,
+          "title": "Window Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "window_id",
+        "earliest_seconds",
+        "latest_seconds",
+        "reference_event",
+        "source_ids"
+      ],
+      "title": "TemporalWindow",
+      "type": "object"
+    },
     "TimingCapability": {
       "additionalProperties": false,
       "properties": {
@@ -1298,6 +2063,14 @@
           "title": "Observation Times Recorded",
           "type": "boolean"
         },
+        "observation_windows": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/TemporalWindow"
+          },
+          "title": "Observation Windows",
+          "type": "array"
+        },
         "source_ids": {
           "default": [],
           "items": {
@@ -1317,6 +2090,62 @@
       },
       "title": "TimingCapability",
       "type": "object"
+    },
+    "UnitIdentityExpression": {
+      "additionalProperties": false,
+      "description": "Typed, content-stable expression for an experimental-unit identity.\n\nSource-field order is significant for a composite expression. The declared JSON-array\nencoding prevents delimiter collisions and requires each source value to be represented as\nits exact UTF-8 string value before canonical JSON serialization.",
+      "properties": {
+        "composite_encoding": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/CompositeIdentityEncoding"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "constant_value": {
+          "anyOf": [
+            {
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Constant Value"
+        },
+        "kind": {
+          "$ref": "#/$defs/UnitIdentityExpressionKind"
+        },
+        "source_fields": {
+          "default": [],
+          "items": {
+            "type": "string"
+          },
+          "title": "Source Fields",
+          "type": "array"
+        }
+      },
+      "required": [
+        "kind"
+      ],
+      "title": "UnitIdentityExpression",
+      "type": "object"
+    },
+    "UnitIdentityExpressionKind": {
+      "description": "How one canonical experimental-unit identity is obtained.",
+      "enum": [
+        "source_field",
+        "composite_source_fields",
+        "manifest_constant"
+      ],
+      "title": "UnitIdentityExpressionKind",
+      "type": "string"
     },
     "UsePermission": {
       "additionalProperties": false,
@@ -1349,12 +2178,12 @@
     "capabilities": {
       "$ref": "#/$defs/DatasetCapabilities"
     },
-    "claim_eligibility": {
+    "claim_assessments": {
       "items": {
-        "$ref": "#/$defs/ClaimEligibility"
+        "$ref": "#/$defs/ClaimAssessment"
       },
       "minItems": 1,
-      "title": "Claim Eligibility",
+      "title": "Claim Assessments",
       "type": "array"
     },
     "dataset_id": {
@@ -1370,6 +2199,22 @@
     "experimental_design": {
       "$ref": "#/$defs/ExperimentalDesign"
     },
+    "loss_assessments": {
+      "default": [],
+      "items": {
+        "$ref": "#/$defs/LossEligibilityAssessment"
+      },
+      "title": "Loss Assessments",
+      "type": "array"
+    },
+    "metric_assessments": {
+      "default": [],
+      "items": {
+        "$ref": "#/$defs/MetricEligibilityAssessment"
+      },
+      "title": "Metric Assessments",
+      "type": "array"
+    },
     "notes": {
       "default": [],
       "items": {
@@ -1382,10 +2227,13 @@
       "$ref": "#/$defs/PublicRealDataOrigin"
     },
     "schema_version": {
-      "const": "0.1-experimental",
-      "default": "0.1-experimental",
+      "const": "0.3-experimental",
+      "default": "0.3-experimental",
       "title": "Schema Version",
       "type": "string"
+    },
+    "slice_spec": {
+      "$ref": "#/$defs/DatasetSliceSpec"
     },
     "sources": {
       "items": {
@@ -1421,10 +2269,11 @@
     "description",
     "origin",
     "sources",
+    "slice_spec",
     "use_policies",
     "experimental_design",
     "capabilities",
-    "claim_eligibility"
+    "claim_assessments"
   ],
   "title": "DatasetManifest",
   "type": "object"

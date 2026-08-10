@@ -1,0 +1,812 @@
+{
+  "schema_version": "0.3-experimental",
+  "dataset_id": "gse141064-raw-g9-functional-recorder",
+  "version": "2022-11-29+liveseq-1.0.0-review1",
+  "title": "GSE141064 RAW-G9 Live-seq same-cell functional recorder",
+  "description": "Exact 17-cell public slice linking a viability-preserving pre-LPS Live-seq cytoplasmic transcriptome to a later same-cell Tnf-mCherry response slope.",
+  "origin": {
+    "kind": "public_real",
+    "publicly_downloadable": true,
+    "repository": "NCBI Gene Expression Omnibus with the authors' Zenodo archive",
+    "study_accession": "GSE141064",
+    "publication_doi": "10.1038/s41586-022-05046-9",
+    "release": "2022-11-29",
+    "species": [
+      {
+        "identifier": "NCBITaxon:10090",
+        "label": "Mus musculus"
+      }
+    ],
+    "biological_systems": [
+      {
+        "label": "RAW264.7-G9 macrophage-like cell line"
+      }
+    ]
+  },
+  "sources": [
+    {
+      "source_id": "gse141064-counts",
+      "kind": "processed",
+      "uri": "https://ftp.ncbi.nlm.nih.gov/geo/series/GSE141nnn/GSE141064/suppl/GSE141064_count.final.csv.gz",
+      "sha256": "0e8a07d36a4b06bc8ced881bf97114adc2b55681b5ccf00d29e4f80e05107b22",
+      "media_type": "application/gzip",
+      "access_mode": "open_download",
+      "accession": "GSE141064",
+      "release": "2022-11-29",
+      "byte_count": 10935830,
+      "retrieved_at": "2026-08-09T18:21:18Z"
+    },
+    {
+      "source_id": "gse141064-geo-metadata",
+      "kind": "metadata",
+      "uri": "https://ftp.ncbi.nlm.nih.gov/geo/series/GSE141nnn/GSE141064/suppl/GSE141064_Meta_data.xls.gz",
+      "sha256": "28385f24ea851f8c193c6a8bcba14c770eacaf4591ef5344fba5794ee481ad44",
+      "media_type": "application/gzip",
+      "access_mode": "open_download",
+      "accession": "GSE141064",
+      "release": "2022-11-29",
+      "byte_count": 145125,
+      "retrieved_at": "2026-08-09T18:21:17Z"
+    },
+    {
+      "source_id": "liveseq-analysis-v1",
+      "kind": "documentation",
+      "uri": "https://raw.githubusercontent.com/DeplanckeLab/Live-seq/fd47d7cc294e8da86b4f04e2f3f3545c4b76367b/05_Liveseq_with_LiveCell_imaging/5_Liveseq_with_LiveCell_imaging.R",
+      "sha256": "1196d1fc8478623bc1405701062b335df12c205777b3bafa7a2a8360dbb0c1a3",
+      "media_type": "text/plain",
+      "access_mode": "open_download",
+      "accession": "github:DeplanckeLab/Live-seq@fd47d7cc294e8da86b4f04e2f3f3545c4b76367b",
+      "release": "1.0.0",
+      "parent_study_accession": "GSE141064",
+      "parent_study_release": "2022-11-29",
+      "byte_count": 30677,
+      "retrieved_at": "2026-08-09T18:21:17Z"
+    },
+    {
+      "source_id": "liveseq-gpl-license",
+      "kind": "documentation",
+      "uri": "https://raw.githubusercontent.com/DeplanckeLab/Live-seq/fd47d7cc294e8da86b4f04e2f3f3545c4b76367b/LICENSE",
+      "sha256": "3972dc9744f6499f0f9b2dbf76696f2ae7ad8af9b23dde66d6af86c9dfb36986",
+      "media_type": "text/plain",
+      "access_mode": "open_download",
+      "accession": "github:DeplanckeLab/Live-seq@fd47d7cc294e8da86b4f04e2f3f3545c4b76367b",
+      "release": "1.0.0",
+      "parent_study_accession": "GSE141064",
+      "parent_study_release": "2022-11-29",
+      "byte_count": 35149,
+      "retrieved_at": "2026-08-09T18:21:17Z"
+    },
+    {
+      "source_id": "liveseq-meta-final-v1",
+      "kind": "metadata",
+      "uri": "https://raw.githubusercontent.com/DeplanckeLab/Live-seq/fd47d7cc294e8da86b4f04e2f3f3545c4b76367b/data/meta.final.csv",
+      "sha256": "dcce9bea9444857a6a042fc64be3a5c7b31a00095a21eabc1488e516abd689c8",
+      "media_type": "text/csv",
+      "access_mode": "open_download",
+      "accession": "github:DeplanckeLab/Live-seq@fd47d7cc294e8da86b4f04e2f3f3545c4b76367b",
+      "release": "1.0.0",
+      "parent_study_accession": "GSE141064",
+      "parent_study_release": "2022-11-29",
+      "byte_count": 361855,
+      "retrieved_at": "2026-08-09T18:21:17Z"
+    },
+    {
+      "source_id": "liveseq-paper",
+      "kind": "documentation",
+      "uri": "https://www.nature.com/articles/s41586-022-05046-9.pdf",
+      "sha256": "cfaa5c013874dfc435158b77f557bbc07fcf9673d265c8e33b31fb6750e0e94a",
+      "media_type": "application/pdf",
+      "access_mode": "open_download",
+      "accession": "doi:10.1038/s41586-022-05046-9",
+      "release": "2022-08-17",
+      "parent_study_accession": "GSE141064",
+      "parent_study_release": "2022-11-29",
+      "byte_count": 8223214,
+      "retrieved_at": "2026-08-09T18:26:49Z"
+    },
+    {
+      "source_id": "liveseq-zenodo-v1",
+      "kind": "documentation",
+      "uri": "https://zenodo.org/api/records/6611232/files/DeplanckeLab/Live-seq-1.0.0.zip/content",
+      "sha256": "c7c4c18f3a157b9e74443f3b091d1f9cee538e00589f672bf9ae7b90fdeab8b7",
+      "media_type": "application/zip",
+      "access_mode": "open_download",
+      "accession": "zenodo:6611232",
+      "release": "1.0.0",
+      "parent_study_accession": "GSE141064",
+      "parent_study_release": "2022-11-29",
+      "byte_count": 3839925,
+      "retrieved_at": "2026-08-09T18:24:05Z"
+    }
+  ],
+  "slice_spec": {
+    "kind": "content_addressed_selection",
+    "slice_id": "raw-g9-functional-recorder-qc17",
+    "selection_source_ids": [
+      "liveseq-analysis-v1",
+      "liveseq-meta-final-v1",
+      "liveseq-paper"
+    ],
+    "record_id_field": "sample_ID",
+    "selected_record_ids_uri": "https://raw.githubusercontent.com/logannye/cellstate/main/data_manifests/slices/gse141064-raw-g9-functional-recorder-record-ids.json",
+    "selected_record_ids_encoding": "canonical_json_utf8_string_array_v1",
+    "selected_record_ids_sha256": "2e26c9f32124bc5b92cc1dbc281189f44968d95a86d6e202e2475c000bddf8ff",
+    "selected_record_count": 17,
+    "selected_subject_count": 17,
+    "selector_id": "authors-raw-g9-functional-recorder-selection",
+    "selector_version": "1.0.0-fd47d7cc294e8da86b4f04e2f3f3545c4b76367b",
+    "selector_sha256": "1196d1fc8478623bc1405701062b335df12c205777b3bafa7a2a8360dbb0c1a3",
+    "selection_stages": [
+      {
+        "stage_id": "dual-assay-to-rna-qc-author-slice",
+        "input_record_count": 40,
+        "output_record_count": 17,
+        "criterion": "The publication reports 40 cells with Live-seq and tracked Tnf-mCherry; the tagged analysis selects the 17 public records satisfying mCherry.log.intercept > 0, treatment == 'not_treated', and Batch == '8_8' after Live-seq quality control.",
+        "source_ids": [
+          "liveseq-analysis-v1",
+          "liveseq-meta-final-v1",
+          "liveseq-paper"
+        ]
+      }
+    ]
+  },
+  "use_policies": [
+    {
+      "policy_id": "gse141064-geo-rights-unresolved",
+      "source_ids": [
+        "gse141064-counts",
+        "gse141064-geo-metadata"
+      ],
+      "license_name": "GEO public deposit with submitter rights unresolved",
+      "terms_url": "https://www.ncbi.nlm.nih.gov/geo/info/disclaimer.html",
+      "reviewed_on": "2026-08-09",
+      "permissions": [
+        {
+          "use_case": "research_model_training",
+          "status": "unknown",
+          "conditions": ["NCBI imposes no repository restriction but cannot grant rights retained by the submitter; dataset-specific permission requires legal review."]
+        },
+        {
+          "use_case": "commercial_model_training",
+          "status": "unknown",
+          "conditions": ["NCBI imposes no repository restriction but cannot grant rights retained by the submitter; dataset-specific permission requires legal review."]
+        },
+        {
+          "use_case": "benchmark_evaluation",
+          "status": "unknown",
+          "conditions": ["NCBI imposes no repository restriction but cannot grant rights retained by the submitter; dataset-specific permission requires legal review."]
+        },
+        {
+          "use_case": "source_data_redistribution",
+          "status": "unknown",
+          "conditions": ["NCBI imposes no repository restriction but cannot grant rights retained by the submitter; dataset-specific permission requires legal review."]
+        },
+        {
+          "use_case": "derived_model_distribution",
+          "status": "unknown",
+          "conditions": ["NCBI imposes no repository restriction but cannot grant rights retained by the submitter; dataset-specific permission requires legal review."]
+        },
+        {
+          "use_case": "derived_model_publication",
+          "status": "unknown",
+          "conditions": ["NCBI imposes no repository restriction but cannot grant rights retained by the submitter; dataset-specific permission requires legal review."]
+        }
+      ],
+      "attribution_requirements": [
+        "Cite GEO accession GSE141064 and the primary publication."
+      ]
+    },
+    {
+      "policy_id": "liveseq-analysis-gpl-3.0",
+      "source_ids": [
+        "liveseq-analysis-v1",
+        "liveseq-gpl-license",
+        "liveseq-meta-final-v1",
+        "liveseq-zenodo-v1"
+      ],
+      "license_name": "GNU General Public License v3.0 for archived repository contents",
+      "terms_url": "https://raw.githubusercontent.com/DeplanckeLab/Live-seq/fd47d7cc294e8da86b4f04e2f3f3545c4b76367b/LICENSE",
+      "reviewed_on": "2026-08-09",
+      "spdx_identifier": "GPL-3.0-only",
+      "permissions": [
+        {
+          "use_case": "research_model_training",
+          "status": "conditional",
+          "conditions": ["Comply with GPL-3.0 for any covered copying, modification, or distribution and obtain legal review for the contemplated use."]
+        },
+        {
+          "use_case": "commercial_model_training",
+          "status": "conditional",
+          "conditions": ["Comply with GPL-3.0 for any covered copying, modification, or distribution and obtain legal review for the contemplated use."]
+        },
+        {
+          "use_case": "benchmark_evaluation",
+          "status": "conditional",
+          "conditions": ["Comply with GPL-3.0 for any covered copying, modification, or distribution and obtain legal review for the contemplated use."]
+        },
+        {
+          "use_case": "source_data_redistribution",
+          "status": "conditional",
+          "conditions": ["Redistribution of covered repository contents must comply with GPL-3.0, including source and license obligations."]
+        },
+        {
+          "use_case": "derived_model_distribution",
+          "status": "conditional",
+          "conditions": ["Obtain legal review of whether distributed artifacts include or derive from GPL-covered repository content and comply where applicable."]
+        },
+        {
+          "use_case": "derived_model_publication",
+          "status": "conditional",
+          "conditions": ["Retain required notices and obtain legal review of any included GPL-covered repository content."]
+        }
+      ],
+      "attribution_requirements": [
+        "Retain the GPL-3.0 license and copyright notices for covered repository content.",
+        "Cite the Live-seq v1.0.0 archive and primary publication."
+      ]
+    },
+    {
+      "policy_id": "liveseq-paper-cc-by-4.0",
+      "source_ids": [
+        "liveseq-paper"
+      ],
+      "license_name": "Creative Commons Attribution 4.0 International",
+      "terms_url": "https://creativecommons.org/licenses/by/4.0/",
+      "reviewed_on": "2026-08-09",
+      "spdx_identifier": "CC-BY-4.0",
+      "permissions": [
+        {"use_case": "research_model_training", "status": "permitted", "conditions": []},
+        {"use_case": "commercial_model_training", "status": "permitted", "conditions": []},
+        {"use_case": "benchmark_evaluation", "status": "permitted", "conditions": []},
+        {"use_case": "source_data_redistribution", "status": "permitted", "conditions": []},
+        {"use_case": "derived_model_distribution", "status": "permitted", "conditions": []},
+        {"use_case": "derived_model_publication", "status": "permitted", "conditions": []}
+      ],
+      "attribution_requirements": [
+        "Credit the authors and source, link the CC BY 4.0 license, and indicate changes."
+      ]
+    }
+  ],
+  "experimental_design": {
+    "units": [
+      {
+        "level": "culture",
+        "id_field": "Batch",
+        "source_ids": ["liveseq-meta-final-v1"],
+        "parent_level": null
+      },
+      {
+        "level": "plate",
+        "id_field": "orig.ident",
+        "source_ids": ["liveseq-meta-final-v1"],
+        "parent_level": "culture"
+      },
+      {
+        "level": "cell",
+        "id_field": "sample_ID",
+        "source_ids": ["liveseq-meta-final-v1"],
+        "parent_level": "plate"
+      }
+    ],
+    "sampling": {
+      "subject_kind": "individual_cell",
+      "subject_unit": "cell",
+      "subject_id_field": "sample_ID",
+      "source_ids": [
+        "liveseq-meta-final-v1",
+        "liveseq-paper"
+      ],
+      "mode": "partial_nondestructive",
+      "linkage": "same_cell",
+      "time_field": null,
+      "source_time_units": null,
+      "time_window_id": "live-seq-pre-lps-window",
+      "canonical_time_units": "s",
+      "attrition_field": null
+    },
+    "default_split_unit": "plate",
+    "biological_replicate_unit": null,
+    "randomization_unit": null,
+    "matched_control_field": null,
+    "batch_fields": [
+      "Batch",
+      "Sequencing_run",
+      "orig.ident"
+    ]
+  },
+  "capabilities": {
+    "modalities": [
+      {
+        "modality": {
+          "label": "Live-seq cytoplasmic poly(A) RNA counts"
+        },
+        "source_ids": [
+          "gse141064-counts"
+        ],
+        "subject_alignment": "same_cell",
+        "alignment_group": "raw-g9-functional-recorder",
+        "alignment_key_field": "sample_ID",
+        "raw_available": false,
+        "processed_available": true,
+        "destructive": false,
+        "feature_identifier_namespace": "Ensembl release 87",
+        "collection_time_window": {
+          "window_id": "live-seq-pre-lps-window",
+          "earliest_seconds": -5400.0,
+          "latest_seconds": -1800.0,
+          "reference_event": "LPS addition",
+          "source_ids": [
+            "liveseq-paper"
+          ]
+        }
+      }
+    ],
+    "interventions": {
+      "source_ids": [
+        "liveseq-meta-final-v1",
+        "liveseq-paper"
+      ],
+      "assignment": "assigned_nonrandom",
+      "kinds": [
+        {
+          "label": "lipopolysaccharide exposure"
+        }
+      ],
+      "targets_recorded": false,
+      "doses_recorded": true,
+      "durations_recorded": false,
+      "start_stop_recorded": false,
+      "washout_recorded": false,
+      "combinations_present": false,
+      "assignment_probabilities_recorded": false,
+      "matched_controls_present": false,
+      "realization_evidence": "assignment_only"
+    },
+    "timing": {
+      "source_ids": [
+        "liveseq-meta-final-v1",
+        "liveseq-paper"
+      ],
+      "timepoints_seconds": [],
+      "observation_windows": [
+        {
+          "window_id": "live-seq-pre-lps-window",
+          "earliest_seconds": -5400.0,
+          "latest_seconds": -1800.0,
+          "reference_event": "LPS addition",
+          "source_ids": [
+            "liveseq-paper"
+          ]
+        },
+        {
+          "window_id": "tnf-mcherry-slope-3h-7.5h-window",
+          "earliest_seconds": 10800.0,
+          "latest_seconds": 27000.0,
+          "reference_event": "LPS addition",
+          "source_ids": [
+            "liveseq-paper"
+          ]
+        }
+      ],
+      "observation_times_recorded": true,
+      "intervention_times_recorded": true,
+      "environment_times_recorded": true,
+      "event_ordering_recorded": true
+    },
+    "lineage": {
+      "resolution": "none",
+      "source_ids": [],
+      "lineage_ids_recorded": false,
+      "division_times_recorded": false,
+      "confidence_recorded": false
+    },
+    "spatial": {
+      "resolution": "none",
+      "source_ids": [],
+      "coordinate_dimensions": null,
+      "distances_recorded": false,
+      "contacts_recorded": false,
+      "regions_recorded": false,
+      "subject_alignment": null,
+      "alignment_group": null,
+      "alignment_key_field": null
+    },
+    "functional": {
+      "outputs": [
+        {
+          "readout_id": "tnf-mcherry-log-slope-3h-7.5h",
+          "output": {
+            "label": "Tnf-promoter mCherry log-fluorescence response slope"
+          },
+          "source_ids": [
+            "liveseq-meta-final-v1",
+            "liveseq-paper"
+          ],
+          "value_field": "mCherry.log.slope",
+          "units": "log(normalized fluorescence arbitrary units) per hour",
+          "aggregation_level": "cell",
+          "subject_alignment": "same_cell",
+          "alignment_group": "raw-g9-functional-recorder",
+          "alignment_key_field": "sample_ID",
+          "status": "derived",
+          "derivation": {
+            "method_id": "ols-log-fluorescence-slope",
+            "method_version": "nature-methods-2022-08-17",
+            "method_sha256": "cfaa5c013874dfc435158b77f557bbc07fcf9673d265c8e33b31fb6750e0e94a",
+            "source_value_fields": [
+              "time_after_lps_hours",
+              "tnf_mcherry_normalized_fluorescence_arbitrary_units"
+            ],
+            "formula": "Fit ln(Tnf-mCherry normalized fluorescence arbitrary units) = beta_0 + beta_1 * time_after_LPS_hours by ordinary least squares using observations from 3 through 7.5 hours after LPS; retain beta_1 as mCherry.log.slope."
+          },
+          "measurement_time_seconds": null,
+          "measurement_time_field": null,
+          "measurement_time_window": {
+            "window_id": "tnf-mcherry-slope-3h-7.5h-window",
+            "earliest_seconds": 10800.0,
+            "latest_seconds": 27000.0,
+            "reference_event": "LPS addition",
+            "source_ids": [
+              "liveseq-paper"
+            ]
+          }
+        }
+      ]
+    },
+    "environment": {
+      "variables": [
+        {
+          "variable": {
+            "label": "CO2-independent RAW-G9 culture medium"
+          },
+          "source_ids": [
+            "liveseq-meta-final-v1",
+            "liveseq-paper"
+          ],
+          "units": null,
+          "measured": false,
+          "assigned": true,
+          "time_resolved": true
+        }
+      ]
+    }
+  },
+  "claim_assessments": [
+    {
+      "assessment_id": "functional-outcome-same-cell-recorder",
+      "claim": "functional_outcome",
+      "status": "conditionally_eligible",
+      "identification_basis": "associational",
+      "scope": {
+        "subject_kind": "individual_cell",
+        "system_boundary": "cell_and_soluble_environment",
+        "biological_systems": [
+          {"label": "RAW264.7-G9 macrophage-like cell line"}
+        ],
+        "modalities": [
+          {"label": "Live-seq cytoplasmic poly(A) RNA counts"}
+        ],
+        "intervention_kinds": [
+          {"label": "lipopolysaccharide exposure"}
+        ],
+        "functional_readout_ids": [
+          "tnf-mcherry-log-slope-3h-7.5h"
+        ],
+        "environment_variables": [
+          {"label": "CO2-independent RAW-G9 culture medium"}
+        ],
+        "horizons_seconds": [],
+        "horizon_windows": [
+          {
+            "window_id": "tnf-mcherry-slope-3h-7.5h-window",
+            "earliest_seconds": 10800.0,
+            "latest_seconds": 27000.0,
+            "reference_event": "LPS addition",
+            "source_ids": ["liveseq-paper"]
+          }
+        ],
+        "inference_cutoff_seconds": null,
+        "inference_cutoff_field": null,
+        "inference_cutoff_window": {
+          "window_id": "live-seq-pre-lps-window",
+          "earliest_seconds": -5400.0,
+          "latest_seconds": -1800.0,
+          "reference_event": "LPS addition",
+          "source_ids": ["liveseq-paper"]
+        }
+      },
+      "evidence_source_ids": [
+        "gse141064-counts",
+        "liveseq-meta-final-v1",
+        "liveseq-paper"
+      ],
+      "evidence_notes": [
+        "The exact 17 public records are selected by the authors' tagged predicate and content-addressed membership fixture.",
+        "Live-seq cytoplasmic biopsy precedes LPS by 0.5 to 1.5 hours and preserves the cell for direct image tracking.",
+        "The same-cell future target is the published mCherry.log.slope derived over 3 to 7.5 hours after LPS."
+      ],
+      "assumptions": [
+        "The partial cytoplasmic transcriptome is an informative, noisy proxy for the cell's pre-LPS molecular state.",
+        "Any Live-seq collection effect does not erase the state-to-future association, while residual collection effects remain part of the estimand.",
+        "The published bounded collection and reporter windows are comparable across the selected records.",
+        "Selection from 40 dual-assay cells to 17 RNA-QC-passing cells is not assumed missing at random.",
+        "Interpretation is restricted to this RAW264.7-G9 culture and LPS protocol."
+      ],
+      "blockers": [
+        "The raw per-frame reporter trajectories and exact excluded-cell reason codes are not publicly released.",
+        "There is no independent biological replicate or untouched test partition within the 17-cell cohort."
+      ]
+    },
+    {
+      "assessment_id": "individual-dynamics-cast-not-assessed",
+      "claim": "individual_longitudinal_dynamics",
+      "status": "not_assessed",
+      "identification_basis": "none",
+      "scope": {
+        "subject_kind": "individual_cell",
+        "system_boundary": "cell_and_soluble_environment",
+        "biological_systems": [{"label": "RAW264.7-G9 macrophage-like cell line"}],
+        "modalities": [{"label": "Live-seq cytoplasmic poly(A) RNA counts"}],
+        "intervention_kinds": [{"label": "lipopolysaccharide exposure"}],
+        "functional_readout_ids": ["tnf-mcherry-log-slope-3h-7.5h"],
+        "environment_variables": [{"label": "CO2-independent RAW-G9 culture medium"}],
+        "horizons_seconds": [],
+        "horizon_windows": [
+          {"window_id": "tnf-mcherry-slope-3h-7.5h-window", "earliest_seconds": 10800.0, "latest_seconds": 27000.0, "reference_event": "LPS addition", "source_ids": ["liveseq-paper"]}
+        ],
+        "inference_cutoff_seconds": null,
+        "inference_cutoff_field": null,
+        "inference_cutoff_window": {"window_id": "live-seq-pre-lps-window", "earliest_seconds": -5400.0, "latest_seconds": -1800.0, "reference_event": "LPS addition", "source_ids": ["liveseq-paper"]}
+      },
+      "evidence_source_ids": [],
+      "evidence_notes": [],
+      "assumptions": [],
+      "blockers": [
+        "This selected slice has one molecular biopsy and one later functional summary, not repeated molecular-state measurements; the separate publication-defined 12 RNA pairs are not exactly reconstructible from public tabular metadata."
+      ]
+    },
+    {
+      "assessment_id": "population-dynamics-cast-ineligible",
+      "claim": "population_dynamics",
+      "status": "ineligible",
+      "identification_basis": "none",
+      "scope": {
+        "subject_kind": "population",
+        "system_boundary": "population",
+        "biological_systems": [{"label": "RAW264.7-G9 macrophage-like cell line"}],
+        "modalities": [{"label": "Live-seq cytoplasmic poly(A) RNA counts"}],
+        "intervention_kinds": [{"label": "lipopolysaccharide exposure"}],
+        "functional_readout_ids": ["tnf-mcherry-log-slope-3h-7.5h"],
+        "environment_variables": [],
+        "horizons_seconds": [],
+        "horizon_windows": [
+          {"window_id": "tnf-mcherry-slope-3h-7.5h-window", "earliest_seconds": 10800.0, "latest_seconds": 27000.0, "reference_event": "LPS addition", "source_ids": ["liveseq-paper"]}
+        ],
+        "inference_cutoff_seconds": null,
+        "inference_cutoff_field": null,
+        "inference_cutoff_window": {"window_id": "live-seq-pre-lps-window", "earliest_seconds": -5400.0, "latest_seconds": -1800.0, "reference_event": "LPS addition", "source_ids": ["liveseq-paper"]}
+      },
+      "evidence_source_ids": [],
+      "evidence_notes": [],
+      "assumptions": [],
+      "blockers": [
+        "The exact slice is a small set of same-cell state-to-function records without repeated independently sampled populations or biological replicates."
+      ]
+    },
+    {
+      "assessment_id": "lineage-fate-cast-ineligible",
+      "claim": "lineage_fate",
+      "status": "ineligible",
+      "identification_basis": "none",
+      "scope": {
+        "subject_kind": "clone",
+        "system_boundary": "clone",
+        "biological_systems": [{"label": "RAW264.7-G9 macrophage-like cell line"}],
+        "modalities": [{"label": "Live-seq cytoplasmic poly(A) RNA counts"}],
+        "intervention_kinds": [{"label": "lipopolysaccharide exposure"}],
+        "functional_readout_ids": ["tnf-mcherry-log-slope-3h-7.5h"],
+        "environment_variables": [],
+        "horizons_seconds": [],
+        "horizon_windows": [
+          {"window_id": "tnf-mcherry-slope-3h-7.5h-window", "earliest_seconds": 10800.0, "latest_seconds": 27000.0, "reference_event": "LPS addition", "source_ids": ["liveseq-paper"]}
+        ],
+        "inference_cutoff_seconds": null,
+        "inference_cutoff_field": null,
+        "inference_cutoff_window": {"window_id": "live-seq-pre-lps-window", "earliest_seconds": -5400.0, "latest_seconds": -1800.0, "reference_event": "LPS addition", "source_ids": ["liveseq-paper"]}
+      },
+      "evidence_source_ids": [],
+      "evidence_notes": [],
+      "assumptions": [],
+      "blockers": [
+        "The selected functional-recorder cells have no heritable barcode, clone membership, observed parent-child relation, or fate endpoint."
+      ]
+    },
+    {
+      "assessment_id": "intervention-effect-cast-ineligible",
+      "claim": "intervention_effect",
+      "status": "ineligible",
+      "identification_basis": "none",
+      "scope": {
+        "subject_kind": "individual_cell",
+        "system_boundary": "cell_and_soluble_environment",
+        "biological_systems": [{"label": "RAW264.7-G9 macrophage-like cell line"}],
+        "modalities": [{"label": "Live-seq cytoplasmic poly(A) RNA counts"}],
+        "intervention_kinds": [{"label": "lipopolysaccharide exposure"}],
+        "functional_readout_ids": ["tnf-mcherry-log-slope-3h-7.5h"],
+        "environment_variables": [{"label": "CO2-independent RAW-G9 culture medium"}],
+        "horizons_seconds": [],
+        "horizon_windows": [
+          {"window_id": "tnf-mcherry-slope-3h-7.5h-window", "earliest_seconds": 10800.0, "latest_seconds": 27000.0, "reference_event": "LPS addition", "source_ids": ["liveseq-paper"]}
+        ],
+        "inference_cutoff_seconds": null,
+        "inference_cutoff_field": null,
+        "inference_cutoff_window": {"window_id": "live-seq-pre-lps-window", "earliest_seconds": -5400.0, "latest_seconds": -1800.0, "reference_event": "LPS addition", "source_ids": ["liveseq-paper"]}
+      },
+      "evidence_source_ids": [],
+      "evidence_notes": [],
+      "assumptions": [],
+      "blockers": [
+        "All selected cells received one nonrandom LPS exposure; there is no selected matched-control arm, assignment probability, randomization unit, or biological replicate."
+      ]
+    },
+    {
+      "assessment_id": "counterfactual-generalization-cast-ineligible",
+      "claim": "counterfactual_generalization",
+      "status": "ineligible",
+      "identification_basis": "none",
+      "scope": {
+        "subject_kind": "individual_cell",
+        "system_boundary": "cell_and_soluble_environment",
+        "biological_systems": [{"label": "RAW264.7-G9 macrophage-like cell line"}],
+        "modalities": [{"label": "Live-seq cytoplasmic poly(A) RNA counts"}],
+        "intervention_kinds": [{"label": "lipopolysaccharide exposure"}],
+        "functional_readout_ids": ["tnf-mcherry-log-slope-3h-7.5h"],
+        "environment_variables": [{"label": "CO2-independent RAW-G9 culture medium"}],
+        "horizons_seconds": [],
+        "horizon_windows": [
+          {"window_id": "tnf-mcherry-slope-3h-7.5h-window", "earliest_seconds": 10800.0, "latest_seconds": 27000.0, "reference_event": "LPS addition", "source_ids": ["liveseq-paper"]}
+        ],
+        "inference_cutoff_seconds": null,
+        "inference_cutoff_field": null,
+        "inference_cutoff_window": {"window_id": "live-seq-pre-lps-window", "earliest_seconds": -5400.0, "latest_seconds": -1800.0, "reference_event": "LPS addition", "source_ids": ["liveseq-paper"]}
+      },
+      "evidence_source_ids": [],
+      "evidence_notes": [],
+      "assumptions": [],
+      "blockers": [
+        "No same-cell alternative outcome, typed source-to-target transport domain, or external validation study is present."
+      ]
+    },
+    {
+      "assessment_id": "intervention-selection-cast-ineligible",
+      "claim": "retrospective_intervention_selection",
+      "status": "ineligible",
+      "identification_basis": "none",
+      "scope": {
+        "subject_kind": "individual_cell",
+        "system_boundary": "cell_and_soluble_environment",
+        "biological_systems": [{"label": "RAW264.7-G9 macrophage-like cell line"}],
+        "modalities": [{"label": "Live-seq cytoplasmic poly(A) RNA counts"}],
+        "intervention_kinds": [{"label": "lipopolysaccharide exposure"}],
+        "functional_readout_ids": ["tnf-mcherry-log-slope-3h-7.5h"],
+        "environment_variables": [{"label": "CO2-independent RAW-G9 culture medium"}],
+        "horizons_seconds": [],
+        "horizon_windows": [
+          {"window_id": "tnf-mcherry-slope-3h-7.5h-window", "earliest_seconds": 10800.0, "latest_seconds": 27000.0, "reference_event": "LPS addition", "source_ids": ["liveseq-paper"]}
+        ],
+        "inference_cutoff_seconds": null,
+        "inference_cutoff_field": null,
+        "inference_cutoff_window": {"window_id": "live-seq-pre-lps-window", "earliest_seconds": -5400.0, "latest_seconds": -1800.0, "reference_event": "LPS addition", "source_ids": ["liveseq-paper"]}
+      },
+      "evidence_source_ids": [],
+      "evidence_notes": [],
+      "assumptions": [],
+      "blockers": [
+        "The slice contains one intervention protocol and no bounded candidate set, comparator outcomes, or decision utility."
+      ]
+    }
+  ],
+  "loss_assessments": [
+    {
+      "assessment_id": "functional-outcome-loss-not-assessed",
+      "status": "not_assessed",
+      "scope": {
+        "subject_kind": "individual_cell",
+        "system_boundary": "cell_and_soluble_environment",
+        "biological_systems": [{"label": "RAW264.7-G9 macrophage-like cell line"}],
+        "modalities": [{"label": "Live-seq cytoplasmic poly(A) RNA counts"}],
+        "intervention_kinds": [{"label": "lipopolysaccharide exposure"}],
+        "functional_readout_ids": ["tnf-mcherry-log-slope-3h-7.5h"],
+        "environment_variables": [{"label": "CO2-independent RAW-G9 culture medium"}],
+        "horizons_seconds": [],
+        "horizon_windows": [
+          {"window_id": "tnf-mcherry-slope-3h-7.5h-window", "earliest_seconds": 10800.0, "latest_seconds": 27000.0, "reference_event": "LPS addition", "source_ids": ["liveseq-paper"]}
+        ],
+        "inference_cutoff_seconds": null,
+        "inference_cutoff_field": null,
+        "inference_cutoff_window": {"window_id": "live-seq-pre-lps-window", "earliest_seconds": -5400.0, "latest_seconds": -1800.0, "reference_event": "LPS addition", "source_ids": ["liveseq-paper"]}
+      },
+      "required_split_unit": "plate",
+      "data_source_ids": [],
+      "supporting_claim_assessments": [],
+      "evidence_notes": [],
+      "assumptions": [],
+      "blockers": [
+        "No frozen training membership, independent biological replicate, or defensible train/calibration partition has been approved for this 17-cell slice."
+      ],
+      "loss_kind": "functional_outcome"
+    }
+  ],
+  "metric_assessments": [
+    {
+      "assessment_id": "predictive-score-metric-not-assessed",
+      "status": "not_assessed",
+      "scope": {
+        "subject_kind": "individual_cell",
+        "system_boundary": "cell_and_soluble_environment",
+        "biological_systems": [{"label": "RAW264.7-G9 macrophage-like cell line"}],
+        "modalities": [{"label": "Live-seq cytoplasmic poly(A) RNA counts"}],
+        "intervention_kinds": [{"label": "lipopolysaccharide exposure"}],
+        "functional_readout_ids": ["tnf-mcherry-log-slope-3h-7.5h"],
+        "environment_variables": [{"label": "CO2-independent RAW-G9 culture medium"}],
+        "horizons_seconds": [],
+        "horizon_windows": [
+          {"window_id": "tnf-mcherry-slope-3h-7.5h-window", "earliest_seconds": 10800.0, "latest_seconds": 27000.0, "reference_event": "LPS addition", "source_ids": ["liveseq-paper"]}
+        ],
+        "inference_cutoff_seconds": null,
+        "inference_cutoff_field": null,
+        "inference_cutoff_window": {"window_id": "live-seq-pre-lps-window", "earliest_seconds": -5400.0, "latest_seconds": -1800.0, "reference_event": "LPS addition", "source_ids": ["liveseq-paper"]}
+      },
+      "required_split_unit": "plate",
+      "data_source_ids": [],
+      "supporting_claim_assessments": [],
+      "evidence_notes": [],
+      "assumptions": [],
+      "blockers": [
+        "Roadmap item 8 has not frozen a target distribution, scoring rule, split membership, or untouched test partition."
+      ],
+      "metric_id": "tnf-mcherry-slope-predictive-score",
+      "metric_family": "predictive_proper_score",
+      "partition_purpose": "untouched_test"
+    },
+    {
+      "assessment_id": "calibration-metric-not-assessed",
+      "status": "not_assessed",
+      "scope": {
+        "subject_kind": "individual_cell",
+        "system_boundary": "cell_and_soluble_environment",
+        "biological_systems": [{"label": "RAW264.7-G9 macrophage-like cell line"}],
+        "modalities": [{"label": "Live-seq cytoplasmic poly(A) RNA counts"}],
+        "intervention_kinds": [{"label": "lipopolysaccharide exposure"}],
+        "functional_readout_ids": ["tnf-mcherry-log-slope-3h-7.5h"],
+        "environment_variables": [{"label": "CO2-independent RAW-G9 culture medium"}],
+        "horizons_seconds": [],
+        "horizon_windows": [
+          {"window_id": "tnf-mcherry-slope-3h-7.5h-window", "earliest_seconds": 10800.0, "latest_seconds": 27000.0, "reference_event": "LPS addition", "source_ids": ["liveseq-paper"]}
+        ],
+        "inference_cutoff_seconds": null,
+        "inference_cutoff_field": null,
+        "inference_cutoff_window": {"window_id": "live-seq-pre-lps-window", "earliest_seconds": -5400.0, "latest_seconds": -1800.0, "reference_event": "LPS addition", "source_ids": ["liveseq-paper"]}
+      },
+      "required_split_unit": "plate",
+      "data_source_ids": [],
+      "supporting_claim_assessments": [],
+      "evidence_notes": [],
+      "assumptions": [],
+      "blockers": [
+        "Seventeen selected cells across three technical plates cannot support an approved standalone calibration claim."
+      ],
+      "metric_id": "tnf-mcherry-slope-calibration",
+      "metric_family": "calibration",
+      "partition_purpose": "calibration"
+    }
+  ],
+  "notes": [
+    "The exact functional-recorder analysis cohort is 17 cells; 24 rows with reporter slope/intercept include five already marked LPS_treated and are not one ground-state cohort.",
+    "The publication's 12 repeated-transcriptome pairs are a separate experiment and cannot be exactly reconstructed from public tabular metadata, which exposes 13 apparently complete pair IDs.",
+    "Raw per-frame Tnf-mCherry trajectories are not released; mCherry.log.slope is a derived public value.",
+    "orig.ident is retained as a technical plate grouping and is not asserted to be an independent biological replicate.",
+    "The publication Methods specify 100 ng/ml LPS; the GEO overview displays a conflicting concentration, so no concentration-dependent causal claim is made.",
+    "The Zenodo record labels the archive other-open while the archived repository contains GPL-3.0; the explicit GPL file governs the recorded repository policy layer."
+  ]
+}

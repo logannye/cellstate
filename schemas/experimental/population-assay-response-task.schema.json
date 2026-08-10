@@ -1,0 +1,1667 @@
+{
+  "$defs": {
+    "AcceptanceThresholds": {
+      "additionalProperties": false,
+      "description": "Numerical scientific-validity gates compiled with a query.",
+      "properties": {
+        "maximum_calibration_error": {
+          "minimum": 0,
+          "title": "Maximum Calibration Error",
+          "type": "number"
+        },
+        "maximum_counterfactual_uncertainty": {
+          "minimum": 0,
+          "title": "Maximum Counterfactual Uncertainty",
+          "type": "number"
+        },
+        "maximum_decision_uncertainty": {
+          "minimum": 0,
+          "title": "Maximum Decision Uncertainty",
+          "type": "number"
+        },
+        "maximum_history_information_gain": {
+          "minimum": 0,
+          "title": "Maximum History Information Gain",
+          "type": "number"
+        },
+        "maximum_ood_score": {
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Maximum Ood Score",
+          "type": "number"
+        },
+        "minimum_calibration_coverage": {
+          "exclusiveMinimum": 0,
+          "maximum": 1,
+          "title": "Minimum Calibration Coverage",
+          "type": "number"
+        },
+        "minimum_identifiability": {
+          "exclusiveMinimum": 0,
+          "maximum": 1,
+          "title": "Minimum Identifiability",
+          "type": "number"
+        }
+      },
+      "required": [
+        "maximum_ood_score",
+        "maximum_history_information_gain",
+        "minimum_calibration_coverage",
+        "maximum_calibration_error",
+        "maximum_counterfactual_uncertainty",
+        "maximum_decision_uncertainty",
+        "minimum_identifiability"
+      ],
+      "title": "AcceptanceThresholds",
+      "type": "object"
+    },
+    "AggregationStatistic": {
+      "description": "How a target is aggregated over its typed biological subject.",
+      "enum": [
+        "individual",
+        "joint_distribution",
+        "distribution",
+        "mean",
+        "sum",
+        "fraction",
+        "rate",
+        "hazard"
+      ],
+      "title": "AggregationStatistic",
+      "type": "string"
+    },
+    "AssayPurpose": {
+      "description": "Declared use of an assay inside one query.",
+      "enum": [
+        "target_endpoint",
+        "measurement_selection"
+      ],
+      "title": "AssayPurpose",
+      "type": "string"
+    },
+    "AssaySpec": {
+      "additionalProperties": false,
+      "properties": {
+        "assay_id": {
+          "minLength": 1,
+          "title": "Assay Id",
+          "type": "string"
+        },
+        "collection": {
+          "$ref": "#/$defs/ObservationCollection"
+        },
+        "cost": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Cost"
+        },
+        "cost_units": {
+          "anyOf": [
+            {
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Cost Units"
+        },
+        "modality": {
+          "$ref": "#/$defs/OntologyTerm"
+        },
+        "protocol_reference": {
+          "$ref": "#/$defs/VersionedReference"
+        },
+        "purposes": {
+          "items": {
+            "$ref": "#/$defs/AssayPurpose"
+          },
+          "minItems": 1,
+          "title": "Purposes",
+          "type": "array"
+        },
+        "turnaround_seconds": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Turnaround Seconds"
+        }
+      },
+      "required": [
+        "assay_id",
+        "modality",
+        "protocol_reference",
+        "collection",
+        "purposes"
+      ],
+      "title": "AssaySpec",
+      "type": "object"
+    },
+    "AssignmentMechanism": {
+      "description": "How exposure was assigned to the experimental unit receiving an action.",
+      "enum": [
+        "observational",
+        "assigned_nonrandom",
+        "quasi_experimental",
+        "randomized"
+      ],
+      "title": "AssignmentMechanism",
+      "type": "string"
+    },
+    "BenchmarkEvaluationCase": {
+      "additionalProperties": false,
+      "properties": {
+        "case_id": {
+          "minLength": 1,
+          "title": "Case Id",
+          "type": "string"
+        },
+        "context_fingerprint": {
+          "pattern": "^[a-fA-F0-9]{64}$",
+          "title": "Context Fingerprint",
+          "type": "string"
+        },
+        "context_id": {
+          "minLength": 1,
+          "title": "Context Id",
+          "type": "string"
+        },
+        "evaluation_unit_id": {
+          "minLength": 1,
+          "title": "Evaluation Unit Id",
+          "type": "string"
+        },
+        "horizon_name": {
+          "minLength": 1,
+          "title": "Horizon Name",
+          "type": "string"
+        },
+        "intervention_spec_ids": {
+          "items": {
+            "type": "string"
+          },
+          "maxItems": 1,
+          "title": "Intervention Spec Ids",
+          "type": "array"
+        },
+        "matched_control_evaluation_unit_ids": {
+          "default": [],
+          "items": {
+            "type": "string"
+          },
+          "title": "Matched Control Evaluation Unit Ids",
+          "type": "array"
+        },
+        "matching_stratum_fingerprint": {
+          "pattern": "^[a-fA-F0-9]{64}$",
+          "title": "Matching Stratum Fingerprint",
+          "type": "string"
+        },
+        "matching_stratum_id": {
+          "minLength": 1,
+          "title": "Matching Stratum Id",
+          "type": "string"
+        },
+        "partition_id": {
+          "minLength": 1,
+          "title": "Partition Id",
+          "type": "string"
+        },
+        "prediction_subject_id": {
+          "minLength": 1,
+          "title": "Prediction Subject Id",
+          "type": "string"
+        },
+        "role": {
+          "$ref": "#/$defs/EvaluationCaseRole"
+        },
+        "target_output_keys": {
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Target Output Keys",
+          "type": "array"
+        }
+      },
+      "required": [
+        "case_id",
+        "partition_id",
+        "evaluation_unit_id",
+        "prediction_subject_id",
+        "context_id",
+        "context_fingerprint",
+        "matching_stratum_id",
+        "matching_stratum_fingerprint",
+        "intervention_spec_ids",
+        "horizon_name",
+        "target_output_keys",
+        "role"
+      ],
+      "title": "BenchmarkEvaluationCase",
+      "type": "object"
+    },
+    "CategoricalDomain": {
+      "additionalProperties": false,
+      "description": "An explicit finite set of permitted categorical values.",
+      "properties": {
+        "kind": {
+          "const": "categorical",
+          "default": "categorical",
+          "title": "Kind",
+          "type": "string"
+        },
+        "values": {
+          "items": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "integer"
+              },
+              {
+                "type": "number"
+              },
+              {
+                "type": "boolean"
+              }
+            ]
+          },
+          "minItems": 1,
+          "title": "Values",
+          "type": "array"
+        }
+      },
+      "required": [
+        "values"
+      ],
+      "title": "CategoricalDomain",
+      "type": "object"
+    },
+    "CausalStatus": {
+      "description": "Identification basis attached to a prediction or decision.",
+      "enum": [
+        "predictive_association",
+        "identified_population_effect",
+        "transported_under_assumptions",
+        "mechanistic_extrapolation",
+        "unsupported"
+      ],
+      "title": "CausalStatus",
+      "type": "string"
+    },
+    "CensoringDirection": {
+      "enum": [
+        "below",
+        "above",
+        "interval"
+      ],
+      "title": "CensoringDirection",
+      "type": "string"
+    },
+    "CollectionEffect": {
+      "enum": [
+        "nondestructive",
+        "viability_preserving_with_known_effect",
+        "partially_destructive_population_sampling",
+        "terminal_destructive"
+      ],
+      "title": "CollectionEffect",
+      "type": "string"
+    },
+    "ConstraintCategory": {
+      "enum": [
+        "safety",
+        "manufacturing",
+        "feasibility"
+      ],
+      "title": "ConstraintCategory",
+      "type": "string"
+    },
+    "ConstraintSpec": {
+      "additionalProperties": false,
+      "properties": {
+        "category": {
+          "$ref": "#/$defs/ConstraintCategory"
+        },
+        "constraint_id": {
+          "minLength": 1,
+          "title": "Constraint Id",
+          "type": "string"
+        },
+        "description": {
+          "minLength": 1,
+          "title": "Description",
+          "type": "string"
+        },
+        "strength": {
+          "$ref": "#/$defs/ConstraintStrength"
+        }
+      },
+      "required": [
+        "constraint_id",
+        "category",
+        "description",
+        "strength"
+      ],
+      "title": "ConstraintSpec",
+      "type": "object"
+    },
+    "ConstraintStrength": {
+      "enum": [
+        "hard",
+        "soft"
+      ],
+      "title": "ConstraintStrength",
+      "type": "string"
+    },
+    "EnvironmentTemporalMode": {
+      "enum": [
+        "fixed",
+        "piecewise_constant",
+        "time_varying"
+      ],
+      "title": "EnvironmentTemporalMode",
+      "type": "string"
+    },
+    "EnvironmentVariableSpec": {
+      "additionalProperties": false,
+      "properties": {
+        "allowed_temporal_modes": {
+          "items": {
+            "$ref": "#/$defs/EnvironmentTemporalMode"
+          },
+          "minItems": 1,
+          "title": "Allowed Temporal Modes",
+          "type": "array"
+        },
+        "default_value": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Quantity"
+            },
+            {
+              "type": "string"
+            },
+            {
+              "type": "integer"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Default Value"
+        },
+        "domain": {
+          "discriminator": {
+            "mapping": {
+              "categorical": "#/$defs/CategoricalDomain",
+              "numeric": "#/$defs/NumericDomain"
+            },
+            "propertyName": "kind"
+          },
+          "oneOf": [
+            {
+              "$ref": "#/$defs/NumericDomain"
+            },
+            {
+              "$ref": "#/$defs/CategoricalDomain"
+            }
+          ],
+          "title": "Domain"
+        },
+        "duration_seconds": {
+          "$ref": "#/$defs/ScalarRange"
+        },
+        "missing_history_policy": {
+          "$ref": "#/$defs/MissingHistoryPolicy"
+        },
+        "required": {
+          "title": "Required",
+          "type": "boolean"
+        },
+        "variable": {
+          "$ref": "#/$defs/OntologyTerm"
+        }
+      },
+      "required": [
+        "variable",
+        "domain",
+        "duration_seconds",
+        "required",
+        "allowed_temporal_modes",
+        "missing_history_policy"
+      ],
+      "title": "EnvironmentVariableSpec",
+      "type": "object"
+    },
+    "EvaluationCaseRole": {
+      "enum": [
+        "treated",
+        "matched_no_action_control"
+      ],
+      "title": "EvaluationCaseRole",
+      "type": "string"
+    },
+    "EvidencePolicy": {
+      "additionalProperties": false,
+      "description": "Cutoff-safe observation channels admissible for state estimation.",
+      "properties": {
+        "allowed_evidence_roles": {
+          "items": {
+            "$ref": "#/$defs/EvidenceRole"
+          },
+          "minItems": 1,
+          "title": "Allowed Evidence Roles",
+          "type": "array"
+        },
+        "allowed_modalities": {
+          "items": {
+            "$ref": "#/$defs/OntologyTerm"
+          },
+          "minItems": 1,
+          "title": "Allowed Modalities",
+          "type": "array"
+        },
+        "include_at_cutoff": {
+          "title": "Include At Cutoff",
+          "type": "boolean"
+        },
+        "lookback_seconds": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Lookback Seconds"
+        },
+        "minimum_observed_measurements": {
+          "minimum": 0,
+          "title": "Minimum Observed Measurements",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "include_at_cutoff",
+        "allowed_modalities",
+        "allowed_evidence_roles",
+        "minimum_observed_measurements"
+      ],
+      "title": "EvidencePolicy",
+      "type": "object"
+    },
+    "EvidenceRole": {
+      "enum": [
+        "direct",
+        "ancestor",
+        "descendant",
+        "sibling",
+        "clone_aggregate",
+        "matched_population",
+        "general_population",
+        "spatial_neighbor",
+        "external_reference"
+      ],
+      "title": "EvidenceRole",
+      "type": "string"
+    },
+    "FutureAssayObservationEndpoint": {
+      "additionalProperties": false,
+      "properties": {
+        "assay_id": {
+          "minLength": 1,
+          "title": "Assay Id",
+          "type": "string"
+        },
+        "kind": {
+          "const": "future_assay_observation",
+          "default": "future_assay_observation",
+          "title": "Kind",
+          "type": "string"
+        },
+        "protocol_reference": {
+          "$ref": "#/$defs/VersionedReference"
+        }
+      },
+      "required": [
+        "assay_id",
+        "protocol_reference"
+      ],
+      "title": "FutureAssayObservationEndpoint",
+      "type": "object"
+    },
+    "IdentityBasis": {
+      "description": "Observed or explicitly inferred basis for subject identity or linkage.",
+      "enum": [
+        "observed_identity",
+        "direct_tracking",
+        "viability_preserving_sampling",
+        "observed_parentage",
+        "heritable_barcode",
+        "phylogeny",
+        "probabilistic_lineage",
+        "declared_membership",
+        "experimental_unit",
+        "probabilistic_membership",
+        "spatial_region",
+        "observed_neighborhood_graph",
+        "matched_experimental_design",
+        "spatial_proximity",
+        "transport_assumption",
+        "external_reference"
+      ],
+      "title": "IdentityBasis",
+      "type": "string"
+    },
+    "IntegerRange": {
+      "additionalProperties": false,
+      "properties": {
+        "maximum": {
+          "minimum": 1,
+          "title": "Maximum",
+          "type": "integer"
+        },
+        "minimum": {
+          "minimum": 1,
+          "title": "Minimum",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "minimum",
+        "maximum"
+      ],
+      "title": "IntegerRange",
+      "type": "object"
+    },
+    "InterventionSpec": {
+      "additionalProperties": false,
+      "description": "A bounded action family; matching names or units alone never establishes support.",
+      "properties": {
+        "allowed_assignment_mechanisms": {
+          "items": {
+            "$ref": "#/$defs/AssignmentMechanism"
+          },
+          "minItems": 1,
+          "title": "Allowed Assignment Mechanisms",
+          "type": "array"
+        },
+        "allowed_reversibility_statuses": {
+          "items": {
+            "$ref": "#/$defs/ReversibilityStatus"
+          },
+          "minItems": 1,
+          "title": "Allowed Reversibility Statuses",
+          "type": "array"
+        },
+        "assignment_unit_kind": {
+          "minLength": 1,
+          "title": "Assignment Unit Kind",
+          "type": "string"
+        },
+        "delivery_methods": {
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Delivery Methods",
+          "type": "array"
+        },
+        "dose_domain": {
+          "$ref": "#/$defs/NumericDomain"
+        },
+        "duration_seconds": {
+          "$ref": "#/$defs/ScalarRange"
+        },
+        "kind": {
+          "$ref": "#/$defs/OntologyTerm"
+        },
+        "mechanisms": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/OntologyTerm"
+          },
+          "title": "Mechanisms",
+          "type": "array"
+        },
+        "randomization_unit_kind": {
+          "anyOf": [
+            {
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Randomization Unit Kind"
+        },
+        "realization_evidence": {
+          "$ref": "#/$defs/RealizationEvidenceRequirement"
+        },
+        "require_matched_control": {
+          "title": "Require Matched Control",
+          "type": "boolean"
+        },
+        "require_randomization_unit": {
+          "title": "Require Randomization Unit",
+          "type": "boolean"
+        },
+        "schedule": {
+          "$ref": "#/$defs/ScheduleDomain"
+        },
+        "spec_id": {
+          "minLength": 1,
+          "title": "Spec Id",
+          "type": "string"
+        },
+        "target": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/OntologyTerm"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        }
+      },
+      "required": [
+        "spec_id",
+        "kind",
+        "dose_domain",
+        "duration_seconds",
+        "schedule",
+        "delivery_methods",
+        "allowed_reversibility_statuses",
+        "allowed_assignment_mechanisms",
+        "assignment_unit_kind",
+        "require_randomization_unit",
+        "require_matched_control",
+        "realization_evidence"
+      ],
+      "title": "InterventionSpec",
+      "type": "object"
+    },
+    "LatentQuantityEndpoint": {
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "const": "latent_quantity",
+          "default": "latent_quantity",
+          "title": "Kind",
+          "type": "string"
+        },
+        "model_reference": {
+          "$ref": "#/$defs/VersionedReference"
+        }
+      },
+      "required": [
+        "model_reference"
+      ],
+      "title": "LatentQuantityEndpoint",
+      "type": "object"
+    },
+    "MissingHistoryPolicy": {
+      "enum": [
+        "reject",
+        "represent_as_unknown",
+        "use_declared_default"
+      ],
+      "title": "MissingHistoryPolicy",
+      "type": "string"
+    },
+    "MissingnessStatus": {
+      "enum": [
+        "observed",
+        "not_measured",
+        "missing",
+        "below_detection",
+        "censored",
+        "assay_failure"
+      ],
+      "title": "MissingnessStatus",
+      "type": "string"
+    },
+    "NumericDomain": {
+      "additionalProperties": false,
+      "description": "A closed, finite numeric domain with mandatory units.",
+      "properties": {
+        "kind": {
+          "const": "numeric",
+          "default": "numeric",
+          "title": "Kind",
+          "type": "string"
+        },
+        "maximum": {
+          "title": "Maximum",
+          "type": "number"
+        },
+        "minimum": {
+          "title": "Minimum",
+          "type": "number"
+        },
+        "units": {
+          "minLength": 1,
+          "title": "Units",
+          "type": "string"
+        }
+      },
+      "required": [
+        "minimum",
+        "maximum",
+        "units"
+      ],
+      "title": "NumericDomain",
+      "type": "object"
+    },
+    "ObservationCollection": {
+      "additionalProperties": false,
+      "description": "Biological effect of collecting one observation from its sampled source.",
+      "properties": {
+        "effect": {
+          "$ref": "#/$defs/CollectionEffect"
+        },
+        "effect_description": {
+          "anyOf": [
+            {
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Effect Description"
+        },
+        "sampling_fraction": {
+          "anyOf": [
+            {
+              "exclusiveMinimum": 0,
+              "maximum": 1,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Sampling Fraction"
+        }
+      },
+      "required": [
+        "effect"
+      ],
+      "title": "ObservationCollection",
+      "type": "object"
+    },
+    "OntologyTerm": {
+      "additionalProperties": false,
+      "description": "An extensible biological term, optionally grounded in an ontology.",
+      "properties": {
+        "identifier": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Identifier"
+        },
+        "label": {
+          "minLength": 1,
+          "title": "Label",
+          "type": "string"
+        },
+        "namespace": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Namespace"
+        }
+      },
+      "required": [
+        "label"
+      ],
+      "title": "OntologyTerm",
+      "type": "object"
+    },
+    "OutputSpec": {
+      "additionalProperties": false,
+      "properties": {
+        "aggregation": {
+          "$ref": "#/$defs/TargetAggregation"
+        },
+        "censoring": {
+          "$ref": "#/$defs/TargetCensoringSemantics"
+        },
+        "endpoint": {
+          "discriminator": {
+            "mapping": {
+              "future_assay_observation": "#/$defs/FutureAssayObservationEndpoint",
+              "latent_quantity": "#/$defs/LatentQuantityEndpoint",
+              "versioned_transform": "#/$defs/VersionedTransformEndpoint"
+            },
+            "propertyName": "kind"
+          },
+          "oneOf": [
+            {
+              "$ref": "#/$defs/FutureAssayObservationEndpoint"
+            },
+            {
+              "$ref": "#/$defs/LatentQuantityEndpoint"
+            },
+            {
+              "$ref": "#/$defs/VersionedTransformEndpoint"
+            }
+          ],
+          "title": "Endpoint"
+        },
+        "functional": {
+          "title": "Functional",
+          "type": "boolean"
+        },
+        "missingness": {
+          "$ref": "#/$defs/TargetMissingnessSemantics"
+        },
+        "supported_horizon_names": {
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Supported Horizon Names",
+          "type": "array"
+        },
+        "term": {
+          "$ref": "#/$defs/OntologyTerm"
+        },
+        "units": {
+          "minLength": 1,
+          "title": "Units",
+          "type": "string"
+        },
+        "value_schema_reference": {
+          "$ref": "#/$defs/VersionedReference"
+        },
+        "weight": {
+          "exclusiveMinimum": 0,
+          "title": "Weight",
+          "type": "number"
+        }
+      },
+      "required": [
+        "term",
+        "units",
+        "aggregation",
+        "endpoint",
+        "value_schema_reference",
+        "missingness",
+        "censoring",
+        "supported_horizon_names",
+        "weight",
+        "functional"
+      ],
+      "title": "OutputSpec",
+      "type": "object"
+    },
+    "PerturbationStatus": {
+      "enum": [
+        "unknown",
+        "inferred",
+        "measured",
+        "failed"
+      ],
+      "title": "PerturbationStatus",
+      "type": "string"
+    },
+    "PopulationComponentAccessPurpose": {
+      "description": "Exact lifecycle use of one frozen benchmark partition.",
+      "enum": [
+        "fit_calibration",
+        "model_selection",
+        "train_parameters",
+        "untouched_evaluation"
+      ],
+      "title": "PopulationComponentAccessPurpose",
+      "type": "string"
+    },
+    "PopulationResponseRepresentation": {
+      "description": "Output forms understood by this direct endpoint component.",
+      "enum": [
+        "point_estimate",
+        "predictive_samples"
+      ],
+      "title": "PopulationResponseRepresentation",
+      "type": "string"
+    },
+    "PrecisionRequirement": {
+      "additionalProperties": false,
+      "properties": {
+        "confidence": {
+          "anyOf": [
+            {
+              "exclusiveMinimum": 0,
+              "maximum": 1,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Confidence"
+        },
+        "horizon_name": {
+          "minLength": 1,
+          "title": "Horizon Name",
+          "type": "string"
+        },
+        "maximum_error": {
+          "exclusiveMinimum": 0,
+          "title": "Maximum Error",
+          "type": "number"
+        },
+        "metric": {
+          "minLength": 1,
+          "title": "Metric",
+          "type": "string"
+        },
+        "target": {
+          "$ref": "#/$defs/OntologyTerm"
+        },
+        "units": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Units"
+        }
+      },
+      "required": [
+        "target",
+        "horizon_name",
+        "metric",
+        "maximum_error"
+      ],
+      "title": "PrecisionRequirement",
+      "type": "object"
+    },
+    "PredictionHorizon": {
+      "additionalProperties": false,
+      "properties": {
+        "duration_seconds": {
+          "exclusiveMinimum": 0,
+          "title": "Duration Seconds",
+          "type": "number"
+        },
+        "name": {
+          "minLength": 1,
+          "title": "Name",
+          "type": "string"
+        },
+        "timescale": {
+          "$ref": "#/$defs/Timescale"
+        }
+      },
+      "required": [
+        "name",
+        "duration_seconds",
+        "timescale"
+      ],
+      "title": "PredictionHorizon",
+      "type": "object"
+    },
+    "Quantity": {
+      "additionalProperties": false,
+      "properties": {
+        "units": {
+          "minLength": 1,
+          "title": "Units",
+          "type": "string"
+        },
+        "value": {
+          "title": "Value",
+          "type": "number"
+        }
+      },
+      "required": [
+        "value",
+        "units"
+      ],
+      "title": "Quantity",
+      "type": "object"
+    },
+    "QueryConstraints": {
+      "additionalProperties": false,
+      "description": "Non-metric constraints whose violation requires abstention.",
+      "properties": {
+        "allow_transport": {
+          "title": "Allow Transport",
+          "type": "boolean"
+        },
+        "allowed_combinations": {
+          "default": [],
+          "items": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "title": "Allowed Combinations",
+          "type": "array"
+        },
+        "assay_cost_units": {
+          "anyOf": [
+            {
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Assay Cost Units"
+        },
+        "forbidden_combinations": {
+          "default": [],
+          "items": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "title": "Forbidden Combinations",
+          "type": "array"
+        },
+        "maximum_assay_delay_seconds": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Maximum Assay Delay Seconds"
+        },
+        "maximum_intervention_combination_order": {
+          "minimum": 1,
+          "title": "Maximum Intervention Combination Order",
+          "type": "integer"
+        },
+        "maximum_total_assay_cost": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Maximum Total Assay Cost"
+        },
+        "named_constraints": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/ConstraintSpec"
+          },
+          "title": "Named Constraints",
+          "type": "array"
+        },
+        "require_complete_environment_history": {
+          "title": "Require Complete Environment History",
+          "type": "boolean"
+        },
+        "require_complete_intervention_history": {
+          "title": "Require Complete Intervention History",
+          "type": "boolean"
+        },
+        "require_complete_lineage_history": {
+          "title": "Require Complete Lineage History",
+          "type": "boolean"
+        },
+        "require_complete_neighborhood_history": {
+          "title": "Require Complete Neighborhood History",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "maximum_intervention_combination_order",
+        "require_complete_intervention_history",
+        "require_complete_environment_history",
+        "require_complete_lineage_history",
+        "require_complete_neighborhood_history",
+        "allow_transport"
+      ],
+      "title": "QueryConstraints",
+      "type": "object"
+    },
+    "RealizationEvidenceRequirement": {
+      "additionalProperties": false,
+      "description": "Per-action evidence expected for the latent realized perturbation.\n\nGaps are support/readiness findings, not malformed-event errors. In particular, UNKNOWN may be\nan allowed status even with a nonzero evidence minimum when observations quantify uncertainty\nwithout identifying an efficiency.",
+      "properties": {
+        "allowed_modalities": {
+          "items": {
+            "$ref": "#/$defs/OntologyTerm"
+          },
+          "title": "Allowed Modalities",
+          "type": "array"
+        },
+        "allowed_statuses": {
+          "items": {
+            "$ref": "#/$defs/PerturbationStatus"
+          },
+          "minItems": 1,
+          "title": "Allowed Statuses",
+          "type": "array"
+        },
+        "minimum_evidence_events": {
+          "minimum": 0,
+          "title": "Minimum Evidence Events",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "allowed_statuses",
+        "allowed_modalities",
+        "minimum_evidence_events"
+      ],
+      "title": "RealizationEvidenceRequirement",
+      "type": "object"
+    },
+    "ReversibilityStatus": {
+      "description": "What is actually known about reversal after an intervention ends.\n\nThis is deliberately separate from a schedule's washout interval.  Removing an\nexposure does not by itself establish that its biological effects are reversible.",
+      "enum": [
+        "reversible",
+        "irreversible",
+        "unknown"
+      ],
+      "title": "ReversibilityStatus",
+      "type": "string"
+    },
+    "ScalarRange": {
+      "additionalProperties": false,
+      "description": "A closed finite range for values whose units are fixed by the field name.",
+      "properties": {
+        "maximum": {
+          "title": "Maximum",
+          "type": "number"
+        },
+        "minimum": {
+          "title": "Minimum",
+          "type": "number"
+        }
+      },
+      "required": [
+        "minimum",
+        "maximum"
+      ],
+      "title": "ScalarRange",
+      "type": "object"
+    },
+    "ScheduleDomain": {
+      "additionalProperties": false,
+      "description": "Finite support for intervention administration and washout schedules.",
+      "properties": {
+        "administration_count": {
+          "$ref": "#/$defs/IntegerRange"
+        },
+        "allowed_kinds": {
+          "items": {
+            "$ref": "#/$defs/ScheduleKind"
+          },
+          "minItems": 1,
+          "title": "Allowed Kinds",
+          "type": "array"
+        },
+        "interval_seconds": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ScalarRange"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "washout_seconds": {
+          "$ref": "#/$defs/ScalarRange"
+        }
+      },
+      "required": [
+        "allowed_kinds",
+        "administration_count",
+        "interval_seconds",
+        "washout_seconds"
+      ],
+      "title": "ScheduleDomain",
+      "type": "object"
+    },
+    "ScheduleKind": {
+      "enum": [
+        "single",
+        "continuous",
+        "repeated",
+        "pulsed"
+      ],
+      "title": "ScheduleKind",
+      "type": "string"
+    },
+    "StateQuery": {
+      "additionalProperties": false,
+      "description": "A task-specific definition of predictive and interventional sufficiency.",
+      "properties": {
+        "acceptance_thresholds": {
+          "$ref": "#/$defs/AcceptanceThresholds"
+        },
+        "available_assays": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/AssaySpec"
+          },
+          "title": "Available Assays",
+          "type": "array"
+        },
+        "constraints": {
+          "$ref": "#/$defs/QueryConstraints"
+        },
+        "environment_space": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/EnvironmentVariableSpec"
+          },
+          "title": "Environment Space",
+          "type": "array"
+        },
+        "evidence_policy": {
+          "$ref": "#/$defs/EvidencePolicy"
+        },
+        "intervention_space": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/InterventionSpec"
+          },
+          "title": "Intervention Space",
+          "type": "array"
+        },
+        "precision_requirements": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/PrecisionRequirement"
+          },
+          "title": "Precision Requirements",
+          "type": "array"
+        },
+        "prediction_horizons": {
+          "items": {
+            "$ref": "#/$defs/PredictionHorizon"
+          },
+          "minItems": 1,
+          "title": "Prediction Horizons",
+          "type": "array"
+        },
+        "schema_version": {
+          "const": "2.0",
+          "default": "2.0",
+          "title": "Schema Version",
+          "type": "string"
+        },
+        "subject": {
+          "$ref": "#/$defs/SubjectSpecification"
+        },
+        "system_boundary": {
+          "$ref": "#/$defs/SystemBoundary"
+        },
+        "target_outputs": {
+          "items": {
+            "$ref": "#/$defs/OutputSpec"
+          },
+          "minItems": 1,
+          "title": "Target Outputs",
+          "type": "array"
+        },
+        "temporal_resolution_seconds": {
+          "exclusiveMinimum": 0,
+          "title": "Temporal Resolution Seconds",
+          "type": "number"
+        }
+      },
+      "required": [
+        "subject",
+        "system_boundary",
+        "temporal_resolution_seconds",
+        "prediction_horizons",
+        "target_outputs",
+        "evidence_policy",
+        "acceptance_thresholds",
+        "constraints"
+      ],
+      "title": "StateQuery",
+      "type": "object"
+    },
+    "SubjectKind": {
+      "description": "The biological estimand represented by a belief.",
+      "enum": [
+        "individual_cell",
+        "clone_lineage",
+        "population",
+        "spatial_niche"
+      ],
+      "title": "SubjectKind",
+      "type": "string"
+    },
+    "SubjectSpecification": {
+      "additionalProperties": false,
+      "description": "Query-level requirements for the concrete subject being estimated.",
+      "properties": {
+        "allowed_identity_bases": {
+          "items": {
+            "$ref": "#/$defs/IdentityBasis"
+          },
+          "minItems": 1,
+          "title": "Allowed Identity Bases",
+          "type": "array"
+        },
+        "biological_system": {
+          "$ref": "#/$defs/OntologyTerm"
+        },
+        "experimental_unit_kind": {
+          "minLength": 1,
+          "title": "Experimental Unit Kind",
+          "type": "string"
+        },
+        "kind": {
+          "$ref": "#/$defs/SubjectKind"
+        },
+        "membership_semantics": {
+          "minLength": 1,
+          "title": "Membership Semantics",
+          "type": "string"
+        }
+      },
+      "required": [
+        "kind",
+        "biological_system",
+        "membership_semantics",
+        "experimental_unit_kind",
+        "allowed_identity_bases"
+      ],
+      "title": "SubjectSpecification",
+      "type": "object"
+    },
+    "SystemBoundary": {
+      "enum": [
+        "isolated_cell",
+        "cell_and_soluble_environment",
+        "cell_and_neighbors",
+        "clone",
+        "population",
+        "spatial_tissue_niche"
+      ],
+      "title": "SystemBoundary",
+      "type": "string"
+    },
+    "TargetAggregation": {
+      "additionalProperties": false,
+      "description": "The estimand level and summary represented by a query output.",
+      "properties": {
+        "experimental_unit": {
+          "minLength": 1,
+          "title": "Experimental Unit",
+          "type": "string"
+        },
+        "statistic": {
+          "$ref": "#/$defs/AggregationStatistic"
+        },
+        "subject_kind": {
+          "$ref": "#/$defs/SubjectKind"
+        }
+      },
+      "required": [
+        "subject_kind",
+        "statistic",
+        "experimental_unit"
+      ],
+      "title": "TargetAggregation",
+      "type": "object"
+    },
+    "TargetCensoringPolicy": {
+      "enum": [
+        "reject_censored",
+        "model_with_assay_limits",
+        "model_with_recorded_bounds",
+        "not_applicable"
+      ],
+      "title": "TargetCensoringPolicy",
+      "type": "string"
+    },
+    "TargetCensoringSemantics": {
+      "additionalProperties": false,
+      "properties": {
+        "allowed_directions": {
+          "items": {
+            "$ref": "#/$defs/CensoringDirection"
+          },
+          "title": "Allowed Directions",
+          "type": "array"
+        },
+        "policy": {
+          "$ref": "#/$defs/TargetCensoringPolicy"
+        }
+      },
+      "required": [
+        "policy",
+        "allowed_directions"
+      ],
+      "title": "TargetCensoringSemantics",
+      "type": "object"
+    },
+    "TargetMissingnessPolicy": {
+      "enum": [
+        "require_observed",
+        "model_explicitly",
+        "exclude_with_declared_reason",
+        "not_applicable"
+      ],
+      "title": "TargetMissingnessPolicy",
+      "type": "string"
+    },
+    "TargetMissingnessSemantics": {
+      "additionalProperties": false,
+      "properties": {
+        "policy": {
+          "$ref": "#/$defs/TargetMissingnessPolicy"
+        },
+        "reportable_statuses": {
+          "items": {
+            "$ref": "#/$defs/MissingnessStatus"
+          },
+          "title": "Reportable Statuses",
+          "type": "array"
+        }
+      },
+      "required": [
+        "policy",
+        "reportable_statuses"
+      ],
+      "title": "TargetMissingnessSemantics",
+      "type": "object"
+    },
+    "Timescale": {
+      "enum": [
+        "fast",
+        "intermediate",
+        "slow"
+      ],
+      "title": "Timescale",
+      "type": "string"
+    },
+    "VersionedReference": {
+      "additionalProperties": false,
+      "description": "Immutable identity for a protocol, model, or target transformation.",
+      "properties": {
+        "fingerprint": {
+          "pattern": "^[a-fA-F0-9]{64}$",
+          "title": "Fingerprint",
+          "type": "string"
+        },
+        "reference_id": {
+          "minLength": 1,
+          "title": "Reference Id",
+          "type": "string"
+        },
+        "version": {
+          "minLength": 1,
+          "title": "Version",
+          "type": "string"
+        }
+      },
+      "required": [
+        "reference_id",
+        "version",
+        "fingerprint"
+      ],
+      "title": "VersionedReference",
+      "type": "object"
+    },
+    "VersionedTransformEndpoint": {
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "const": "versioned_transform",
+          "default": "versioned_transform",
+          "title": "Kind",
+          "type": "string"
+        },
+        "source_term": {
+          "$ref": "#/$defs/OntologyTerm"
+        },
+        "transformation_reference": {
+          "$ref": "#/$defs/VersionedReference"
+        }
+      },
+      "required": [
+        "source_term",
+        "transformation_reference"
+      ],
+      "title": "VersionedTransformEndpoint",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "One exact direct population-response request at the component boundary.",
+  "properties": {
+    "access_purpose": {
+      "$ref": "#/$defs/PopulationComponentAccessPurpose"
+    },
+    "current_hidden_state_inference_required": {
+      "default": false,
+      "title": "Current Hidden State Inference Required",
+      "type": "boolean"
+    },
+    "evaluation_case": {
+      "$ref": "#/$defs/BenchmarkEvaluationCase"
+    },
+    "forecast_causal_status": {
+      "$ref": "#/$defs/CausalStatus"
+    },
+    "identified_intervention_realization_required": {
+      "default": false,
+      "title": "Identified Intervention Realization Required",
+      "type": "boolean"
+    },
+    "output_representation": {
+      "$ref": "#/$defs/PopulationResponseRepresentation"
+    },
+    "pre_cutoff_evidence_modalities": {
+      "default": [],
+      "items": {
+        "$ref": "#/$defs/OntologyTerm"
+      },
+      "title": "Pre Cutoff Evidence Modalities",
+      "type": "array"
+    },
+    "query": {
+      "$ref": "#/$defs/StateQuery"
+    },
+    "requested_environment_keys": {
+      "default": [],
+      "items": {
+        "type": "string"
+      },
+      "title": "Requested Environment Keys",
+      "type": "array"
+    },
+    "survival_or_viability_interpretation_required": {
+      "default": false,
+      "title": "Survival Or Viability Interpretation Required",
+      "type": "boolean"
+    },
+    "transport_requested": {
+      "default": false,
+      "title": "Transport Requested",
+      "type": "boolean"
+    }
+  },
+  "required": [
+    "query",
+    "evaluation_case",
+    "access_purpose",
+    "output_representation",
+    "forecast_causal_status"
+  ],
+  "title": "PopulationAssayResponseTask",
+  "type": "object"
+}

@@ -1,0 +1,41 @@
+{
+  "artifact_schema": "sciplex3-k562-frozen-baseline-suite",
+  "artifact_schema_version": "1.0.0",
+  "baselines": [
+    "exact-condition-negative-binomial",
+    "exact-condition-rep1-empirical-resampling",
+    "hierarchical-well-negative-binomial",
+    "low-rank-compound-dose-response",
+    "matched-vehicle-resampling",
+    "nearest-supported-dose",
+    "persistence",
+    "temporal-state-space"
+  ],
+  "execution_status": "not_run",
+  "inapplicability": {
+    "persistence": "requires a pre-cutoff target-modality observation; frozen query has none",
+    "temporal-state-space": "also requires at least two future horizons; frozen query has one"
+  },
+  "mandatory_probabilistic_baselines": [
+    "exact-condition-negative-binomial",
+    "exact-condition-rep1-empirical-resampling",
+    "hierarchical-well-negative-binomial",
+    "low-rank-compound-dose-response",
+    "matched-vehicle-resampling"
+  ],
+  "rule": "A missing or crashed applicable baseline blocks admission and cannot be relabeled not applicable.",
+  "scoring_contract": {
+    "candidate_and_baseline_symmetry": "candidate and every applicable baseline emit raw ordered 2,000-panel count samples and are scored with the identical panel-only transform",
+    "scoring_transform_artifact": {
+      "artifact_id": "sciplex3-panel-only-scoring-transform",
+      "byte_count": 3596,
+      "media_type": "application/json",
+      "sha256": "6968740ed833e482b83b73d6315c9ef4c1caca0ba1d9bb92ce09ffdca86c8f57",
+      "uri": "https://raw.githubusercontent.com/logannye/cellstate/main/benchmarks/vertical-a/sciplex3-k562-24h-v1/support/scoring-transform.json"
+    },
+    "zero_panel_total_policy": "error_fail_evaluation_no_exclusion_or_imputation"
+  },
+  "secondary_applicable_baselines": [
+    "nearest-supported-dose"
+  ]
+}

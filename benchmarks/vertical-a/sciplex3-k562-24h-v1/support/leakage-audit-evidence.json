@@ -1,0 +1,42 @@
+{
+  "artifact_schema": "sciplex3-k562-definition-leakage-review",
+  "artifact_schema_version": "1.0.0",
+  "checks_from_preparation": {
+    "all_evaluation_conditions_have_rep1_train_counterparts": true,
+    "protected_plate_overlap_count": 0,
+    "record_overlap_count": 0,
+    "rep2_compound_overlap_count": 0,
+    "rep2_compound_union_count": 188,
+    "well_overlap_count": 0
+  },
+  "feature_fit": {
+    "count_accessed_partition_roles": [
+      "train"
+    ],
+    "full_source_axis_logcp10k_purpose": "TRAIN-only feature ranking and selection",
+    "heldout_count_rows_accessed": 0
+  },
+  "limitations": [
+    "No model or applicable baseline has been executed.",
+    "Source-duplicate detection beyond exact source row IDs remains unassessed.",
+    "All assessment bindings reuse one explicitly identified physical dataset and one four-way physical split."
+  ],
+  "scoring_transform": {
+    "fitted_state": "none",
+    "full_source_axis_counts_required": false,
+    "input_scope": "declared ordered 2,000-feature raw count vector only",
+    "scoring_transform_artifact": {
+      "artifact_id": "sciplex3-panel-only-scoring-transform",
+      "byte_count": 3596,
+      "media_type": "application/json",
+      "sha256": "6968740ed833e482b83b73d6315c9ef4c1caca0ba1d9bb92ce09ffdca86c8f57",
+      "uri": "https://raw.githubusercontent.com/logannye/cellstate/main/benchmarks/vertical-a/sciplex3-k562-24h-v1/support/scoring-transform.json"
+    },
+    "zero_panel_total_policy": "error_fail_evaluation_no_exclusion_or_imputation"
+  },
+  "temporal_cutoff": {
+    "cutoff_seconds": 0,
+    "pre_cutoff_target_observations": 0,
+    "target_endpoint_seconds": 86400
+  }
+}

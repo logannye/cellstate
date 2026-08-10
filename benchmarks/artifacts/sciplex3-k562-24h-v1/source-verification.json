@@ -1,0 +1,53 @@
+{
+  "artifact_schema": "sciplex3-k562-source-verification",
+  "artifact_schema_version": "1.0.0",
+  "generator": {
+    "generator_id": "cellstate.prepare-sciplex3-k562",
+    "generator_version": "1.0.0",
+    "script_sha256": "d34c4168602682267eec6e30e84cfa50d319ab968a75159ff62b390c1325aece"
+  },
+  "h5ad_structure": {
+    "matrix_encoding": "csr_matrix",
+    "matrix_nonzero_count": 1007419688,
+    "matrix_shape": [
+      799317,
+      110983
+    ],
+    "matrix_value_dtype": "int64",
+    "matrix_values_are_raw_integer_umi_counts": true,
+    "required_observation_fields": [
+      "_index",
+      "cell_line",
+      "dose_unit",
+      "dose_value",
+      "ncounts",
+      "perturbation",
+      "plate",
+      "replicate",
+      "time",
+      "well"
+    ],
+    "source_feature_axis_encoded_byte_count": 4203602,
+    "source_feature_axis_encoding": "canonical_json_utf8_index_ensembl_symbol_triple_array_v1",
+    "source_feature_axis_sha256": "4fef9247abbb9053260d02f24b8fc6ace057fcda966b8fd0d7bc5daa674aa313",
+    "source_feature_count": 110983,
+    "source_features_with_ensembl_id": 110983,
+    "source_features_with_human_ensembl_id": 58347,
+    "source_features_with_mouse_ensembl_id": 52636
+  },
+  "limitations": [
+    "Source verification does not authorize training or benchmark use.",
+    "The H5AD is a corrected secondary harmonization of GEO GSE139944.",
+    "Dose units and randomized-design evidence require primary-source binding."
+  ],
+  "source": {
+    "accession": "10.5281/zenodo.13350497",
+    "byte_count": 2526631614,
+    "filename": "SrivatsanTrapnell2020_sciplex3.h5ad",
+    "license": "CC-BY-4.0",
+    "md5": "c9e70629505d98c7ca1a837f62b14e89",
+    "release": "1.4",
+    "sha256": "603ed16c5e25401c8a7f5bb0b2b045179701017d65dcfc6aeea71722a66cd10a",
+    "uri": "https://zenodo.org/api/records/13350497/files/SrivatsanTrapnell2020_sciplex3.h5ad/content"
+  }
+}

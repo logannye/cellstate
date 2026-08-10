@@ -1,0 +1,581 @@
+{
+  "schema_version": "0.3-experimental",
+  "dataset_id": "replogle-2022-k562-essential",
+  "version": "scperturb-1.4-review-1",
+  "title": "Replogle 2022 K562 essential-scale Perturb-seq, destructive endpoint",
+  "description": "A reviewed whole-artifact manifest for the day-6 K562 essential-scale CRISPRi Perturb-seq population distributed by scPerturb 1.4. The sole positive scientific role is a conditional descriptive snapshot-state prior; the manifest does not identify dynamics or intervention effects.",
+  "origin": {
+    "kind": "public_real",
+    "publicly_downloadable": true,
+    "repository": "Figshare+",
+    "study_accession": "10.25452/figshare.plus.20029387.v1",
+    "publication_doi": "10.1016/j.cell.2022.05.013",
+    "release": "v1",
+    "species": [
+      {
+        "label": "Homo sapiens",
+        "identifier": "NCBITaxon:9606"
+      }
+    ],
+    "biological_systems": [
+      {
+        "label": "K562",
+        "identifier": "CVCL:0004"
+      }
+    ]
+  },
+  "sources": [
+    {
+      "source_id": "figshare-20029387-v1-metadata",
+      "kind": "metadata",
+      "uri": "https://api.figshare.com/v2/articles/20029387/versions/1",
+      "sha256": "4d7abba9bdedf8b8484aab0aacdce9fbbb21b32fb10b6ef62c633385449f8968",
+      "media_type": "application/json",
+      "access_mode": "open_download",
+      "accession": "10.25452/figshare.plus.20029387.v1",
+      "release": "v1",
+      "byte_count": 11402,
+      "retrieved_at": "2026-08-10T01:35:30Z"
+    },
+    {
+      "source_id": "replogle-k562-essential-h5ad",
+      "kind": "processed",
+      "uri": "https://zenodo.org/api/records/13350497/files/ReplogleWeissman2022_K562_essential.h5ad/content",
+      "sha256": "412fd0df8c4ccea9f4db91cd88033c49200838b29d40945e48574be588b48789",
+      "media_type": "application/x-hdf5",
+      "access_mode": "open_download",
+      "accession": "10.5281/zenodo.13350497",
+      "release": "1.4",
+      "parent_study_accession": "10.25452/figshare.plus.20029387.v1",
+      "parent_study_release": "v1",
+      "byte_count": 1546729675,
+      "retrieved_at": "2026-05-01T19:21:34Z"
+    }
+  ],
+  "slice_spec": {
+    "kind": "whole_artifact",
+    "slice_id": "replogle-2022-k562-essential-whole-artifact-v1",
+    "selection_source_ids": [
+      "replogle-k562-essential-h5ad"
+    ],
+    "record_id_field": "cell_barcode",
+    "selected_record_ids_encoding": "canonical_json_utf8_string_array_v1",
+    "selected_record_ids_sha256": "27c981a89a625aa9c3245a9eda97db44df17f7c22d4a91c7ecd906880b6d3546",
+    "selected_record_count": 310385,
+    "selected_subject_count": 1,
+    "selection_stages": []
+  },
+  "use_policies": [
+    {
+      "policy_id": "replogle-k562-essential-cc-by-4.0",
+      "source_ids": [
+        "figshare-20029387-v1-metadata",
+        "replogle-k562-essential-h5ad"
+      ],
+      "license_name": "Creative Commons Attribution 4.0 International",
+      "terms_url": "https://creativecommons.org/licenses/by/4.0/",
+      "reviewed_on": "2026-08-09",
+      "spdx_identifier": "CC-BY-4.0",
+      "permissions": [
+        {
+          "use_case": "research_model_training",
+          "status": "permitted",
+          "conditions": []
+        },
+        {
+          "use_case": "commercial_model_training",
+          "status": "permitted",
+          "conditions": []
+        },
+        {
+          "use_case": "benchmark_evaluation",
+          "status": "permitted",
+          "conditions": []
+        },
+        {
+          "use_case": "source_data_redistribution",
+          "status": "permitted",
+          "conditions": []
+        },
+        {
+          "use_case": "derived_model_distribution",
+          "status": "permitted",
+          "conditions": []
+        },
+        {
+          "use_case": "derived_model_publication",
+          "status": "permitted",
+          "conditions": []
+        }
+      ],
+      "attribution_requirements": [
+        "Credit Replogle et al. and cite DOI 10.1016/j.cell.2022.05.013.",
+        "Identify the Figshare+ author release and the scPerturb Zenodo release, retain a link to CC BY 4.0, and indicate changes made to redistributed or derived material."
+      ]
+    }
+  ],
+  "experimental_design": {
+    "units": [
+      {
+        "level": "culture",
+        "id_field": "study_population_id",
+        "source_ids": [
+          "figshare-20029387-v1-metadata",
+          "replogle-k562-essential-h5ad"
+        ]
+      },
+      {
+        "level": "sample",
+        "id_field": "batch",
+        "source_ids": [
+          "replogle-k562-essential-h5ad"
+        ],
+        "parent_level": "culture"
+      },
+      {
+        "level": "cell",
+        "id_field": "cell_barcode",
+        "source_ids": [
+          "replogle-k562-essential-h5ad"
+        ],
+        "parent_level": "sample"
+      }
+    ],
+    "sampling": {
+      "subject_kind": "population",
+      "subject_unit": "culture",
+      "subject_id_field": "study_population_id",
+      "source_ids": [
+        "figshare-20029387-v1-metadata",
+        "replogle-k562-essential-h5ad"
+      ],
+      "mode": "endpoint_destructive",
+      "linkage": "none",
+      "canonical_time_units": "s"
+    },
+    "default_split_unit": "culture",
+    "matched_control_field": "perturbation",
+    "batch_fields": [
+      "batch"
+    ]
+  },
+  "capabilities": {
+    "modalities": [
+      {
+        "modality": {
+          "label": "single-cell RNA UMI counts"
+        },
+        "source_ids": [
+          "replogle-k562-essential-h5ad"
+        ],
+        "subject_alignment": "same_cell",
+        "alignment_group": "replogle-k562-essential-transcriptome",
+        "alignment_key_field": "cell_barcode",
+        "raw_available": false,
+        "processed_available": true,
+        "destructive": true
+      }
+    ],
+    "interventions": {
+      "source_ids": [
+        "figshare-20029387-v1-metadata",
+        "replogle-k562-essential-h5ad"
+      ],
+      "assignment": "assigned_nonrandom",
+      "kinds": [
+        {
+          "label": "CRISPR interference"
+        }
+      ],
+      "targets_recorded": true,
+      "doses_recorded": false,
+      "durations_recorded": true,
+      "start_stop_recorded": false,
+      "washout_recorded": false,
+      "combinations_present": false,
+      "assignment_probabilities_recorded": false,
+      "matched_controls_present": true,
+      "realization_evidence": "measured"
+    },
+    "timing": {
+      "source_ids": [
+        "figshare-20029387-v1-metadata"
+      ],
+      "timepoints_seconds": [
+        518400.0
+      ],
+      "observation_windows": [],
+      "observation_times_recorded": true,
+      "intervention_times_recorded": true,
+      "environment_times_recorded": false,
+      "event_ordering_recorded": true
+    },
+    "lineage": {
+      "resolution": "none",
+      "source_ids": [],
+      "lineage_ids_recorded": false,
+      "division_times_recorded": false,
+      "confidence_recorded": false
+    },
+    "spatial": {
+      "resolution": "none",
+      "source_ids": [],
+      "distances_recorded": false,
+      "contacts_recorded": false,
+      "regions_recorded": false
+    },
+    "functional": {
+      "outputs": []
+    },
+    "environment": {
+      "variables": []
+    }
+  },
+  "claim_assessments": [
+    {
+      "assessment_id": "replogle-k562-assay-measurement-model",
+      "claim": "assay_measurement_model",
+      "status": "not_assessed",
+      "identification_basis": "none",
+      "scope": {
+        "subject_kind": "population",
+        "system_boundary": "population",
+        "biological_systems": [
+          {
+            "label": "K562",
+            "identifier": "CVCL:0004"
+          }
+        ],
+        "modalities": [
+          {
+            "label": "single-cell RNA UMI counts"
+          }
+        ]
+      },
+      "evidence_source_ids": [],
+      "evidence_notes": [],
+      "assumptions": [],
+      "blockers": [
+        "The reviewed source is a secondary processed H5AD; raw reads, molecule-capture calibration, and an exact assay-error model are not bound."
+      ]
+    },
+    {
+      "assessment_id": "replogle-k562-snapshot-state-prior",
+      "claim": "snapshot_state_prior",
+      "status": "conditionally_eligible",
+      "identification_basis": "descriptive",
+      "scope": {
+        "subject_kind": "population",
+        "system_boundary": "population",
+        "biological_systems": [
+          {
+            "label": "K562",
+            "identifier": "CVCL:0004"
+          }
+        ],
+        "modalities": [
+          {
+            "label": "single-cell RNA UMI counts"
+          }
+        ],
+        "intervention_kinds": [
+          {
+            "label": "CRISPR interference"
+          }
+        ]
+      },
+      "evidence_source_ids": [
+        "figshare-20029387-v1-metadata",
+        "replogle-k562-essential-h5ad"
+      ],
+      "evidence_notes": [
+        "The exact whole-artifact slice contains 310,385 destructively sampled day-6 K562 cells with raw integer UMI counts retained in the processed H5AD.",
+        "Measured guide labels, non-targeting controls, and technical-batch labels support a descriptive CRISPRi-conditioned endpoint distribution for this post-selection culture population."
+      ],
+      "assumptions": [
+        "Capture, QC, viability, guide-call, and essential-gene depletion selection are modeled for the exact post-selection population rather than ignored.",
+        "GEM group, library size, and assay variation are treated as nuisance structure and not as independent biological replication.",
+        "Transcript counts are an assay proxy for the scoped hidden state, and conditioning on a guide label is descriptive rather than a causal do-intervention."
+      ],
+      "blockers": []
+    },
+    {
+      "assessment_id": "replogle-k562-same-cell-multimodal-fusion",
+      "claim": "same_cell_multimodal_fusion",
+      "status": "ineligible",
+      "identification_basis": "none",
+      "scope": {
+        "subject_kind": "individual_cell",
+        "system_boundary": "isolated_cell",
+        "biological_systems": [
+          {
+            "label": "K562",
+            "identifier": "CVCL:0004"
+          }
+        ],
+        "modalities": [
+          {
+            "label": "single-cell RNA UMI counts"
+          }
+        ]
+      },
+      "blockers": [
+        "The reviewed artifact exposes only one molecular modality and therefore cannot establish same-cell multimodal fusion."
+      ]
+    },
+    {
+      "assessment_id": "replogle-k562-sample-level-multimodal-fusion",
+      "claim": "sample_level_multimodal_fusion",
+      "status": "ineligible",
+      "identification_basis": "none",
+      "scope": {
+        "subject_kind": "population",
+        "system_boundary": "population",
+        "biological_systems": [
+          {
+            "label": "K562",
+            "identifier": "CVCL:0004"
+          }
+        ],
+        "modalities": [
+          {
+            "label": "single-cell RNA UMI counts"
+          }
+        ]
+      },
+      "blockers": [
+        "The reviewed artifact exposes only one molecular modality and therefore cannot establish sample-level multimodal fusion."
+      ]
+    },
+    {
+      "assessment_id": "replogle-k562-population-dynamics",
+      "claim": "population_dynamics",
+      "status": "ineligible",
+      "identification_basis": "none",
+      "scope": {
+        "subject_kind": "population",
+        "system_boundary": "population",
+        "biological_systems": [
+          {
+            "label": "K562",
+            "identifier": "CVCL:0004"
+          }
+        ],
+        "modalities": [
+          {
+            "label": "single-cell RNA UMI counts"
+          }
+        ],
+        "intervention_kinds": [
+          {
+            "label": "CRISPR interference"
+          }
+        ]
+      },
+      "blockers": [
+        "There is one destructive day-6 endpoint and no linked repeated observation of the same culture population."
+      ]
+    },
+    {
+      "assessment_id": "replogle-k562-individual-longitudinal-dynamics",
+      "claim": "individual_longitudinal_dynamics",
+      "status": "ineligible",
+      "identification_basis": "none",
+      "scope": {
+        "subject_kind": "individual_cell",
+        "system_boundary": "isolated_cell",
+        "biological_systems": [
+          {
+            "label": "K562",
+            "identifier": "CVCL:0004"
+          }
+        ],
+        "modalities": [
+          {
+            "label": "single-cell RNA UMI counts"
+          }
+        ],
+        "intervention_kinds": [
+          {
+            "label": "CRISPR interference"
+          }
+        ]
+      },
+      "blockers": [
+        "RNA capture destroys each cell and the release contains no cross-time same-cell identity."
+      ]
+    },
+    {
+      "assessment_id": "replogle-k562-intervention-effect",
+      "claim": "intervention_effect",
+      "status": "ineligible",
+      "identification_basis": "none",
+      "scope": {
+        "subject_kind": "population",
+        "system_boundary": "population",
+        "biological_systems": [
+          {
+            "label": "K562",
+            "identifier": "CVCL:0004"
+          }
+        ],
+        "modalities": [
+          {
+            "label": "single-cell RNA UMI counts"
+          }
+        ],
+        "intervention_kinds": [
+          {
+            "label": "CRISPR interference"
+          }
+        ]
+      },
+      "blockers": [
+        "The released day-6 object does not establish independent biological culture replicates, a randomized allocation unit, assignment probabilities, or a pre-exposure population endpoint."
+      ]
+    },
+    {
+      "assessment_id": "replogle-k562-counterfactual-generalization",
+      "claim": "counterfactual_generalization",
+      "status": "ineligible",
+      "identification_basis": "none",
+      "scope": {
+        "subject_kind": "population",
+        "system_boundary": "population",
+        "biological_systems": [
+          {
+            "label": "K562",
+            "identifier": "CVCL:0004"
+          }
+        ],
+        "modalities": [
+          {
+            "label": "single-cell RNA UMI counts"
+          }
+        ],
+        "intervention_kinds": [
+          {
+            "label": "CRISPR interference"
+          }
+        ]
+      },
+      "blockers": [
+        "No typed source-to-target transport scope or evidence identifies counterfactual generalization beyond this exact K562 protocol, endpoint, assay, and perturbation library."
+      ]
+    },
+    {
+      "assessment_id": "replogle-k562-lineage-fate",
+      "claim": "lineage_fate",
+      "status": "ineligible",
+      "identification_basis": "none",
+      "scope": {
+        "subject_kind": "clone",
+        "system_boundary": "clone",
+        "biological_systems": [
+          {
+            "label": "K562",
+            "identifier": "CVCL:0004"
+          }
+        ],
+        "modalities": [
+          {
+            "label": "single-cell RNA UMI counts"
+          }
+        ]
+      },
+      "blockers": [
+        "The artifact has no clone identity, lineage edges, division timing, or independently measured future fate."
+      ]
+    },
+    {
+      "assessment_id": "replogle-k562-spatial-context",
+      "claim": "spatial_context",
+      "status": "ineligible",
+      "identification_basis": "none",
+      "scope": {
+        "subject_kind": "population",
+        "system_boundary": "spatial_tissue_niche",
+        "biological_systems": [
+          {
+            "label": "K562",
+            "identifier": "CVCL:0004"
+          }
+        ],
+        "modalities": [
+          {
+            "label": "single-cell RNA UMI counts"
+          }
+        ]
+      },
+      "blockers": [
+        "A dissociated suspension-culture endpoint provides no cell coordinates, neighborhood graph, contact map, or tissue-niche identity."
+      ]
+    },
+    {
+      "assessment_id": "replogle-k562-functional-outcome",
+      "claim": "functional_outcome",
+      "status": "ineligible",
+      "identification_basis": "none",
+      "scope": {
+        "subject_kind": "population",
+        "system_boundary": "population",
+        "biological_systems": [
+          {
+            "label": "K562",
+            "identifier": "CVCL:0004"
+          }
+        ],
+        "modalities": [
+          {
+            "label": "single-cell RNA UMI counts"
+          }
+        ],
+        "intervention_kinds": [
+          {
+            "label": "CRISPR interference"
+          }
+        ]
+      },
+      "blockers": [
+        "The reviewed whole-artifact slice binds no independent future functional readout aligned to this sampled population."
+      ]
+    },
+    {
+      "assessment_id": "replogle-k562-retrospective-intervention-selection",
+      "claim": "retrospective_intervention_selection",
+      "status": "ineligible",
+      "identification_basis": "none",
+      "scope": {
+        "subject_kind": "population",
+        "system_boundary": "population",
+        "biological_systems": [
+          {
+            "label": "K562",
+            "identifier": "CVCL:0004"
+          }
+        ],
+        "modalities": [
+          {
+            "label": "single-cell RNA UMI counts"
+          }
+        ],
+        "intervention_kinds": [
+          {
+            "label": "CRISPR interference"
+          }
+        ]
+      },
+      "blockers": [
+        "Intervention effects are not identified and the artifact binds neither a decision utility nor a prospective candidate-selection task."
+      ]
+    }
+  ],
+  "loss_assessments": [],
+  "metric_assessments": [],
+  "notes": [
+    "The 48 batch values are Chromium GEM-group or lane-level technical samples drawn from one pooled culture; they are not promoted to biological replicates.",
+    "Each targeting vector carries two guides against the same gene, so combinations_present is false for gene-level intervention semantics.",
+    "The separate K562 day-8 genome-wide screen differs in library and endpoint and is not treated as a replicate of this day-6 population.",
+    "Representability does not admit this artifact to training, calibration, validation, or test partitions; those memberships require a later split manifest."
+  ]
+}

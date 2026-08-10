@@ -1,0 +1,247 @@
+{
+  "schema_version": "0.1-experimental",
+  "proof_id": "gse141064-raw-g9-functional-recorder-representability",
+  "proof_kind": "individual_cell_functional_recorder",
+  "assessment_reference": {
+    "dataset_manifest_fingerprint": "be3e3756b472bdff6aa12ef338e9cc6b40310ae4efd89eee64270d0db7f8d265",
+    "assessment_id": "functional-outcome-same-cell-recorder",
+    "assessment_fingerprint": "8eee3aeb21cd06c8a83830057f97f4bd8552a8b8c276d51c36fd42b9602a371d"
+  },
+  "slice_fingerprint": "d52f721a83da390062253e6c70d1fc3b58dc1abb648ba719ee26ce3b3a5a1d7e",
+  "source_bindings": [
+    {
+      "source_id": "gse141064-counts",
+      "sha256": "0e8a07d36a4b06bc8ced881bf97114adc2b55681b5ccf00d29e4f80e05107b22"
+    },
+    {
+      "source_id": "liveseq-analysis-v1",
+      "sha256": "1196d1fc8478623bc1405701062b335df12c205777b3bafa7a2a8360dbb0c1a3"
+    },
+    {
+      "source_id": "liveseq-meta-final-v1",
+      "sha256": "dcce9bea9444857a6a042fc64be3a5c7b31a00095a21eabc1488e516abd689c8"
+    },
+    {
+      "source_id": "liveseq-paper",
+      "sha256": "cfaa5c013874dfc435158b77f557bbc07fcf9673d265c8e33b31fb6750e0e94a"
+    }
+  ],
+  "criterion_traces": [
+    {
+      "criterion": "baseline_before_target",
+      "status": "passed",
+      "evidence_locators": [
+        {
+          "source_id": "liveseq-paper",
+          "method": "publication_method",
+          "locator": "Methods: Molecular recording of RAW cells; Live-seq occurs 0.5 to 1.5 hours before LPS, while Methods: Live-seq and live-cell imaging integration defines the 3 to 7.5 hour response window."
+        }
+      ],
+      "evidence_notes": [
+        "The registered baseline interval ends 1,800 seconds before LPS and the target interval begins 10,800 seconds after LPS on the same event clock."
+      ],
+      "blockers": []
+    },
+    {
+      "criterion": "causal_overclaim_rejected",
+      "status": "passed",
+      "evidence_locators": [
+        {
+          "source_id": "liveseq-meta-final-v1",
+          "method": "source_field",
+          "locator": "treatment and Batch fields for the exact selected records; no selected randomized or matched-control contrast is present."
+        }
+      ],
+      "evidence_notes": [
+        "The positive assessment is associational and the exact intervention-effect assessment is ineligible."
+      ],
+      "blockers": []
+    },
+    {
+      "criterion": "clone_cast_rejected",
+      "status": "passed",
+      "evidence_locators": [
+        {
+          "source_id": "liveseq-paper",
+          "method": "publication_method",
+          "locator": "Recording ground-state transcriptomics and Fig. 5 describe directly tracked RAW cells without a clone barcode, parent-child relation, or lineage-fate endpoint."
+        }
+      ],
+      "evidence_notes": [
+        "The exact lineage-fate assessment is ineligible, so same-cell tracking cannot be relabeled as clone or lineage evidence."
+      ],
+      "blockers": []
+    },
+    {
+      "criterion": "exact_slice_bound",
+      "status": "passed",
+      "evidence_locators": [
+        {
+          "source_id": "liveseq-analysis-v1",
+          "method": "selector_execution",
+          "locator": "Lines selecting Liveseq_recordCell by mCherry.log.intercept > 0, treatment == 'not_treated', and Batch == '8_8'; selector SHA-256 is bound in slice_spec."
+        },
+        {
+          "source_id": "liveseq-meta-final-v1",
+          "method": "source_field",
+          "locator": "sample_ID membership for the 17 selected records; canonical semantic ID-array SHA-256 is bound in slice_spec."
+        }
+      ],
+      "evidence_notes": [
+        "The content-addressed 17-record membership and tagged selector prevent unrelated GSE141064 rows from lending evidence to this proof."
+      ],
+      "blockers": []
+    },
+    {
+      "criterion": "future_same_cell_functional_readout",
+      "status": "passed",
+      "evidence_locators": [
+        {
+          "source_id": "liveseq-meta-final-v1",
+          "method": "source_field",
+          "locator": "sample_ID and mCherry.log.slope fields."
+        },
+        {
+          "source_id": "liveseq-paper",
+          "method": "publication_method",
+          "locator": "Methods: Live-seq and live-cell imaging integration; linear-model slope of natural-log Tnf-mCherry fluorescence over 3 to 7.5 hours after LPS."
+        }
+      ],
+      "evidence_notes": [
+        "The derived mCherry.log.slope target is aligned to the same cell and exactly matches the registered future target window."
+      ],
+      "blockers": []
+    },
+    {
+      "criterion": "individual_cell_subject",
+      "status": "passed",
+      "evidence_locators": [
+        {
+          "source_id": "liveseq-meta-final-v1",
+          "method": "source_field",
+          "locator": "sample_ID is the cell-level record and alignment key for the exact RAW264.7_G9 selected records."
+        }
+      ],
+      "evidence_notes": [
+        "The manifest sampling subject, conditioning modality, functional output, and claim scope all bind an individual cell."
+      ],
+      "blockers": []
+    },
+    {
+      "criterion": "population_cast_rejected",
+      "status": "passed",
+      "evidence_locators": [
+        {
+          "source_id": "liveseq-meta-final-v1",
+          "method": "source_field",
+          "locator": "The selected sample_ID records retain individual mCherry.log.slope outcomes and no repeated independently sampled population units."
+        }
+      ],
+      "evidence_notes": [
+        "The exact population-dynamics assessment is ineligible; aggregating these cells would not create a replicated population transition."
+      ],
+      "blockers": []
+    },
+    {
+      "criterion": "same_cell_linkage",
+      "status": "passed",
+      "evidence_locators": [
+        {
+          "source_id": "liveseq-paper",
+          "method": "direct_image_tracking",
+          "locator": "Fig. 5a and Methods: Molecular recording of RAW cells follow cells in one microscope field from Live-seq biopsy through LPS addition and Tnf-mCherry imaging."
+        }
+      ],
+      "evidence_notes": [
+        "Direct image tracking establishes identity through time; expression similarity or inferred matching is not used."
+      ],
+      "blockers": []
+    },
+    {
+      "criterion": "source_bytes_bound",
+      "status": "passed",
+      "evidence_locators": [
+        {
+          "source_id": "gse141064-counts",
+          "method": "checksum_verification",
+          "locator": "Downloaded gzip byte stream verified against manifest SHA-256 and byte count on 2026-08-09."
+        },
+        {
+          "source_id": "liveseq-analysis-v1",
+          "method": "checksum_verification",
+          "locator": "Commit-pinned selector script verified against manifest SHA-256 and byte count on 2026-08-09."
+        },
+        {
+          "source_id": "liveseq-meta-final-v1",
+          "method": "checksum_verification",
+          "locator": "Commit-pinned metadata table verified against manifest SHA-256 and byte count on 2026-08-09."
+        },
+        {
+          "source_id": "liveseq-paper",
+          "method": "checksum_verification",
+          "locator": "Primary article PDF verified against manifest SHA-256 and byte count on 2026-08-09."
+        }
+      ],
+      "evidence_notes": [
+        "Every source used by slice selection, the positive claim, cohort flow, and proof locators is bound to the exact manifest digest."
+      ],
+      "blockers": []
+    },
+    {
+      "criterion": "transport_overclaim_rejected",
+      "status": "passed",
+      "evidence_locators": [
+        {
+          "source_id": "liveseq-paper",
+          "method": "publication_method",
+          "locator": "Recording ground-state transcriptomics is restricted to the engineered RAW264.7-G9 reporter line and one LPS culture protocol."
+        }
+      ],
+      "evidence_notes": [
+        "The exact counterfactual-generalization assessment is ineligible and the positive claim is restricted to the reviewed RAW-G9 protocol."
+      ],
+      "blockers": []
+    },
+    {
+      "criterion": "viability_preserving_collection",
+      "status": "passed",
+      "evidence_locators": [
+        {
+          "source_id": "liveseq-paper",
+          "method": "publication_method",
+          "locator": "Live-seq's impact on cellular functions and Methods: Cytoplasmic biopsies report 85 to 89 percent viability, partial cytoplasmic extraction, recovery, and continued follow-up after sampling."
+        }
+      ],
+      "evidence_notes": [
+        "The conditioning assay is represented as partial nondestructive sampling, while possible residual collection effects remain an explicit assumption."
+      ],
+      "blockers": []
+    }
+  ],
+  "negative_claim_assessments": [
+    {
+      "assessment_id": "counterfactual-generalization-cast-ineligible",
+      "assessment_fingerprint": "c665db53fa02ab9289c160544324ec032334bf9f398f3214b4860060eb98e272"
+    },
+    {
+      "assessment_id": "individual-dynamics-cast-not-assessed",
+      "assessment_fingerprint": "ad6d5794c1e23ceca1ce3ebe74dac4d1515bd3c42adfbcb31bf255163b6d3cb7"
+    },
+    {
+      "assessment_id": "intervention-effect-cast-ineligible",
+      "assessment_fingerprint": "6b7587649a50974432d953fc4c45f022de36b03e604bf49a3a64912e9f19a682"
+    },
+    {
+      "assessment_id": "lineage-fate-cast-ineligible",
+      "assessment_fingerprint": "1e4a660cc1e84e85752f3465cf2f030bcde414803de615a039f4cc0cf8c48b8d"
+    },
+    {
+      "assessment_id": "population-dynamics-cast-ineligible",
+      "assessment_fingerprint": "ee4480b9f8fce00e226621a965e8c5c7e2e1ac23b7a0a0d27037c86da0fc1c9c"
+    }
+  ],
+  "reviewed_by": [
+    "cellstate-item7-evidence-review"
+  ],
+  "reviewed_on": "2026-08-09"
+}

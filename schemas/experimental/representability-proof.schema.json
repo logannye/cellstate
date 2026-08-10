@@ -1,0 +1,264 @@
+{
+  "$defs": {
+    "ClaimAssessmentReference": {
+      "additionalProperties": false,
+      "properties": {
+        "assessment_fingerprint": {
+          "pattern": "^[a-fA-F0-9]{64}$",
+          "title": "Assessment Fingerprint",
+          "type": "string"
+        },
+        "assessment_id": {
+          "minLength": 1,
+          "title": "Assessment Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "assessment_id",
+        "assessment_fingerprint"
+      ],
+      "title": "ClaimAssessmentReference",
+      "type": "object"
+    },
+    "DatasetAssessmentReference": {
+      "additionalProperties": false,
+      "properties": {
+        "assessment_fingerprint": {
+          "pattern": "^[a-fA-F0-9]{64}$",
+          "title": "Assessment Fingerprint",
+          "type": "string"
+        },
+        "assessment_id": {
+          "minLength": 1,
+          "title": "Assessment Id",
+          "type": "string"
+        },
+        "dataset_manifest_fingerprint": {
+          "pattern": "^[a-fA-F0-9]{64}$",
+          "title": "Dataset Manifest Fingerprint",
+          "type": "string"
+        }
+      },
+      "required": [
+        "dataset_manifest_fingerprint",
+        "assessment_id",
+        "assessment_fingerprint"
+      ],
+      "title": "DatasetAssessmentReference",
+      "type": "object"
+    },
+    "RepresentabilityCriterion": {
+      "enum": [
+        "exact_slice_bound",
+        "source_bytes_bound",
+        "population_subject",
+        "destructive_collection",
+        "population_linkage_boundary",
+        "individual_cell_subject",
+        "same_cell_linkage",
+        "viability_preserving_collection",
+        "baseline_before_target",
+        "future_same_cell_functional_readout",
+        "population_cast_rejected",
+        "individual_cast_rejected",
+        "clone_cast_rejected",
+        "causal_overclaim_rejected",
+        "transport_overclaim_rejected"
+      ],
+      "title": "RepresentabilityCriterion",
+      "type": "string"
+    },
+    "RepresentabilityCriterionStatus": {
+      "enum": [
+        "passed",
+        "failed"
+      ],
+      "title": "RepresentabilityCriterionStatus",
+      "type": "string"
+    },
+    "RepresentabilityCriterionTrace": {
+      "additionalProperties": false,
+      "properties": {
+        "blockers": {
+          "default": [],
+          "items": {
+            "type": "string"
+          },
+          "title": "Blockers",
+          "type": "array"
+        },
+        "criterion": {
+          "$ref": "#/$defs/RepresentabilityCriterion"
+        },
+        "evidence_locators": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/RepresentabilityEvidenceLocator"
+          },
+          "title": "Evidence Locators",
+          "type": "array"
+        },
+        "evidence_notes": {
+          "default": [],
+          "items": {
+            "type": "string"
+          },
+          "title": "Evidence Notes",
+          "type": "array"
+        },
+        "status": {
+          "$ref": "#/$defs/RepresentabilityCriterionStatus"
+        }
+      },
+      "required": [
+        "criterion",
+        "status"
+      ],
+      "title": "RepresentabilityCriterionTrace",
+      "type": "object"
+    },
+    "RepresentabilityEvidenceLocator": {
+      "additionalProperties": false,
+      "properties": {
+        "locator": {
+          "minLength": 1,
+          "title": "Locator",
+          "type": "string"
+        },
+        "method": {
+          "$ref": "#/$defs/RepresentabilityEvidenceMethod"
+        },
+        "source_id": {
+          "minLength": 1,
+          "title": "Source Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "source_id",
+        "method",
+        "locator"
+      ],
+      "title": "RepresentabilityEvidenceLocator",
+      "type": "object"
+    },
+    "RepresentabilityEvidenceMethod": {
+      "enum": [
+        "checksum_verification",
+        "selector_execution",
+        "source_field",
+        "publication_method",
+        "direct_image_tracking",
+        "recorded_same_cell_id",
+        "manifest_validation"
+      ],
+      "title": "RepresentabilityEvidenceMethod",
+      "type": "string"
+    },
+    "RepresentabilityProofKind": {
+      "enum": [
+        "destructive_population",
+        "individual_cell_functional_recorder"
+      ],
+      "title": "RepresentabilityProofKind",
+      "type": "string"
+    },
+    "RepresentabilitySourceBinding": {
+      "additionalProperties": false,
+      "properties": {
+        "sha256": {
+          "pattern": "^[a-fA-F0-9]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        },
+        "source_id": {
+          "minLength": 1,
+          "title": "Source Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "source_id",
+        "sha256"
+      ],
+      "title": "RepresentabilitySourceBinding",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "assessment_reference": {
+      "$ref": "#/$defs/DatasetAssessmentReference"
+    },
+    "criterion_traces": {
+      "items": {
+        "$ref": "#/$defs/RepresentabilityCriterionTrace"
+      },
+      "minItems": 1,
+      "title": "Criterion Traces",
+      "type": "array"
+    },
+    "negative_claim_assessments": {
+      "items": {
+        "$ref": "#/$defs/ClaimAssessmentReference"
+      },
+      "minItems": 1,
+      "title": "Negative Claim Assessments",
+      "type": "array"
+    },
+    "proof_id": {
+      "minLength": 1,
+      "title": "Proof Id",
+      "type": "string"
+    },
+    "proof_kind": {
+      "$ref": "#/$defs/RepresentabilityProofKind"
+    },
+    "reviewed_by": {
+      "items": {
+        "type": "string"
+      },
+      "minItems": 1,
+      "title": "Reviewed By",
+      "type": "array"
+    },
+    "reviewed_on": {
+      "format": "date",
+      "title": "Reviewed On",
+      "type": "string"
+    },
+    "schema_version": {
+      "const": "0.1-experimental",
+      "default": "0.1-experimental",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "slice_fingerprint": {
+      "pattern": "^[a-fA-F0-9]{64}$",
+      "title": "Slice Fingerprint",
+      "type": "string"
+    },
+    "source_bindings": {
+      "items": {
+        "$ref": "#/$defs/RepresentabilitySourceBinding"
+      },
+      "minItems": 1,
+      "title": "Source Bindings",
+      "type": "array"
+    }
+  },
+  "required": [
+    "proof_id",
+    "proof_kind",
+    "assessment_reference",
+    "slice_fingerprint",
+    "source_bindings",
+    "criterion_traces",
+    "negative_claim_assessments",
+    "reviewed_by",
+    "reviewed_on"
+  ],
+  "title": "RepresentabilityProof",
+  "type": "object"
+}

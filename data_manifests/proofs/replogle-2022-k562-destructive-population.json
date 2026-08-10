@@ -1,0 +1,189 @@
+{
+  "schema_version": "0.1-experimental",
+  "proof_id": "replogle-2022-k562-destructive-population-review-1",
+  "proof_kind": "destructive_population",
+  "assessment_reference": {
+    "dataset_manifest_fingerprint": "63257e3c13652e6052a71481a66c6b1ee95da360a9cfa67555215c5bf2c82881",
+    "assessment_id": "replogle-k562-snapshot-state-prior",
+    "assessment_fingerprint": "7db8ab830ad1b83b9876cccf5145aa5f68060d06c026b2b55fc59b16ad65ec2f"
+  },
+  "slice_fingerprint": "1998ee5e4c3b5173f583b2f680853e96d0b9b8ba56dc90889762c3c4896b9c68",
+  "source_bindings": [
+    {
+      "source_id": "figshare-20029387-v1-metadata",
+      "sha256": "4d7abba9bdedf8b8484aab0aacdce9fbbb21b32fb10b6ef62c633385449f8968"
+    },
+    {
+      "source_id": "replogle-k562-essential-h5ad",
+      "sha256": "412fd0df8c4ccea9f4db91cd88033c49200838b29d40945e48574be588b48789"
+    }
+  ],
+  "criterion_traces": [
+    {
+      "criterion": "causal_overclaim_rejected",
+      "status": "passed",
+      "evidence_locators": [
+        {
+          "source_id": "replogle-k562-essential-h5ad",
+          "method": "manifest_validation",
+          "locator": "experimental_design.randomization_unit=null; experimental_design.biological_replicate_unit=null; claim_assessments[replogle-k562-intervention-effect]"
+        }
+      ],
+      "evidence_notes": [
+        "Measured guide labels and controls do not replace a documented population-level allocation design or independent biological cultures, so intervention-effect eligibility is explicitly rejected."
+      ],
+      "blockers": []
+    },
+    {
+      "criterion": "clone_cast_rejected",
+      "status": "passed",
+      "evidence_locators": [
+        {
+          "source_id": "replogle-k562-essential-h5ad",
+          "method": "source_field",
+          "locator": "obs has cell_barcode, batch, perturbation, and guide annotations but no clone or lineage identity field"
+        }
+      ],
+      "evidence_notes": [
+        "Cell barcodes identify endpoint observations only; no clone or lineage structure is present, and the lineage-fate assessment is ineligible."
+      ],
+      "blockers": []
+    },
+    {
+      "criterion": "destructive_collection",
+      "status": "passed",
+      "evidence_locators": [
+        {
+          "source_id": "figshare-20029387-v1-metadata",
+          "method": "publication_method",
+          "locator": "description: K562 essential-scale Perturb-seq sampled at day 6 post-transduction; raw single-cell expression distributed in AnnData format"
+        }
+      ],
+      "evidence_notes": [
+        "The scoped observation is a terminal single-cell RNA-count measurement; no assayed cell remains available for a second molecular observation."
+      ],
+      "blockers": []
+    },
+    {
+      "criterion": "exact_slice_bound",
+      "status": "passed",
+      "evidence_locators": [
+        {
+          "source_id": "replogle-k562-essential-h5ad",
+          "method": "checksum_verification",
+          "locator": "whole /obs/_index axis named cell_barcode; 310385 unique IDs; canonical sorted compact-JSON membership SHA-256 27c981a89a625aa9c3245a9eda97db44df17f7c22d4a91c7ecd906880b6d3546"
+        }
+      ],
+      "evidence_notes": [
+        "The proof covers every observation in the exact reviewed H5AD, with semantic membership bound independently of HDF5 row ordering."
+      ],
+      "blockers": []
+    },
+    {
+      "criterion": "individual_cast_rejected",
+      "status": "passed",
+      "evidence_locators": [
+        {
+          "source_id": "replogle-k562-essential-h5ad",
+          "method": "manifest_validation",
+          "locator": "experimental_design.sampling.mode=endpoint_destructive; experimental_design.sampling.linkage=none; claim_assessments[replogle-k562-individual-longitudinal-dynamics]"
+        }
+      ],
+      "evidence_notes": [
+        "Observation barcodes are not longitudinal cell identities, so the population snapshot is not cast as individual-cell dynamics."
+      ],
+      "blockers": []
+    },
+    {
+      "criterion": "population_linkage_boundary",
+      "status": "passed",
+      "evidence_locators": [
+        {
+          "source_id": "figshare-20029387-v1-metadata",
+          "method": "source_field",
+          "locator": "description list item 2: K562 essential-scale Perturb-seq sampled at day 6 post-transduction"
+        }
+      ],
+      "evidence_notes": [
+        "One day-6 destructive endpoint is represented with linkage none; the artifact does not claim a linked earlier or later observation of this population."
+      ],
+      "blockers": []
+    },
+    {
+      "criterion": "population_subject",
+      "status": "passed",
+      "evidence_locators": [
+        {
+          "source_id": "replogle-k562-essential-h5ad",
+          "method": "source_field",
+          "locator": "obs.batch has 48 technical GEM-group values nested under one declared K562 essential-scale study_population_id"
+        }
+      ],
+      "evidence_notes": [
+        "The belief subject is the one pooled K562 culture population; cells are destructive draws and the 48 GEM groups remain nested technical samples."
+      ],
+      "blockers": []
+    },
+    {
+      "criterion": "source_bytes_bound",
+      "status": "passed",
+      "evidence_locators": [
+        {
+          "source_id": "figshare-20029387-v1-metadata",
+          "method": "checksum_verification",
+          "locator": "11402 bytes; SHA-256 4d7abba9bdedf8b8484aab0aacdce9fbbb21b32fb10b6ef62c633385449f8968"
+        },
+        {
+          "source_id": "replogle-k562-essential-h5ad",
+          "method": "checksum_verification",
+          "locator": "1546729675 bytes; SHA-256 412fd0df8c4ccea9f4db91cd88033c49200838b29d40945e48574be588b48789; Zenodo MD5 d8cba17576d1a8afc0f7d71b79cad0f7"
+        }
+      ],
+      "evidence_notes": [
+        "Every scientific source used by this proof is bound to exact retrieved bytes, and the local H5AD byte count and MD5 match the Zenodo 1.4 record."
+      ],
+      "blockers": []
+    },
+    {
+      "criterion": "transport_overclaim_rejected",
+      "status": "passed",
+      "evidence_locators": [
+        {
+          "source_id": "figshare-20029387-v1-metadata",
+          "method": "manifest_validation",
+          "locator": "origin biological_systems=CVCL:0004; claim_assessments[replogle-k562-counterfactual-generalization]"
+        }
+      ],
+      "evidence_notes": [
+        "The positive scope is restricted to this K562 day-6 assay and library, while counterfactual transport beyond it is explicitly ineligible."
+      ],
+      "blockers": []
+    }
+  ],
+  "negative_claim_assessments": [
+    {
+      "assessment_id": "replogle-k562-counterfactual-generalization",
+      "assessment_fingerprint": "ebc88ac7856e2679e3de193bf395f8a42230f6cdbc81254e15e93a0cffaf3ba7"
+    },
+    {
+      "assessment_id": "replogle-k562-individual-longitudinal-dynamics",
+      "assessment_fingerprint": "83c033f4a347042895ad0d2b7d4521dce18011cc298a77f71708d4f8de9fb16a"
+    },
+    {
+      "assessment_id": "replogle-k562-intervention-effect",
+      "assessment_fingerprint": "e2a13506065ffa8abe1368e39184efaeff25302a450f80611dc18cc35d7ec783"
+    },
+    {
+      "assessment_id": "replogle-k562-lineage-fate",
+      "assessment_fingerprint": "c4ef36189d7ed7d255b631a209139e60007dca208b3da0dbbc5a0f7fb78f6ab2"
+    },
+    {
+      "assessment_id": "replogle-k562-population-dynamics",
+      "assessment_fingerprint": "884ea09c80434ae44380dc2b162f35a5d4a2160ee3e963d94156578a4b9adc0b"
+    }
+  ],
+  "reviewed_by": [
+    "CellState data evidence review"
+  ],
+  "reviewed_on": "2026-08-09"
+}

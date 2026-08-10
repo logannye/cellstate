@@ -1,19 +1,23 @@
 from __future__ import annotations
 
 import pytest
-from conftest import observation_factory, query_factory, request_factory
+from conftest import (
+    SYNTHETIC_TEST_OPTIONS,
+    observation_factory,
+    query_factory,
+    request_factory,
+    subject_factory,
+)
 from pydantic import ValidationError
 
 from cellstate import (
     CellHistory,
     EstimateCellStateRequest,
     EvolutionScenario,
-    InferenceOptions,
     InterventionObjective,
     ObjectiveDirection,
     ObjectiveTerm,
     OntologyTerm,
-    OutputSpec,
     PrecisionRequirement,
     choose_intervention,
     estimate_cell_state,
@@ -27,7 +31,7 @@ from cellstate.reference import LinearGaussianPlanner
 
 def test_event_graph_tracks_canonical_temporal_precedence() -> None:
     history = CellHistory(
-        subject_id="cell-1",
+        subject=subject_factory(),
         events=(
             observation_factory(event_id="later", time_seconds=2),
             observation_factory(event_id="earlier", time_seconds=1),
@@ -44,12 +48,12 @@ def test_event_graph_does_not_order_simultaneous_events_and_preserves_division()
     simultaneous = observation_factory(event_id="b", time_seconds=1)
     division = DivisionEvent(
         event_id="division",
-        subject_id="cell-1",
+        subject=subject_factory(),
         time_seconds=2,
         child_ids=("child-a", "child-b"),
     )
     graph = build_event_graph(
-        CellHistory(subject_id="cell-1", events=(first, simultaneous, division))
+        CellHistory(subject=subject_factory(), events=(first, simultaneous, division))
     )
     edge_pairs = {(edge.source_event_id, edge.target_event_id) for edge in graph.edges}
     assert ("a", "b") not in edge_pairs
@@ -68,42 +72,61 @@ def test_model_registry_is_case_insensitive_and_rejects_duplicates() -> None:
         registry.get("protein")
 
 
-def test_strict_capability_preflight_rejects_unsupported_target(model) -> None:
-    query = query_factory().model_copy(
+def test_capability_preflight_cannot_be_bypassed_for_unsupported_target(model) -> None:
+    base_query = query_factory()
+    query = base_query.model_copy(
         update={
             "target_outputs": (
-                OutputSpec(term=OntologyTerm(label="unknown output"), units="relative"),
+                base_query.target_outputs[0].model_copy(
+                    update={"term": OntologyTerm(label="unknown output")}
+                ),
             )
         }
     )
     request = request_factory(query=query)
     with pytest.raises(CapabilityError, match="unknown_output"):
-        estimate_cell_state(request, estimator=model)
-    belief = estimate_cell_state(
-        request,
-        estimator=model,
-        options=InferenceOptions(strict_capabilities=False),
-    )
-    assert belief.subject_id == "cell-1"
+        estimate_cell_state(
+            request,
+            estimator=model,
+            options=SYNTHETIC_TEST_OPTIONS,
+        )
 
 
 def test_public_api_rejects_mismatched_scenario_and_empty_candidates(model) -> None:
     request = request_factory()
-    belief = estimate_cell_state(request, estimator=model)
+    belief = estimate_cell_state(
+        request,
+        estimator=model,
+        options=SYNTHETIC_TEST_OPTIONS,
+    )
     wrong_subject = EvolutionScenario(
         scenario_id="wrong-subject",
         horizon_name="acute",
-        subject_id="cell-2",
+        subject=subject_factory("cell-2"),
         start_time_seconds=10,
         end_time_seconds=70,
     )
-    with pytest.raises(ContractViolationError, match="same subject"):
-        evolve_cell_state(belief, scenario=wrong_subject, evolution_model=model)
+    with pytest.raises(ContractViolationError, match="same typed subject"):
+        evolve_cell_state(
+            belief,
+            scenario=wrong_subject,
+            evolution_model=model,
+            options=SYNTHETIC_TEST_OPTIONS,
+        )
     wrong_time = wrong_subject.model_copy(
-        update={"scenario_id": "wrong-time", "subject_id": "cell-1", "start_time_seconds": 9}
+        update={
+            "scenario_id": "wrong-time",
+            "subject": subject_factory(),
+            "start_time_seconds": 9,
+        }
     )
     with pytest.raises(ContractViolationError, match="belief time"):
-        evolve_cell_state(belief, scenario=wrong_time, evolution_model=model)
+        evolve_cell_state(
+            belief,
+            scenario=wrong_time,
+            evolution_model=model,
+            options=SYNTHETIC_TEST_OPTIONS,
+        )
     with pytest.raises(ValueError, match="at least one"):
         choose_intervention(
             belief,
@@ -119,12 +142,17 @@ def test_public_api_rejects_mismatched_scenario_and_empty_candidates(model) -> N
             ),
             candidates=(),
             planner=LinearGaussianPlanner(model),
+            options=SYNTHETIC_TEST_OPTIONS,
         )
 
 
 def test_recursive_request_rejects_subject_time_and_query_mismatches(model) -> None:
     request = request_factory()
-    belief = estimate_cell_state(request, estimator=model)
+    belief = estimate_cell_state(
+        request,
+        estimator=model,
+        options=SYNTHETIC_TEST_OPTIONS,
+    )
     with pytest.raises(ValidationError, match="cannot be later"):
         EstimateCellStateRequest(
             query=request.query,
@@ -134,9 +162,12 @@ def test_recursive_request_rejects_subject_time_and_query_mismatches(model) -> N
             previous_belief=belief,
         )
     other_history = CellHistory(
-        subject_id="cell-2",
+        subject=subject_factory("cell-2"),
         events=(
-            observation_factory().model_copy(update={"event_id": "other", "subject_id": "cell-2"}),
+            observation_factory(
+                event_id="other",
+                subject=subject_factory("cell-2"),
+            ),
         ),
     )
     with pytest.raises(ValidationError, match="same subject"):
@@ -174,7 +205,11 @@ def test_capability_preflight_covers_boundary_and_precision(model) -> None:
     query_payload["system_boundary"] = "population"
     population_query = type(query_factory()).model_validate(query_payload)
     with pytest.raises(CapabilityError, match="population"):
-        estimate_cell_state(request_factory(query=population_query), estimator=model)
+        estimate_cell_state(
+            request_factory(query=population_query),
+            estimator=model,
+            options=SYNTHETIC_TEST_OPTIONS,
+        )
 
     precision_query = query_factory().model_copy(
         update={
@@ -189,4 +224,8 @@ def test_capability_preflight_covers_boundary_and_precision(model) -> None:
         }
     )
     with pytest.raises(CapabilityError, match="absolute_error"):
-        estimate_cell_state(request_factory(query=precision_query), estimator=model)
+        estimate_cell_state(
+            request_factory(query=precision_query),
+            estimator=model,
+            options=SYNTHETIC_TEST_OPTIONS,
+        )
