@@ -118,7 +118,6 @@ jobs:
         uses: docker/setup-docker-action@77e84dbf09b47d1e29270283c22f16145aa85ca1 # v5
         with:
           version: v29.7.2
-          context: cellstate-item12-runtime
           set-host: false
           daemon-config: |
             {
@@ -128,7 +127,7 @@ jobs:
             }
       - name: Verify OCI-capable Docker runtime daemon
         run: |
-          test "$(docker context show)" = "cellstate-item12-runtime"
+          test "$(docker context show)" = "setup-docker-action"
           test "$(docker version --format '{{.Server.Version}}')" = "29.7.2"
           docker info --format '{{json .DriverStatus}}' \
             | grep -Fq '"io.containerd.snapshotter.v1"'
