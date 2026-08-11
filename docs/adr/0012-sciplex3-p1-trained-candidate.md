@@ -142,21 +142,30 @@ The execution issued no model, plan, observation, training evidence, or material
 no lifecycle state. It did not open `p2`, `p3`, or `p4`, inspect held-out cases or outcomes, run a
 metric, or create biological or performance evidence.
 
-Before any separately authorized real-source rerun, the next milestone is:
+Before any separately authorized real-source replay, the software milestone is now complete:
 
-### Item 12.1 — local-map and plate-context characterization, nonissuing
+### Item 12.1a — local-map and plate-context characterization software freeze
 
-Its one bounded, software-only first-failing-batch diagnostic must record per-sweep `Rshape` and
-`Relog`, local ELBO, one- and two-step state distances and update cosine, the worst
-row/factor/count aggregate, shape/rate/mass invariants, the 16-by-16 Jacobian spectral radius, exact
-replay equality, state/allocation digests, and all 16 `rho` effective-context counts and maximum
-shares.
+The source-free scratch harness (`f4e6b768...`) and tests (`8989618e...`) passed 26 focused tests,
+Ruff check/format, compilation, and an independent SHA-bound math/containment audit with no P0/P1
+finding. The frozen contract records 50 production maps and exactly one diagnostic `A51` lookahead;
+per-sweep `Rshape` and `Relog`; synchronized local objectives; one- and two-step state distances and
+update cosine; deterministic worst row/factor/count aggregates; shape/rate/mass invariants;
+per-sweep analytic 16-by-16 Jacobian spectral radii; exact replay equality; state/allocation
+digests; and all 16 bounded `rho` effective-context counts and maximum shares.
 
 An objective decrease routes to an implementation fix. An intact objective plus a two-cycle or
 noncontractive map routes to a versioned v5 safeguarded local solver. Near-zero prior/context
 behavior or effective context near one routes to v5 plate regularization or neutralization. This
 decision does not prefreeze damping or shrinkage and does not authorize cap or tolerance
 relaxation, an artifact, p2 access, or any biological or performance claim.
+
+### Item 12.1b — one-use real-p1 characterization, nonissuing
+
+Execution remains pending a separate explicit audit authorization. Item 12.1a did not open the
+source or run Docker. A future Item 12.1b execution may produce only its bounded nonauthoritative
+diagnostic record; it cannot issue a model, plan, observation, evidence receipt, lifecycle state,
+or scientific claim.
 
 ### Pre-fit and post-fit evidence
 

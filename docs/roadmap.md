@@ -427,21 +427,27 @@ The next development work proceeds in this order:
     this work `p2`, `p3`, and `p4` remain sealed, and calibration, selection, performance,
     admission, component execution, and every public cell-state runtime remain false.
 
-**Item 12.1 — local-map and plate-context characterization, nonissuing** is the immediate next
-milestone. It is the software-only design and audit of one bounded diagnostic on the first failing
-batch's inner map. It must capture per-sweep `Rshape` and `Relog`, local ELBO, one- and two-step
-state distances and update cosine, the worst row/factor/count aggregate, shape/rate/mass invariants,
-the 16-by-16 Jacobian spectral radius, exact replay equality, state/allocation digests, and all 16
-`rho` effective-context counts and maximum shares. An objective decrease routes to an
-implementation fix. An intact objective plus a two-cycle or noncontractive map routes to a
-versioned v5 safeguarded local solver. Near-zero prior/context behavior or effective context near
-one routes to v5 plate regularization or neutralization. The diagnostic does not prefreeze damping
-or shrinkage.
+**Item 12.1a — local-map and plate-context characterization software freeze** is complete. The
+source-free scratch harness SHA-256 is
+`f4e6b76847bd926952995d66233389768f091135699fb60a38d7d9762bb03ff1`; its test SHA-256 is
+`8989618e259fb4aed0e0798bc010e40092c45e6bd30234bb3a7b534cdc562903`.
+Twenty-six focused tests, Ruff check/format, compilation, and an independent SHA-bound
+math/containment audit passed with no P0/P1 finding. The contract fixes 50 production maps
+`A0 -> ... -> A50`, exactly one diagnostic-only `A51` lookahead, per-sweep `Rshape` and `Relog`,
+synchronized local objectives, one- and two-step distances and update cosine, deterministic worst
+row/factor/count summaries, shape/rate/mass invariants, per-sweep analytic 16-by-16 Jacobian
+spectral radii, exact replay equality, state/allocation digests, and all 16 bounded `rho`
+effective-context counts and maximum shares. An objective decrease routes to an implementation
+fix. An intact objective plus a two-cycle or noncontractive map routes to a versioned v5
+safeguarded local solver. Near-zero prior/context behavior or effective context near one routes to
+v5 plate regularization or neutralization. The contract does not prefreeze damping or shrinkage.
 
-Item 12.1 does not authorize a real-source rerun; that requires a separate audit authorization. It
-also does not authorize changing the predeclared cap or tolerance, emitting an artifact, opening
-`p2`, or making a biological or performance claim. Only a future successful trusted verification
-may move the component to `TRAINED_CANDIDATE`. A future one-use grant may open `p2` for calibration
+**Item 12.1b** is now the next gated step: one exact-reference, real-`p1`, nonissuing execution of
+that frozen harness. Item 12.1a did not open the source, and Item 12.1b still requires separate
+explicit audit authorization. Neither stage authorizes changing the predeclared cap or tolerance,
+emitting an artifact, opening `p2`, or making a biological or performance claim. Only a future
+successful trusted verification may move the component to `TRAINED_CANDIDATE`. A future one-use
+grant may open `p2` for calibration
 only after that exact state; a separate grant may open `p3` for model selection and freezing only
 after calibration; and `p4` remains untouched until a locked evaluator receives an exact
 `MODEL_SELECTED_FROZEN` candidate. Passing that component lifecycle would authorize only the exact

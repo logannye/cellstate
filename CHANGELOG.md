@@ -110,17 +110,23 @@
   reexamination of the empirical whole-row proposal. V4 is `NO-GO`: no model, plan, observation,
   training evidence, materialization, or lifecycle result was issued. Item 12 remains in progress
   and the component remains `SCAFFOLD`; `p2`, `p3`, and `p4` remain sealed.
-- Set **Item 12.1 — local-map and plate-context characterization, nonissuing** as the next milestone.
-  Its one bounded, software-only first-failing-batch diagnostic must record per-sweep
-  `Rshape`/`Relog`, local ELBO, one- and two-step state distances and update cosine, the worst
+- Completed **Item 12.1a — local-map and plate-context characterization software freeze**. The
+  scratch harness SHA-256 is `f4e6b76847bd926952995d66233389768f091135699fb60a38d7d9762bb03ff1`
+  and its source-free test SHA-256 is
+  `8989618e259fb4aed0e0798bc010e40092c45e6bd30234bb3a7b534cdc562903`.
+  Twenty-six focused tests, Ruff check/format, compilation, and an independent math/containment
+  audit passed with no P0/P1 finding. The harness predeclares one bounded first-failing-batch replay
+  with per-sweep `Rshape`/`Relog`, local ELBO, one- and two-step state distances and update cosine,
+  the worst
   row/factor/count aggregate, shape/rate/mass invariants, the 16-by-16 Jacobian spectral radius,
   exact replay equality, state/allocation digests, and all 16 `rho` effective-context counts and
   maximum shares. Objective decrease routes to an implementation fix; an intact objective plus a
   two-cycle or noncontractive map routes to a versioned v5 safeguarded local solver; near-zero
   prior/context behavior or effective context near one routes to v5 plate regularization or
-  neutralization. This does not prefreeze damping or shrinkage and does not authorize another real-
-  source run, cap or tolerance relaxation, an artifact, p2 access, or any biology or performance
-  claim.
+  neutralization. **Item 12.1b**—one separately authorized real-`p1`, nonissuing execution—remains
+  pending. Item 12.1a opened no source and does not prefreeze damping or shrinkage or authorize a
+  real-source run, cap or tolerance relaxation, an artifact, p2 access, or any biology or
+  performance claim.
 
 ## 0.1.0 - Unreleased
 

@@ -237,17 +237,27 @@ calibration, p3 freeze, and one locked p4 evaluation. V1 and v2 failed their rea
 counterfactual and characterization were deliberately nonissuing. V4's audited exact p1 execution
 also failed closed, and `TRAINED_CANDIDATE` cannot be derived.
 
-### Item 12.1 — local-map and plate-context characterization, nonissuing
+### Item 12.1a — local-map and plate-context characterization software freeze
 
-This next milestone's one bounded, software-only first-failing-batch diagnostic must capture per-
-sweep `Rshape`/`Relog`, local ELBO, one- and two-step state distances and update cosine, the worst
-row/factor/count aggregate, shape/rate/mass invariants, the 16-by-16 Jacobian spectral radius, exact
-replay equality, state/allocation digests, and all 16 `rho` effective-context counts and maximum
-shares. Objective decrease routes to an implementation fix; an intact objective plus a two-cycle or
+This source-free milestone is complete. The separately hashed scratch harness (`f4e6b768...`) and
+tests (`8989618e...`) passed 26 focused tests, Ruff check/format, compilation, and an independent
+math/containment audit with no P0/P1 finding. The frozen contract contains 50 production maps,
+exactly one diagnostic-only `A51` lookahead, per-sweep `Rshape`/`Relog`, synchronized local
+objectives, one- and two-step state distances and update cosine, deterministic worst
+row/factor/count aggregates, shape/rate/mass invariants, per-sweep analytic 16-by-16 Jacobian
+spectral radii, exact replay equality, state/allocation digests, and all 16 bounded `rho`
+effective-context counts and maximum shares.
+
+Objective decrease routes to an implementation fix; an intact objective plus a two-cycle or
 noncontractive map routes to a versioned v5 safeguarded local solver; near-zero prior/context
 behavior or effective context near one routes to v5 plate regularization or neutralization. It does
-not prefreeze damping or shrinkage and does not authorize a real-source rerun, cap or tolerance
-relaxation, an artifact, p2 access, or any biological or performance claim.
+not prefreeze damping or shrinkage.
+
+### Item 12.1b — one-use real-p1 characterization, nonissuing
+
+This is the next gated step and remains pending separate explicit audit authorization. Item 12.1a
+opened no source. Item 12.1b cannot relax the cap or tolerance, emit an artifact, access `p2`, or
+make a biological or performance claim.
 
 Passing a later complete component lifecycle could authorize only this direct component surface;
 it would not authorize a hidden-state estimator.

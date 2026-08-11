@@ -73,8 +73,9 @@ utility. Posterior covariance reduction alone is not EVSI.
 > provisional `rho` maximum, `7.999995552807402` with each factor column summing to eight, also puts
 > the proposed unseen-plate context under renewed review. This is a candidate-family risk, not a
 > fitted-model pathology, because no fit was accepted. V4 is `NO-GO`; the component remains
-> `SCAFFOLD` and no lifecycle state has changed. The next milestone is
-> **Item 12.1 — local-map and plate-context characterization, nonissuing**.
+> `SCAFFOLD` and no lifecycle state has changed. **Item 12.1a** has now frozen and independently
+> audited the source-free characterization harness. **Item 12.1b**, its one-use real-`p1`
+> nonissuing replay, remains pending separate authorization.
 
 ## Scientific thesis
 
@@ -317,11 +318,15 @@ the empirical whole-row unseen-plate proposal must be reexamined.
 
 No v4 model, plan, observation, training evidence, materialization, or lifecycle result was issued.
 V4 is `NO-GO`, `TRAINED_CANDIDATE` cannot be derived, `p2`, `p3`, and `p4` remain sealed, and every
-later scientific and runtime gate remains false. The immediate milestone is
-**Item 12.1 — local-map and plate-context characterization, nonissuing**: a bounded, software-only
-diagnostic of the first failing batch's inner map and all 16 provisional plate-context columns. It
-does not authorize another real-source run, relaxed caps or tolerances, prefrozen damping or
-shrinkage, an artifact, or any biological or performance claim.
+later scientific and runtime gate remains false. **Item 12.1a** is complete: the separately hashed
+scratch harness (`f4e6b768...`) and its source-free tests (`8989618e...`) passed 26 focused tests,
+Ruff, formatting, compilation, and an independent math/containment audit with no P0/P1 finding.
+It fixes the exact 50 production-map replay, sole `A51` lookahead, synchronized local objective,
+one- and two-step diagnostics, analytic Jacobians, replay equality, and all 16 bounded `rho`
+context summaries. This is executable design evidence only. **Item 12.1b** remains a separately
+authorized one-use real-`p1` replay; no source was opened for 12.1a. Neither stage authorizes relaxed
+caps or tolerances, prefrozen damping or shrinkage, an artifact, or a biological or performance
+claim.
 
 The [project roadmap](docs/roadmap.md) is the sole authority for implementation order and graduation
 status. The [full buildout architecture](docs/architecture/full-buildout.md) defines the target
