@@ -54,7 +54,7 @@ runtime version and requires a new lock; the lock must never be edited to bless 
 Load the exact OCI output through Docker's containerd image store before execution; Docker's classic
 graphdriver image store does not import OCI-layout archives. CI enables the documented
 `containerd-snapshotter` feature only after the two archives pass exact verification, then verifies
-the isolated Docker 28.0.4 daemon before loading the archive and running the live probes. The image
+the isolated Docker 28.5.2 daemon before loading the archive and running the live probes. The image
 is not claimed to be published or remotely pullable, and durable distribution of the locked archive
 is a prerequisite to any proposed Item 12.3 authorization. This source-free runtime evidence opened
 no protected source, ran no real-`p1` fit, and issued no candidate artifact, training record, or

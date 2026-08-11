@@ -117,7 +117,7 @@ jobs:
       - name: Set up OCI-capable Docker runtime daemon
         uses: docker/setup-docker-action@77e84dbf09b47d1e29270283c22f16145aa85ca1 # v5
         with:
-          version: v28.0.4
+          version: v28.5.2
           context: cellstate-item12-runtime
           set-host: false
           daemon-config: |
@@ -129,7 +129,7 @@ jobs:
       - name: Verify OCI-capable Docker runtime daemon
         run: |
           test "$(docker context show)" = "cellstate-item12-runtime"
-          test "$(docker version --format '{{.Server.Version}}')" = "28.0.4"
+          test "$(docker version --format '{{.Server.Version}}')" = "28.5.2"
           docker info --format '{{json .DriverStatus}}' \
             | grep -Fq '"io.containerd.snapshotter.v1"'
       - name: Load and verify the exact locked linux/amd64 image
