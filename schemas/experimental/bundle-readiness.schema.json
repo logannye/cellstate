@@ -425,6 +425,11 @@
       "title": "Calibration Binding Verified",
       "type": "boolean"
     },
+    "calibration_result_semantics_verified": {
+      "default": false,
+      "title": "Calibration Result Semantics Verified",
+      "type": "boolean"
+    },
     "component_evaluation_complete": {
       "title": "Component Evaluation Complete",
       "type": "boolean"
@@ -454,6 +459,11 @@
     },
     "model_selection_binding_verified": {
       "title": "Model Selection Binding Verified",
+      "type": "boolean"
+    },
+    "model_selection_result_semantics_verified": {
+      "default": false,
+      "title": "Model Selection Result Semantics Verified",
       "type": "boolean"
     },
     "query_binding_verified": {
@@ -516,8 +526,41 @@
       "title": "Support Envelope Binding Verified",
       "type": "boolean"
     },
+    "trained_candidate_verification_fingerprint": {
+      "anyOf": [
+        {
+          "pattern": "^[a-fA-F0-9]{64}$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Trained Candidate Verification Fingerprint"
+    },
+    "trained_candidate_verified": {
+      "default": false,
+      "title": "Trained Candidate Verified",
+      "type": "boolean"
+    },
+    "training_artifacts_verified": {
+      "default": false,
+      "title": "Training Artifacts Verified",
+      "type": "boolean"
+    },
     "training_binding_verified": {
       "title": "Training Binding Verified",
+      "type": "boolean"
+    },
+    "training_interfaces_verified": {
+      "default": false,
+      "title": "Training Interfaces Verified",
+      "type": "boolean"
+    },
+    "training_result_semantics_verified": {
+      "default": false,
+      "title": "Training Result Semantics Verified",
       "type": "boolean"
     },
     "validation_bindings_verified": {

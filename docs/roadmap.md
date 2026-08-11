@@ -285,9 +285,26 @@ estimation and exposes none of the four public operations. Step 10 completed the
 boundary around contract v0.1 declarations: exact bytes, loaded interfaces, semantic results, and
 query-derived prerequisites can now be authenticated and rebound without turning a serialized
 receipt into runtime authority. That infrastructure does not supply a trained model, run a metric,
-or pass a scientific gate. The sci-Plex3 artifact therefore remains a non-executable `SCAFFOLD`.
-The next implementation gate is its immutable data loader and mandatory baseline suite; it must not
-present unrun performance as a validated biological belief.
+or pass a scientific gate. Item 11 has now completed the first frozen-data software path. Its
+immutable, single-purpose `p1-train` loader close-reauthenticated the exact 2,526,631,614-byte
+source, scanned all 94,785 training records across 768 wells, and froze content-addressed fitted-
+state identities for all six probabilistic baselines. The loader does not parse held-out outcomes
+and refuses `p2`, `p3`, and `p4` before source access unless future lifecycle-bound grants exist.
+These are software provenance artifacts, not benchmark results: no prediction campaign, metric,
+comparison, or performance gate has run. Item 12 now defines the separate p1-only training and
+verification boundary for a first candidate distribution model. Its original rank-16
+Gamma--Poisson family with a separate `q`/capture term and 16 free factor shapes failed closed on
+the exact real `p1` fit before artifact emission because variance reallocation drove a factor shape
+to the rejected boundary. V2 removed `q`/capture, but its free pooled shape drifted toward the lower
+guard and its outer fit remained unconverged. A fixed-shape v3 counterfactual still failed the
+relative-ELBO and terminal factor-order gates. A bounded characterization cleared its activation
+rank but rejected its tail-dominated independent lognormal plate nuisance. The audited v4
+software-only design fixes `r_theta=0.1`, adds row-local inner equilibration, and proposes an
+empirical whole-`rho`-row unseen-plate context. Its valid exact-reference, p1-only, nonissuing run
+failed closed during initial inner equilibration, before an outer update or ELBO trace, and its
+provisional `rho` reached near single-plate concentration. V4 is `NO-GO`. The sci-Plex3 component
+therefore remains a non-executable `SCAFFOLD` and must not present a candidate design, provisional
+initialization state, or unrun performance as a validated biological belief.
 
 The next development work proceeds in this order:
 
@@ -345,13 +362,97 @@ The next development work proceeds in this order:
     scope, forged attestations, failed results, or omitted/extra receipts remain blockers. The
     sci-Plex3 component remains at `SCAFFOLD` because it still has no trained artifact, executable
     evaluation, mandatory baseline results, or admitted benchmark.
+11. **Completed 2026-08-10:** implement the first frozen-data software path without opening a
+    held-out lifecycle stage. The single-purpose loader authenticates the exact sci-Plex3 H5AD and
+    checked-in `p1` closure, then yields immutable sparse raw-count batches on the ordered 2,000-
+    feature panel. `p2` calibration, `p3` model selection, and `p4` untouched evaluation remain
+    hard sealed pending future grants bound respectively to `TRAINED_CANDIDATE`,
+    `CALIBRATED_CANDIDATE`, and `MODEL_SELECTED_FROZEN` lifecycle states. Six mandatory
+    probabilistic algorithms fit only from `p1`: matched-vehicle resampling, exact-condition
+    empirical resampling, exact-condition negative binomial, hierarchical well negative binomial,
+    low-rank compound-dose response, and nearest-supported-dose resampling. Every algorithm has an
+    explicit no-action path; matched vehicles come only from `p1` source plates, and nearest dose
+    excludes the exact requested dose. Frozen prediction semantics are 512 samples per case and
+    seed, seeds 0 through 4, and NumPy `PCG64DXSM`. Fitted-state manifests and prediction shards are
+    designed for content addressing and streaming rather than a dense campaign-wide materialization.
+    The exact source was authenticated before and after use; all 94,785 `p1` records across 768
+    wells were scanned; seven genuine zero-panel rows were retained; and six fitted-state identities
+    were materialized with no held-out access or lifecycle authority. None of this is baseline
+    performance, scientific admission, or a public cell-state runtime.
+12. **In progress 2026-08-10:** establish the first honest p1-trained candidate boundary. The
+    immutable pre-fit plan binds the exact typed `p1` role, count stream, scan, assembly, design,
+    feature, action, target, candidate specification, trainer/factory code, output schema, and
+    complete single-thread Linux `x86_64` runtime: CPython 3.11.15, NumPy 2.4.6, SciPy 1.17.1, and
+    `scipy-openblas` 0.3.31.188.0. Runtime-only HMAC source-selection and fit-semantic receipts,
+    exact byte resolution, query-prerequisite verification, and an application-owned loaded-
+    interface registry are all required before `TRAINED_CANDIDATE` can be derived; deterministic
+    files remain evidence rather than authority. The first rank-16 Gamma--Poisson design with a
+    separate `q`/capture term and 16 free shapes failed closed at the Gamma-shape boundary on the
+    exact real `p1` data and emitted no model. V2 removed `q`/capture, but its free pooled shape
+    crossed below `0.1`, reached approximately `0.073524`, and the outer trajectory remained
+    unconverged at pass 50. V3 fixed `r_theta=0.1`, but its nonissuing counterfactual still failed
+    relative-ELBO convergence and terminal factor-order stability. Its follow-up characterization showed a raw
+    activation-rank ratio `8.472584996122713e-7`, about 56.85 times the strict gate, and isolated the
+    original rank rejection to a 12-decimal quantization half-boundary. It also showed that the
+    independent mean-one lognormal unseen-plate model was tail-dominated at
+    `sigma_plate=5.66126548675`.
 
-The immediate next work is to implement the immutable sci-Plex3 data loader and mandatory baseline
-suite, followed by the first candidate distribution model, using `p1` for parameter fitting, `p2`
-for calibration, `p3` for model selection and freezing, and `p4` only for untouched evaluation.
-Passing that component lifecycle would authorize only the exact assay-response API; a hidden-state
-backend still requires its own observation/prior, inference, dynamics, sufficiency,
-identifiability, and operation-specific evidence.
+    The audited incompatible v4 software design retains 16 continuous Gamma--Poisson factors,
+    fixes `r_theta=0.1`, adds deterministic row-local inner equilibration, and proposes replacing
+    the lognormal plate draw with uniform selection of one complete observed `p1` `rho` row.
+    Its calibration declaration precommits to `tau_j=exp(j/20)` for integer `j=-20,...,6`, with
+    shape `0.1/tau_j^2` and factorwise-renormalized `rho^tau_j`; it does not read `p2` or choose a
+    value.
+
+    The first v4 launch produced report
+    `4677fc8ef1a458bf3616abc507250572c2da7a8d53c1c8a7a03d4b097f3d4877`, but its audit hook
+    rejected h5py's nonpersistent `/dev/null` probe before fitting. That attempt is infrastructure-
+    invalid, contains no fit, and must not be interpreted as science. The replacement execution was
+    an exact-reference, p1-only, nonissuing run. Its report,
+    `66e9debc1a402e7aa68cbc934f7c5f641529eea3187ec15606364c912af8faa8`, passed integrity and
+    resource gates and kept all provisional tensors finite. It failed initial, untraced inner
+    equilibration at sweep 50 with passing streak 0, `Rshape=0.24714465227035654`, and
+    `Relog=3.750385840630546`, before any outer update or ELBO trace. The two residuals are
+    respectively 24,714,465 and 375,038,584 times the `1e-8` tolerance. The provisional loading-
+    rank ratio `0.101239623839`, activation-rank ratio `0.001249342162`, and minimum contribution
+    share `0.001237124212` describe initialization only and are not evidence that rescues the failed
+    fit. The provisional `rho` maximum was `7.999995552807402`; because each factor column sums to
+    eight, at least one factor places `99.9999444101%` of its context mass on one plate and has an
+    effective context count of approximately `1.0000011118`. This is a candidate-family risk, not a
+    fitted-model pathology. The empirical whole-row context must be reexamined and is not a
+    validated unseen-plate model.
+
+    V4 is `NO-GO`. It issued no model, plan, observation, training evidence, materialization, or
+    lifecycle result. Item 12 remains in progress and the component remains `SCAFFOLD`. Throughout
+    this work `p2`, `p3`, and `p4` remain sealed, and calibration, selection, performance,
+    admission, component execution, and every public cell-state runtime remain false.
+
+**Item 12.1a — local-map and plate-context characterization software freeze** is complete. The
+source-free scratch harness SHA-256 is
+`f4e6b76847bd926952995d66233389768f091135699fb60a38d7d9762bb03ff1`; its test SHA-256 is
+`8989618e259fb4aed0e0798bc010e40092c45e6bd30234bb3a7b534cdc562903`.
+Twenty-six focused tests, Ruff check/format, compilation, and an independent SHA-bound
+math/containment audit passed with no P0/P1 finding. The contract fixes 50 production maps
+`A0 -> ... -> A50`, exactly one diagnostic-only `A51` lookahead, per-sweep `Rshape` and `Relog`,
+synchronized local objectives, one- and two-step distances and update cosine, deterministic worst
+row/factor/count summaries, shape/rate/mass invariants, per-sweep analytic 16-by-16 Jacobian
+spectral radii, exact replay equality, state/allocation digests, and all 16 bounded `rho`
+effective-context counts and maximum shares. An objective decrease routes to an implementation
+fix. An intact objective plus a two-cycle or noncontractive map routes to a versioned v5
+safeguarded local solver. Near-zero prior/context behavior or effective context near one routes to
+v5 plate regularization or neutralization. The contract does not prefreeze damping or shrinkage.
+
+**Item 12.1b** is now the next gated step: one exact-reference, real-`p1`, nonissuing execution of
+that frozen harness. Item 12.1a did not open the source, and Item 12.1b still requires separate
+explicit audit authorization. Neither stage authorizes changing the predeclared cap or tolerance,
+emitting an artifact, opening `p2`, or making a biological or performance claim. Only a future
+successful trusted verification may move the component to `TRAINED_CANDIDATE`. A future one-use
+grant may open `p2` for calibration
+only after that exact state; a separate grant may open `p3` for model selection and freezing only
+after calibration; and `p4` remains untouched until a locked evaluator receives an exact
+`MODEL_SELECTED_FROZEN` candidate. Passing that component lifecycle would authorize only the exact
+assay-response API; a hidden-state backend still requires its own observation/prior, inference,
+dynamics, sufficiency, identifiability, and operation-specific evidence.
 
 This sequence corrects the semantic spine before adapters or models depend on it. It preserves the
 existing manifest work while ensuring the first implementation cannot satisfy software contracts by

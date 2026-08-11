@@ -1,0 +1,320 @@
+{
+  "$defs": {
+    "AdmissionVerifierCapability": {
+      "description": "Exact observation class a verifier implementation is trusted to attest.",
+      "enum": [
+        "artifact_byte_resolution",
+        "execution_source_selection",
+        "loaded_interface_verification",
+        "training_fit_semantics",
+        "training_source_selection",
+        "validation_result_semantics"
+      ],
+      "title": "AdmissionVerifierCapability",
+      "type": "string"
+    },
+    "AdmissionVerifierIdentity": {
+      "additionalProperties": false,
+      "description": "Exact versioned identity of the code that issued an admission receipt.",
+      "properties": {
+        "capabilities": {
+          "items": {
+            "$ref": "#/$defs/AdmissionVerifierCapability"
+          },
+          "minItems": 1,
+          "title": "Capabilities",
+          "type": "array"
+        },
+        "code_artifact": {
+          "$ref": "#/$defs/ContentAddressedArtifact"
+        },
+        "entrypoint": {
+          "minLength": 1,
+          "title": "Entrypoint",
+          "type": "string"
+        },
+        "runtime": {
+          "minLength": 1,
+          "title": "Runtime",
+          "type": "string"
+        },
+        "verifier_id": {
+          "minLength": 1,
+          "title": "Verifier Id",
+          "type": "string"
+        },
+        "verifier_version": {
+          "minLength": 1,
+          "title": "Verifier Version",
+          "type": "string"
+        }
+      },
+      "required": [
+        "verifier_id",
+        "verifier_version",
+        "code_artifact",
+        "entrypoint",
+        "runtime",
+        "capabilities"
+      ],
+      "title": "AdmissionVerifierIdentity",
+      "type": "object"
+    },
+    "BenchmarkPartitionRole": {
+      "enum": [
+        "train",
+        "calibration",
+        "model_selection_validation",
+        "untouched_test",
+        "external_validation"
+      ],
+      "title": "BenchmarkPartitionRole",
+      "type": "string"
+    },
+    "ContentAddressedArtifact": {
+      "additionalProperties": false,
+      "properties": {
+        "artifact_id": {
+          "minLength": 1,
+          "title": "Artifact Id",
+          "type": "string"
+        },
+        "byte_count": {
+          "exclusiveMinimum": 0,
+          "title": "Byte Count",
+          "type": "integer"
+        },
+        "media_type": {
+          "minLength": 1,
+          "title": "Media Type",
+          "type": "string"
+        },
+        "sha256": {
+          "pattern": "^[a-fA-F0-9]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        },
+        "uri": {
+          "minLength": 1,
+          "title": "Uri",
+          "type": "string"
+        }
+      },
+      "required": [
+        "artifact_id",
+        "uri",
+        "sha256",
+        "byte_count",
+        "media_type"
+      ],
+      "title": "ContentAddressedArtifact",
+      "type": "object"
+    },
+    "ReceiptAttestation": {
+      "additionalProperties": false,
+      "description": "Keyed authentication of a receipt payload by an external verifier trust root.",
+      "properties": {
+        "algorithm": {
+          "const": "hmac-sha256-v1",
+          "default": "hmac-sha256-v1",
+          "title": "Algorithm",
+          "type": "string"
+        },
+        "attested_payload_fingerprint": {
+          "pattern": "^[a-fA-F0-9]{64}$",
+          "title": "Attested Payload Fingerprint",
+          "type": "string"
+        },
+        "authentication_tag": {
+          "pattern": "^[a-fA-F0-9]{64}$",
+          "title": "Authentication Tag",
+          "type": "string"
+        },
+        "key_id": {
+          "minLength": 1,
+          "title": "Key Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "key_id",
+        "attested_payload_fingerprint",
+        "authentication_tag"
+      ],
+      "title": "ReceiptAttestation",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "HMAC-authenticated semantic verification of one closed, reloadable model artifact.",
+  "properties": {
+    "accessed_partition_roles": {
+      "default": [
+        "train"
+      ],
+      "items": {
+        "$ref": "#/$defs/BenchmarkPartitionRole"
+      },
+      "title": "Accessed Partition Roles",
+      "type": "array"
+    },
+    "attestation": {
+      "$ref": "#/$defs/ReceiptAttestation"
+    },
+    "behavior_manifest_sha256": {
+      "pattern": "^[a-fA-F0-9]{64}$",
+      "title": "Behavior Manifest Sha256",
+      "type": "string"
+    },
+    "behavior_state_recomputed": {
+      "const": true,
+      "default": true,
+      "title": "Behavior State Recomputed",
+      "type": "boolean"
+    },
+    "calibration_applied": {
+      "const": false,
+      "default": false,
+      "title": "Calibration Applied",
+      "type": "boolean"
+    },
+    "candidate_load_verified": {
+      "const": true,
+      "default": true,
+      "title": "Candidate Load Verified",
+      "type": "boolean"
+    },
+    "converged": {
+      "const": true,
+      "default": true,
+      "title": "Converged",
+      "type": "boolean"
+    },
+    "finite": {
+      "const": true,
+      "default": true,
+      "title": "Finite",
+      "type": "boolean"
+    },
+    "issued_at": {
+      "format": "date-time",
+      "title": "Issued At",
+      "type": "string"
+    },
+    "model_artifact": {
+      "$ref": "#/$defs/ContentAddressedArtifact"
+    },
+    "model_closed_reread_rehashed": {
+      "const": true,
+      "default": true,
+      "title": "Model Closed Reread Rehashed",
+      "type": "boolean"
+    },
+    "model_selection_applied": {
+      "const": false,
+      "default": false,
+      "title": "Model Selection Applied",
+      "type": "boolean"
+    },
+    "p1_training_evidence_fingerprint": {
+      "pattern": "^[a-fA-F0-9]{64}$",
+      "title": "P1 Training Evidence Fingerprint",
+      "type": "string"
+    },
+    "p2_read": {
+      "const": false,
+      "default": false,
+      "title": "P2 Read",
+      "type": "boolean"
+    },
+    "p3_read": {
+      "const": false,
+      "default": false,
+      "title": "P3 Read",
+      "type": "boolean"
+    },
+    "p4_read": {
+      "const": false,
+      "default": false,
+      "title": "P4 Read",
+      "type": "boolean"
+    },
+    "public_runtime_authority": {
+      "const": false,
+      "default": false,
+      "title": "Public Runtime Authority",
+      "type": "boolean"
+    },
+    "receipt_fingerprint": {
+      "pattern": "^[a-fA-F0-9]{64}$",
+      "title": "Receipt Fingerprint",
+      "type": "string"
+    },
+    "receipt_id": {
+      "minLength": 1,
+      "title": "Receipt Id",
+      "type": "string"
+    },
+    "receipt_kind": {
+      "const": "candidate_fit",
+      "default": "candidate_fit",
+      "title": "Receipt Kind",
+      "type": "string"
+    },
+    "schema_version": {
+      "const": "0.1-experimental",
+      "default": "0.1-experimental",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "source_closed_and_reauthenticated": {
+      "const": true,
+      "default": true,
+      "title": "Source Closed And Reauthenticated",
+      "type": "boolean"
+    },
+    "source_selection_fingerprint": {
+      "pattern": "^[a-fA-F0-9]{64}$",
+      "title": "Source Selection Fingerprint",
+      "type": "string"
+    },
+    "training_complete": {
+      "const": true,
+      "default": true,
+      "title": "Training Complete",
+      "type": "boolean"
+    },
+    "training_plan_fingerprint": {
+      "pattern": "^[a-fA-F0-9]{64}$",
+      "title": "Training Plan Fingerprint",
+      "type": "string"
+    },
+    "training_result": {
+      "$ref": "#/$defs/ContentAddressedArtifact"
+    },
+    "verifier": {
+      "$ref": "#/$defs/AdmissionVerifierIdentity"
+    },
+    "verifier_fingerprint": {
+      "pattern": "^[a-fA-F0-9]{64}$",
+      "title": "Verifier Fingerprint",
+      "type": "string"
+    }
+  },
+  "required": [
+    "receipt_id",
+    "training_plan_fingerprint",
+    "source_selection_fingerprint",
+    "p1_training_evidence_fingerprint",
+    "training_result",
+    "model_artifact",
+    "behavior_manifest_sha256",
+    "verifier",
+    "verifier_fingerprint",
+    "issued_at",
+    "attestation",
+    "receipt_fingerprint"
+  ],
+  "title": "CandidateFitReceipt",
+  "type": "object"
+}

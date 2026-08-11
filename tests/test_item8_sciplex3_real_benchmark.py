@@ -24,6 +24,7 @@ from cellstate.data.benchmarks import (
     BestApplicableBaselineComparator,
     EvaluationCaseRole,
     ExactBaselineComparator,
+    ExecutableImplementationBinding,
     SpecificationOnlyImplementationBinding,
     ThresholdEstimate,
     verify_benchmark_artifact,
@@ -428,8 +429,22 @@ def test_frozen_component_status_and_typed_baseline_availability(
         for metric in definition.metrics
     )
     assert all(
-        isinstance(baseline.implementation_binding, SpecificationOnlyImplementationBinding)
-        for baseline in definition.baselines
+        isinstance(
+            next(
+                baseline for baseline in definition.baselines if baseline.baseline_id == baseline_id
+            ).implementation_binding,
+            ExecutableImplementationBinding,
+        )
+        for baseline_id in applicable
+    )
+    assert all(
+        isinstance(
+            next(
+                baseline for baseline in definition.baselines if baseline.baseline_id == baseline_id
+            ).implementation_binding,
+            SpecificationOnlyImplementationBinding,
+        )
+        for baseline_id in {"persistence", "temporal-state-space"}
     )
     assert any(
         check.status is AuditCheckStatus.NOT_ASSESSED

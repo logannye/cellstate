@@ -66,6 +66,67 @@
   state, deterministic query-derived prerequisites, and just-in-time reverified runtime handles.
   These checks advance infrastructure only; the sci-Plex3 component remains a non-runnable
   `SCAFFOLD` pending its immutable loader and mandatory baseline suite.
+- Add the Item 11 sci-Plex3 software path without advancing biological admission: a permanently
+  `p1-train`-scoped immutable H5AD loader; six `p1`-fit probabilistic raw-count baselines with
+  explicit no-action behavior and an exact-dose-excluding nearest-dose comparator; fixed
+  512-sample, five-seed `PCG64DXSM` execution semantics; and streamed, content-addressed fitted-
+  state and prediction-run scaffolding. `p2`, `p3`, and `p4` remain hard sealed behind future
+  lifecycle grants. Record the exact close-reauthenticated source scan of 94,785 `p1` rows across
+  768 wells and all six content-addressed fitted-state identities, retaining seven genuine zero-
+  panel rows. These are software provenance, not prediction or performance results: the benchmark
+  stays `COMPONENT_BENCHMARK`, the bundle stays `SCAFFOLD`, and no public cell-state runtime is
+  added.
+- Add the Item 12 p1-only trusted-training boundary: an immutable candidate plan, typed training
+  evidence, runtime-only HMAC source and fit attestations, close/reread/rehash model verification,
+  and an exact registry-owned candidate-factory interface. Record three fail-closed real-p1
+  investigations with no candidate artifact: v1's separate `q`/capture term and 16 free shapes
+  reached a rejected shape boundary; v2's free pooled shape drifted to approximately `0.073524`
+  while its outer fit remained unconverged; and the fixed-`r_theta=0.1` v3 counterfactual still
+  failed the relative-ELBO and terminal factor-order gates. Record that v3's activation-rank
+  spectrum was about 56.85 times above its strict gate, making the provisional rank issue a
+  quantization-portability ambiguity, while its independent lognormal plate nuisance was
+  tail-dominated at `sigma_plate=5.66126548675`.
+- Define the audited, incompatible v4 software-only design as a 16-factor continuous
+  Gamma--Poisson model without `q`/capture, with fixed `r_theta=0.1`, deterministic row-local inner
+  equilibration, and proposed unseen-plate context formed by uniformly selecting one complete
+  observed `p1` `rho` row. Predeclare the future p2 calibration grid
+  `tau_j=exp(j/20)`, `j=-20,...,6`, without opening p2 or selecting a value. The exact reference
+  runtime remains single-thread Linux `x86_64`, CPython 3.11.15, NumPy 2.4.6, SciPy 1.17.1, and
+  `scipy-openblas` 0.3.31.188.0.
+- Record the audited v4 executions without issuing an artifact. The first report,
+  `4677fc8ef1a458bf3616abc507250572c2da7a8d53c1c8a7a03d4b097f3d4877`, is infrastructure-
+  invalid and contains no fit; h5py's nonpersistent `/dev/null` probe triggered the filesystem
+  audit, so that report must not be interpreted scientifically. The replacement exact-reference,
+  p1-only report, `66e9debc1a402e7aa68cbc934f7c5f641529eea3187ec15606364c912af8faa8`,
+  passed integrity and resource gates with finite provisional tensors, then failed initial,
+  untraced inner equilibration at sweep 50, streak 0, `Rshape=0.24714465227035654`, and
+  `Relog=3.750385840630546`, before any outer update or ELBO trace. These are 24,714,465 and
+  375,038,584 times the `1e-8` tolerance. Initialization-only loading-rank, activation-rank, and
+  minimum-share values were respectively `0.101239623839`, `0.001249342162`, and
+  `0.001237124212`; they are not rescue evidence. Provisional `rho` reached
+  `7.999995552807402`. With factor-column sum eight, at least one factor places
+  `99.9999444101%` of its context mass on one plate and has effective context count approximately
+  `1.0000011118`. This is a candidate-family risk, not a fitted-model pathology, and requires
+  reexamination of the empirical whole-row proposal. V4 is `NO-GO`: no model, plan, observation,
+  training evidence, materialization, or lifecycle result was issued. Item 12 remains in progress
+  and the component remains `SCAFFOLD`; `p2`, `p3`, and `p4` remain sealed.
+- Completed **Item 12.1a — local-map and plate-context characterization software freeze**. The
+  scratch harness SHA-256 is `f4e6b76847bd926952995d66233389768f091135699fb60a38d7d9762bb03ff1`
+  and its source-free test SHA-256 is
+  `8989618e259fb4aed0e0798bc010e40092c45e6bd30234bb3a7b534cdc562903`.
+  Twenty-six focused tests, Ruff check/format, compilation, and an independent math/containment
+  audit passed with no P0/P1 finding. The harness predeclares one bounded first-failing-batch replay
+  with per-sweep `Rshape`/`Relog`, local ELBO, one- and two-step state distances and update cosine,
+  the worst
+  row/factor/count aggregate, shape/rate/mass invariants, the 16-by-16 Jacobian spectral radius,
+  exact replay equality, state/allocation digests, and all 16 `rho` effective-context counts and
+  maximum shares. Objective decrease routes to an implementation fix; an intact objective plus a
+  two-cycle or noncontractive map routes to a versioned v5 safeguarded local solver; near-zero
+  prior/context behavior or effective context near one routes to v5 plate regularization or
+  neutralization. **Item 12.1b**—one separately authorized real-`p1`, nonissuing execution—remains
+  pending. Item 12.1a opened no source and does not prefreeze damping or shrinkage or authorize a
+  real-source run, cap or tolerance relaxation, an artifact, p2 access, or any biology or
+  performance claim.
 
 ## 0.1.0 - Unreleased
 

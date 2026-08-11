@@ -88,8 +88,12 @@ interface registry, distinguishes verified validation semantics from passed resu
 query-dependent prerequisites, and returns only just-in-time reverified runtime handles. Persisted
 receipts never authorize execution by themselves; one immutable code snapshot is both hashed and
 loaded by the registry-owned trusted JIT loader, so independently supplied objects cannot borrow
-admitted bytes. The sci-Plex3 artifact remains a non-executable
-`SCAFFOLD`; the active milestone is its immutable loader and mandatory baselines. No biological
+admitted bytes. The sci-Plex3 artifact remains a non-executable `SCAFFOLD`. Item 11 completed its
+immutable `p1` loader, close-reauthenticated count scan, and six mandatory non-admissible baselines.
+Item 12 candidate revisions v1–v4 all failed closed without issuing a model, prediction, metric,
+calibration, or lifecycle result. Item 12.1a has frozen the source-free local-map and plate-context
+characterization harness; Item 12.1b, its separately authorized one-use real-`p1` nonissuing
+execution, is the next gated step. Held-out `p2`, `p3`, and `p4` remain sealed. No biological
 runtime or validated belief may be registered before its separate operation-specific admission
 and scientific gates pass.
 

@@ -1,6 +1,51 @@
 {
+  "algorithm_contracts": {
+    "exact-condition-negative-binomial": {
+      "dispersion_global_pseudo_wells": 2.0,
+      "distribution": "independent-feature Gamma-Poisson",
+      "mean_global_pseudo_wells": 0.5,
+      "positive_panel_maximum_redraws": 32
+    },
+    "exact-condition-rep1-empirical-resampling": {
+      "pool": "exact compound-dose p1 wells; p1 vehicles for no-action",
+      "positive_panel_maximum_redraws": 32,
+      "prediction_support": "conditioned on positive panel total",
+      "sampling": "uniform well then uniform nucleus"
+    },
+    "hierarchical-well-negative-binomial": {
+      "compound_pseudo_wells": 2.0,
+      "condition_wells": 1.0,
+      "distribution": "independent-feature Gamma-Poisson",
+      "global_pseudo_wells": 1.0,
+      "positive_panel_maximum_redraws": 32
+    },
+    "low-rank-compound-dose-response": {
+      "default_rank": 8,
+      "effect": "log1p condition mean minus log1p same-plate p1 vehicle mean",
+      "mean_decimals": 12,
+      "sampling": "Gamma-Poisson with equal-well global dispersion",
+      "svd_boundary_tie_rtol": 1e-12,
+      "svd_sign": "maximum-absolute-loading positive"
+    },
+    "matched-vehicle-resampling": {
+      "no_action_pool": "all p1 vehicle wells",
+      "positive_panel_maximum_redraws": 32,
+      "prediction_support": "conditioned on positive panel total",
+      "sampling": "uniform p1 vehicle well then uniform nucleus",
+      "treated_pool": "same-plate p1 vehicles for the exact p1 condition"
+    },
+    "nearest-supported-dose": {
+      "distance": "absolute log10 dose",
+      "exact_requested_dose_excluded": true,
+      "positive_panel_maximum_redraws": 32,
+      "prediction_support": "conditioned on positive panel total",
+      "sampling": "uniform selected p1 well then uniform nucleus",
+      "tie_absolute_tolerance": 1e-12,
+      "tie_break": "lower dose"
+    }
+  },
   "artifact_schema": "sciplex3-k562-frozen-baseline-suite",
-  "artifact_schema_version": "1.0.0",
+  "artifact_schema_version": "1.1.0",
   "baselines": [
     "exact-condition-negative-binomial",
     "exact-condition-rep1-empirical-resampling",
@@ -11,10 +56,27 @@
     "persistence",
     "temporal-state-space"
   ],
-  "execution_status": "not_run",
+  "code": {
+    "implementation_version": "1.0.0",
+    "path": "src/cellstate/evaluation/sciplex3_baselines.py",
+    "sha256": "5c078218f5af53b7815bb98b83e77a26f742e42a5853da711034a10c14330c58"
+  },
+  "execution_status": "software_golden_passed_real_benchmark_not_run",
+  "golden_fixture": {
+    "path": "benchmarks/vertical-a/sciplex3-k562-24h-v1/support/baseline-golden-fixtures.json",
+    "purpose": "software conformance only; not biological performance evidence",
+    "sha256": "59fd7410df297ce8a63e37068fc7d5727ebd12268526a5f43be6bded553dde49"
+  },
   "inapplicability": {
     "persistence": "requires a pre-cutoff target-modality observation; frozen query has none",
     "temporal-state-space": "also requires at least two future horizons; frozen query has one"
+  },
+  "input_contract": {
+    "counts": "immutable CSR raw UMI counts on exact ordered 2,000-feature panel",
+    "fit_partition": "p1-train only",
+    "heldout_outcomes_allowed": false,
+    "no_action_cases_required": true,
+    "replication_unit": "well"
   },
   "mandatory_probabilistic_baselines": [
     "exact-condition-negative-binomial",
@@ -23,6 +85,20 @@
     "low-rank-compound-dose-response",
     "matched-vehicle-resampling"
   ],
+  "prediction_contract": {
+    "bounded_streaming_required": true,
+    "draw_count_independent_of_recovered_nucleus_count": true,
+    "rng_algorithm": "numpy-pcg64dxsm-v1",
+    "samples_per_case_per_seed": 512,
+    "seed_pooling": "retain labels; pooled point score plus per-seed MC diagnostics",
+    "seeds": [
+      0,
+      1,
+      2,
+      3,
+      4
+    ]
+  },
   "rule": "A missing or crashed applicable baseline blocks admission and cannot be relabeled not applicable.",
   "scoring_contract": {
     "candidate_and_baseline_symmetry": "candidate and every applicable baseline emit raw ordered 2,000-panel count samples and are scored with the identical panel-only transform",
@@ -37,5 +113,6 @@
   },
   "secondary_applicable_baselines": [
     "nearest-supported-dose"
-  ]
+  ],
+  "training_zero_panel_policy": "retain every exact p1 record in fit statistics; never exclude or impute a zero-panel training row; predictive draws remain strictly positive"
 }

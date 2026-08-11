@@ -38,6 +38,9 @@ dev = [
 docs = [
   "mkdocs>=1.6,<2",
 ]
+sciplex3 = [
+  "h5py>=3.11,<4",
+]
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/cellstate"]

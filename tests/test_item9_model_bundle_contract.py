@@ -691,7 +691,7 @@ def test_complete_looking_declarations_remain_nonexecutable_in_v01(
         build_admitted_estimator_descriptor(bundle, **kwargs)
 
 
-def test_model_selected_lifecycle_can_precede_semantic_validation_results(
+def test_later_lifecycle_cannot_advance_from_artifact_presence_alone(
     query: StateQuery,
     benchmark: BenchmarkArtifact,
     manifest: DatasetManifest,
@@ -720,9 +720,8 @@ def test_model_selected_lifecycle_can_precede_semantic_validation_results(
         }
     )
 
-    candidate = type(readiness).model_validate(payload)
-    assert candidate.lifecycle_stage is ComponentLifecycleStage.MODEL_SELECTED_FROZEN
-    assert not candidate.validation_results_verified
+    with pytest.raises(ValidationError, match="lifecycle must be derived"):
+        type(readiness).model_validate(payload)
 
 
 @pytest.mark.parametrize("drift", ("port_code", "posterior_schema"))

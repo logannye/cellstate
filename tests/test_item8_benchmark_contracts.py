@@ -1437,6 +1437,60 @@ def test_baseline_not_applicable_is_machine_derived_from_exact_query(query: Stat
         )
 
 
+def test_inapplicable_baseline_does_not_require_executable_code(query: StateQuery) -> None:
+    benchmark = admitted_artifact(query)
+    inapplicable = data.BenchmarkBaselineDefinition(
+        baseline_id="temporal-state-space",
+        baseline_version="1.0.0-definition",
+        query_fingerprint=query.fingerprint,
+        implementation_binding=planned_binding("temporal-state-space"),
+        applicability=data.BaselineApplicabilityRule(
+            allowed_subject_kinds=(query.subject.kind,),
+            minimum_target_count=1,
+            minimum_horizon_count=99,
+        ),
+        training_partition_ids=("p1-train",),
+        seeds=(0,),
+    )
+    definition = revalidate(
+        data.BenchmarkDefinition,
+        benchmark.definition,
+        baselines=tuple(
+            sorted(
+                (*benchmark.definition.baselines, inapplicable),
+                key=lambda baseline: baseline.baseline_id,
+            )
+        ),
+    )
+    inapplicable_run = data.BaselineRun(
+        baseline=baseline_reference(inapplicable),
+        status=data.BaselineRunStatus.NOT_APPLICABLE,
+        applicability_rule_fingerprint=inapplicable.applicability.fingerprint,
+        notes=("The exact query has fewer than 99 future horizons.",),
+    )
+    admission = revalidate(
+        data.BenchmarkAdmission,
+        benchmark.admission,
+        definition_fingerprint=definition.fingerprint,
+        baseline_runs=tuple(
+            sorted(
+                (*benchmark.admission.baseline_runs, inapplicable_run),
+                key=lambda run: run.baseline.baseline_id,
+            )
+        ),
+    )
+
+    accepted = data.BenchmarkArtifact(
+        definition=definition,
+        leakage_audit=benchmark.leakage_audit,
+        admission=admission,
+    )
+    assert accepted.admission.status is data.BenchmarkAdmissionStatus.ADMITTED
+    from cellstate.backends.contracts import _benchmark_evaluation_complete
+
+    assert _benchmark_evaluation_complete(accepted)
+
+
 def test_pre_cutoff_baseline_applicability_requires_count_and_target_modality_overlap(
     query: StateQuery,
 ) -> None:

@@ -2638,6 +2638,7 @@ class BenchmarkArtifact(BenchmarkModel):
             or any(
                 not isinstance(baseline.implementation_binding, ExecutableImplementationBinding)
                 for baseline in definition.baselines
+                if baseline.applicability.applies_to(definition.query.state_query)
             )
             or any(
                 not isinstance(metric.uncertainty.method, ExecutableImplementationBinding)
@@ -3052,6 +3053,7 @@ def verify_benchmark_artifact(
         and all(
             isinstance(baseline.implementation_binding, ExecutableImplementationBinding)
             for baseline in definition.baselines
+            if baseline.applicability.applies_to(definition.query.state_query)
         )
         and all(
             isinstance(metric.uncertainty.method, ExecutableImplementationBinding)
