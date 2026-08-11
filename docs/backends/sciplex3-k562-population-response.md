@@ -87,13 +87,18 @@ protected `p1` source remains a separate authenticated read-only input. A typed 
 source pre/post authentication and stage bytes to the parent's image, policy, process-tree, and
 cleanup evidence.
 
-Two independent no-cache, provenance-disabled Linux `amd64` OCI builds at
-`SOURCE_DATE_EPOCH=1786406400` produced the same index
-`sha256:ababac344fae7f3d679cf9b3bbf4c46b8f3b169b358566d4abd6e3b0e7b8251e`, runnable child
-manifest `sha256:edd451f171161472c1a3bb6a1ae434cdedc5b776e228757ac732522c1035df18`, and config
-`sha256:b9cdf1e179f149319b038f2f58bb80470c2a1b5bda8f1cf9d2ccbe17fe3b59e5`;
-the Dockerfile SHA-256 is
-`ec21cc81a3b4d71f5de745adde74506d63da0d9b317996c8f97b067e90347e7a`.
+Three independent no-cache, provenance-disabled builds at `SOURCE_DATE_EPOCH=1786406400`—Docker
+Desktop `amd64` emulation, the separate local `tinyzkp` `docker-container` builder pinned to the
+locked BuildKit image, and native Linux `amd64` GitHub Actions—produced the same byte-for-byte OCI
+archive under frozen inputs and toolchain. Its SHA-256 is
+`37c2fa5846acfbd8357476859bd7f8f0ac6591261d79c2f6f46f0aa22fb76454`; the index is
+`sha256:e0f0afd6c66197a37d0ab7a05e7cccfe5990da1fd8497e175fdf3ab909a67812`, runnable child manifest is
+`sha256:12c2faa6019fb60cdcabaa8f38f70e99be7998997b97ddb0ca59fbe2e82f1e25`, and config is
+`sha256:80ed48f278d7a46c0ae7811285efc69181ae59872a358cc9b176079aa09f3cc8`; the Dockerfile SHA-256 is
+`a3a71c3d61c71235d9c1a99c16aa00568b398971adfc2da65388b0c7ea3987a0`. The multi-stage clean final
+copies only the curated runtime tree and excludes build-host caches such as Rosetta's
+`/root/.cache/rosetta`; the workflow and runtime lock freeze the exact Buildx/BuildKit builder
+identity.
 Native-Linux execution freezes `host-effective-uid-gid`, gives the bounded mode-`0700` tmpfs the
 same numeric UID/GID, and initializes the sole anonymous snapshot volume from an empty mode-`1777`
 image directory. That policy lets the contained non-root worker use the declared `0400`/`0700` host
@@ -110,7 +115,8 @@ These are software contracts and source-free acceptance evidence only. No protec
 opened for Item 12.2, no real-`p1` fit was attempted, and no plan, fitted model, observation,
 training evidence, materialization, or lifecycle result was issued. The component remains
 `SCAFFOLD`; no candidate response is exposed through the component or any public cell-state
-operation.
+operation. The image still requires loading from the exact local OCI layout and is not claimed to
+be remotely published; durable distribution of the locked archive is an Item 12.3 prerequisite.
 
 ## Historical Item 12 v4 trained-candidate boundary
 
@@ -202,10 +208,11 @@ Item 12.2 do not authorize a v5 real-source run.
 | Frozen Item 12.1a characterization harness | `f4e6b76847bd926952995d66233389768f091135699fb60a38d7d9762bb03ff1` |
 | Frozen Item 12.1a characterization tests | `8989618e259fb4aed0e0798bc010e40092c45e6bd30234bb3a7b534cdc562903` |
 | Frozen Item 12.1a parent driver | `795c59296f5cefb1b6dd78a021ea0eb8e795217eda5226becf6c5bf909f6623a` |
-| Source-free v5 reproducible OCI index | `sha256:ababac344fae7f3d679cf9b3bbf4c46b8f3b169b358566d4abd6e3b0e7b8251e` |
-| Source-free v5 runnable Linux `amd64` child | `sha256:edd451f171161472c1a3bb6a1ae434cdedc5b776e228757ac732522c1035df18` |
-| Source-free v5 OCI config | `sha256:b9cdf1e179f149319b038f2f58bb80470c2a1b5bda8f1cf9d2ccbe17fe3b59e5` |
-| Source-free v5 Dockerfile | `ec21cc81a3b4d71f5de745adde74506d63da0d9b317996c8f97b067e90347e7a` |
+| Source-free v5 byte-identical OCI archive | `37c2fa5846acfbd8357476859bd7f8f0ac6591261d79c2f6f46f0aa22fb76454` |
+| Source-free v5 reproducible OCI index | `sha256:e0f0afd6c66197a37d0ab7a05e7cccfe5990da1fd8497e175fdf3ab909a67812` |
+| Source-free v5 runnable Linux `amd64` child | `sha256:12c2faa6019fb60cdcabaa8f38f70e99be7998997b97ddb0ca59fbe2e82f1e25` |
+| Source-free v5 OCI config | `sha256:80ed48f278d7a46c0ae7811285efc69181ae59872a358cc9b176079aa09f3cc8` |
+| Source-free v5 Dockerfile | `a3a71c3d61c71235d9c1a99c16aa00568b398971adfc2da65388b0c7ea3987a0` |
 
 The v2 rows identify the software used for a rejected diagnostic trajectory. They are incompatible
 with v4 and do not identify a real-p1 fitted model, training plan, current candidate family, or
@@ -370,7 +377,9 @@ This is the next proposed milestone, not an authorization. One exact v5 version 
 for a separately reviewed, nonissuing real-`p1` execution only after explicit authorization. No such
 authorization exists and no Item 12.3 run has occurred. It cannot open `p2`, `p3`, or protected `p4`
 raw endpoints, inspect outcomes, score predictions, issue lifecycle evidence, or convert public
-frozen design metadata into source access.
+frozen design metadata into source access. The exact archive must first have durable distribution;
+its present local-load-only status and absence of remote publication do not satisfy that
+prerequisite.
 
 Passing a later complete component lifecycle could authorize only this direct component surface;
 it would not authorize a hidden-state estimator.

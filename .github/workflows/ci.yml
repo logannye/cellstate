@@ -66,6 +66,11 @@ jobs:
           uv run --no-editable python scripts/verify_sciplex3_v5_runtime_oci.py
           --lock containers/sciplex3-v5-runtime/runtime-image-lock.json
           verify-inputs --context containers/sciplex3-v5-runtime
+      - name: Verify frozen Item 12.2 runtime builder
+        run: >-
+          uv run --no-editable python scripts/verify_sciplex3_v5_runtime_oci.py
+          --lock containers/sciplex3-v5-runtime/runtime-image-lock.json
+          verify-builder
       - name: Build first source-free OCI runtime
         run: |
           source_date_epoch="$(uv run --no-editable python \

@@ -242,7 +242,10 @@ exact-positive request-level sampling through 512 draws under a global `2^-64` c
 input, and staged-output closure; reproducible Linux `amd64` OCI identities; and parent-owned
 whole-container wall/memory and host-effective UID/GID containment. It opened no protected source,
 ran no real-`p1` fit, and issued no candidate artifact, plan, observation, evidence, or lifecycle
-result. The checked-in sci-Plex3 component therefore remains `SCAFFOLD` and non-executable. Item
-12.3 is only a proposed,
-separately authorized, version-bound, nonissuing real-`p1` v5 execution; it has not been authorized
-or run. See the [roadmap](../roadmap.md), the sole sequence and status authority.
+result. The clean-final OCI archive is byte-identical across three independent native and emulated
+builder environments under frozen inputs and toolchain and excludes build-host caches; its builder
+identity is frozen in the workflow and runtime lock. The checked-in sci-Plex3 component therefore
+remains `SCAFFOLD` and non-executable. Item 12.3 is only a proposed, separately authorized, version-
+bound, nonissuing real-`p1` v5 execution; it has not been authorized or run. Durable distribution of
+the exact locally loaded archive is a prerequisite, and no remote image publication is claimed. See
+the [roadmap](../roadmap.md), the sole sequence and status authority.

@@ -105,7 +105,9 @@ from cellstate.evaluation.sciplex3_sampling_v5 import (
 from cellstate.training.execution import (
     ContainedExecutionPolicy,
     ExecutionInputClosureManifest,
+    RuntimeBuilderIdentity,
     RuntimeImageIdentity,
+    RuntimeImageLayerIdentity,
     RuntimeImageLock,
     TrainingCodeClosureEntry,
     TrainingCodeClosureManifest,
@@ -154,16 +156,54 @@ _PUBLICATION_GENERATION_SEED_RELATIVE_PATH = (
 _CONTAINED_EXECUTION_ID = "sciplex3-k562-v5-fit"
 _RUNTIME_IMAGE_REFERENCE = (
     "cellstate-sciplex3-v5-runtime@"
-    "sha256:edd451f171161472c1a3bb6a1ae434cdedc5b776e228757ac732522c1035df18"
+    "sha256:12c2faa6019fb60cdcabaa8f38f70e99be7998997b97ddb0ca59fbe2e82f1e25"
 )
-_RUNTIME_IMAGE_DIGEST = "sha256:edd451f171161472c1a3bb6a1ae434cdedc5b776e228757ac732522c1035df18"
+_RUNTIME_IMAGE_DIGEST = "sha256:12c2faa6019fb60cdcabaa8f38f70e99be7998997b97ddb0ca59fbe2e82f1e25"
 _RUNTIME_IMAGE_INDEX_DIGEST = (
-    "sha256:ababac344fae7f3d679cf9b3bbf4c46b8f3b169b358566d4abd6e3b0e7b8251e"
+    "sha256:e0f0afd6c66197a37d0ab7a05e7cccfe5990da1fd8497e175fdf3ab909a67812"
 )
 _RUNTIME_IMAGE_CONFIG_DIGEST = (
-    "sha256:b9cdf1e179f149319b038f2f58bb80470c2a1b5bda8f1cf9d2ccbe17fe3b59e5"
+    "sha256:80ed48f278d7a46c0ae7811285efc69181ae59872a358cc9b176079aa09f3cc8"
 )
+_RUNTIME_IMAGE_ARCHIVE_SHA256 = "37c2fa5846acfbd8357476859bd7f8f0ac6591261d79c2f6f46f0aa22fb76454"
 _RUNTIME_IMAGE_SOURCE_DATE_EPOCH = 1_786_406_400
+_RUNTIME_IMAGE_TAG = "cellstate-sciplex3-v5-runtime:20260811-locked"
+_RUNTIME_BUILDX_VERSION = "v0.28.0"
+_RUNTIME_BUILDX_COMMIT = "b1281b81bba797b21d9eaf256e6a13eb14419836"
+_RUNTIME_BUILDKIT_VERSION = "v0.24.0"
+_RUNTIME_BUILDKIT_IMAGE_DIGEST = (
+    "sha256:6eceb8971ce4fceb3daca562832642706238b7eea72941fcf9896c93c3c4a53e"
+)
+_RUNTIME_DOCKERFILE_FRONTEND_DIGEST = (
+    "sha256:a57df69d0ea827fb7266491f2813635de6f17269be881f696fbfdf2d83dda33e"
+)
+_RUNTIME_OUTPUT_OPTIONS = ("type=oci",)
+_RUNTIME_IMAGE_LAYERS = (
+    RuntimeImageLayerIdentity(
+        digest="sha256:039e6f9f9752f74a3ff4a6a224f64c7c864da16ed98f882107704328f41b9c42",
+        byte_count=28_232_590,
+    ),
+    RuntimeImageLayerIdentity(
+        digest="sha256:a818f21dc3b91f21ff6a387603a68f05631236d4ef4da78c62263192f17efc5f",
+        byte_count=3_520_836,
+    ),
+    RuntimeImageLayerIdentity(
+        digest="sha256:51dd2349a5f3cda316dcc78934383fdd473c905d1070f1c822e4011c39e23774",
+        byte_count=16_019_435,
+    ),
+    RuntimeImageLayerIdentity(
+        digest="sha256:87e3be58ade05b9abd82eedde89ebfca06a7d656332edb0991939c130f9e32bd",
+        byte_count=249,
+    ),
+    RuntimeImageLayerIdentity(
+        digest="sha256:4eaeda62bd74078a1cd0f387c18cac3c1273826cbda1222ba571bf4e06b26533",
+        byte_count=67_847_890,
+    ),
+    RuntimeImageLayerIdentity(
+        digest="sha256:4f4fb700ef54461cfa02571ae0db9a0dc1e0cdb5577484a6d75e68dc38e8acc1",
+        byte_count=32,
+    ),
+)
 _THREAD_ENVIRONMENT_KEYS = (
     "MKL_NUM_THREADS",
     "NUMEXPR_NUM_THREADS",
@@ -551,7 +591,9 @@ def contained_training_contracts(
     if provenance_payload not in {canonical_provenance, canonical_provenance + b"\n"}:
         raise SciPlex3CandidateRunnerError("runtime image provenance lock is not canonical JSON")
     build = provenance.get("build")
-    if type(build) is not dict:
+    builder = provenance.get("builder")
+    layer_payloads = provenance.get("layers")
+    if type(build) is not dict or type(builder) is not dict or type(layer_payloads) is not list:
         raise SciPlex3CandidateRunnerError("runtime image provenance build identity is malformed")
     dockerfile = _read_bytes(
         root / "containers/sciplex3-v5-runtime/Dockerfile", name="runtime Dockerfile"
@@ -560,29 +602,72 @@ def contained_training_contracts(
         root / "containers/sciplex3-v5-runtime/requirements.lock",
         name="runtime requirements lock",
     )
+    output_options = build.get("output_options")
+    if type(output_options) is not list:
+        raise SciPlex3CandidateRunnerError("runtime image output options are malformed")
+    try:
+        builder_identity = RuntimeBuilderIdentity.model_validate(
+            {
+                "buildx_version": builder.get("buildx_version"),
+                "buildx_commit": builder.get("buildx_commit"),
+                "buildkit_version": builder.get("buildkit_version"),
+                "buildkit_image_digest": builder.get("buildkit_image_digest"),
+                "dockerfile_frontend_digest": builder.get("dockerfile_frontend_digest"),
+                "dockerfile_sha256": build.get("dockerfile_sha256"),
+                "requirements_sha256": build.get("requirements_sha256"),
+                "source_date_epoch": build.get("source_date_epoch"),
+                "no_cache": build.get("no_cache"),
+                "platform": build.get("platform"),
+                "provenance_attestation_disabled": build.get("provenance_attestation_disabled"),
+                "image_tag": build.get("image_tag"),
+                "output_options": tuple(output_options),
+            }
+        )
+        layers = tuple(RuntimeImageLayerIdentity.model_validate(item) for item in layer_payloads)
+    except (TypeError, ValueError) as error:
+        raise SciPlex3CandidateRunnerError(
+            "runtime image typed provenance identity is malformed"
+        ) from error
     if (
-        provenance.get("image_reference") != policy.runtime_image.reference
+        provenance.get("runtime_image_lock_schema") != "cellstate-sciplex3-v5-runtime-image-lock"
+        or provenance.get("runtime_image_lock_version") != "1.0.0"
+        or provenance.get("image_reference") != policy.runtime_image.reference
         or provenance.get("image_digest") != policy.runtime_image.digest
         or provenance.get("platform") != policy.runtime_image.platform
         or provenance.get("operating_system") != "linux"
         or provenance.get("architecture") != "amd64"
+        or provenance.get("archive_sha256") != _RUNTIME_IMAGE_ARCHIVE_SHA256
         or provenance.get("oci_index_digest") != _RUNTIME_IMAGE_INDEX_DIGEST
         or provenance.get("config_digest") != _RUNTIME_IMAGE_CONFIG_DIGEST
         or provenance.get("distribution") != "local-oci-layout-load-required"
         or provenance.get("container_user_mode") != policy.container_user_mode
         or provenance.get("snapshot_volume_initialization") != policy.snapshot_volume_initialization
-        or build.get("dockerfile_sha256") != _sha256(dockerfile)
-        or build.get("requirements_sha256") != _sha256(requirements)
-        or build.get("source_date_epoch") != _RUNTIME_IMAGE_SOURCE_DATE_EPOCH
-        or build.get("oci_output") != "type=oci"
-        or build.get("provenance_attestation_disabled") is not True
+        or builder_identity.buildx_version != _RUNTIME_BUILDX_VERSION
+        or builder_identity.buildx_commit != _RUNTIME_BUILDX_COMMIT
+        or builder_identity.buildkit_version != _RUNTIME_BUILDKIT_VERSION
+        or builder_identity.buildkit_image_digest != _RUNTIME_BUILDKIT_IMAGE_DIGEST
+        or builder_identity.dockerfile_frontend_digest != _RUNTIME_DOCKERFILE_FRONTEND_DIGEST
+        or builder_identity.dockerfile_sha256 != _sha256(dockerfile)
+        or builder_identity.requirements_sha256 != _sha256(requirements)
+        or builder_identity.source_date_epoch != _RUNTIME_IMAGE_SOURCE_DATE_EPOCH
+        or builder_identity.no_cache is not True
+        or builder_identity.platform != policy.runtime_image.platform
+        or builder_identity.provenance_attestation_disabled is not True
+        or builder_identity.image_tag != _RUNTIME_IMAGE_TAG
+        or builder_identity.output_options != _RUNTIME_OUTPUT_OPTIONS
         or build.get("reproducibility_build_count") != 2
+        or layers != _RUNTIME_IMAGE_LAYERS
     ):
         raise SciPlex3CandidateRunnerError("runtime image provenance contradicts its exact files")
     image_lock = RuntimeImageLock(
         runtime_image=policy.runtime_image,
         container_user_mode=policy.container_user_mode,
         snapshot_volume_initialization=policy.snapshot_volume_initialization,
+        builder=builder_identity,
+        archive_sha256=_RUNTIME_IMAGE_ARCHIVE_SHA256,
+        oci_index_digest=_RUNTIME_IMAGE_INDEX_DIGEST,
+        config_digest=_RUNTIME_IMAGE_CONFIG_DIGEST,
+        layers=layers,
         training_code_closure_sha256=code_closure.fingerprint,
         image_provenance_sha256=_sha256(provenance_payload),
     )

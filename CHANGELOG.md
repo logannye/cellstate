@@ -163,12 +163,17 @@
   release, orphan cleanup, and exact resealing. Bind the complete Python executable closure, exact
   mounted public-control input closure, and typed no-follow staged-output inventory into the plan,
   worker observation, parent containment observation, and future stage verification.
-- Freeze the source-free Linux `amd64` OCI runtime from two byte-identical no-cache builds: index
-  `sha256:ababac344fae7f3d679cf9b3bbf4c46b8f3b169b358566d4abd6e3b0e7b8251e`, runnable child
-  `sha256:edd451f171161472c1a3bb6a1ae434cdedc5b776e228757ac732522c1035df18`, and config
-  `sha256:b9cdf1e179f149319b038f2f58bb80470c2a1b5bda8f1cf9d2ccbe17fe3b59e5`;
-  the Dockerfile SHA-256 is
-  `ec21cc81a3b4d71f5de745adde74506d63da0d9b317996c8f97b067e90347e7a`.
+- Freeze the source-free Linux `amd64` OCI runtime from byte-identical no-cache,
+  provenance-disabled builds in three independent environments under frozen inputs and toolchain:
+  Docker Desktop `amd64` emulation, the separate local `tinyzkp` `docker-container` builder pinned
+  to the locked BuildKit image, and native Linux `amd64` GitHub Actions. The exact archive SHA-256 is
+  `37c2fa5846acfbd8357476859bd7f8f0ac6591261d79c2f6f46f0aa22fb76454`; its index is
+  `sha256:e0f0afd6c66197a37d0ab7a05e7cccfe5990da1fd8497e175fdf3ab909a67812`, runnable child is
+  `sha256:12c2faa6019fb60cdcabaa8f38f70e99be7998997b97ddb0ca59fbe2e82f1e25`, and config is
+  `sha256:80ed48f278d7a46c0ae7811285efc69181ae59872a358cc9b176079aa09f3cc8`; the Dockerfile SHA-256 is
+  `a3a71c3d61c71235d9c1a99c16aa00568b398971adfc2da65388b0c7ea3987a0`. The multi-stage clean final
+  copies only the curated runtime tree and excludes build-host caches; the lock and workflow freeze
+  the exact Buildx/BuildKit builder identity.
   Freeze native-Linux execution as `host-effective-uid-gid`, mount the bounded mode-`0700` tmpfs
   with that same numeric UID/GID, and initialize the anonymous snapshot volume from an empty mode-
   `1777` image directory. The contained non-root worker can therefore use the declared
@@ -183,7 +188,9 @@
 - Keep this completion strictly software-only. Item 12.2 opened no protected source, ran no real-
   `p1` fit, and issued no candidate artifact, plan, observation, evidence, materialization, or
   lifecycle result; sci-Plex3 remains `SCAFFOLD`. A separately authorized, version-bound,
-  nonissuing real-`p1` v5 execution is proposed as Item 12.3 but is not authorized or run.
+  nonissuing real-`p1` v5 execution is proposed as Item 12.3 but is not authorized or run. The exact
+  OCI layout must still be loaded locally and is not claimed to be remotely published; durable
+  distribution of the locked archive is an Item 12.3 prerequisite.
 
 ## 0.1.0 - Unreleased
 

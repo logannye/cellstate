@@ -507,13 +507,19 @@ protected source remains a separate authenticated read-only input. A typed no-fo
 `ContainedTrainingObservation` joins worker source pre/post authentication and stage identity to
 the parent's image, policy, process-tree, and cleanup evidence.
 
-The frozen Linux `amd64` runtime is reproducible from two independent `--no-cache`,
-provenance-disabled OCI builds at `SOURCE_DATE_EPOCH=1786406400`. Both produced index
-`sha256:ababac344fae7f3d679cf9b3bbf4c46b8f3b169b358566d4abd6e3b0e7b8251e`, runnable child
-manifest `sha256:edd451f171161472c1a3bb6a1ae434cdedc5b776e228757ac732522c1035df18`, and config
-`sha256:b9cdf1e179f149319b038f2f58bb80470c2a1b5bda8f1cf9d2ccbe17fe3b59e5`.
-The Dockerfile SHA-256 is
-`ec21cc81a3b4d71f5de745adde74506d63da0d9b317996c8f97b067e90347e7a`.
+The frozen Linux `amd64` runtime is reproducible byte-for-byte under frozen inputs and toolchain
+across three independent `--no-cache`, provenance-disabled builds at
+`SOURCE_DATE_EPOCH=1786406400`: Docker Desktop `amd64` emulation, the separate local `tinyzkp`
+`docker-container` builder pinned to the locked BuildKit image, and native Linux `amd64` GitHub
+Actions. All three produced archive SHA-256
+`37c2fa5846acfbd8357476859bd7f8f0ac6591261d79c2f6f46f0aa22fb76454`, index
+`sha256:e0f0afd6c66197a37d0ab7a05e7cccfe5990da1fd8497e175fdf3ab909a67812`, runnable child
+manifest `sha256:12c2faa6019fb60cdcabaa8f38f70e99be7998997b97ddb0ca59fbe2e82f1e25`, and config
+`sha256:80ed48f278d7a46c0ae7811285efc69181ae59872a358cc9b176079aa09f3cc8`. The Dockerfile SHA-256 is
+`a3a71c3d61c71235d9c1a99c16aa00568b398971adfc2da65388b0c7ea3987a0`. Its multi-stage clean final
+copies only the curated `/opt`, `/run`, and `/workspace` runtime tree, excluding build-host caches
+such as Rosetta's `/root/.cache/rosetta`; the workflow and runtime-image lock freeze the exact
+Buildx/BuildKit builder identity.
 Native-Linux execution is frozen as `host-effective-uid-gid`: the worker runs as the host's numeric
 effective UID/GID, and the bounded mode-`0700` tmpfs is mounted with that same UID/GID. The sole
 anonymous snapshot volume uses `empty-image-directory-mode-1777` initialization. This makes the
@@ -535,7 +541,9 @@ lifecycle result, calibrate, score, or change the component from `SCAFFOLD`.
 **Item 12.3 — proposed separately authorized, version-bound, nonissuing real-p1 v5 execution.** This
 is the next proposed milestone, not an authorization. Its exact candidate version, source scope,
 runtime/limit identities, permitted nonissuing outputs, and stop conditions require separate review
-and explicit authorization. No Item 12.3 run has occurred. It cannot borrow Item 12.2's source-free
+and explicit authorization. The current image must be loaded from its exact local OCI layout and is
+not claimed to be remotely published; durable distribution of that locked archive is an additional
+prerequisite. No Item 12.3 run has occurred. It cannot borrow Item 12.2's source-free
 acceptance as data authority, open `p2`, `p3`, or protected `p4` raw endpoints, inspect held-out
 outcomes, score predictions, issue lifecycle evidence, or reinterpret public frozen split/case
 metadata as permission to resolve protected source bytes.

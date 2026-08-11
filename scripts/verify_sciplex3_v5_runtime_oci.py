@@ -11,15 +11,28 @@ import subprocess
 import sys
 import tarfile
 from collections.abc import Mapping, Sequence
-from dataclasses import dataclass
+from dataclasses import asdict, dataclass
 from pathlib import Path, PurePosixPath
 from typing import Any
 
 OCI_INDEX_MEDIA_TYPE = "application/vnd.oci.image.index.v1+json"
 OCI_MANIFEST_MEDIA_TYPE = "application/vnd.oci.image.manifest.v1+json"
 OCI_CONFIG_MEDIA_TYPE = "application/vnd.oci.image.config.v1+json"
+OCI_LAYER_MEDIA_TYPE = "application/vnd.oci.image.layer.v1.tar+gzip"
 OCI_LAYOUT = {"imageLayoutVersion": "1.0.0"}
 SHA256_DIGEST = re.compile(r"sha256:([0-9a-f]{64})\Z")
+SHA256_HEX = re.compile(r"[0-9a-f]{64}\Z")
+EXPECTED_BUILDX_VERSION = "v0.28.0"
+EXPECTED_BUILDX_COMMIT = "b1281b81bba797b21d9eaf256e6a13eb14419836"
+EXPECTED_BUILDKIT_VERSION = "v0.24.0"
+EXPECTED_BUILDKIT_IMAGE_DIGEST = (
+    "sha256:6eceb8971ce4fceb3daca562832642706238b7eea72941fcf9896c93c3c4a53e"
+)
+EXPECTED_DOCKERFILE_FRONTEND_DIGEST = (
+    "sha256:a57df69d0ea827fb7266491f2813635de6f17269be881f696fbfdf2d83dda33e"
+)
+EXPECTED_OUTPUT_OPTIONS = ["type=oci"]
+EXPECTED_IMAGE_TAG = "cellstate-sciplex3-v5-runtime:20260811-locked"
 
 
 class VerificationError(RuntimeError):
@@ -27,13 +40,27 @@ class VerificationError(RuntimeError):
 
 
 @dataclass(frozen=True)
+class OciLayerIdentity:
+    """One exact ordered compressed layer descriptor."""
+
+    media_type: str
+    digest: str
+    byte_count: int
+
+
+@dataclass(frozen=True)
 class ArchiveIdentity:
     """Content identities that must agree across independent OCI builds."""
 
+    archive_sha256: str
     index_digest: str
     image_digest: str
     config_digest: str
-    layer_digests: tuple[str, ...]
+    layers: tuple[OciLayerIdentity, ...]
+
+    @property
+    def layer_digests(self) -> tuple[str, ...]:
+        return tuple(layer.digest for layer in self.layers)
 
 
 def _sha256_bytes(payload: bytes) -> str:
@@ -98,11 +125,56 @@ def _required_positive_int(parent: Mapping[str, Any], key: str, label: str) -> i
     return value
 
 
+def _required_sha256_hex(parent: Mapping[str, Any], key: str, label: str) -> str:
+    value = _required_string(parent, key, label)
+    if SHA256_HEX.fullmatch(value) is None:
+        raise VerificationError(f"{label}.{key} must be lowercase SHA-256 hex")
+    return value
+
+
+def _locked_layers(lock: Mapping[str, Any]) -> tuple[OciLayerIdentity, ...]:
+    payload = lock.get("layers")
+    if not isinstance(payload, list) or not payload:
+        raise VerificationError("lock.layers must be a non-empty array")
+    layers: list[OciLayerIdentity] = []
+    for index, item in enumerate(payload):
+        label = f"lock.layers[{index}]"
+        if not isinstance(item, dict):
+            raise VerificationError(f"{label} must be an object")
+        media_type = _required_string(item, "media_type", label)
+        if media_type != OCI_LAYER_MEDIA_TYPE:
+            raise VerificationError(f"{label}.media_type must be the frozen gzip OCI media type")
+        layers.append(
+            OciLayerIdentity(
+                media_type=media_type,
+                digest=_required_digest(item, "digest", label),
+                byte_count=_required_positive_int(item, "byte_count", label),
+            )
+        )
+    if len({layer.digest for layer in layers}) != len(layers):
+        raise VerificationError("lock layer digests must be unique")
+    return tuple(layers)
+
+
+def _verify_builder_declaration(lock: Mapping[str, Any]) -> None:
+    builder = _required_mapping(lock, "builder", "lock")
+    expected_builder = {
+        "buildkit_image_digest": EXPECTED_BUILDKIT_IMAGE_DIGEST,
+        "buildkit_version": EXPECTED_BUILDKIT_VERSION,
+        "buildx_commit": EXPECTED_BUILDX_COMMIT,
+        "buildx_version": EXPECTED_BUILDX_VERSION,
+        "dockerfile_frontend_digest": EXPECTED_DOCKERFILE_FRONTEND_DIGEST,
+    }
+    if builder != expected_builder:
+        raise VerificationError("runtime image lock builder identity is not exact")
+
+
 def verify_build_inputs(lock_path: Path, context: Path) -> int:
     """Verify the frozen Docker context and return its locked source epoch."""
 
     lock = _load_lock(lock_path)
     build = _required_mapping(lock, "build", "lock")
+    _verify_builder_declaration(lock)
     expected_files = {
         "Dockerfile": _required_string(build, "dockerfile_sha256", "lock.build"),
         "requirements.lock": _required_string(build, "requirements_sha256", "lock.build"),
@@ -124,13 +196,97 @@ def verify_build_inputs(lock_path: Path, context: Path) -> int:
         raise VerificationError("runtime image lock platform must be linux/amd64")
     if lock.get("operating_system") != "linux" or lock.get("architecture") != "amd64":
         raise VerificationError("runtime image lock OS/architecture is inconsistent")
-    if build.get("oci_output") != "type=oci":
-        raise VerificationError("runtime image lock must require OCI output")
+    if build.get("no_cache") is not True:
+        raise VerificationError("runtime image lock must disable the build cache")
+    if build.get("platform") != "linux/amd64":
+        raise VerificationError("runtime image lock build platform must be linux/amd64")
+    if build.get("image_tag") != EXPECTED_IMAGE_TAG:
+        raise VerificationError("runtime image lock tag is not exact")
+    if build.get("output_options") != EXPECTED_OUTPUT_OPTIONS:
+        raise VerificationError("runtime image lock output options are not exact")
     if build.get("provenance_attestation_disabled") is not True:
         raise VerificationError("runtime image lock must disable provenance attestations")
     if build.get("reproducibility_build_count") != 2:
         raise VerificationError("runtime image lock must require exactly two independent builds")
-    return _required_positive_int(build, "source_date_epoch", "lock.build")
+    _required_sha256_hex(lock, "archive_sha256", "lock")
+    _locked_layers(lock)
+    epoch = _required_positive_int(build, "source_date_epoch", "lock.build")
+    try:
+        dockerfile_lines = (context / "Dockerfile").read_text(encoding="utf-8").splitlines()
+    except (OSError, UnicodeError) as exc:
+        raise VerificationError("runtime Dockerfile is not readable UTF-8 text") from exc
+    if not dockerfile_lines:
+        raise VerificationError("runtime Dockerfile is empty")
+    dockerfile_first_line = dockerfile_lines[0]
+    if dockerfile_first_line != (
+        "# syntax=docker/dockerfile:1.7@" + EXPECTED_DOCKERFILE_FRONTEND_DIGEST
+    ):
+        raise VerificationError("runtime Dockerfile frontend identity is not exact")
+    return epoch
+
+
+def _run_checked(command: Sequence[str], *, label: str) -> str:
+    try:
+        result = subprocess.run(command, check=False, capture_output=True, text=True)
+    except OSError as exc:
+        raise VerificationError(f"cannot invoke {label}: {exc}") from exc
+    if result.returncode != 0:
+        detail = result.stderr.strip() or "no diagnostic"
+        raise VerificationError(f"{label} failed: {detail}")
+    return result.stdout
+
+
+def verify_builder(lock_path: Path) -> None:
+    """Verify the active Buildx client and BuildKit worker against the frozen builder."""
+
+    lock = _load_lock(lock_path)
+    _verify_builder_declaration(lock)
+    expected_version = (
+        f"github.com/docker/buildx {EXPECTED_BUILDX_VERSION} {EXPECTED_BUILDX_COMMIT}"
+    )
+    if _run_checked(("docker", "buildx", "version"), label="docker buildx version").strip() != (
+        expected_version
+    ):
+        raise VerificationError("active Buildx client identity is not exact")
+
+    listing = _run_checked(
+        ("docker", "buildx", "ls", "--format", "json"),
+        label="docker buildx builder inventory",
+    )
+    try:
+        builders = [json.loads(line) for line in listing.splitlines() if line]
+    except json.JSONDecodeError as exc:
+        raise VerificationError("docker buildx builder inventory is not valid JSON") from exc
+    current = [
+        builder for builder in builders if isinstance(builder, dict) and builder.get("Current")
+    ]
+    if len(current) != 1 or current[0].get("Driver") != "docker-container":
+        raise VerificationError("active Buildx builder must be one docker-container builder")
+    nodes = current[0].get("Nodes")
+    if not isinstance(nodes, list) or len(nodes) != 1 or not isinstance(nodes[0], dict):
+        raise VerificationError("active Buildx builder must expose exactly one node")
+    node = nodes[0]
+    if (
+        node.get("Status") != "running"
+        or node.get("Version") != EXPECTED_BUILDKIT_VERSION
+        or not isinstance(node.get("Platforms"), list)
+        or "linux/amd64" not in node["Platforms"]
+    ):
+        raise VerificationError("active BuildKit node identity is not exact")
+    node_name = node.get("Name")
+    if not isinstance(node_name, str) or not node_name:
+        raise VerificationError("active BuildKit node name is malformed")
+    details = _run_checked(
+        ("docker", "buildx", "inspect", "--bootstrap"),
+        label="active Buildx builder inspection",
+    )
+    expected_driver_option = f'image="moby/buildkit@{EXPECTED_BUILDKIT_IMAGE_DIGEST}"'
+    if not any(
+        line.startswith("Driver Options:")
+        and line.removeprefix("Driver Options:").strip() == expected_driver_option
+        for line in details.splitlines()
+    ):
+        raise VerificationError("active BuildKit worker image authority is not exact")
 
 
 class _OciArchive:
@@ -232,6 +388,16 @@ def verify_archive(lock_path: Path, archive_path: Path) -> ArchiveIdentity:
     expected_index = _required_digest(lock, "oci_index_digest", "lock")
     expected_image = _required_digest(lock, "image_digest", "lock")
     expected_config = _required_digest(lock, "config_digest", "lock")
+    expected_archive = _required_sha256_hex(lock, "archive_sha256", "lock")
+    expected_layers = _locked_layers(lock)
+    try:
+        archive_sha256 = _sha256_file(archive_path)
+    except OSError as exc:
+        raise VerificationError(f"cannot hash OCI archive {archive_path}: {exc}") from exc
+    if archive_sha256 != expected_archive:
+        raise VerificationError(
+            f"OCI archive SHA-256 drift: expected {expected_archive}, got {archive_sha256}"
+        )
 
     with _OciArchive(archive_path) as archive:
         layout = _load_json_bytes(archive.read("oci-layout"), "oci-layout")
@@ -287,27 +453,38 @@ def verify_archive(lock_path: Path, archive_path: Path) -> ArchiveIdentity:
         layers = manifest.get("layers")
         if not isinstance(layers, list) or not layers:
             raise VerificationError("OCI child manifest must contain at least one layer")
-        layer_digests: list[str] = []
+        layer_identities: list[OciLayerIdentity] = []
         for index_value, layer in enumerate(layers):
             if not isinstance(layer, dict):
                 raise VerificationError(f"manifest.layers[{index_value}] must be an object")
             layer_digest, layer_size = _descriptor_digest(
-                layer, label=f"manifest.layers[{index_value}]"
+                layer,
+                label=f"manifest.layers[{index_value}]",
+                media_type=OCI_LAYER_MEDIA_TYPE,
             )
             archive.verify_blob(layer_digest, layer_size)
-            layer_digests.append(layer_digest)
-        if len(set(layer_digests)) != len(layer_digests):
+            layer_identities.append(
+                OciLayerIdentity(
+                    media_type=OCI_LAYER_MEDIA_TYPE,
+                    digest=layer_digest,
+                    byte_count=layer_size,
+                )
+            )
+        if len({layer.digest for layer in layer_identities}) != len(layer_identities):
             raise VerificationError("OCI child manifest contains duplicate layer digests")
+        if tuple(layer_identities) != expected_layers:
+            raise VerificationError("OCI child layer closure differs from the exact lock")
 
-        referenced = {image_digest, config_digest, *layer_digests}
+        referenced = {image_digest, config_digest, *(layer.digest for layer in layer_identities)}
         if archive.blob_digests() != referenced:
             raise VerificationError("OCI archive contains missing or unreferenced blobs")
 
     return ArchiveIdentity(
+        archive_sha256=archive_sha256,
         index_digest=index_digest,
         image_digest=image_digest,
         config_digest=config_digest,
-        layer_digests=tuple(layer_digests),
+        layers=tuple(layer_identities),
     )
 
 
@@ -385,6 +562,7 @@ def _parser() -> argparse.ArgumentParser:
     inputs.add_argument("--context", type=Path, required=True)
 
     subparsers.add_parser("source-date-epoch", help="print the locked SOURCE_DATE_EPOCH")
+    subparsers.add_parser("verify-builder", help="verify the active Buildx/BuildKit identity")
 
     archives = subparsers.add_parser(
         "verify-archives", help="verify two independently built OCI archives"
@@ -405,9 +583,12 @@ def main(argv: Sequence[str] | None = None) -> int:
             lock = _load_lock(args.lock)
             build = _required_mapping(lock, "build", "lock")
             print(_required_positive_int(build, "source_date_epoch", "lock.build"))
+        elif args.command == "verify-builder":
+            verify_builder(args.lock)
+            print("verified exact Buildx and BuildKit identities")
         elif args.command == "verify-archives":
             identity = verify_archives(args.lock, args.archive)
-            print(json.dumps(identity.__dict__, sort_keys=True, separators=(",", ":")))
+            print(json.dumps(asdict(identity), sort_keys=True, separators=(",", ":")))
         elif args.command == "verify-loaded-image":
             verify_loaded_image(args.lock)
             print("verified exact loaded linux/amd64 runtime image")

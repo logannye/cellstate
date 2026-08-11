@@ -100,15 +100,19 @@ planned real-`p1` Item 12.1b replay must not run. Item 12.2 has now completed it
 software scope: one exact equal-well objective and compatible all-well action/context M-step;
 independently checked derivatives and nondecrease; exact-positive, request-bounded sampling;
 immutable-generation atomic publication; exact executable/input/staged-output closure; reproducible
-Linux `amd64` OCI identities; and parent-owned whole-container wall/memory containment with host-
-effective UID/GID filesystem isolation on native Linux. It opened no protected source, ran no real-
-`p1` fit, and issued no candidate artifact, plan, observation, evidence, or lifecycle result. The
-component therefore remains `SCAFFOLD`. The next proposed milestone,
-Item 12.3, is a separately authorized, version-bound, nonissuing real-`p1` v5 execution; it is not
-authorized and has not run. Protected `p2`, `p3`, and `p4` raw UMI
-count-matrix/endpoint bytes, outcomes, and lifecycle scoring authority remain sealed; their frozen
-split membership and benchmark-design metadata are public and are not an access grant. No
-biological runtime or validated belief may be registered
+Linux `amd64` OCI identities whose clean-final archive is byte-identical across three independent
+native and emulated builder environments under frozen inputs and toolchain; and parent-owned whole-
+container wall/memory containment with host-effective UID/GID filesystem isolation on native Linux.
+The final image excludes build-host caches, and its exact Buildx/BuildKit authority is frozen by the
+runtime lock and workflow. It opened no protected source, ran no real-`p1` fit, and issued no
+candidate artifact, plan, observation, evidence, or lifecycle result. The component therefore
+remains `SCAFFOLD`. The next proposed milestone, Item 12.3, is a separately authorized, version-
+bound, nonissuing real-`p1` v5 execution; it is not authorized and has not run. Durable distribution
+of the exact locally loaded OCI archive is a
+prerequisite to any such authorization; the image is not claimed to be remotely published.
+Protected `p2`, `p3`, and `p4` raw UMI count-matrix/endpoint bytes, outcomes, and lifecycle scoring
+authority remain sealed; their frozen split membership and benchmark-design metadata are public and
+are not an access grant. No biological runtime or validated belief may be registered
 before its separate operation-specific admission and scientific gates pass.
 
 `docs/roadmap.md` is the sole authority for sequence and status. The full target architecture lives

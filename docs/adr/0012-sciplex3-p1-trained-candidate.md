@@ -223,13 +223,18 @@ closure and the exact mounted code plus declared public JSON/runtime inputs. The
 share a typed no-follow staged-output inventory, and the combined containment observation binds it
 to source pre/post authentication and parent process-tree cleanup.
 
-Two independent no-cache, provenance-disabled Linux `amd64` OCI builds at
-`SOURCE_DATE_EPOCH=1786406400` produced the same index
-`sha256:ababac344fae7f3d679cf9b3bbf4c46b8f3b169b358566d4abd6e3b0e7b8251e`, runnable child
-manifest `sha256:edd451f171161472c1a3bb6a1ae434cdedc5b776e228757ac732522c1035df18`, and config
-`sha256:b9cdf1e179f149319b038f2f58bb80470c2a1b5bda8f1cf9d2ccbe17fe3b59e5`.
-The Dockerfile SHA-256 is
-`ec21cc81a3b4d71f5de745adde74506d63da0d9b317996c8f97b067e90347e7a`.
+Three independent no-cache, provenance-disabled builds at `SOURCE_DATE_EPOCH=1786406400`—Docker
+Desktop `amd64` emulation, the separate local `tinyzkp` `docker-container` builder pinned to the
+locked BuildKit image, and native Linux `amd64` GitHub Actions—produced the same byte-for-byte OCI
+archive under frozen inputs and toolchain. Its SHA-256 is
+`37c2fa5846acfbd8357476859bd7f8f0ac6591261d79c2f6f46f0aa22fb76454`; the index is
+`sha256:e0f0afd6c66197a37d0ab7a05e7cccfe5990da1fd8497e175fdf3ab909a67812`, runnable child manifest is
+`sha256:12c2faa6019fb60cdcabaa8f38f70e99be7998997b97ddb0ca59fbe2e82f1e25`, and config is
+`sha256:80ed48f278d7a46c0ae7811285efc69181ae59872a358cc9b176079aa09f3cc8`. The Dockerfile SHA-256 is
+`a3a71c3d61c71235d9c1a99c16aa00568b398971adfc2da65388b0c7ea3987a0`. The multi-stage clean final
+copies only the curated runtime tree and excludes build-host caches, including Rosetta's
+`/root/.cache/rosetta`; the workflow and runtime lock freeze the exact Buildx/BuildKit builder
+identity.
 Native-Linux execution uses the frozen `host-effective-uid-gid` policy. The worker's numeric UID/GID
 matches the bounded mode-`0700` tmpfs UID/GID, while the sole anonymous snapshot volume initializes
 from the empty mode-`1777` image directory. The declared `0400`/`0700` host binds therefore remain
@@ -290,7 +295,9 @@ The next proposed milestone is one version-bound, nonissuing real-`p1` v5 execut
 Item 12.2 objective, sampler, closure, OCI, publication, and containment contracts. It requires a
 separate authorization and review. It is not authorized, has not run, cannot borrow Item 12.2's
 source-free acceptance as data authority, and grants no access to `p2`, `p3`, `p4`, outcomes,
-scoring, or lifecycle issuance.
+scoring, or lifecycle issuance. The image is currently an exact locally loaded OCI layout, not a
+remotely published artifact; durable distribution of that locked archive is a prerequisite to any
+Item 12.3 authorization.
 
 ### Held-out source data and lifecycle authority remain sealed
 
@@ -359,8 +366,9 @@ free guarantees alongside the separately authorized fit:
 - enforces the parent-owned 3,600-second deadline and 4,294,967,296-byte Docker memory and total-
   memory-plus-swap limits over the complete source-touching container; runs with host-effective
   UID/GID plus matching tmpfs ownership and the mode-`1777` empty-image snapshot-volume
-  initialization; and revalidates the frozen OCI identity, timeout, OOM, descendant-cleanup, no-
-  publication, volume-cleanup, parent inventory/seal, and next-run recovery tests;
+  initialization; durably resolves the exact locked OCI archive; and revalidates the frozen OCI
+  identity, timeout, OOM, descendant-cleanup, no-publication, volume-cleanup, parent inventory/seal,
+  and next-run recovery tests;
 - passes the predeclared inner-equilibration, outer convergence, factor-order, identifiability, and
   finite-state gates without post hoc cap or tolerance changes;
 - emits no artifact for an unconverged, nonfinite, stale, substituted, or behavior-inconsistent

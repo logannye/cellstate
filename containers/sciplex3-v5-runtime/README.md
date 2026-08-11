@@ -20,7 +20,12 @@ whose mode is `1777` (`empty-image-directory-mode-1777`). This makes the declare
 binds usable by the non-root worker without widening their permissions. The successful live path
 also requires the parent to re-inventory and seal the exact worker stage.
 
-Build the Linux x86-64 image from this directory:
+The reproducibility authority is the checked-in runtime lock and the pinned builder setup in the CI
+workflow: Buildx `v0.28.0` at commit `b1281b81bba797b21d9eaf256e6a13eb14419836`, BuildKit
+`v0.24.0` from image
+`sha256:6eceb8971ce4fceb3daca562832642706238b7eea72941fcf9896c93c3c4a53e`, and Dockerfile frontend
+`sha256:a57df69d0ea827fb7266491f2813635de6f17269be881f696fbfdf2d83dda33e`.
+After selecting that exact builder, build the Linux x86-64 image from this directory:
 
 ```console
 docker buildx build --no-cache --provenance=false --platform linux/amd64 \
@@ -28,14 +33,25 @@ docker buildx build --no-cache --provenance=false --platform linux/amd64 \
   --tag cellstate-sciplex3-v5-runtime:20260811-locked .
 ```
 
-Two independent no-cache builds produced the same OCI index
-`sha256:ababac344fae7f3d679cf9b3bbf4c46b8f3b169b358566d4abd6e3b0e7b8251e`,
-whose runnable linux/amd64 child manifest is
-`sha256:edd451f171161472c1a3bb6a1ae434cdedc5b776e228757ac732522c1035df18`.
-Its config is `sha256:b9cdf1e179f149319b038f2f58bb80470c2a1b5bda8f1cf9d2ccbe17fe3b59e5`,
-and the Dockerfile SHA-256 is
-`ec21cc81a3b4d71f5de745adde74506d63da0d9b317996c8f97b067e90347e7a`.
-Load that OCI output before execution; the image is not claimed to be published or remotely
-pullable. The complete index, child, config, build, and probe identities are recorded in
-`runtime-image-lock.json`. Rebuilding or changing any layer creates a new candidate runtime version
-and requires a new lock; the lock must never be edited to bless an unreviewed image.
+Under those frozen inputs and toolchain, three independent no-cache, provenance-disabled builds—
+Docker Desktop `amd64` emulation, the separate local `tinyzkp` `docker-container` builder pinned to
+the locked BuildKit image, and native Linux `amd64` GitHub Actions—produced the same byte-for-byte
+OCI archive, SHA-256 `37c2fa5846acfbd8357476859bd7f8f0ac6591261d79c2f6f46f0aa22fb76454`.
+Its index is
+`sha256:e0f0afd6c66197a37d0ab7a05e7cccfe5990da1fd8497e175fdf3ab909a67812`, its runnable
+`linux/amd64` child manifest is
+`sha256:12c2faa6019fb60cdcabaa8f38f70e99be7998997b97ddb0ca59fbe2e82f1e25`, and its config is
+`sha256:80ed48f278d7a46c0ae7811285efc69181ae59872a358cc9b176079aa09f3cc8`. The Dockerfile SHA-256 is
+`a3a71c3d61c71235d9c1a99c16aa00568b398971adfc2da65388b0c7ea3987a0`.
+
+The multi-stage Dockerfile installs dependencies only in the build stage, then copies the curated
+`/opt`, `/run`, and `/workspace` runtime tree into a clean final base. Build-host artifacts such as
+Docker Desktop's Rosetta cache under `/root/.cache/rosetta` cannot enter the final image. The lock
+records the exact archive, index, child, config, ordered layers, builder identity, build options, and
+source-free probe. Rebuilding with a different builder or changing any layer creates a new candidate
+runtime version and requires a new lock; the lock must never be edited to bless an unreviewed image.
+
+Load the exact OCI output locally before execution. The image is not claimed to be published or
+remotely pullable, and durable distribution of the locked archive is a prerequisite to any proposed
+Item 12.3 authorization. This source-free runtime evidence opened no protected source, ran no
+real-`p1` fit, and issued no candidate artifact, training record, or lifecycle result.

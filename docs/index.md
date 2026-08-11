@@ -43,10 +43,15 @@ nondecrease checks pass; exact positive-panel sampling supports at most 512 draw
 `2^-64` conditional signed-`int64` tail budget; publication uses immutable generations and one
 atomic pointer; and exact code/input/stage closure runs behind a reproducible Linux `amd64` OCI
 identity with parent-owned whole-container containment and host-effective UID/GID execution on
-native Linux. No protected source was opened, no real-`p1` fit ran, and no candidate artifact, plan,
-observation, evidence, or lifecycle result was issued. The component remains `SCAFFOLD`. Item 12.3
-is only a proposed, separately authorized,
-version-bound, nonissuing real-`p1` v5 execution; it is not authorized or run. The scaffold is not a
-current-state estimator and exposes none of the four public cell-state operations. Protected `p2`,
-`p3`, and `p4` raw UMI count-matrix/endpoint bytes, outcomes, and lifecycle scoring authority remain
-sealed; public frozen split membership and benchmark-design metadata are not an access grant.
+native Linux. The clean-final archive is byte-identical across three independent native and
+emulated builder environments under frozen inputs and toolchain, excludes build-host caches, and
+freezes its builder identity in the workflow and runtime lock. No protected source was opened, no
+real-`p1` fit ran, and no candidate artifact, plan, observation, evidence, or lifecycle result was
+issued. The component remains `SCAFFOLD`. Item 12.3 is only a proposed, separately authorized,
+version-bound, nonissuing real-`p1` v5 execution; it is not authorized or run. The exact image is
+not remotely published, and durable
+distribution of its locally loaded OCI archive is a prerequisite to that authorization. The
+scaffold is not a current-state estimator and exposes none of the four public cell-state operations.
+Protected `p2`, `p3`, and `p4` raw UMI count-matrix/endpoint bytes, outcomes, and lifecycle scoring
+authority remain sealed; public frozen split membership and benchmark-design metadata are not an
+access grant.

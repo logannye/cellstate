@@ -117,6 +117,73 @@ class RuntimeImageIdentity(SchemaModel):
         return self
 
 
+class RuntimeBuilderIdentity(SchemaModel):
+    """Exact source-free builder and command semantics for one runtime artifact."""
+
+    model_config = ConfigDict(strict=True)
+
+    buildx_version: str = Field(pattern=r"^v[0-9]+\.[0-9]+\.[0-9]+$")
+    buildx_commit: str = Field(pattern=r"^[0-9a-f]{40}$")
+    buildkit_version: str = Field(pattern=r"^v[0-9]+\.[0-9]+\.[0-9]+$")
+    buildkit_image_digest: str = Field(pattern=r"^sha256:[0-9a-f]{64}$")
+    dockerfile_frontend_digest: str = Field(pattern=r"^sha256:[0-9a-f]{64}$")
+    dockerfile_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
+    requirements_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
+    source_date_epoch: int = Field(gt=0)
+    no_cache: bool
+    platform: Literal["linux/amd64"] = "linux/amd64"
+    provenance_attestation_disabled: bool
+    image_tag: str = Field(min_length=1)
+    output_options: tuple[str, ...] = Field(min_length=1)
+
+    @field_validator("source_date_epoch")
+    @classmethod
+    def epoch_is_exact(cls, value: int) -> int:
+        if type(value) is not int:
+            raise ValueError("runtime source-date epoch must be an exact integer")
+        return value
+
+    @field_validator("output_options")
+    @classmethod
+    def output_options_are_canonical(cls, value: tuple[str, ...]) -> tuple[str, ...]:
+        if any(
+            type(option) is not str or not option or option.strip() != option for option in value
+        ):
+            raise ValueError("runtime build options must be non-empty canonical text")
+        if value != tuple(sorted(value)) or len(value) != len(set(value)):
+            raise ValueError("runtime build options must be unique and sorted")
+        return value
+
+    @model_validator(mode="after")
+    def immutable_build_semantics_are_enabled(self) -> Self:
+        if self.no_cache is not True:
+            raise ValueError("runtime build must disable the cache")
+        if self.provenance_attestation_disabled is not True:
+            raise ValueError("runtime build must disable manifest-changing provenance attestations")
+        if any(character.isspace() for character in self.image_tag):
+            raise ValueError("runtime image tag must not contain whitespace")
+        return self
+
+
+class RuntimeImageLayerIdentity(SchemaModel):
+    """One exact ordered blob in the runnable OCI image layer closure."""
+
+    model_config = ConfigDict(strict=True)
+
+    media_type: Literal["application/vnd.oci.image.layer.v1.tar+gzip"] = (
+        "application/vnd.oci.image.layer.v1.tar+gzip"
+    )
+    digest: str = Field(pattern=r"^sha256:[0-9a-f]{64}$")
+    byte_count: int = Field(gt=0)
+
+    @field_validator("byte_count")
+    @classmethod
+    def byte_count_is_exact(cls, value: int) -> int:
+        if type(value) is not int:
+            raise ValueError("runtime image layer byte count must be an exact integer")
+        return value
+
+
 class RuntimeImageLock(SchemaModel):
     """Canonical image lock bound to the complete executable training-code closure."""
 
@@ -132,15 +199,31 @@ class RuntimeImageLock(SchemaModel):
     snapshot_volume_initialization: Literal["empty-image-directory-mode-1777"] = (
         "empty-image-directory-mode-1777"
     )
+    builder: RuntimeBuilderIdentity
+    archive_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
+    oci_index_digest: str = Field(pattern=r"^sha256:[0-9a-f]{64}$")
+    config_digest: str = Field(pattern=r"^sha256:[0-9a-f]{64}$")
+    layers: tuple[RuntimeImageLayerIdentity, ...] = Field(min_length=1)
     training_code_closure_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
     image_provenance_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
 
-    @field_validator("training_code_closure_sha256", "image_provenance_sha256")
+    @field_validator(
+        "archive_sha256",
+        "training_code_closure_sha256",
+        "image_provenance_sha256",
+    )
     @classmethod
     def code_closure_digest_is_canonical(cls, value: str) -> str:
         if type(value) is not str or _HEX_SHA256.fullmatch(value) is None:
-            raise ValueError("training-code closure SHA-256 must be lowercase canonical hex")
+            raise ValueError("runtime lock SHA-256 must be lowercase canonical hex")
         return value
+
+    @model_validator(mode="after")
+    def layer_closure_is_exact(self) -> Self:
+        digests = tuple(layer.digest for layer in self.layers)
+        if len(digests) != len(set(digests)):
+            raise ValueError("runtime image layer digests must be unique")
+        return self
 
     @property
     def fingerprint(self) -> str:
@@ -1822,7 +1905,9 @@ __all__ = [
     "ContainerCommandTimeout",
     "DockerExecutor",
     "ExecutionInputClosureManifest",
+    "RuntimeBuilderIdentity",
     "RuntimeImageIdentity",
+    "RuntimeImageLayerIdentity",
     "RuntimeImageLock",
     "StagedTrainingEntry",
     "StagedTrainingInventory",

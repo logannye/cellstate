@@ -68,7 +68,9 @@ from cellstate.training.execution import (
     ContainedTrainingObservation,
     ContainedTrainingWorkerObservation,
     ExecutionInputClosureManifest,
+    RuntimeBuilderIdentity,
     RuntimeImageIdentity,
+    RuntimeImageLayerIdentity,
     RuntimeImageLock,
     StagedTrainingEntry,
     StagedTrainingInventory,
@@ -330,6 +332,29 @@ def _training_fixture(
     )
     image_lock = RuntimeImageLock(
         runtime_image=image,
+        builder=RuntimeBuilderIdentity(
+            buildx_version="v0.28.0",
+            buildx_commit="1" * 40,
+            buildkit_version="v0.24.0",
+            buildkit_image_digest="sha256:" + "2" * 64,
+            dockerfile_frontend_digest="sha256:" + "3" * 64,
+            dockerfile_sha256="4" * 64,
+            requirements_sha256="5" * 64,
+            source_date_epoch=1_786_406_400,
+            no_cache=True,
+            provenance_attestation_disabled=True,
+            image_tag="example.invalid/cellstate:locked",
+            output_options=("type=oci",),
+        ),
+        archive_sha256="6" * 64,
+        oci_index_digest="sha256:" + "7" * 64,
+        config_digest="sha256:" + "8" * 64,
+        layers=(
+            RuntimeImageLayerIdentity(
+                digest="sha256:" + "9" * 64,
+                byte_count=1,
+            ),
+        ),
         training_code_closure_sha256=code_closure.fingerprint,
         image_provenance_sha256="e" * 64,
     )

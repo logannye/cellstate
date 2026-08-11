@@ -87,11 +87,14 @@ utility. Posterior covariance reduction alone is not EVSI.
 > and nondecrease checks pass; sampling is exactly positive-conditioned and request-bounded;
 > publication is generation-immutable and atomically pointed; executable, mounted-input, and staged-
 > output byte closure is explicit; and the reproducible Linux `amd64` OCI runtime is covered by
-> parent-owned hard wall-clock and memory containment. This work opened no protected source, ran no
+> parent-owned hard wall-clock and memory containment. Its clean-final OCI archive is byte-identical
+> across three independent native and emulated builder environments under frozen inputs and
+> toolchain and excludes build-host caches. This work opened no protected source, ran no
 > real-`p1` fit, and issued no candidate artifact, plan, observation, evidence, or lifecycle result.
 > The component remains `SCAFFOLD`. The next proposed milestone is a separately authorized,
 > version-bound, nonissuing real-`p1` v5 execution under **Item 12.3**; it is not authorized and has
-> not run.
+> not run. Durable distribution of the exact locally loaded OCI archive is a prerequisite; no remote
+> image publication is claimed.
 
 ## Scientific thesis
 
@@ -368,12 +371,18 @@ visibility and forced-termination recovery. The pre-fit contract now binds a com
 closure and exact mounted public-control inputs; worker and parent observations re-inventory and seal
 the typed staged output closure.
 
-Two independent no-cache Linux `amd64` OCI builds produced byte-identical index
-`sha256:ababac344fae7f3d679cf9b3bbf4c46b8f3b169b358566d4abd6e3b0e7b8251e`; its runnable child
-manifest is `sha256:edd451f171161472c1a3bb6a1ae434cdedc5b776e228757ac732522c1035df18`
-and config is `sha256:b9cdf1e179f149319b038f2f58bb80470c2a1b5bda8f1cf9d2ccbe17fe3b59e5`;
-the Dockerfile SHA-256 is
-`ec21cc81a3b4d71f5de745adde74506d63da0d9b317996c8f97b067e90347e7a`.
+Three independent no-cache, provenance-disabled builds at `SOURCE_DATE_EPOCH=1786406400`—Docker
+Desktop `amd64` emulation, the separate local `tinyzkp` `docker-container` builder pinned to the
+locked BuildKit image, and native Linux `amd64` GitHub Actions—produced the same byte-for-byte OCI
+archive under frozen inputs and toolchain, SHA-256
+`37c2fa5846acfbd8357476859bd7f8f0ac6591261d79c2f6f46f0aa22fb76454`. Its index is
+`sha256:e0f0afd6c66197a37d0ab7a05e7cccfe5990da1fd8497e175fdf3ab909a67812`, its runnable child
+manifest is `sha256:12c2faa6019fb60cdcabaa8f38f70e99be7998997b97ddb0ca59fbe2e82f1e25`, and its config is
+`sha256:80ed48f278d7a46c0ae7811285efc69181ae59872a358cc9b176079aa09f3cc8`. The Dockerfile SHA-256 is
+`a3a71c3d61c71235d9c1a99c16aa00568b398971adfc2da65388b0c7ea3987a0`. A multi-stage build copies
+only the curated runtime tree into a clean final base, excluding build-host caches such as Rosetta's
+`/root/.cache/rosetta`; the workflow and runtime lock freeze the exact Buildx/BuildKit builder
+identity.
 Native-Linux execution freezes `host-effective-uid-gid`: the worker uses the host's numeric
 effective UID/GID, the mode-`0700` tmpfs uses that same UID/GID, and the anonymous snapshot volume
 initializes from an empty mode-`1777` image directory. This lets the contained non-root worker use
@@ -389,7 +398,9 @@ software results. No protected source was opened, no real-`p1` fit ran, and no c
 plan, observation, evidence, materialization, or lifecycle result was issued. The component remains
 `SCAFFOLD`. A separately authorized, version-bound, nonissuing real-`p1` v5 execution is merely
 proposed as **Item 12.3**; it is neither authorized nor run and grants no held-out access or
-biological/performance claim.
+biological/performance claim. The image still requires loading from the exact local OCI layout and
+is not claimed to be remotely published. Durable distribution of that exact archive is a
+prerequisite to any Item 12.3 authorization.
 
 The [project roadmap](docs/roadmap.md) is the sole authority for implementation order and graduation
 status. The [full buildout architecture](docs/architecture/full-buildout.md) defines the target
@@ -446,9 +457,12 @@ evidence.
 - A completed source-free Item 12.2 v5 software boundary: exact equal-well objective/M-step
   agreement; independent derivative and nondecrease checks; exact-positive request-level sampling
   through 512 draws with a global `2^-64` conditional signed-`int64` tail budget; immutable atomic
-  generation publication; exact code/input/stage closure; reproducible Linux `amd64` OCI identity;
+  generation publication; exact code/input/stage closure; a clean-final Linux `amd64` OCI archive
+  reproduced byte-for-byte across three independent native and emulated builder environments under
+  frozen inputs and toolchain;
   and parent-owned whole-container containment. It is software scaffolding only: no real `p1` fit
-  or issued candidate/lifecycle artifact exists, and Item 12.3 remains an unauthorized proposal.
+  or issued candidate/lifecycle artifact exists, and Item 12.3 remains an unauthorized proposal
+  whose prerequisites include durable distribution of the exact locally loaded archive.
 - An experimental biological-bundle and support-envelope contract with an exhaustive stage-port
   map, operation-specific prerequisites, content-addressed training/calibration/validation
   bindings, and a derived component lifecycle. The first sci-Plex3 population assay-response

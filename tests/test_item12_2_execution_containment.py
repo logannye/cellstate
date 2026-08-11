@@ -25,7 +25,9 @@ from cellstate.training.execution import (
     ContainerCommandTimeout,
     DockerExecutor,
     ExecutionInputClosureManifest,
+    RuntimeBuilderIdentity,
     RuntimeImageIdentity,
+    RuntimeImageLayerIdentity,
     RuntimeImageLock,
     StagedTrainingEntry,
     StagedTrainingInventory,
@@ -39,7 +41,7 @@ from cellstate.training.execution import (
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "scripts"))
 import materialize_sciplex3_k562_p1_candidate as legacy_materializer
 
-DIGEST = "sha256:edd451f171161472c1a3bb6a1ae434cdedc5b776e228757ac732522c1035df18"
+DIGEST = "sha256:12c2faa6019fb60cdcabaa8f38f70e99be7998997b97ddb0ca59fbe2e82f1e25"
 REFERENCE = f"cellstate-sciplex3-v5-runtime@{DIGEST}"
 CONTAINER_ID = "b" * 64
 ORPHAN_ID = "c" * 64
@@ -465,6 +467,29 @@ def test_contract_models_reject_ambiguous_paths_limits_and_typed_evidence() -> N
         )
     image_lock = RuntimeImageLock(
         runtime_image=RuntimeImageIdentity(reference=REFERENCE, digest=DIGEST),
+        builder=RuntimeBuilderIdentity(
+            buildx_version="v0.28.0",
+            buildx_commit="1" * 40,
+            buildkit_version="v0.24.0",
+            buildkit_image_digest="sha256:" + "2" * 64,
+            dockerfile_frontend_digest="sha256:" + "3" * 64,
+            dockerfile_sha256="4" * 64,
+            requirements_sha256="5" * 64,
+            source_date_epoch=1_786_406_400,
+            no_cache=True,
+            provenance_attestation_disabled=True,
+            image_tag="cellstate-sciplex3-v5-runtime:20260811-locked",
+            output_options=("type=oci",),
+        ),
+        archive_sha256="6" * 64,
+        oci_index_digest="sha256:" + "7" * 64,
+        config_digest="sha256:" + "8" * 64,
+        layers=(
+            RuntimeImageLayerIdentity(
+                digest="sha256:" + "9" * 64,
+                byte_count=1,
+            ),
+        ),
         training_code_closure_sha256=_closure().fingerprint,
         image_provenance_sha256="a" * 64,
     )

@@ -32,7 +32,7 @@ from cellstate.training.execution import (
     seal_staged_training_tree,
 )
 
-IMAGE_DIGEST = "sha256:edd451f171161472c1a3bb6a1ae434cdedc5b776e228757ac732522c1035df18"
+IMAGE_DIGEST = "sha256:12c2faa6019fb60cdcabaa8f38f70e99be7998997b97ddb0ca59fbe2e82f1e25"
 IMAGE_REFERENCE = f"cellstate-sciplex3-v5-runtime@{IMAGE_DIGEST}"
 REPOSITORY_ROOT = Path(__file__).resolve().parents[1]
 PROBE = b"""\

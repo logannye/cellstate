@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import importlib
+import json
 import shutil
 from dataclasses import replace
 from pathlib import Path
@@ -220,6 +221,55 @@ def fitted_candidate(
         )
     finally:
         patch.undo()
+
+
+def test_contained_runtime_lock_binds_builder_archive_and_layer_closure() -> None:
+    policy, code_closure, _, image_lock = runner.contained_training_contracts(REPOSITORY_ROOT)
+
+    assert image_lock.runtime_image == policy.runtime_image
+    assert image_lock.training_code_closure_sha256 == code_closure.fingerprint
+    assert image_lock.archive_sha256 == (
+        "37c2fa5846acfbd8357476859bd7f8f0ac6591261d79c2f6f46f0aa22fb76454"
+    )
+    assert image_lock.oci_index_digest == (
+        "sha256:e0f0afd6c66197a37d0ab7a05e7cccfe5990da1fd8497e175fdf3ab909a67812"
+    )
+    assert image_lock.config_digest == (
+        "sha256:80ed48f278d7a46c0ae7811285efc69181ae59872a358cc9b176079aa09f3cc8"
+    )
+    assert image_lock.builder.buildx_version == "v0.28.0"
+    assert image_lock.builder.buildx_commit == "b1281b81bba797b21d9eaf256e6a13eb14419836"
+    assert image_lock.builder.buildkit_version == "v0.24.0"
+    assert image_lock.builder.output_options == ("type=oci",)
+    assert len(image_lock.layers) == 6
+    assert image_lock.layers[4].digest == (
+        "sha256:4eaeda62bd74078a1cd0f387c18cac3c1273826cbda1222ba571bf4e06b26533"
+    )
+    assert image_lock.layers[4].byte_count == 67_847_890
+
+
+@pytest.mark.parametrize("target", ("archive", "builder", "layer"))
+def test_contained_runtime_lock_rejects_provenance_substitution(
+    target: str, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    original_read = runner._read_bytes
+
+    def substituted_read(path: Path, *, name: str) -> bytes:
+        payload = original_read(path, name=name)
+        if name != "runtime image provenance lock":
+            return payload
+        provenance = json.loads(payload)
+        if target == "archive":
+            provenance["archive_sha256"] = "f" * 64
+        elif target == "builder":
+            provenance["builder"]["buildx_commit"] = "f" * 40
+        else:
+            provenance["layers"][4]["byte_count"] += 1
+        return runner._canonical_json(provenance)
+
+    monkeypatch.setattr(runner, "_read_bytes", substituted_read)
+    with pytest.raises(runner.SciPlex3CandidateRunnerError, match="contradicts its exact files"):
+        runner.contained_training_contracts(REPOSITORY_ROOT)
 
 
 def test_plan_and_fit_are_exact_p1_non_authorizing_artifacts(

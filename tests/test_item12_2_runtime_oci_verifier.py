@@ -4,6 +4,7 @@ import hashlib
 import importlib.util
 import io
 import json
+import subprocess
 import sys
 import tarfile
 from pathlib import Path
@@ -20,9 +21,16 @@ sys.modules[SCRIPT_SPEC.name] = SCRIPT_MODULE
 SCRIPT_SPEC.loader.exec_module(SCRIPT_MODULE)
 
 VerificationError = SCRIPT_MODULE.VerificationError
+EXPECTED_BUILDKIT_IMAGE_DIGEST = SCRIPT_MODULE.EXPECTED_BUILDKIT_IMAGE_DIGEST
+EXPECTED_BUILDKIT_VERSION = SCRIPT_MODULE.EXPECTED_BUILDKIT_VERSION
+EXPECTED_BUILDX_COMMIT = SCRIPT_MODULE.EXPECTED_BUILDX_COMMIT
+EXPECTED_BUILDX_VERSION = SCRIPT_MODULE.EXPECTED_BUILDX_VERSION
+EXPECTED_DOCKERFILE_FRONTEND_DIGEST = SCRIPT_MODULE.EXPECTED_DOCKERFILE_FRONTEND_DIGEST
+EXPECTED_IMAGE_TAG = SCRIPT_MODULE.EXPECTED_IMAGE_TAG
 _verify_loaded_image_payload = SCRIPT_MODULE._verify_loaded_image_payload
 verify_archive = SCRIPT_MODULE.verify_archive
 verify_archives = SCRIPT_MODULE.verify_archives
+verify_builder = SCRIPT_MODULE.verify_builder
 verify_build_inputs = SCRIPT_MODULE.verify_build_inputs
 
 
@@ -92,17 +100,35 @@ def _fixture_payloads() -> tuple[dict[str, bytes], dict[str, Any]]:
     }
     lock = {
         "architecture": "amd64",
+        "archive_sha256": "0" * 64,
         "build": {
             "dockerfile_sha256": "0" * 64,
-            "oci_output": "type=oci",
+            "image_tag": EXPECTED_IMAGE_TAG,
+            "no_cache": True,
+            "output_options": ["type=oci"],
+            "platform": "linux/amd64",
             "provenance_attestation_disabled": True,
             "reproducibility_build_count": 2,
             "requirements_sha256": "0" * 64,
             "source_date_epoch": 1_786_406_400,
         },
+        "builder": {
+            "buildkit_image_digest": EXPECTED_BUILDKIT_IMAGE_DIGEST,
+            "buildkit_version": EXPECTED_BUILDKIT_VERSION,
+            "buildx_commit": EXPECTED_BUILDX_COMMIT,
+            "buildx_version": EXPECTED_BUILDX_VERSION,
+            "dockerfile_frontend_digest": EXPECTED_DOCKERFILE_FRONTEND_DIGEST,
+        },
         "config_digest": config_digest,
         "image_digest": manifest_digest,
         "image_reference": f"synthetic-runtime@{manifest_digest}",
+        "layers": [
+            {
+                "byte_count": len(layer),
+                "digest": layer_digest,
+                "media_type": "application/vnd.oci.image.layer.v1.tar+gzip",
+            }
+        ],
         "oci_index_digest": _digest(index),
         "operating_system": "linux",
         "platform": "linux/amd64",
@@ -136,20 +162,26 @@ def _write_lock(path: Path, lock: dict[str, Any]) -> None:
     path.write_bytes(_json_bytes(lock))
 
 
+def _bind_archive(lock: dict[str, Any], path: Path) -> None:
+    lock["archive_sha256"] = hashlib.sha256(path.read_bytes()).hexdigest()
+
+
 def test_two_independent_oci_archives_match_the_complete_locked_identity(tmp_path: Path) -> None:
     files, lock = _fixture_payloads()
     lock_path = tmp_path / "runtime-image-lock.json"
     first = tmp_path / "first.oci.tar"
     second = tmp_path / "second.oci.tar"
-    _write_lock(lock_path, lock)
     _write_archive(first, files)
-    _write_archive(second, files, reverse=True)
+    _write_archive(second, files)
+    _bind_archive(lock, first)
+    _write_lock(lock_path, lock)
 
     identity = verify_archives(lock_path, [first, second])
 
     assert identity.index_digest == lock["oci_index_digest"]
     assert identity.image_digest == lock["image_digest"]
     assert identity.config_digest == lock["config_digest"]
+    assert identity.archive_sha256 == lock["archive_sha256"]
     assert len(identity.layer_digests) == 1
 
 
@@ -159,8 +191,9 @@ def test_oci_verifier_rejects_blob_content_that_does_not_match_its_digest(tmp_pa
     files[layer_path] = b"x" * len(files[layer_path])
     lock_path = tmp_path / "runtime-image-lock.json"
     archive_path = tmp_path / "tampered.oci.tar"
-    _write_lock(lock_path, lock)
     _write_archive(archive_path, files)
+    _bind_archive(lock, archive_path)
+    _write_lock(lock_path, lock)
 
     with pytest.raises(VerificationError, match="does not match path digest"):
         verify_archive(lock_path, archive_path)
@@ -172,8 +205,9 @@ def test_oci_verifier_rejects_unreferenced_blobs(tmp_path: Path) -> None:
     files[_blob_path(_digest(extra))] = extra
     lock_path = tmp_path / "runtime-image-lock.json"
     archive_path = tmp_path / "extra.oci.tar"
-    _write_lock(lock_path, lock)
     _write_archive(archive_path, files)
+    _bind_archive(lock, archive_path)
+    _write_lock(lock_path, lock)
 
     with pytest.raises(VerificationError, match="missing or unreferenced blobs"):
         verify_archive(lock_path, archive_path)
@@ -186,8 +220,9 @@ def test_oci_verifier_rejects_nonregular_archive_members(tmp_path: Path) -> None
     symlink.linkname = "../../index.json"
     lock_path = tmp_path / "runtime-image-lock.json"
     archive_path = tmp_path / "symlink.oci.tar"
-    _write_lock(lock_path, lock)
     _write_archive(archive_path, files, extra_member=symlink)
+    _bind_archive(lock, archive_path)
+    _write_lock(lock_path, lock)
 
     with pytest.raises(VerificationError, match="non-regular OCI archive member"):
         verify_archive(lock_path, archive_path)
@@ -200,7 +235,11 @@ def test_build_input_verifier_binds_hashes_platform_and_epoch(tmp_path: Path) ->
     context.mkdir()
     dockerfile = context / "Dockerfile"
     requirements = context / "requirements.lock"
-    dockerfile.write_bytes(b"FROM scratch\n")
+    dockerfile.write_bytes(
+        b"# syntax=docker/dockerfile:1.7@"
+        + EXPECTED_DOCKERFILE_FRONTEND_DIGEST.encode()
+        + b"\nFROM scratch\n"
+    )
     requirements.write_bytes(b"example==1 --hash=sha256:" + b"0" * 64 + b"\n")
     lock["build"]["dockerfile_sha256"] = _digest(dockerfile.read_bytes()).removeprefix("sha256:")
     lock["build"]["requirements_sha256"] = _digest(requirements.read_bytes()).removeprefix(
@@ -214,6 +253,114 @@ def test_build_input_verifier_binds_hashes_platform_and_epoch(tmp_path: Path) ->
     dockerfile.write_bytes(b"FROM busybox\n")
     with pytest.raises(VerificationError, match="frozen build input drift for Dockerfile"):
         verify_build_inputs(lock_path, context)
+
+
+def test_oci_verifier_rejects_archive_wrapper_and_locked_layer_drift(tmp_path: Path) -> None:
+    files, lock = _fixture_payloads()
+    lock_path = tmp_path / "runtime-image-lock.json"
+    archive_path = tmp_path / "runtime.oci.tar"
+    _write_archive(archive_path, files)
+    _bind_archive(lock, archive_path)
+    _write_lock(lock_path, lock)
+
+    reordered = tmp_path / "reordered.oci.tar"
+    _write_archive(reordered, files, reverse=True)
+    with pytest.raises(VerificationError, match="archive SHA-256 drift"):
+        verify_archive(lock_path, reordered)
+
+    lock["layers"][0]["byte_count"] += 1
+    _write_lock(lock_path, lock)
+    with pytest.raises(VerificationError, match="layer closure"):
+        verify_archive(lock_path, archive_path)
+
+
+def test_build_input_verifier_rejects_builder_identity_substitution(tmp_path: Path) -> None:
+    _, lock = _fixture_payloads()
+    context = tmp_path / "context"
+    context.mkdir()
+    dockerfile = context / "Dockerfile"
+    requirements = context / "requirements.lock"
+    dockerfile.write_bytes(
+        b"# syntax=docker/dockerfile:1.7@"
+        + EXPECTED_DOCKERFILE_FRONTEND_DIGEST.encode()
+        + b"\nFROM scratch\n"
+    )
+    requirements.write_bytes(b"locked\n")
+    lock["build"]["dockerfile_sha256"] = hashlib.sha256(dockerfile.read_bytes()).hexdigest()
+    lock["build"]["requirements_sha256"] = hashlib.sha256(requirements.read_bytes()).hexdigest()
+    lock["builder"]["buildx_commit"] = "f" * 40
+    lock_path = tmp_path / "runtime-image-lock.json"
+    _write_lock(lock_path, lock)
+
+    with pytest.raises(VerificationError, match="builder identity"):
+        verify_build_inputs(lock_path, context)
+
+
+def test_active_builder_verifier_binds_client_worker_and_image(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    _, lock = _fixture_payloads()
+    lock_path = tmp_path / "runtime-image-lock.json"
+    _write_lock(lock_path, lock)
+    builder_inventory = json.dumps(
+        {
+            "Current": True,
+            "Driver": "docker-container",
+            "Nodes": [
+                {
+                    "Name": "frozen0",
+                    "Platforms": ["linux/amd64"],
+                    "Status": "running",
+                    "Version": EXPECTED_BUILDKIT_VERSION,
+                }
+            ],
+        }
+    )
+
+    def run(command: list[str] | tuple[str, ...], **_: object) -> subprocess.CompletedProcess[str]:
+        argv = tuple(command)
+        if argv == ("docker", "buildx", "version"):
+            output = (
+                f"github.com/docker/buildx {EXPECTED_BUILDX_VERSION} {EXPECTED_BUILDX_COMMIT}\n"
+            )
+        elif argv == ("docker", "buildx", "ls", "--format", "json"):
+            output = builder_inventory + "\n"
+        else:
+            assert argv == ("docker", "buildx", "inspect", "--bootstrap")
+            output = (
+                "Name: frozen\nDriver: docker-container\n"
+                f'Driver Options: image="moby/buildkit@{EXPECTED_BUILDKIT_IMAGE_DIGEST}"\n'
+            )
+        return subprocess.CompletedProcess(argv, 0, output, "")
+
+    monkeypatch.setattr(SCRIPT_MODULE.subprocess, "run", run)
+    verify_builder(lock_path)
+
+    def wrong_client(
+        command: list[str] | tuple[str, ...], **_: object
+    ) -> subprocess.CompletedProcess[str]:
+        return subprocess.CompletedProcess(tuple(command), 0, "wrong\n", "")
+
+    monkeypatch.setattr(SCRIPT_MODULE.subprocess, "run", wrong_client)
+    with pytest.raises(VerificationError, match="Buildx client identity"):
+        verify_builder(lock_path)
+
+    def wrong_worker_authority(
+        command: list[str] | tuple[str, ...], **kwargs: object
+    ) -> subprocess.CompletedProcess[str]:
+        result = run(command, **kwargs)
+        if tuple(command) == ("docker", "buildx", "inspect", "--bootstrap"):
+            return subprocess.CompletedProcess(
+                tuple(command),
+                0,
+                result.stdout.replace(EXPECTED_BUILDKIT_IMAGE_DIGEST, "sha256:" + "0" * 64),
+                "",
+            )
+        return result
+
+    monkeypatch.setattr(SCRIPT_MODULE.subprocess, "run", wrong_worker_authority)
+    with pytest.raises(VerificationError, match="worker image authority"):
+        verify_builder(lock_path)
 
 
 def test_loaded_image_verifier_accepts_classic_docker_config_identity() -> None:
