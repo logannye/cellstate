@@ -94,6 +94,14 @@ jobs:
             --output "type=oci,dest=${RUNNER_TEMP}/sciplex3-v5-runtime-b.oci.tar" \
             --tag cellstate-sciplex3-v5-runtime:20260811-locked \
             containers/sciplex3-v5-runtime
+      - name: Upload native-amd64 OCI reproduction witness
+        uses: actions/upload-artifact@v4
+        with:
+          name: sciplex3-v5-runtime-${{ github.sha }}
+          path: ${{ runner.temp }}/sciplex3-v5-runtime-a.oci.tar
+          if-no-files-found: error
+          compression-level: 0
+          retention-days: 30
       - name: Verify both OCI identities against the runtime lock
         run: >-
           uv run --no-editable python scripts/verify_sciplex3_v5_runtime_oci.py
