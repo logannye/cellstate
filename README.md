@@ -60,6 +60,21 @@ utility. Posterior covariance reduction alone is not EVSI.
 > The exact 2.526 GB source has now been close-reauthenticated, all 94,785 `p1` rows scanned, and six
 > non-admissible fitted-state identities frozen. Held-out `p2`, `p3`, and `p4` access remains hard
 > sealed; no prediction campaign, metric, performance comparison, or scientific admission has run.
+> Item 12 adds a separate trusted-training boundary for a first `p1`-only candidate. Its original
+> rank-16 Gamma--Poisson design, with a separate `q`/capture term and 16 free factor shapes, failed
+> closed before model emission. V2 removed `q`/capture, but its free pooled shape drifted toward the
+> lower guard and the fit did not converge. A fixed-`r_theta=0.1` v3 counterfactual still failed the
+> relative-ELBO and terminal factor-order gates. Its rank characterization was healthy; its
+> independent lognormal unseen-plate model was not (`sigma_plate=5.66126548675`). The audited v4
+> software design keeps fixed `r_theta=0.1`, adds row-local inner equilibration, and proposes uniform
+> selection of one complete observed `p1` `rho` row. An exact-reference, p1-only, nonissuing v4 run
+> passed its integrity and resource gates but failed the initial, untraced inner equilibration at
+> sweep 50, before any outer update or ELBO trace. It emitted no model or evidence. The observed
+> provisional `rho` maximum, `7.999995552807402` with each factor column summing to eight, also puts
+> the proposed unseen-plate context under renewed review. This is a candidate-family risk, not a
+> fitted-model pathology, because no fit was accepted. V4 is `NO-GO`; the component remains
+> `SCAFFOLD` and no lifecycle state has changed. The next milestone is
+> **Item 12.1 — local-map and plate-context characterization, nonissuing**.
 
 ## Scientific thesis
 
@@ -263,6 +278,51 @@ have been recorded. Seven rows with zero counts on the selected panel are retain
 excluded. No prediction campaign, metric, baseline comparison, or performance gate has run, so
 benchmark performance and admission remain false.
 
+Item 12 now defines the distinct boundary for a first nonvacuous population-response candidate. An
+immutable pre-fit plan binds the exact `p1` role and count stream, candidate semantics, trainer and
+factory code, output schema, and a single-thread Linux `x86_64` reference runtime: CPython 3.11.15,
+NumPy 2.4.6, SciPy 1.17.1, and `scipy-openblas` 0.3.31.188.0. Runtime-only HMAC attestations for
+source selection and fit semantics remain external trust inputs rather than serialized execution
+tokens. V1 failed closed when its separate `q`/capture term and 16 free factor shapes reallocated
+variance to a rejected shape boundary. V2 removed `q`/capture, but its free pooled shape fell to
+approximately `0.073524` and its outer trajectory was still drifting at pass 50. V3 fixed the shape
+at `0.1`; it still failed the predeclared relative-ELBO and terminal factor-order gates. A bounded
+characterization showed that v3's activation rank was about 56.85 times above its strict gate, so
+the apparent rank issue was a 12-decimal portability ambiguity, not scientific low rank. The same
+run rejected the independent mean-one lognormal plate nuisance as tail-dominated at
+`sigma_plate=5.66126548675`.
+
+The audited incompatible v4 software design retains 16 continuous Gamma--Poisson factors, fixes
+`r_theta=0.1`, equilibrates row-local posterior coordinates inside every canonical batch, and
+proposes unseen-plate context by uniformly selecting one complete observed `p1` `rho` row rather
+than drawing factorwise lognormal scales. Its future p2 declaration precommits to
+`tau_j=exp(j/20)` for integer `j=-20,...,6`, with shape `0.1/tau_j^2` and factorwise-renormalized
+`rho^tau_j`; no p2 data have been opened and no `tau` has been selected.
+
+The first v4 launch was infrastructure-invalid: its audit hook rejected h5py's nonpersistent
+`/dev/null` probe before fitting. Report
+`4677fc8ef1a458bf3616abc507250572c2da7a8d53c1c8a7a03d4b097f3d4877` is diagnostic only and is
+not scientific evidence. The replacement exact-reference, p1-only, nonissuing run is recorded by
+report `66e9debc1a402e7aa68cbc934f7c5f641529eea3187ec15606364c912af8faa8`. It passed its integrity
+and resource gates and kept every provisional tensor finite, then failed initial, untraced inner
+equilibration at sweep 50 with convergence streak 0, `Rshape=0.24714465227035654`, and
+`Relog=3.750385840630546`, before any outer update or ELBO trace. Those residuals are respectively
+24,714,465 and 375,038,584 times the `1e-8` tolerance. The provisional loading-rank ratio
+`0.101239623839`, activation-rank ratio `0.001249342162`, and minimum contribution share
+`0.001237124212` describe initialization only and do not rescue that failure. The provisional
+`rho` maximum was `7.999995552807402`; because each factor column sums to eight, at least one factor
+places `99.9999444101%` of its eight-context mass on one plate, for an effective context count of
+approximately `1.0000011118`. This is a candidate-family risk, not a fitted-model pathology, and
+the empirical whole-row unseen-plate proposal must be reexamined.
+
+No v4 model, plan, observation, training evidence, materialization, or lifecycle result was issued.
+V4 is `NO-GO`, `TRAINED_CANDIDATE` cannot be derived, `p2`, `p3`, and `p4` remain sealed, and every
+later scientific and runtime gate remains false. The immediate milestone is
+**Item 12.1 — local-map and plate-context characterization, nonissuing**: a bounded, software-only
+diagnostic of the first failing batch's inner map and all 16 provisional plate-context columns. It
+does not authorize another real-source run, relaxed caps or tolerances, prefrozen damping or
+shrinkage, an artifact, or any biological or performance claim.
+
 The [project roadmap](docs/roadmap.md) is the sole authority for implementation order and graduation
 status. The [full buildout architecture](docs/architecture/full-buildout.md) defines the target
 system; the [scientific validation contract](docs/validation/scientific-validation.md) and [accepted
@@ -305,6 +365,13 @@ evidence.
   alternate-dose comparator; deterministic `PCG64DXSM` sampling; and streamed, content-addressed
   fitted-state and prediction-run scaffolding. The exact source scan and six software-only fits are
   recorded; no baseline prediction, metric, comparison, or performance result is asserted.
+- An Item 12 p1-only candidate-training boundary with an immutable pre-fit plan, deterministic
+  training evidence, runtime-only authenticated source/fit attestations, exact model reload and
+  behavior checks, and a registry-owned candidate-factory interface. V1, v2, and the v3
+  counterfactual all failed closed without emitting a model. The exact-reference, p1-only,
+  nonissuing v4 run also failed closed during initial inner equilibration, before any outer update
+  or ELBO trace. Its empirical whole-row plate proposal now requires reexamination; no v4 artifact
+  exists and `TRAINED_CANDIDATE` cannot be derived.
 - An experimental biological-bundle and support-envelope contract with an exhaustive stage-port
   map, operation-specific prerequisites, content-addressed training/calibration/validation
   bindings, and a derived component lifecycle. The first sci-Plex3 population assay-response

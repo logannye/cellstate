@@ -9,51 +9,6 @@
       "title": "AccessMode",
       "type": "string"
     },
-    "AdmissionArtifactKind": {
-      "description": "Namespace of an exact byte declaration consumed during admission.",
-      "enum": [
-        "content_addressed_artifact",
-        "dataset_source_artifact"
-      ],
-      "title": "AdmissionArtifactKind",
-      "type": "string"
-    },
-    "AdmissionArtifactReference": {
-      "additionalProperties": false,
-      "description": "Normalized exact reference to either a contract artifact or real-data source.",
-      "properties": {
-        "artifact_kind": {
-          "$ref": "#/$defs/AdmissionArtifactKind"
-        },
-        "content_addressed_artifact": {
-          "anyOf": [
-            {
-              "$ref": "#/$defs/ContentAddressedArtifact"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null
-        },
-        "dataset_source_artifact": {
-          "anyOf": [
-            {
-              "$ref": "#/$defs/SourceArtifact"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null
-        }
-      },
-      "required": [
-        "artifact_kind"
-      ],
-      "title": "AdmissionArtifactReference",
-      "type": "object"
-    },
     "AdmissionVerifierCapability": {
       "description": "Exact observation class a verifier implementation is trusted to attest.",
       "enum": [
@@ -112,34 +67,6 @@
         "capabilities"
       ],
       "title": "AdmissionVerifierIdentity",
-      "type": "object"
-    },
-    "ArtifactByteObservation": {
-      "additionalProperties": false,
-      "description": "Digest and length computed from one concrete byte stream.",
-      "properties": {
-        "observed_byte_count": {
-          "exclusiveMinimum": 0,
-          "title": "Observed Byte Count",
-          "type": "integer"
-        },
-        "observed_sha256": {
-          "pattern": "^[a-fA-F0-9]{64}$",
-          "title": "Observed Sha256",
-          "type": "string"
-        },
-        "source_uri": {
-          "minLength": 1,
-          "title": "Source Uri",
-          "type": "string"
-        }
-      },
-      "required": [
-        "source_uri",
-        "observed_sha256",
-        "observed_byte_count"
-      ],
-      "title": "ArtifactByteObservation",
       "type": "object"
     },
     "ContentAddressedArtifact": {
@@ -318,44 +245,19 @@
     }
   },
   "additionalProperties": false,
-  "description": "Positive receipt proving that observed bytes exactly match one declaration.",
+  "description": "Plan-scoped HMAC receipt selecting the only source fit code may open.",
   "properties": {
-    "artifact": {
-      "$ref": "#/$defs/AdmissionArtifactReference"
-    },
     "attestation": {
       "$ref": "#/$defs/ReceiptAttestation"
-    },
-    "evidence_artifacts": {
-      "description": "Non-authoritative audit-log references; they never satisfy byte or interface coverage and must not be treated as readiness evidence.",
-      "items": {
-        "$ref": "#/$defs/ContentAddressedArtifact"
-      },
-      "minItems": 1,
-      "title": "Evidence Artifacts",
-      "type": "array"
     },
     "issued_at": {
       "format": "date-time",
       "title": "Issued At",
       "type": "string"
     },
-    "observation": {
-      "$ref": "#/$defs/ArtifactByteObservation"
-    },
-    "receipt_fingerprint": {
-      "pattern": "^[a-fA-F0-9]{64}$",
-      "title": "Receipt Fingerprint",
-      "type": "string"
-    },
-    "receipt_id": {
-      "minLength": 1,
-      "title": "Receipt Id",
-      "type": "string"
-    },
     "receipt_kind": {
-      "const": "artifact_resolution",
-      "default": "artifact_resolution",
+      "const": "training_source_selection",
+      "default": "training_source_selection",
       "title": "Receipt Kind",
       "type": "string"
     },
@@ -365,26 +267,63 @@
       "title": "Schema Version",
       "type": "string"
     },
-    "verifier": {
+    "selection_fingerprint": {
+      "pattern": "^[a-fA-F0-9]{64}$",
+      "title": "Selection Fingerprint",
+      "type": "string"
+    },
+    "selection_id": {
+      "minLength": 1,
+      "title": "Selection Id",
+      "type": "string"
+    },
+    "selector": {
       "$ref": "#/$defs/AdmissionVerifierIdentity"
     },
-    "verifier_fingerprint": {
+    "selector_fingerprint": {
       "pattern": "^[a-fA-F0-9]{64}$",
-      "title": "Verifier Fingerprint",
+      "title": "Selector Fingerprint",
       "type": "string"
+    },
+    "source_close_reauthentication_required": {
+      "const": true,
+      "default": true,
+      "title": "Source Close Reauthentication Required",
+      "type": "boolean"
+    },
+    "sources": {
+      "items": {
+        "$ref": "#/$defs/SourceArtifact"
+      },
+      "minItems": 1,
+      "title": "Sources",
+      "type": "array"
+    },
+    "training_plan_fingerprint": {
+      "pattern": "^[a-fA-F0-9]{64}$",
+      "title": "Training Plan Fingerprint",
+      "type": "string"
+    },
+    "workflow_resolution_artifacts": {
+      "items": {
+        "$ref": "#/$defs/ContentAddressedArtifact"
+      },
+      "minItems": 1,
+      "title": "Workflow Resolution Artifacts",
+      "type": "array"
     }
   },
   "required": [
-    "receipt_id",
-    "artifact",
-    "observation",
-    "verifier",
-    "verifier_fingerprint",
+    "selection_id",
+    "training_plan_fingerprint",
+    "workflow_resolution_artifacts",
+    "sources",
+    "selector",
+    "selector_fingerprint",
     "issued_at",
-    "evidence_artifacts",
     "attestation",
-    "receipt_fingerprint"
+    "selection_fingerprint"
   ],
-  "title": "ArtifactResolutionReceipt",
+  "title": "TrainingSourceSelectionReceipt",
   "type": "object"
 }

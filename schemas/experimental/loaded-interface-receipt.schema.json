@@ -6,6 +6,8 @@
         "artifact_byte_resolution",
         "execution_source_selection",
         "loaded_interface_verification",
+        "training_fit_semantics",
+        "training_source_selection",
         "validation_result_semantics"
       ],
       "title": "AdmissionVerifierCapability",

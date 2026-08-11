@@ -1,0 +1,357 @@
+{
+  "$defs": {
+    "AccessMode": {
+      "description": "Public access may be direct or require registration, but not approval.",
+      "enum": [
+        "open_download",
+        "registration_required"
+      ],
+      "title": "AccessMode",
+      "type": "string"
+    },
+    "BenchmarkPartitionRole": {
+      "enum": [
+        "train",
+        "calibration",
+        "model_selection_validation",
+        "untouched_test",
+        "external_validation"
+      ],
+      "title": "BenchmarkPartitionRole",
+      "type": "string"
+    },
+    "ContentAddressedArtifact": {
+      "additionalProperties": false,
+      "properties": {
+        "artifact_id": {
+          "minLength": 1,
+          "title": "Artifact Id",
+          "type": "string"
+        },
+        "byte_count": {
+          "exclusiveMinimum": 0,
+          "title": "Byte Count",
+          "type": "integer"
+        },
+        "media_type": {
+          "minLength": 1,
+          "title": "Media Type",
+          "type": "string"
+        },
+        "sha256": {
+          "pattern": "^[a-fA-F0-9]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        },
+        "uri": {
+          "minLength": 1,
+          "title": "Uri",
+          "type": "string"
+        }
+      },
+      "required": [
+        "artifact_id",
+        "uri",
+        "sha256",
+        "byte_count",
+        "media_type"
+      ],
+      "title": "ContentAddressedArtifact",
+      "type": "object"
+    },
+    "SourceArtifact": {
+      "additionalProperties": false,
+      "properties": {
+        "access_mode": {
+          "$ref": "#/$defs/AccessMode",
+          "default": "open_download"
+        },
+        "accession": {
+          "minLength": 1,
+          "title": "Accession",
+          "type": "string"
+        },
+        "byte_count": {
+          "exclusiveMinimum": 0,
+          "title": "Byte Count",
+          "type": "integer"
+        },
+        "kind": {
+          "$ref": "#/$defs/SourceKind"
+        },
+        "media_type": {
+          "minLength": 1,
+          "title": "Media Type",
+          "type": "string"
+        },
+        "parent_study_accession": {
+          "anyOf": [
+            {
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Parent Study Accession"
+        },
+        "parent_study_release": {
+          "anyOf": [
+            {
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Parent Study Release"
+        },
+        "release": {
+          "minLength": 1,
+          "title": "Release",
+          "type": "string"
+        },
+        "retrieved_at": {
+          "format": "date-time",
+          "title": "Retrieved At",
+          "type": "string"
+        },
+        "sha256": {
+          "pattern": "^[a-fA-F0-9]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        },
+        "source_id": {
+          "minLength": 1,
+          "title": "Source Id",
+          "type": "string"
+        },
+        "uri": {
+          "minLength": 1,
+          "title": "Uri",
+          "type": "string"
+        }
+      },
+      "required": [
+        "source_id",
+        "kind",
+        "uri",
+        "sha256",
+        "media_type",
+        "accession",
+        "release",
+        "byte_count",
+        "retrieved_at"
+      ],
+      "title": "SourceArtifact",
+      "type": "object"
+    },
+    "SourceKind": {
+      "enum": [
+        "raw",
+        "processed",
+        "metadata",
+        "documentation"
+      ],
+      "title": "SourceKind",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Typed, closed p1 count-stream evidence; every held-out access flag is false.",
+  "properties": {
+    "accessed_partition_roles": {
+      "default": [
+        "train"
+      ],
+      "items": {
+        "$ref": "#/$defs/BenchmarkPartitionRole"
+      },
+      "title": "Accessed Partition Roles",
+      "type": "array"
+    },
+    "assembly_fingerprint": {
+      "pattern": "^[a-fA-F0-9]{64}$",
+      "title": "Assembly Fingerprint",
+      "type": "string"
+    },
+    "assembly_receipt": {
+      "$ref": "#/$defs/ContentAddressedArtifact"
+    },
+    "control_well_count": {
+      "exclusiveMinimum": 0,
+      "title": "Control Well Count",
+      "type": "integer"
+    },
+    "count_stream_sha256": {
+      "pattern": "^[a-fA-F0-9]{64}$",
+      "title": "Count Stream Sha256",
+      "type": "string"
+    },
+    "evidence_id": {
+      "minLength": 1,
+      "title": "Evidence Id",
+      "type": "string"
+    },
+    "evidence_version": {
+      "minLength": 1,
+      "title": "Evidence Version",
+      "type": "string"
+    },
+    "exact_record_coverage": {
+      "const": true,
+      "default": true,
+      "title": "Exact Record Coverage",
+      "type": "boolean"
+    },
+    "finalized_count_scan": {
+      "$ref": "#/$defs/ContentAddressedArtifact"
+    },
+    "finalized_count_scan_fingerprint": {
+      "pattern": "^[a-fA-F0-9]{64}$",
+      "title": "Finalized Count Scan Fingerprint",
+      "type": "string"
+    },
+    "nnz": {
+      "exclusiveMinimum": 0,
+      "title": "Nnz",
+      "type": "integer"
+    },
+    "p1_materialization": {
+      "$ref": "#/$defs/ContentAddressedArtifact"
+    },
+    "p2_cases_read": {
+      "const": false,
+      "default": false,
+      "title": "P2 Cases Read",
+      "type": "boolean"
+    },
+    "p2_membership_read": {
+      "const": false,
+      "default": false,
+      "title": "P2 Membership Read",
+      "type": "boolean"
+    },
+    "p2_outcomes_read": {
+      "const": false,
+      "default": false,
+      "title": "P2 Outcomes Read",
+      "type": "boolean"
+    },
+    "p3_cases_read": {
+      "const": false,
+      "default": false,
+      "title": "P3 Cases Read",
+      "type": "boolean"
+    },
+    "p3_membership_read": {
+      "const": false,
+      "default": false,
+      "title": "P3 Membership Read",
+      "type": "boolean"
+    },
+    "p3_outcomes_read": {
+      "const": false,
+      "default": false,
+      "title": "P3 Outcomes Read",
+      "type": "boolean"
+    },
+    "p4_cases_read": {
+      "const": false,
+      "default": false,
+      "title": "P4 Cases Read",
+      "type": "boolean"
+    },
+    "p4_membership_read": {
+      "const": false,
+      "default": false,
+      "title": "P4 Membership Read",
+      "type": "boolean"
+    },
+    "p4_outcomes_read": {
+      "const": false,
+      "default": false,
+      "title": "P4 Outcomes Read",
+      "type": "boolean"
+    },
+    "partition_ids": {
+      "items": {
+        "type": "string"
+      },
+      "minItems": 1,
+      "title": "Partition Ids",
+      "type": "array"
+    },
+    "record_count": {
+      "exclusiveMinimum": 0,
+      "title": "Record Count",
+      "type": "integer"
+    },
+    "schema_version": {
+      "const": "0.1-experimental",
+      "default": "0.1-experimental",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "source": {
+      "$ref": "#/$defs/SourceArtifact"
+    },
+    "source_closed_and_reauthenticated": {
+      "const": true,
+      "default": true,
+      "title": "Source Closed And Reauthenticated",
+      "type": "boolean"
+    },
+    "source_descriptor_reverified": {
+      "const": true,
+      "default": true,
+      "title": "Source Descriptor Reverified",
+      "type": "boolean"
+    },
+    "training_plan_fingerprint": {
+      "pattern": "^[a-fA-F0-9]{64}$",
+      "title": "Training Plan Fingerprint",
+      "type": "string"
+    },
+    "treated_well_count": {
+      "exclusiveMinimum": 0,
+      "title": "Treated Well Count",
+      "type": "integer"
+    },
+    "well_count": {
+      "exclusiveMinimum": 0,
+      "title": "Well Count",
+      "type": "integer"
+    },
+    "zero_panel_record_count": {
+      "minimum": 0,
+      "title": "Zero Panel Record Count",
+      "type": "integer"
+    }
+  },
+  "required": [
+    "evidence_id",
+    "evidence_version",
+    "training_plan_fingerprint",
+    "partition_ids",
+    "source",
+    "finalized_count_scan",
+    "assembly_receipt",
+    "p1_materialization",
+    "count_stream_sha256",
+    "finalized_count_scan_fingerprint",
+    "assembly_fingerprint",
+    "record_count",
+    "well_count",
+    "treated_well_count",
+    "control_well_count",
+    "nnz",
+    "zero_panel_record_count"
+  ],
+  "title": "P1TrainingEvidence",
+  "type": "object"
+}

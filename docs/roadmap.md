@@ -291,8 +291,20 @@ source, scanned all 94,785 training records across 768 wells, and froze content-
 state identities for all six probabilistic baselines. The loader does not parse held-out outcomes
 and refuses `p2`, `p3`, and `p4` before source access unless future lifecycle-bound grants exist.
 These are software provenance artifacts, not benchmark results: no prediction campaign, metric,
-comparison, or performance gate has run. The sci-Plex3 component therefore remains a non-
-executable `SCAFFOLD` and must not present unrun performance as a validated biological belief.
+comparison, or performance gate has run. Item 12 now defines the separate p1-only training and
+verification boundary for a first candidate distribution model. Its original rank-16
+Gamma--Poisson family with a separate `q`/capture term and 16 free factor shapes failed closed on
+the exact real `p1` fit before artifact emission because variance reallocation drove a factor shape
+to the rejected boundary. V2 removed `q`/capture, but its free pooled shape drifted toward the lower
+guard and its outer fit remained unconverged. A fixed-shape v3 counterfactual still failed the
+relative-ELBO and terminal factor-order gates. A bounded characterization cleared its activation
+rank but rejected its tail-dominated independent lognormal plate nuisance. The audited v4
+software-only design fixes `r_theta=0.1`, adds row-local inner equilibration, and proposes an
+empirical whole-`rho`-row unseen-plate context. Its valid exact-reference, p1-only, nonissuing run
+failed closed during initial inner equilibration, before an outer update or ELBO trace, and its
+provisional `rho` reached near single-plate concentration. V4 is `NO-GO`. The sci-Plex3 component
+therefore remains a non-executable `SCAFFOLD` and must not present a candidate design, provisional
+initialization state, or unrun performance as a validated biological belief.
 
 The next development work proceeds in this order:
 
@@ -367,15 +379,74 @@ The next development work proceeds in this order:
     wells were scanned; seven genuine zero-panel rows were retained; and six fitted-state identities
     were materialized with no held-out access or lifecycle authority. None of this is baseline
     performance, scientific admission, or a public cell-state runtime.
+12. **In progress 2026-08-10:** establish the first honest p1-trained candidate boundary. The
+    immutable pre-fit plan binds the exact typed `p1` role, count stream, scan, assembly, design,
+    feature, action, target, candidate specification, trainer/factory code, output schema, and
+    complete single-thread Linux `x86_64` runtime: CPython 3.11.15, NumPy 2.4.6, SciPy 1.17.1, and
+    `scipy-openblas` 0.3.31.188.0. Runtime-only HMAC source-selection and fit-semantic receipts,
+    exact byte resolution, query-prerequisite verification, and an application-owned loaded-
+    interface registry are all required before `TRAINED_CANDIDATE` can be derived; deterministic
+    files remain evidence rather than authority. The first rank-16 Gamma--Poisson design with a
+    separate `q`/capture term and 16 free shapes failed closed at the Gamma-shape boundary on the
+    exact real `p1` data and emitted no model. V2 removed `q`/capture, but its free pooled shape
+    crossed below `0.1`, reached approximately `0.073524`, and the outer trajectory remained
+    unconverged at pass 50. V3 fixed `r_theta=0.1`, but its nonissuing counterfactual still failed
+    relative-ELBO convergence and terminal factor-order stability. Its follow-up characterization showed a raw
+    activation-rank ratio `8.472584996122713e-7`, about 56.85 times the strict gate, and isolated the
+    original rank rejection to a 12-decimal quantization half-boundary. It also showed that the
+    independent mean-one lognormal unseen-plate model was tail-dominated at
+    `sigma_plate=5.66126548675`.
 
-The immediate next work is the first candidate distribution model, using `p1` for parameter fitting
-and preserving the completed Item 11 source and fit closure. A future trusted grant may open `p2`
-for calibration only after an exact `TRAINED_CANDIDATE`; a separate grant may open `p3` for model
-selection and freezing only after calibration; and `p4` remains untouched until a locked evaluator
-receives an exact `MODEL_SELECTED_FROZEN` candidate. Passing that component lifecycle would
-authorize only the exact assay-response API; a hidden-state backend still requires its own
-observation/prior, inference, dynamics, sufficiency, identifiability, and operation-specific
-evidence.
+    The audited incompatible v4 software design retains 16 continuous Gamma--Poisson factors,
+    fixes `r_theta=0.1`, adds deterministic row-local inner equilibration, and proposes replacing
+    the lognormal plate draw with uniform selection of one complete observed `p1` `rho` row.
+    Its calibration declaration precommits to `tau_j=exp(j/20)` for integer `j=-20,...,6`, with
+    shape `0.1/tau_j^2` and factorwise-renormalized `rho^tau_j`; it does not read `p2` or choose a
+    value.
+
+    The first v4 launch produced report
+    `4677fc8ef1a458bf3616abc507250572c2da7a8d53c1c8a7a03d4b097f3d4877`, but its audit hook
+    rejected h5py's nonpersistent `/dev/null` probe before fitting. That attempt is infrastructure-
+    invalid, contains no fit, and must not be interpreted as science. The replacement execution was
+    an exact-reference, p1-only, nonissuing run. Its report,
+    `66e9debc1a402e7aa68cbc934f7c5f641529eea3187ec15606364c912af8faa8`, passed integrity and
+    resource gates and kept all provisional tensors finite. It failed initial, untraced inner
+    equilibration at sweep 50 with passing streak 0, `Rshape=0.24714465227035654`, and
+    `Relog=3.750385840630546`, before any outer update or ELBO trace. The two residuals are
+    respectively 24,714,465 and 375,038,584 times the `1e-8` tolerance. The provisional loading-
+    rank ratio `0.101239623839`, activation-rank ratio `0.001249342162`, and minimum contribution
+    share `0.001237124212` describe initialization only and are not evidence that rescues the failed
+    fit. The provisional `rho` maximum was `7.999995552807402`; because each factor column sums to
+    eight, at least one factor places `99.9999444101%` of its context mass on one plate and has an
+    effective context count of approximately `1.0000011118`. This is a candidate-family risk, not a
+    fitted-model pathology. The empirical whole-row context must be reexamined and is not a
+    validated unseen-plate model.
+
+    V4 is `NO-GO`. It issued no model, plan, observation, training evidence, materialization, or
+    lifecycle result. Item 12 remains in progress and the component remains `SCAFFOLD`. Throughout
+    this work `p2`, `p3`, and `p4` remain sealed, and calibration, selection, performance,
+    admission, component execution, and every public cell-state runtime remain false.
+
+**Item 12.1 — local-map and plate-context characterization, nonissuing** is the immediate next
+milestone. It is the software-only design and audit of one bounded diagnostic on the first failing
+batch's inner map. It must capture per-sweep `Rshape` and `Relog`, local ELBO, one- and two-step
+state distances and update cosine, the worst row/factor/count aggregate, shape/rate/mass invariants,
+the 16-by-16 Jacobian spectral radius, exact replay equality, state/allocation digests, and all 16
+`rho` effective-context counts and maximum shares. An objective decrease routes to an
+implementation fix. An intact objective plus a two-cycle or noncontractive map routes to a
+versioned v5 safeguarded local solver. Near-zero prior/context behavior or effective context near
+one routes to v5 plate regularization or neutralization. The diagnostic does not prefreeze damping
+or shrinkage.
+
+Item 12.1 does not authorize a real-source rerun; that requires a separate audit authorization. It
+also does not authorize changing the predeclared cap or tolerance, emitting an artifact, opening
+`p2`, or making a biological or performance claim. Only a future successful trusted verification
+may move the component to `TRAINED_CANDIDATE`. A future one-use grant may open `p2` for calibration
+only after that exact state; a separate grant may open `p3` for model selection and freezing only
+after calibration; and `p4` remains untouched until a locked evaluator receives an exact
+`MODEL_SELECTED_FROZEN` candidate. Passing that component lifecycle would authorize only the exact
+assay-response API; a hidden-state backend still requires its own observation/prior, inference,
+dynamics, sufficiency, identifiability, and operation-specific evidence.
 
 This sequence corrects the semantic spine before adapters or models depend on it. It preserves the
 existing manifest work while ensuring the first implementation cannot satisfy software contracts by

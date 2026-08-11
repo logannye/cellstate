@@ -41,6 +41,7 @@ from cellstate.domain.subjects import SubjectKind
 from cellstate.ports.models import EstimatorDescriptor, ModelArtifactKind
 
 if TYPE_CHECKING:
+    from .training import TrainingVerificationContext
     from .validation import (
         AdmissionVerificationContext,
         BiologicalExecutionAuthorization,
@@ -1333,8 +1334,18 @@ class BundleReadiness(BundleContractModel):
     benchmark_binding_verified: bool
     support_envelope_binding_verified: bool
     training_binding_verified: bool
+    training_artifacts_verified: bool = False
+    training_interfaces_verified: bool = False
+    training_result_semantics_verified: bool = False
+    trained_candidate_verified: bool = False
+    trained_candidate_verification_fingerprint: str | None = Field(
+        default=None,
+        pattern=r"^[a-fA-F0-9]{64}$",
+    )
     calibration_binding_verified: bool
+    calibration_result_semantics_verified: bool = False
     model_selection_binding_verified: bool
+    model_selection_result_semantics_verified: bool = False
     validation_bindings_verified: bool
     validation_evidence_semantics_verified: bool
     implementation_scope_binding_verified: bool
@@ -1363,10 +1374,14 @@ class BundleReadiness(BundleContractModel):
     admission_blocker_codes: tuple[BundleAdmissionBlockerCode, ...]
     blockers: tuple[str, ...]
 
-    @field_validator("bundle_fingerprint", "query_derived_prerequisite_fingerprint")
+    @field_validator(
+        "bundle_fingerprint",
+        "query_derived_prerequisite_fingerprint",
+        "trained_candidate_verification_fingerprint",
+    )
     @classmethod
-    def fingerprint_is_lowercase(cls, value: str) -> str:
-        return value.casefold()
+    def fingerprint_is_lowercase(cls, value: str | None) -> str | None:
+        return None if value is None else value.casefold()
 
     @model_validator(mode="after")
     def derived_states_are_consistent(self) -> BundleReadiness:
@@ -1385,6 +1400,36 @@ class BundleReadiness(BundleContractModel):
             raise ValueError("query prerequisites cannot verify with scope or disposition failures")
         if self.validation_results_passed and not self.validation_results_verified:
             raise ValueError("validation results cannot pass before exact semantic verification")
+        expected_trained_candidate = all(
+            (
+                self.query_binding_verified,
+                self.benchmark_binding_verified,
+                self.support_envelope_binding_verified,
+                self.training_binding_verified,
+                self.training_artifacts_verified,
+                self.training_interfaces_verified,
+                self.training_result_semantics_verified,
+                self.query_derived_prerequisites_verified,
+            )
+        )
+        if self.trained_candidate_verified is not expected_trained_candidate:
+            raise ValueError(
+                "trained candidate must derive from exact p1 bytes, interface, and semantics"
+            )
+        if (self.trained_candidate_verification_fingerprint is not None) is not (
+            self.trained_candidate_verified
+        ):
+            raise ValueError(
+                "trained-candidate verification fingerprint must appear only with verification"
+            )
+        if self.calibration_result_semantics_verified and not (
+            self.trained_candidate_verified and self.calibration_binding_verified
+        ):
+            raise ValueError("calibration semantics cannot verify before a trained candidate")
+        if self.model_selection_result_semantics_verified and not (
+            self.calibration_result_semantics_verified and self.model_selection_binding_verified
+        ):
+            raise ValueError("model-selection semantics cannot verify before calibration")
         blocker_code_values = tuple(code.value for code in self.admission_blocker_codes)
         _canonical_values(blocker_code_values, name="admission blocker codes")
         expected_codes = {
@@ -1419,8 +1464,11 @@ class BundleReadiness(BundleContractModel):
                 self.benchmark_binding_verified,
                 self.support_envelope_binding_verified,
                 self.training_binding_verified,
+                self.trained_candidate_verified,
                 self.calibration_binding_verified,
+                self.calibration_result_semantics_verified,
                 self.model_selection_binding_verified,
+                self.model_selection_result_semantics_verified,
                 self.validation_bindings_verified,
                 self.validation_evidence_semantics_verified,
                 self.implementation_scope_binding_verified,
@@ -1465,23 +1513,18 @@ class BundleReadiness(BundleContractModel):
         if execution_allowed is bool(self.blockers):
             raise ValueError("derived execution state and blockers are inconsistent")
         expected_lifecycle = ComponentLifecycleStage.SCAFFOLD
-        trusted_declarations = all(
-            (
-                self.artifact_bytes_resolved,
-                self.implementation_interfaces_verified,
-                self.query_derived_prerequisites_verified,
-            )
-        )
-        if trusted_declarations and self.training_binding_verified:
+        if self.trained_candidate_verified:
             expected_lifecycle = ComponentLifecycleStage.TRAINED_CANDIDATE
         if (
             expected_lifecycle is ComponentLifecycleStage.TRAINED_CANDIDATE
             and self.calibration_binding_verified
+            and self.calibration_result_semantics_verified
         ):
             expected_lifecycle = ComponentLifecycleStage.CALIBRATED_CANDIDATE
         if (
             expected_lifecycle is ComponentLifecycleStage.CALIBRATED_CANDIDATE
             and self.model_selection_binding_verified
+            and self.model_selection_result_semantics_verified
         ):
             expected_lifecycle = ComponentLifecycleStage.MODEL_SELECTED_FROZEN
         if (
@@ -1496,17 +1539,6 @@ class BundleReadiness(BundleContractModel):
             expected_lifecycle = ComponentLifecycleStage.COMPONENT_GATES_PASSED
         if self.lifecycle_stage is not expected_lifecycle:
             raise ValueError("component lifecycle must be derived from exact verified evidence")
-        if (
-            not all(
-                (
-                    self.artifact_bytes_resolved,
-                    self.implementation_interfaces_verified,
-                    self.query_derived_prerequisites_verified,
-                )
-            )
-            and self.lifecycle_stage is not ComponentLifecycleStage.SCAFFOLD
-        ):
-            raise ValueError("unresolved declarations cannot advance the component lifecycle")
         if (
             self.runnable
             and self.lifecycle_stage is not ComponentLifecycleStage.COMPONENT_GATES_PASSED
@@ -1594,6 +1626,7 @@ def assess_biological_model_bundle(
     training_run: TrainingRunBinding | None = None,
     validation_evidence: Sequence[ValidationEvidenceBinding] = (),
     admission_context: AdmissionVerificationContext | None = None,
+    training_context: TrainingVerificationContext | None = None,
 ) -> BundleReadiness:
     """Derive readiness from source declarations plus an optional runtime-only trust context.
 
@@ -1607,6 +1640,13 @@ def assess_biological_model_bundle(
     implementation_interfaces_verified = False
     validation_results_verified = False
     validation_results_passed = False
+    training_artifacts_verified = False
+    training_interfaces_verified = False
+    training_result_semantics_verified = False
+    trained_candidate_verified = False
+    trained_candidate_verification_fingerprint: str | None = None
+    calibration_result_semantics_verified = False
+    model_selection_result_semantics_verified = False
     prerequisite_report = derive_query_prerequisite_report(
         query=query,
         support_envelope=support_envelope,
@@ -1617,7 +1657,8 @@ def assess_biological_model_bundle(
         _append_once(blockers, "trusted artifact-byte receipts are absent")
         _append_once(blockers, "trusted loaded-interface receipts are absent")
         _append_once(blockers, "trusted typed validation-result semantics are absent")
-        _append_once(blockers, "trusted query-prerequisite binding is absent")
+        if training_context is None:
+            _append_once(blockers, "trusted query-prerequisite binding is absent")
     else:
         from .validation import require_exact_query_prerequisites
 
@@ -1769,28 +1810,33 @@ def assess_biological_model_bundle(
     if bundle.model_artifact is None or bundle.training_run is None or training_run is None:
         _append_once(blockers, "trained model artifact and exact training-run binding are absent")
     else:
-        plan = benchmark.definition.split_plan
-        training_ids = tuple(
-            sorted(
-                partition.partition_id
-                for partition in (() if plan is None else plan.partitions)
-                if partition.role is BenchmarkPartitionRole.TRAIN
+        if training_context is None:
+            plan = benchmark.definition.split_plan
+            training_ids = tuple(
+                sorted(
+                    partition.partition_id
+                    for partition in (() if plan is None else plan.partitions)
+                    if partition.role is BenchmarkPartitionRole.TRAIN
+                )
             )
-        )
-        calibration_ids = tuple(
-            sorted(
-                partition.partition_id
-                for partition in (() if plan is None else plan.partitions)
-                if partition.role is BenchmarkPartitionRole.CALIBRATION
+            calibration_ids = tuple(
+                sorted(
+                    partition.partition_id
+                    for partition in (() if plan is None else plan.partitions)
+                    if partition.role is BenchmarkPartitionRole.CALIBRATION
+                )
             )
-        )
-        model_selection_ids = tuple(
-            sorted(
-                partition.partition_id
-                for partition in (() if plan is None else plan.partitions)
-                if partition.role is BenchmarkPartitionRole.MODEL_SELECTION_VALIDATION
+            model_selection_ids = tuple(
+                sorted(
+                    partition.partition_id
+                    for partition in (() if plan is None else plan.partitions)
+                    if partition.role is BenchmarkPartitionRole.MODEL_SELECTION_VALIDATION
+                )
             )
-        )
+        else:
+            training_ids = training_context.plan.training_partition_ids
+            calibration_ids = ()
+            model_selection_ids = ()
         training_binding_verified = (
             _reference_matches(
                 bundle.training_run,
@@ -1819,6 +1865,31 @@ def assess_biological_model_bundle(
                 and bool(training_run.model_selection_evidence_artifacts)
                 and training_run.model_selection_freeze_artifact is not None
             )
+    if training_binding_verified and training_context is not None and training_run is not None:
+        from .training import require_exact_trained_candidate
+
+        try:
+            trained_verification = require_exact_trained_candidate(
+                bundle,
+                query=query,
+                benchmark=benchmark,
+                support_envelope=support_envelope,
+                training_run=training_run,
+                context=training_context,
+            )
+        except ValueError as error:
+            _append_once(blockers, f"trained-candidate verification failed: {error}")
+        else:
+            training_artifacts_verified = True
+            training_interfaces_verified = True
+            training_result_semantics_verified = True
+            trained_candidate_verified = True
+            trained_candidate_verification_fingerprint = (
+                trained_verification.verification_fingerprint
+            )
+            query_derived_prerequisites_verified = True
+    if training_binding_verified and not trained_candidate_verified:
+        _append_once(blockers, "trusted trained-candidate verification is absent")
     if training_binding_verified and not calibration_binding_verified:
         _append_once(blockers, "exact calibration evidence is absent")
     if calibration_binding_verified and not model_selection_binding_verified:
@@ -2002,6 +2073,7 @@ def assess_biological_model_bundle(
 
     component_evaluation_complete = (
         model_selection_binding_verified
+        and model_selection_result_semantics_verified
         and validation_bindings_verified
         and validation_evidence_semantics_verified
         and implementation_scope_binding_verified
@@ -2019,8 +2091,11 @@ def assess_biological_model_bundle(
             benchmark_binding_verified,
             support_envelope_binding_verified,
             training_binding_verified,
+            trained_candidate_verified,
             calibration_binding_verified,
+            calibration_result_semantics_verified,
             model_selection_binding_verified,
+            model_selection_result_semantics_verified,
             validation_bindings_verified,
             validation_evidence_semantics_verified,
             implementation_scope_binding_verified,
@@ -2038,23 +2113,18 @@ def assess_biological_model_bundle(
     component_model_declared = bundle.bundle_kind is BundleContractKind.COMPONENT_MODEL
     component_execution_allowed = scientifically_admitted and component_model_declared
     lifecycle_stage = ComponentLifecycleStage.SCAFFOLD
-    trusted_declarations = all(
-        (
-            artifact_bytes_resolved,
-            implementation_interfaces_verified,
-            query_derived_prerequisites_verified,
-        )
-    )
-    if trusted_declarations and training_binding_verified:
+    if trained_candidate_verified:
         lifecycle_stage = ComponentLifecycleStage.TRAINED_CANDIDATE
     if (
         lifecycle_stage is ComponentLifecycleStage.TRAINED_CANDIDATE
         and calibration_binding_verified
+        and calibration_result_semantics_verified
     ):
         lifecycle_stage = ComponentLifecycleStage.CALIBRATED_CANDIDATE
     if (
         lifecycle_stage is ComponentLifecycleStage.CALIBRATED_CANDIDATE
         and model_selection_binding_verified
+        and model_selection_result_semantics_verified
     ):
         lifecycle_stage = ComponentLifecycleStage.MODEL_SELECTED_FROZEN
     if (
@@ -2112,8 +2182,15 @@ def assess_biological_model_bundle(
         benchmark_binding_verified=benchmark_binding_verified,
         support_envelope_binding_verified=support_envelope_binding_verified,
         training_binding_verified=training_binding_verified,
+        training_artifacts_verified=training_artifacts_verified,
+        training_interfaces_verified=training_interfaces_verified,
+        training_result_semantics_verified=training_result_semantics_verified,
+        trained_candidate_verified=trained_candidate_verified,
+        trained_candidate_verification_fingerprint=(trained_candidate_verification_fingerprint),
         calibration_binding_verified=calibration_binding_verified,
+        calibration_result_semantics_verified=calibration_result_semantics_verified,
         model_selection_binding_verified=model_selection_binding_verified,
+        model_selection_result_semantics_verified=model_selection_result_semantics_verified,
         validation_bindings_verified=validation_bindings_verified,
         validation_evidence_semantics_verified=validation_evidence_semantics_verified,
         implementation_scope_binding_verified=implementation_scope_binding_verified,

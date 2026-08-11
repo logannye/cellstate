@@ -1,14 +1,5 @@
 {
   "$defs": {
-    "AccessMode": {
-      "description": "Public access may be direct or require registration, but not approval.",
-      "enum": [
-        "open_download",
-        "registration_required"
-      ],
-      "title": "AccessMode",
-      "type": "string"
-    },
     "AdmissionVerifierCapability": {
       "description": "Exact observation class a verifier implementation is trusted to attest.",
       "enum": [
@@ -68,6 +59,17 @@
       ],
       "title": "AdmissionVerifierIdentity",
       "type": "object"
+    },
+    "BenchmarkPartitionRole": {
+      "enum": [
+        "train",
+        "calibration",
+        "model_selection_validation",
+        "untouched_test",
+        "external_validation"
+      ],
+      "title": "BenchmarkPartitionRole",
+      "type": "string"
     },
     "ContentAddressedArtifact": {
       "additionalProperties": false,
@@ -141,128 +143,121 @@
       ],
       "title": "ReceiptAttestation",
       "type": "object"
-    },
-    "SourceArtifact": {
-      "additionalProperties": false,
-      "properties": {
-        "access_mode": {
-          "$ref": "#/$defs/AccessMode",
-          "default": "open_download"
-        },
-        "accession": {
-          "minLength": 1,
-          "title": "Accession",
-          "type": "string"
-        },
-        "byte_count": {
-          "exclusiveMinimum": 0,
-          "title": "Byte Count",
-          "type": "integer"
-        },
-        "kind": {
-          "$ref": "#/$defs/SourceKind"
-        },
-        "media_type": {
-          "minLength": 1,
-          "title": "Media Type",
-          "type": "string"
-        },
-        "parent_study_accession": {
-          "anyOf": [
-            {
-              "minLength": 1,
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "title": "Parent Study Accession"
-        },
-        "parent_study_release": {
-          "anyOf": [
-            {
-              "minLength": 1,
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "title": "Parent Study Release"
-        },
-        "release": {
-          "minLength": 1,
-          "title": "Release",
-          "type": "string"
-        },
-        "retrieved_at": {
-          "format": "date-time",
-          "title": "Retrieved At",
-          "type": "string"
-        },
-        "sha256": {
-          "pattern": "^[a-fA-F0-9]{64}$",
-          "title": "Sha256",
-          "type": "string"
-        },
-        "source_id": {
-          "minLength": 1,
-          "title": "Source Id",
-          "type": "string"
-        },
-        "uri": {
-          "minLength": 1,
-          "title": "Uri",
-          "type": "string"
-        }
-      },
-      "required": [
-        "source_id",
-        "kind",
-        "uri",
-        "sha256",
-        "media_type",
-        "accession",
-        "release",
-        "byte_count",
-        "retrieved_at"
-      ],
-      "title": "SourceArtifact",
-      "type": "object"
-    },
-    "SourceKind": {
-      "enum": [
-        "raw",
-        "processed",
-        "metadata",
-        "documentation"
-      ],
-      "title": "SourceKind",
-      "type": "string"
     }
   },
   "additionalProperties": false,
-  "description": "Authenticated legal/scientific selection of exact real-data execution bytes.\n\nThe selection is external to a bundle because a bundle contains only the content-addressed\nbenchmark declaration.  An application-owned workflow resolver must derive ``sources`` from\ntyped dataset-assessment resolutions.  Its exact resolution artifacts are included in byte\ncoverage; arbitrary manifest review sources are never inferred as execution inputs.",
+  "description": "HMAC-authenticated semantic verification of one closed, reloadable model artifact.",
   "properties": {
+    "accessed_partition_roles": {
+      "default": [
+        "train"
+      ],
+      "items": {
+        "$ref": "#/$defs/BenchmarkPartitionRole"
+      },
+      "title": "Accessed Partition Roles",
+      "type": "array"
+    },
     "attestation": {
       "$ref": "#/$defs/ReceiptAttestation"
     },
-    "bundle_fingerprint": {
+    "behavior_manifest_sha256": {
       "pattern": "^[a-fA-F0-9]{64}$",
-      "title": "Bundle Fingerprint",
+      "title": "Behavior Manifest Sha256",
       "type": "string"
+    },
+    "behavior_state_recomputed": {
+      "const": true,
+      "default": true,
+      "title": "Behavior State Recomputed",
+      "type": "boolean"
+    },
+    "calibration_applied": {
+      "const": false,
+      "default": false,
+      "title": "Calibration Applied",
+      "type": "boolean"
+    },
+    "candidate_load_verified": {
+      "const": true,
+      "default": true,
+      "title": "Candidate Load Verified",
+      "type": "boolean"
+    },
+    "converged": {
+      "const": true,
+      "default": true,
+      "title": "Converged",
+      "type": "boolean"
+    },
+    "finite": {
+      "const": true,
+      "default": true,
+      "title": "Finite",
+      "type": "boolean"
     },
     "issued_at": {
       "format": "date-time",
       "title": "Issued At",
       "type": "string"
     },
+    "model_artifact": {
+      "$ref": "#/$defs/ContentAddressedArtifact"
+    },
+    "model_closed_reread_rehashed": {
+      "const": true,
+      "default": true,
+      "title": "Model Closed Reread Rehashed",
+      "type": "boolean"
+    },
+    "model_selection_applied": {
+      "const": false,
+      "default": false,
+      "title": "Model Selection Applied",
+      "type": "boolean"
+    },
+    "p1_training_evidence_fingerprint": {
+      "pattern": "^[a-fA-F0-9]{64}$",
+      "title": "P1 Training Evidence Fingerprint",
+      "type": "string"
+    },
+    "p2_read": {
+      "const": false,
+      "default": false,
+      "title": "P2 Read",
+      "type": "boolean"
+    },
+    "p3_read": {
+      "const": false,
+      "default": false,
+      "title": "P3 Read",
+      "type": "boolean"
+    },
+    "p4_read": {
+      "const": false,
+      "default": false,
+      "title": "P4 Read",
+      "type": "boolean"
+    },
+    "public_runtime_authority": {
+      "const": false,
+      "default": false,
+      "title": "Public Runtime Authority",
+      "type": "boolean"
+    },
+    "receipt_fingerprint": {
+      "pattern": "^[a-fA-F0-9]{64}$",
+      "title": "Receipt Fingerprint",
+      "type": "string"
+    },
+    "receipt_id": {
+      "minLength": 1,
+      "title": "Receipt Id",
+      "type": "string"
+    },
     "receipt_kind": {
-      "const": "execution_source_selection",
-      "default": "execution_source_selection",
+      "const": "candidate_fit",
+      "default": "candidate_fit",
       "title": "Receipt Kind",
       "type": "string"
     },
@@ -272,52 +267,54 @@
       "title": "Schema Version",
       "type": "string"
     },
-    "selection_fingerprint": {
+    "source_closed_and_reauthenticated": {
+      "const": true,
+      "default": true,
+      "title": "Source Closed And Reauthenticated",
+      "type": "boolean"
+    },
+    "source_selection_fingerprint": {
       "pattern": "^[a-fA-F0-9]{64}$",
-      "title": "Selection Fingerprint",
+      "title": "Source Selection Fingerprint",
       "type": "string"
     },
-    "selection_id": {
-      "minLength": 1,
-      "title": "Selection Id",
+    "training_complete": {
+      "const": true,
+      "default": true,
+      "title": "Training Complete",
+      "type": "boolean"
+    },
+    "training_plan_fingerprint": {
+      "pattern": "^[a-fA-F0-9]{64}$",
+      "title": "Training Plan Fingerprint",
       "type": "string"
     },
-    "selector": {
+    "training_result": {
+      "$ref": "#/$defs/ContentAddressedArtifact"
+    },
+    "verifier": {
       "$ref": "#/$defs/AdmissionVerifierIdentity"
     },
-    "selector_fingerprint": {
+    "verifier_fingerprint": {
       "pattern": "^[a-fA-F0-9]{64}$",
-      "title": "Selector Fingerprint",
+      "title": "Verifier Fingerprint",
       "type": "string"
-    },
-    "sources": {
-      "items": {
-        "$ref": "#/$defs/SourceArtifact"
-      },
-      "minItems": 1,
-      "title": "Sources",
-      "type": "array"
-    },
-    "workflow_resolution_artifacts": {
-      "items": {
-        "$ref": "#/$defs/ContentAddressedArtifact"
-      },
-      "minItems": 1,
-      "title": "Workflow Resolution Artifacts",
-      "type": "array"
     }
   },
   "required": [
-    "selection_id",
-    "bundle_fingerprint",
-    "workflow_resolution_artifacts",
-    "sources",
-    "selector",
-    "selector_fingerprint",
+    "receipt_id",
+    "training_plan_fingerprint",
+    "source_selection_fingerprint",
+    "p1_training_evidence_fingerprint",
+    "training_result",
+    "model_artifact",
+    "behavior_manifest_sha256",
+    "verifier",
+    "verifier_fingerprint",
     "issued_at",
     "attestation",
-    "selection_fingerprint"
+    "receipt_fingerprint"
   ],
-  "title": "ExecutionSourceSelectionReceipt",
+  "title": "CandidateFitReceipt",
   "type": "object"
 }

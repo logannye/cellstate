@@ -13,12 +13,17 @@ from cellstate.backends import (
     BiologicalModelBundleContract,
     BiologicalSupportEnvelope,
     BundleReadiness,
+    CandidateFitReceipt,
+    CandidateTrainingPlan,
     ExecutionSourceSelectionReceipt,
     LoadedInterfaceReceipt,
+    P1TrainingEvidence,
     PopulationAssayResponsePreflight,
     PopulationAssayResponseTask,
     QueryDerivedPrerequisiteReport,
+    TrainedCandidateVerification,
     TrainingRunBinding,
+    TrainingSourceSelectionReceipt,
     ValidationEvidenceBinding,
     ValidationResultManifest,
     ValidationResultReceiptBatch,
@@ -49,6 +54,8 @@ MODELS: dict[Path, type[BaseModel]] = {
     Path("experimental/biological-model-bundle.schema.json"): BiologicalModelBundleContract,
     Path("experimental/biological-support-envelope.schema.json"): BiologicalSupportEnvelope,
     Path("experimental/bundle-readiness.schema.json"): BundleReadiness,
+    Path("experimental/candidate-fit-receipt.schema.json"): CandidateFitReceipt,
+    Path("experimental/candidate-training-plan.schema.json"): CandidateTrainingPlan,
     Path("experimental/dataset-manifest.schema.json"): DatasetManifest,
     Path("experimental/execution-source-selection-receipt.schema.json"): (
         ExecutionSourceSelectionReceipt
@@ -58,9 +65,14 @@ MODELS: dict[Path, type[BaseModel]] = {
         PopulationAssayResponsePreflight
     ),
     Path("experimental/population-assay-response-task.schema.json"): PopulationAssayResponseTask,
+    Path("experimental/p1-training-evidence.schema.json"): P1TrainingEvidence,
     Path("experimental/query-derived-prerequisites.schema.json"): (QueryDerivedPrerequisiteReport),
     Path("experimental/representability-proof.schema.json"): RepresentabilityProof,
     Path("experimental/training-run-binding.schema.json"): TrainingRunBinding,
+    Path("experimental/training-source-selection-receipt.schema.json"): (
+        TrainingSourceSelectionReceipt
+    ),
+    Path("experimental/trained-candidate-verification.schema.json"): (TrainedCandidateVerification),
     Path("experimental/validation-evidence-binding.schema.json"): ValidationEvidenceBinding,
     Path("experimental/validation-result-manifest.schema.json"): ValidationResultManifest,
     Path("experimental/validation-result-receipt.schema.json"): (

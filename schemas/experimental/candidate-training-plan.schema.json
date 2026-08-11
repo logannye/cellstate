@@ -1,0 +1,268 @@
+{
+  "$defs": {
+    "BenchmarkPartitionRole": {
+      "enum": [
+        "train",
+        "calibration",
+        "model_selection_validation",
+        "untouched_test",
+        "external_validation"
+      ],
+      "title": "BenchmarkPartitionRole",
+      "type": "string"
+    },
+    "ContentAddressedArtifact": {
+      "additionalProperties": false,
+      "properties": {
+        "artifact_id": {
+          "minLength": 1,
+          "title": "Artifact Id",
+          "type": "string"
+        },
+        "byte_count": {
+          "exclusiveMinimum": 0,
+          "title": "Byte Count",
+          "type": "integer"
+        },
+        "media_type": {
+          "minLength": 1,
+          "title": "Media Type",
+          "type": "string"
+        },
+        "sha256": {
+          "pattern": "^[a-fA-F0-9]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        },
+        "uri": {
+          "minLength": 1,
+          "title": "Uri",
+          "type": "string"
+        }
+      },
+      "required": [
+        "artifact_id",
+        "uri",
+        "sha256",
+        "byte_count",
+        "media_type"
+      ],
+      "title": "ContentAddressedArtifact",
+      "type": "object"
+    },
+    "PortImplementationBinding": {
+      "additionalProperties": false,
+      "description": "Versioned code declaration for one port, not proof that its bytes can execute.",
+      "properties": {
+        "code_artifact": {
+          "$ref": "#/$defs/ContentAddressedArtifact"
+        },
+        "entrypoint": {
+          "anyOf": [
+            {
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Entrypoint"
+        },
+        "implementation_id": {
+          "minLength": 1,
+          "title": "Implementation Id",
+          "type": "string"
+        },
+        "implementation_version": {
+          "minLength": 1,
+          "title": "Implementation Version",
+          "type": "string"
+        },
+        "interface": {
+          "minLength": 1,
+          "title": "Interface",
+          "type": "string"
+        },
+        "kind": {
+          "$ref": "#/$defs/PortImplementationKind"
+        }
+      },
+      "required": [
+        "implementation_id",
+        "implementation_version",
+        "interface",
+        "kind",
+        "code_artifact"
+      ],
+      "title": "PortImplementationBinding",
+      "type": "object"
+    },
+    "PortImplementationKind": {
+      "description": "Structural declaration kind; neither value is executable evidence.",
+      "enum": [
+        "specification_only",
+        "python_entry_point"
+      ],
+      "title": "PortImplementationKind",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Immutable pre-fit scope; it cannot name a future model or final bundle fingerprint.",
+  "properties": {
+    "action_binding_sha256": {
+      "pattern": "^[a-fA-F0-9]{64}$",
+      "title": "Action Binding Sha256",
+      "type": "string"
+    },
+    "benchmark_fingerprint": {
+      "pattern": "^[a-fA-F0-9]{64}$",
+      "title": "Benchmark Fingerprint",
+      "type": "string"
+    },
+    "candidate_factory_implementation": {
+      "$ref": "#/$defs/PortImplementationBinding"
+    },
+    "candidate_specification": {
+      "$ref": "#/$defs/ContentAddressedArtifact"
+    },
+    "deterministic_thread_count": {
+      "default": 1,
+      "minimum": 1,
+      "title": "Deterministic Thread Count",
+      "type": "integer"
+    },
+    "future_calibration_plan": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/ContentAddressedArtifact"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "optimization_seed": {
+      "minimum": 0,
+      "title": "Optimization Seed",
+      "type": "integer"
+    },
+    "ordered_feature_keys_sha256": {
+      "pattern": "^[a-fA-F0-9]{64}$",
+      "title": "Ordered Feature Keys Sha256",
+      "type": "string"
+    },
+    "output_model_schema": {
+      "$ref": "#/$defs/ContentAddressedArtifact"
+    },
+    "p1_assembly_fingerprint": {
+      "pattern": "^[a-fA-F0-9]{64}$",
+      "title": "P1 Assembly Fingerprint",
+      "type": "string"
+    },
+    "p1_count_stream": {
+      "$ref": "#/$defs/ContentAddressedArtifact"
+    },
+    "p1_count_stream_sha256": {
+      "pattern": "^[a-fA-F0-9]{64}$",
+      "title": "P1 Count Stream Sha256",
+      "type": "string"
+    },
+    "p1_design_fingerprint": {
+      "pattern": "^[a-fA-F0-9]{64}$",
+      "title": "P1 Design Fingerprint",
+      "type": "string"
+    },
+    "p1_finalized_count_scan_fingerprint": {
+      "pattern": "^[a-fA-F0-9]{64}$",
+      "title": "P1 Finalized Count Scan Fingerprint",
+      "type": "string"
+    },
+    "p1_loader_contract": {
+      "$ref": "#/$defs/ContentAddressedArtifact"
+    },
+    "plan_id": {
+      "minLength": 1,
+      "title": "Plan Id",
+      "type": "string"
+    },
+    "plan_version": {
+      "minLength": 1,
+      "title": "Plan Version",
+      "type": "string"
+    },
+    "query_fingerprint": {
+      "pattern": "^[a-fA-F0-9]{64}$",
+      "title": "Query Fingerprint",
+      "type": "string"
+    },
+    "runtime_lock": {
+      "$ref": "#/$defs/ContentAddressedArtifact"
+    },
+    "schema_version": {
+      "const": "0.1-experimental",
+      "default": "0.1-experimental",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "support_envelope_fingerprint": {
+      "pattern": "^[a-fA-F0-9]{64}$",
+      "title": "Support Envelope Fingerprint",
+      "type": "string"
+    },
+    "target_value_schema_sha256": {
+      "pattern": "^[a-fA-F0-9]{64}$",
+      "title": "Target Value Schema Sha256",
+      "type": "string"
+    },
+    "trainer_implementation": {
+      "$ref": "#/$defs/PortImplementationBinding"
+    },
+    "training_partition_ids": {
+      "items": {
+        "type": "string"
+      },
+      "minItems": 1,
+      "title": "Training Partition Ids",
+      "type": "array"
+    },
+    "training_partition_roles": {
+      "default": [
+        "train"
+      ],
+      "items": {
+        "$ref": "#/$defs/BenchmarkPartitionRole"
+      },
+      "title": "Training Partition Roles",
+      "type": "array"
+    }
+  },
+  "required": [
+    "plan_id",
+    "plan_version",
+    "query_fingerprint",
+    "benchmark_fingerprint",
+    "support_envelope_fingerprint",
+    "training_partition_ids",
+    "p1_loader_contract",
+    "p1_count_stream",
+    "p1_count_stream_sha256",
+    "p1_finalized_count_scan_fingerprint",
+    "p1_assembly_fingerprint",
+    "p1_design_fingerprint",
+    "ordered_feature_keys_sha256",
+    "action_binding_sha256",
+    "target_value_schema_sha256",
+    "candidate_specification",
+    "output_model_schema",
+    "runtime_lock",
+    "trainer_implementation",
+    "candidate_factory_implementation",
+    "optimization_seed"
+  ],
+  "title": "CandidateTrainingPlan",
+  "type": "object"
+}

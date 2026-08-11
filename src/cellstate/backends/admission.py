@@ -220,6 +220,8 @@ class AdmissionVerifierCapability(StrEnum):
     ARTIFACT_BYTE_RESOLUTION = "artifact_byte_resolution"
     EXECUTION_SOURCE_SELECTION = "execution_source_selection"
     LOADED_INTERFACE_VERIFICATION = "loaded_interface_verification"
+    TRAINING_FIT_SEMANTICS = "training_fit_semantics"
+    TRAINING_SOURCE_SELECTION = "training_source_selection"
     VALIDATION_RESULT_SEMANTICS = "validation_result_semantics"
 
 
@@ -1682,6 +1684,46 @@ def consumed_artifacts_for_bundle(
     return _require_canonical_artifacts(artifacts, name="consumed bundle artifacts")
 
 
+def implementation_requirement_for_binding(
+    bundle: BiologicalModelBundleContract,
+    *,
+    target_kind: ImplementationReceiptTargetKind,
+    target_id: str,
+    implementation: PortImplementationBinding,
+    trusted_runtime_interface: TrustedRuntimeInterface,
+) -> ImplementationReceiptRequirement:
+    """Derive one exact interface requirement without expanding unrelated bundle stages."""
+
+    bundle = BiologicalModelBundleContract.model_validate(bundle.model_dump(mode="python"))
+    implementation = PortImplementationBinding.model_validate(
+        implementation.model_dump(mode="python")
+    )
+    if trusted_runtime_interface.declared_interface != implementation.interface:
+        raise ValueError("trusted runtime interface registry key/declaration mismatch")
+    runtime_module, runtime_qualname = _runtime_interface_identity(
+        trusted_runtime_interface.runtime_interface
+    )
+    member_signatures = _runtime_interface_members(trusted_runtime_interface.runtime_interface)
+    return ImplementationReceiptRequirement(
+        target_kind=target_kind,
+        target_id=target_id,
+        bundle_fingerprint=bundle.fingerprint,
+        implementation_scope_fingerprint=bundle.implementation_scope_fingerprint,
+        implementation=implementation,
+        interface_artifact=trusted_runtime_interface.interface_artifact,
+        trusted_interface_fingerprint=trusted_runtime_interface.fingerprint,
+        runtime_interface_module=runtime_module,
+        runtime_interface_qualname=runtime_qualname,
+        required_member_signatures=member_signatures,
+        interface_contract_fingerprint=_interface_contract_fingerprint(
+            implementation.interface,
+            runtime_module,
+            runtime_qualname,
+            member_signatures,
+        ),
+    )
+
+
 def implementation_requirements_for_bundle(
     bundle: BiologicalModelBundleContract,
     *,
@@ -1703,29 +1745,12 @@ def implementation_requirements_for_bundle(
             raise ValueError(
                 f"no trusted runtime interface is registered for {implementation.interface!r}"
             )
-        if trusted_interface.declared_interface != implementation.interface:
-            raise ValueError("trusted runtime interface registry key/declaration mismatch")
-        runtime_module, runtime_qualname = _runtime_interface_identity(
-            trusted_interface.runtime_interface
-        )
-        member_signatures = _runtime_interface_members(trusted_interface.runtime_interface)
-        return ImplementationReceiptRequirement(
+        return implementation_requirement_for_binding(
+            bundle,
             target_kind=target_kind,
             target_id=target_id,
-            bundle_fingerprint=bundle.fingerprint,
-            implementation_scope_fingerprint=bundle.implementation_scope_fingerprint,
             implementation=implementation,
-            interface_artifact=trusted_interface.interface_artifact,
-            trusted_interface_fingerprint=trusted_interface.fingerprint,
-            runtime_interface_module=runtime_module,
-            runtime_interface_qualname=runtime_qualname,
-            required_member_signatures=member_signatures,
-            interface_contract_fingerprint=_interface_contract_fingerprint(
-                implementation.interface,
-                runtime_module,
-                runtime_qualname,
-                member_signatures,
-            ),
+            trusted_runtime_interface=trusted_interface,
         )
 
     for port_binding in bundle.ports:
@@ -2186,6 +2211,7 @@ __all__ = [
     "attest_isolated_loaded_interface_observation",
     "build_admission_receipt_batch_report",
     "consumed_artifacts_for_bundle",
+    "implementation_requirement_for_binding",
     "implementation_requirements_for_bundle",
     "interface_coverage_fingerprint",
     "issue_artifact_resolution_receipt",
