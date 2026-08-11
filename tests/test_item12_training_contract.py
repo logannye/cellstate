@@ -62,6 +62,20 @@ from cellstate.data import (
 )
 from cellstate.domain import StateQuery
 from cellstate.domain.common import SchemaModel, canonical_fingerprint, canonical_json_bytes
+from cellstate.training.execution import (
+    ContainedExecutionObservation,
+    ContainedExecutionPolicy,
+    ContainedTrainingObservation,
+    ContainedTrainingWorkerObservation,
+    ExecutionInputClosureManifest,
+    RuntimeImageIdentity,
+    RuntimeImageLock,
+    StagedTrainingEntry,
+    StagedTrainingInventory,
+    TrainingCodeClosureEntry,
+    TrainingCodeClosureManifest,
+)
+from cellstate.training.publication import generation_id_for_seed
 
 ROOT = Path(__file__).resolve().parents[1]
 BENCHMARK_PATH = ROOT / "benchmarks/vertical-a/sciplex3-k562-24h-v1/benchmark-artifact.json"
@@ -265,53 +279,135 @@ def _training_fixture(
     count_stream_sha256 = sha256(b"conceptual-p1-count-stream").hexdigest()
     scan_fingerprint = sha256(b"finalized-p1-scan").hexdigest()
     assembly_fingerprint = sha256(b"p1-assembly").hexdigest()
-    plan = CandidateTrainingPlan(
-        plan_id="sciplex3-k562-item12-training-plan",
-        plan_version="0.1.0",
-        query_fingerprint=query.fingerprint,
-        benchmark_fingerprint=benchmark.fingerprint,
-        support_envelope_fingerprint=support.fingerprint,
-        training_partition_ids=training_partition_ids,
-        p1_loader_contract=_artifact(
+    closure_entries = tuple(
+        sorted(
+            (
+                TrainingCodeClosureEntry(
+                    relative_path="candidate.py",
+                    sha256=candidate_code.sha256,
+                    byte_count=candidate_code.byte_count,
+                ),
+                TrainingCodeClosureEntry(
+                    relative_path="trainer.py",
+                    sha256=trainer_code.sha256,
+                    byte_count=trainer_code.byte_count,
+                ),
+            ),
+            key=lambda item: item.relative_path,
+        )
+    )
+    code_closure = TrainingCodeClosureManifest(entries=closure_entries)
+    input_closure = ExecutionInputClosureManifest(
+        training_code_closure_sha256=code_closure.fingerprint,
+        entries=closure_entries,
+    )
+    image = RuntimeImageIdentity(
+        reference="example.invalid/cellstate@sha256:" + "d" * 64,
+        digest="sha256:" + "d" * 64,
+    )
+    policy = ContainedExecutionPolicy(
+        policy_id="item12-test-fit",
+        owner_id="item12-test",
+        runtime_image=image,
+        training_code_closure_sha256=code_closure.fingerprint,
+        execution_input_closure_sha256=input_closure.fingerprint,
+        wall_clock_seconds=60,
+        cleanup_timeout_seconds=5,
+        memory_max_bytes=4 * 1024**3,
+        memory_swap_max_bytes=4 * 1024**3,
+        pids_limit=16,
+        temporary_max_bytes=1024**2,
+        snapshot_max_bytes=1024**2,
+        observed_training_peak_memory_bytes=1024,
+        source_container_path="/run/source/source.h5ad",
+        code_container_path="/workspace",
+        output_container_path="/run/output",
+        snapshot_container_path="/run/snapshot",
+        temporary_container_path="/run/tmp",
+        workdir="/workspace",
+        environment={"TMPDIR": "/run/tmp"},
+        worker_command=("worker.py",),
+    )
+    image_lock = RuntimeImageLock(
+        runtime_image=image,
+        training_code_closure_sha256=code_closure.fingerprint,
+        image_provenance_sha256="e" * 64,
+    )
+    plan_fields: dict[str, object] = {
+        "schema_version": "0.1-experimental",
+        "plan_id": "sciplex3-k562-item12-training-plan",
+        "plan_version": "0.1.0",
+        "query_fingerprint": query.fingerprint,
+        "benchmark_fingerprint": benchmark.fingerprint,
+        "support_envelope_fingerprint": support.fingerprint,
+        "training_partition_ids": training_partition_ids,
+        "training_partition_roles": (BenchmarkPartitionRole.TRAIN,),
+        "p1_loader_contract": _artifact(
             "item12-p1-loader-contract",
             b"p1-loader-contract",
             content_by_sha256,
             media_type="application/json",
         ),
-        p1_count_stream=_artifact(
+        "p1_count_stream": _artifact(
             "item12-p1-count-stream-descriptor",
             canonical_json_bytes({"count_stream_sha256": count_stream_sha256}),
             content_by_sha256,
             media_type="application/json",
         ),
-        p1_count_stream_sha256=count_stream_sha256,
-        p1_finalized_count_scan_fingerprint=scan_fingerprint,
-        p1_assembly_fingerprint=assembly_fingerprint,
-        p1_design_fingerprint=sha256(b"p1-design").hexdigest(),
-        ordered_feature_keys_sha256=sha256(b"ordered-features").hexdigest(),
-        action_binding_sha256=sha256(b"action-binding").hexdigest(),
-        target_value_schema_sha256=sha256(b"target-schema").hexdigest(),
-        candidate_specification=_artifact(
+        "p1_count_stream_sha256": count_stream_sha256,
+        "p1_finalized_count_scan_fingerprint": scan_fingerprint,
+        "p1_assembly_fingerprint": assembly_fingerprint,
+        "p1_design_fingerprint": sha256(b"p1-design").hexdigest(),
+        "ordered_feature_keys_sha256": sha256(b"ordered-features").hexdigest(),
+        "action_binding_sha256": sha256(b"action-binding").hexdigest(),
+        "target_value_schema_sha256": sha256(b"target-schema").hexdigest(),
+        "candidate_specification": _artifact(
             "item12-candidate-specification",
             b"candidate-specification",
             content_by_sha256,
             media_type="application/json",
         ),
-        output_model_schema=_artifact(
+        "output_model_schema": _artifact(
             "item12-candidate-model-schema",
             b"candidate-model-schema",
             content_by_sha256,
             media_type="application/schema+json",
         ),
-        runtime_lock=_artifact(
+        "runtime_lock": _artifact(
             "item12-candidate-runtime-lock",
             b"candidate-runtime-lock",
             content_by_sha256,
             media_type="application/json",
         ),
-        trainer_implementation=trainer,
-        candidate_factory_implementation=candidate_factory,
-        optimization_seed=17,
+        "contained_execution_policy": _contract_artifact(
+            "item12-contained-execution-policy", policy, content_by_sha256
+        ),
+        "runtime_image_lock": _contract_artifact(
+            "item12-runtime-image-lock", image_lock, content_by_sha256
+        ),
+        "training_code_closure": _contract_artifact(
+            "item12-training-code-closure", code_closure, content_by_sha256
+        ),
+        "training_execution_input_closure": _contract_artifact(
+            "item12-training-execution-input-closure", input_closure, content_by_sha256
+        ),
+        "trainer_implementation": trainer,
+        "candidate_factory_implementation": candidate_factory,
+        "optimization_seed": 17,
+        "deterministic_thread_count": 1,
+        "future_calibration_plan": None,
+    }
+    generation_seed = training_contracts.candidate_training_plan_generation_seed_bytes(plan_fields)
+    planned_generation_id = generation_id_for_seed(generation_seed)
+    plan = CandidateTrainingPlan(
+        **plan_fields,
+        planned_generation_id=planned_generation_id,
+        publication_generation_seed=_artifact(
+            "item12-publication-generation-seed",
+            generation_seed,
+            content_by_sha256,
+            media_type="application/json",
+        ),
     )
     plan_artifact = _contract_artifact("item12-training-plan", plan, content_by_sha256)
 
@@ -345,30 +441,130 @@ def _training_fixture(
         issued_at=NOW,
     )
 
+    finalized_count_scan = _artifact(
+        "item12-p1-finalized-count-scan",
+        b"p1-finalized-count-scan",
+        content_by_sha256,
+        media_type="application/json",
+    )
+    assembly_receipt = _artifact(
+        "item12-p1-assembly-receipt",
+        b"p1-assembly-receipt",
+        content_by_sha256,
+        media_type="application/json",
+    )
+    p1_materialization = _artifact(
+        "item12-p1-materialization",
+        b"p1-materialization",
+        content_by_sha256,
+        media_type="application/json",
+    )
+    training_result = _artifact(
+        "item12-candidate-training-result",
+        b"candidate-training-result-observation",
+        content_by_sha256,
+        media_type="application/json",
+    )
+    model_artifact = _artifact(
+        "item12-p1-trained-candidate-model",
+        MODEL_BYTES,
+        content_by_sha256,
+        media_type="application/vnd.cellstate.candidate+json",
+    )
+    staged_inventory = StagedTrainingInventory(
+        entries=tuple(
+            sorted(
+                (
+                    StagedTrainingEntry(
+                        relative_path="candidate-model.json",
+                        artifact_role="model_artifact",
+                        sha256=model_artifact.sha256,
+                        byte_count=model_artifact.byte_count,
+                    ),
+                    StagedTrainingEntry(
+                        relative_path="candidate-training-plan.json",
+                        artifact_role="training_plan",
+                        sha256=plan_artifact.sha256,
+                        byte_count=plan_artifact.byte_count,
+                    ),
+                    StagedTrainingEntry(
+                        relative_path="p1-assembly-receipt.json",
+                        artifact_role="p1_assembly_receipt",
+                        sha256=assembly_receipt.sha256,
+                        byte_count=assembly_receipt.byte_count,
+                    ),
+                    StagedTrainingEntry(
+                        relative_path="p1-finalized-count-scan-receipt.json",
+                        artifact_role="p1_finalized_count_scan",
+                        sha256=finalized_count_scan.sha256,
+                        byte_count=finalized_count_scan.byte_count,
+                    ),
+                    StagedTrainingEntry(
+                        relative_path="training-execution-observation.json",
+                        artifact_role="training_result",
+                        sha256=training_result.sha256,
+                        byte_count=training_result.byte_count,
+                    ),
+                ),
+                key=lambda item: item.relative_path,
+            )
+        )
+    )
+    parent_execution = ContainedExecutionObservation(
+        execution_id="item12-fit",
+        policy_fingerprint=policy.fingerprint,
+        runtime_image_digest=image.digest,
+        container_user_mode=policy.container_user_mode,
+        observed_container_uid=1000,
+        observed_container_gid=1000,
+        outcome="success",
+        exit_code=0,
+        timed_out=False,
+        oom_killed=False,
+    )
+    worker_execution = ContainedTrainingWorkerObservation(
+        execution_id="item12-fit",
+        training_plan_fingerprint=plan.fingerprint,
+        policy_fingerprint=policy.fingerprint,
+        runtime_image_digest=image.digest,
+        training_code_closure_sha256=code_closure.fingerprint,
+        execution_input_closure_sha256=input_closure.fingerprint,
+        expected_source_sha256=source.sha256,
+        source_pre_sha256=source.sha256,
+        source_post_sha256=source.sha256,
+        expected_source_byte_count=source.byte_count,
+        source_pre_byte_count=source.byte_count,
+        source_post_byte_count=source.byte_count,
+        staged_inventory=staged_inventory,
+        staged_tree_sha256=staged_inventory.fingerprint,
+        staged_file_count=len(staged_inventory.entries),
+    )
+    contained_execution = ContainedTrainingObservation(
+        training_plan_fingerprint=plan.fingerprint,
+        policy_fingerprint=policy.fingerprint,
+        runtime_image_digest=image.digest,
+        training_code_closure_sha256=code_closure.fingerprint,
+        execution_input_closure_sha256=input_closure.fingerprint,
+        staged_inventory=staged_inventory,
+        staged_tree_sha256=staged_inventory.fingerprint,
+        worker_observation=worker_execution,
+        execution_observation=parent_execution,
+    )
+    contained_execution_artifact = _contract_artifact(
+        "item12-contained-execution-observation",
+        contained_execution,
+        content_by_sha256,
+    )
     p1_evidence = P1TrainingEvidence(
         evidence_id="item12-real-p1-training-evidence",
         evidence_version="0.1.0",
         training_plan_fingerprint=plan.fingerprint,
         partition_ids=training_partition_ids,
         source=source,
-        finalized_count_scan=_artifact(
-            "item12-p1-finalized-count-scan",
-            b"p1-finalized-count-scan",
-            content_by_sha256,
-            media_type="application/json",
-        ),
-        assembly_receipt=_artifact(
-            "item12-p1-assembly-receipt",
-            b"p1-assembly-receipt",
-            content_by_sha256,
-            media_type="application/json",
-        ),
-        p1_materialization=_artifact(
-            "item12-p1-materialization",
-            b"p1-materialization",
-            content_by_sha256,
-            media_type="application/json",
-        ),
+        finalized_count_scan=finalized_count_scan,
+        assembly_receipt=assembly_receipt,
+        p1_materialization=p1_materialization,
+        contained_execution_observation=contained_execution_artifact,
         count_stream_sha256=count_stream_sha256,
         finalized_count_scan_fingerprint=scan_fingerprint,
         assembly_fingerprint=assembly_fingerprint,
@@ -384,23 +580,12 @@ def _training_fixture(
         p1_evidence,
         content_by_sha256,
     )
-    training_result = _artifact(
-        "item12-candidate-training-result",
-        b"candidate-training-result-observation",
-        content_by_sha256,
-        media_type="application/json",
-    )
-    model_artifact = _artifact(
-        "item12-p1-trained-candidate-model",
-        MODEL_BYTES,
-        content_by_sha256,
-        media_type="application/vnd.cellstate.candidate+json",
-    )
     fit_receipt = issue_candidate_fit_receipt(
         receipt_id="item12-candidate-fit-receipt",
         plan=plan,
         source_selection=source_selection,
         p1_evidence=p1_evidence,
+        contained_execution_observation=contained_execution,
         training_result=training_result,
         model_artifact=model_artifact,
         observed_model_content=MODEL_BYTES,
@@ -421,11 +606,17 @@ def _training_fixture(
                     plan.candidate_specification,
                     plan.output_model_schema,
                     plan.runtime_lock,
+                    plan.contained_execution_policy,
+                    plan.runtime_image_lock,
+                    plan.training_code_closure,
+                    plan.training_execution_input_closure,
+                    plan.publication_generation_seed,
                     plan.trainer_implementation.code_artifact,
                     plan.candidate_factory_implementation.code_artifact,
                     p1_evidence.finalized_count_scan,
                     p1_evidence.assembly_receipt,
                     p1_evidence.p1_materialization,
+                    p1_evidence.contained_execution_observation,
                     fit_receipt.training_result,
                     *source_selection.workflow_resolution_artifacts,
                 )
@@ -553,6 +744,11 @@ def _training_fixture(
         plan_artifact=plan_artifact,
         p1_evidence=p1_evidence,
         p1_evidence_artifact=p1_evidence_artifact,
+        contained_execution_policy=policy,
+        runtime_image_lock=image_lock,
+        training_code_closure=code_closure,
+        training_execution_input_closure=input_closure,
+        contained_execution_observation=contained_execution,
         source_selection=source_selection,
         fit_receipt=fit_receipt,
         query_prerequisite_report=prerequisite_report,
@@ -761,9 +957,102 @@ def test_typed_p1_evidence_and_fit_receipts_reject_heldout_claims_or_wrong_bytes
             plan=training_fixture.context.plan,
             source_selection=training_fixture.context.source_selection,
             p1_evidence=training_fixture.context.p1_evidence,
+            contained_execution_observation=(
+                training_fixture.context.contained_execution_observation
+            ),
             training_result=training_fixture.context.fit_receipt.training_result,
             model_artifact=training_fixture.context.fit_receipt.model_artifact,
             observed_model_content=b"substituted-model",
+            behavior_manifest_sha256="1" * 64,
+            trusted_verifier=training_fixture.context.trusted_verifiers[0],
+            issued_at=NOW,
+        )
+
+
+def test_fit_receipt_rejects_source_substitution_in_typed_contained_observation(
+    training_fixture: TrainingFixture,
+) -> None:
+    original = training_fixture.context.contained_execution_observation
+    substituted_sha256 = "f" * 64
+    substituted_worker = original.worker_observation.model_copy(
+        update={
+            "expected_source_sha256": substituted_sha256,
+            "source_pre_sha256": substituted_sha256,
+            "source_post_sha256": substituted_sha256,
+        }
+    )
+    substituted = original.model_copy(update={"worker_observation": substituted_worker})
+    with pytest.raises(ValueError, match="used another source"):
+        issue_candidate_fit_receipt(
+            receipt_id="source-substitution-fit",
+            plan=training_fixture.context.plan,
+            source_selection=training_fixture.context.source_selection,
+            p1_evidence=training_fixture.context.p1_evidence,
+            contained_execution_observation=substituted,
+            training_result=training_fixture.context.fit_receipt.training_result,
+            model_artifact=training_fixture.context.fit_receipt.model_artifact,
+            observed_model_content=MODEL_BYTES,
+            behavior_manifest_sha256="1" * 64,
+            trusted_verifier=training_fixture.context.trusted_verifiers[0],
+            issued_at=NOW,
+        )
+
+
+@pytest.mark.parametrize(
+    ("field_name", "substituted_value"),
+    (
+        ("policy_fingerprint", "f" * 64),
+        ("runtime_image_digest", "sha256:" + "f" * 64),
+    ),
+)
+def test_contained_observation_rejects_execution_only_identity_substitution(
+    training_fixture: TrainingFixture,
+    field_name: str,
+    substituted_value: str,
+) -> None:
+    payload = training_fixture.context.contained_execution_observation.model_dump(mode="python")
+    execution = dict(payload["execution_observation"])
+    execution[field_name] = substituted_value
+    payload["execution_observation"] = execution
+    with pytest.raises(ValidationError, match="one execution"):
+        ContainedTrainingObservation.model_validate(payload)
+
+
+def test_fit_receipt_rejects_missing_model_entry_in_typed_stage_inventory(
+    training_fixture: TrainingFixture,
+) -> None:
+    original = training_fixture.context.contained_execution_observation
+    inventory = StagedTrainingInventory(
+        entries=tuple(
+            entry
+            for entry in original.staged_inventory.entries
+            if entry.artifact_role != "model_artifact"
+        )
+    )
+    worker = original.worker_observation.model_copy(
+        update={
+            "staged_inventory": inventory,
+            "staged_tree_sha256": inventory.fingerprint,
+            "staged_file_count": len(inventory.entries),
+        }
+    )
+    missing_model = original.model_copy(
+        update={
+            "staged_inventory": inventory,
+            "staged_tree_sha256": inventory.fingerprint,
+            "worker_observation": worker,
+        }
+    )
+    with pytest.raises(ValueError, match="exact model_artifact bytes"):
+        issue_candidate_fit_receipt(
+            receipt_id="missing-model-stage-fit",
+            plan=training_fixture.context.plan,
+            source_selection=training_fixture.context.source_selection,
+            p1_evidence=training_fixture.context.p1_evidence,
+            contained_execution_observation=missing_model,
+            training_result=training_fixture.context.fit_receipt.training_result,
+            model_artifact=training_fixture.context.fit_receipt.model_artifact,
+            observed_model_content=MODEL_BYTES,
             behavior_manifest_sha256="1" * 64,
             trusted_verifier=training_fixture.context.trusted_verifiers[0],
             issued_at=NOW,
@@ -844,6 +1133,11 @@ def test_runtime_training_context_detaches_caller_owned_collections(
         plan_artifact=original.plan_artifact,
         p1_evidence=original.p1_evidence,
         p1_evidence_artifact=original.p1_evidence_artifact,
+        contained_execution_policy=original.contained_execution_policy,
+        runtime_image_lock=original.runtime_image_lock,
+        training_code_closure=original.training_code_closure,
+        training_execution_input_closure=original.training_execution_input_closure,
+        contained_execution_observation=original.contained_execution_observation,
         source_selection=original.source_selection,
         fit_receipt=original.fit_receipt,
         query_prerequisite_report=original.query_prerequisite_report,

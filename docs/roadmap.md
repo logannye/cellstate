@@ -306,9 +306,15 @@ failed closed during initial inner equilibration, before an outer update or ELBO
 provisional `rho` reached near single-plate concentration. A subsequent source-code audit also found
 that the v4 dose Newton objective omits the exact `94785/768` equal-well multiplier carried by the
 corresponding terms in the tracked full ELBO, so its dose penalty is on the wrong relative scale.
-V4 is retired and remains `NO-GO` and unissued. The sci-Plex3 component therefore remains a
-non-executable `SCAFFOLD` and must not present a candidate design, provisional initialization
-state, or unrun performance as a validated biological belief.
+V4 is retired and remains `NO-GO` and unissued. Item 12.2 has since completed a source-free v5
+software boundary covering the corrected objective/M-step, exact-positive request-level sampling,
+immutable atomic publication, exact code/input/stage closure, reproducible OCI identity, and hard
+parent-owned whole-container containment. It opened no protected source, ran no real-`p1` fit, and
+issued no candidate artifact, plan, observation, evidence, or lifecycle result. The sci-Plex3
+component therefore remains a non-executable `SCAFFOLD` and must not present source-free design
+fixtures, provisional state, or unrun performance as a validated biological belief. Item 12.3 is
+only a proposed, separately authorized, version-bound, nonissuing real-`p1` v5 execution; it is not
+authorized and has not run.
 
 The next development work proceeds in this order:
 
@@ -388,16 +394,19 @@ The next development work proceeds in this order:
     wells were scanned; seven genuine zero-panel rows were retained; and six fitted-state identities
     were materialized with no held-out access or lifecycle authority. None of this is baseline
     performance, scientific admission, or a public cell-state runtime.
-12. **In progress 2026-08-10:** establish the first honest p1-trained candidate boundary. The
-    immutable pre-fit plan binds the exact typed `p1` role, count stream, scan, assembly, design,
-    feature, action, target, candidate specification, trainer/factory code, output schema, and
-    complete single-thread Linux `x86_64` runtime: CPython 3.11.15, NumPy 2.4.6, SciPy 1.17.1, and
-    `scipy-openblas` 0.3.31.188.0. Runtime-only HMAC source-selection and fit-semantic receipts,
-    exact byte resolution, query-prerequisite verification, and an application-owned loaded-
-    interface registry are all required before `TRAINED_CANDIDATE` can be derived; deterministic
-    files remain evidence rather than authority. The first rank-16 Gamma--Poisson design with a
-    separate `q`/capture term and 16 free shapes failed closed at the Gamma-shape boundary on the
-    exact real `p1` data and emitted no model. V2 removed `q`/capture, but its free pooled shape
+12. **In progress; source-free Item 12.2 completed 2026-08-11:** establish the first honest
+    p1-trained candidate boundary. The immutable pre-fit plan contract, not an issued plan, binds
+    the exact typed `p1` role, count stream, scan, assembly, design, feature, action, target,
+    candidate specification, trainer/factory code and its executable closure, exact mounted code
+    plus declared public JSON/runtime inputs, output schema, contained-execution policy, runtime-
+    image lock, and complete single-thread Linux `x86_64` runtime. That runtime is CPython 3.11.15,
+    NumPy 2.4.6, SciPy 1.17.1, and `scipy-openblas` 0.3.31.188.0. Runtime-only HMAC source-selection
+    and fit-semantic receipts, exact byte resolution, query-prerequisite verification, and an
+    application-owned loaded-interface registry are all required before `TRAINED_CANDIDATE` can be
+    derived; deterministic files remain evidence rather than authority. The first rank-16 design
+    used Gamma--Poisson factors, a separate `q`/capture term, and 16 free shapes. It failed closed at
+    the Gamma-shape boundary on the exact real `p1` data and emitted no model. V2 removed
+    `q`/capture, but its free pooled shape
     crossed below `0.1`, reached approximately `0.073524`, and the outer trajectory remained
     unconverged at pass 50. V3 fixed `r_theta=0.1`, but its nonissuing counterfactual still failed
     relative-ELBO convergence and terminal factor-order stability. Its follow-up characterization showed a raw
@@ -467,32 +476,69 @@ nondecrease, another real-source characterization of v4 would spend authorizatio
 already known to be mathematically inconsistent. No Item 12.1b report, artifact, or lifecycle
 evidence exists.
 
-**Item 12.2 — source-free v5 objective, M-step, and execution-containment redesign** is the next
-milestone. Before any new real-`p1` authorization, v5 must define one objective whose equal-well
-normalization, dose penalty, and action/context M-step agree exactly; pass finite-difference
-full-ELBO gradient tests and fixed-`q` M-step nondecrease tests; and run behind hard process or
-container wall-clock and memory limits rather than relying on post-hoc elapsed/RSS acceptance
-checks. The source-free redesign must optimize `alpha`, constrained `log-rho`, and dose effects
-against an independently computed fixed-`q` full ELBO. Feasible-coordinate gradient tests under the
-arithmetic-mean-one `rho` gauge, treated-well adversarial fixtures, accepted-substep and complete-
-block nondecrease, and Hessian finite differences if Newton remains are required. Any surrogate or
-block schedule must nondecrease the same canonical full ELBO and share its stationary points.
+**Item 12.2 — source-free v5 objective, M-step, sampling, publication, evidence closure, and
+execution containment — completed 2026-08-11.** The active v5 fixed-`q` objective applies the exact
+`94785/768` equal-well factor to all 768 wells and the same dose penalty used by its M-step. Its
+all-well update covers `alpha`, arithmetic-mean-one constrained `log-rho`, and the complete `delta`
+dose-effect tensor. An independently implemented scalar objective, feasible-coordinate finite-
+difference gradients, dose and joint arrowhead Hessian checks, a treated-well adversarial fixture,
+strict one-ULP decrease rejection, and accepted-substep and complete-block checks verify nondecrease
+on that same canonical objective.
 
-Sampling must either be exactly conditioned on a positive panel, or the API must freeze a maximum
-request size and request-level failure budget over every admitted action, context, and calibration
-`tau`; a target-only `supports()` result is insufficient because the 33-attempt failure compounds
-with sample count. Poisson-rate/RNG overflow must be included in the same support decision. The
-builder must publish each candidate in an immutable generation and switch one atomic pointer only
-after the complete generation verifies. A forced process termination mid-publication must recover
-automatically, leave no stale lock, and let readers observe only the complete old or complete new
-generation.
+The sampler exactly conditions the whole raw-count panel to be positive using the zero-truncated
+superposition of compound-Poisson/log-series factor counts. Support requires an exact
+`CandidateSampleRequest`, including its bounded sample count; target-only `supports()` fails. One
+immutable certificate covers 753 actions (752 compound-dose assignments plus no action), the one
+neutral unit unseen-plate context, and all 27 declared `tau` values: `20,331` combinations. The
+maximum request is 512 draws, and the conservative complete-request conditional signed-`int64`
+Chernoff tail bound is at most `2^-64`. Compound-Poisson intensity, log-series RNG support,
+allocation overflow, and overflow-safe panel positivity are included in the same global fail-closed
+decision. Per-draw substreams are prefix-stable and outputs bind exact model, calibration,
+sampling-contract, target, context, and seed provenance.
 
-Parent-enforced wall and memory limits must cover the whole source-touching process tree from before
-source open through close and verification. The exact limit policy and runtime-image digest must be
-frozen; timeout, cgroup/container OOM, descendant cleanup, no-canonical-publication, and next-run
-recovery tests are mandatory. This milestone does not open `p1`, change a fitted artifact, or
-authorize `p2`. Only after it passes review may a separately authorized, version-bound nonissuing v5
-real-`p1` execution be proposed.
+Publication now renders and verifies one content-addressed immutable generation before atomically
+replacing only `current.json`. Concurrent readers observe a complete old or new generation. Forced
+process death at every visibility boundary, stable-lock release, orphan and temporary cleanup,
+resealing, next-run recovery, and path/symlink tampering are covered. The pre-fit contract binds a
+canonical `TrainingCodeClosureManifest` for the complete Python executable set and an
+`ExecutionInputClosureManifest` for that code plus every declared public JSON/runtime input. The
+protected source remains a separate authenticated read-only input. A typed no-follow
+`StagedTrainingInventory` binds worker outputs, excluding only worker/parent observation metadata;
+`ContainedTrainingObservation` joins worker source pre/post authentication and stage identity to
+the parent's image, policy, process-tree, and cleanup evidence.
+
+The frozen Linux `amd64` runtime is reproducible from two independent `--no-cache`,
+provenance-disabled OCI builds at `SOURCE_DATE_EPOCH=1786406400`. Both produced index
+`sha256:ababac344fae7f3d679cf9b3bbf4c46b8f3b169b358566d4abd6e3b0e7b8251e`, runnable child
+manifest `sha256:edd451f171161472c1a3bb6a1ae434cdedc5b776e228757ac732522c1035df18`, and config
+`sha256:b9cdf1e179f149319b038f2f58bb80470c2a1b5bda8f1cf9d2ccbe17fe3b59e5`.
+The Dockerfile SHA-256 is
+`ec21cc81a3b4d71f5de745adde74506d63da0d9b317996c8f97b067e90347e7a`.
+Native-Linux execution is frozen as `host-effective-uid-gid`: the worker runs as the host's numeric
+effective UID/GID, and the bounded mode-`0700` tmpfs is mounted with that same UID/GID. The sole
+anonymous snapshot volume uses `empty-image-directory-mode-1777` initialization. This makes the
+declared `0400`/`0700` host binds usable by the contained non-root worker without widening their
+permissions.
+The parent accounts its 3,600-second budget before public code/input staging and actively bounds
+every Docker command and wait; a returned staging overrun fails before container creation. The in-
+container hard timeout begins before protected-source open and is 3,540 seconds with a five-second
+kill-after bound, covering snapshot, fit, and close-reauthentication. The aggregate cgroup
+policy passes both `--memory` and `--memory-swap` as 4,294,967,296 bytes, disabling additional swap.
+Source-free live probes passed for success, timeout with descendants, cgroup OOM, supervisor
+death/watchdog and next-run recovery, anonymous snapshot-volume cleanup, no canonical publication,
+and parent no-follow re-inventory and sealing of the exact worker stage.
+
+Item 12.2 completed only this source-free software acceptance. It did not open protected source or
+`p1`, run a real fit, issue a candidate artifact, plan, observation, evidence, materialization, or
+lifecycle result, calibrate, score, or change the component from `SCAFFOLD`.
+
+**Item 12.3 — proposed separately authorized, version-bound, nonissuing real-p1 v5 execution.** This
+is the next proposed milestone, not an authorization. Its exact candidate version, source scope,
+runtime/limit identities, permitted nonissuing outputs, and stop conditions require separate review
+and explicit authorization. No Item 12.3 run has occurred. It cannot borrow Item 12.2's source-free
+acceptance as data authority, open `p2`, `p3`, or protected `p4` raw endpoints, inspect held-out
+outcomes, score predictions, issue lifecycle evidence, or reinterpret public frozen split/case
+metadata as permission to resolve protected source bytes.
 
 Only a future successful trusted verification may move the component to `TRAINED_CANDIDATE`. A
 future one-use grant may open `p2` for calibration only after that exact state; a separate grant may

@@ -184,6 +184,11 @@
       "title": "Candidate Load Verified",
       "type": "boolean"
     },
+    "contained_execution_observation_fingerprint": {
+      "pattern": "^[a-fA-F0-9]{64}$",
+      "title": "Contained Execution Observation Fingerprint",
+      "type": "string"
+    },
     "converged": {
       "const": true,
       "default": true,
@@ -306,6 +311,7 @@
     "training_plan_fingerprint",
     "source_selection_fingerprint",
     "p1_training_evidence_fingerprint",
+    "contained_execution_observation_fingerprint",
     "training_result",
     "model_artifact",
     "behavior_manifest_sha256",

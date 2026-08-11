@@ -96,10 +96,16 @@ Item 12 candidate revisions v1–v4 all failed closed without issuing a model, p
 calibration, or lifecycle result. Item 12.1a's exact harness, tests, parent driver, and historical
 reports are canonical under `audits/item12_1a`. A source-code audit subsequently confirmed that v4's
 dose objective omits the full ELBO's `94785/768` equal-well multiplier, so v4 is retired and the
-planned real-`p1` Item 12.1b replay must not run. The next milestone is a source-free v5 objective
-and M-step redesign with full-ELBO gradient/nondecrease tests, request-level sampler/RNG support,
-immutable-generation atomic publication, and whole-process-tree hard wall-clock and memory
-containment before any new real-`p1` authorization. Protected `p2`, `p3`, and `p4` raw UMI
+planned real-`p1` Item 12.1b replay must not run. Item 12.2 has now completed its source-free v5
+software scope: one exact equal-well objective and compatible all-well action/context M-step;
+independently checked derivatives and nondecrease; exact-positive, request-bounded sampling;
+immutable-generation atomic publication; exact executable/input/staged-output closure; reproducible
+Linux `amd64` OCI identities; and parent-owned whole-container wall/memory containment with host-
+effective UID/GID filesystem isolation on native Linux. It opened no protected source, ran no real-
+`p1` fit, and issued no candidate artifact, plan, observation, evidence, or lifecycle result. The
+component therefore remains `SCAFFOLD`. The next proposed milestone,
+Item 12.3, is a separately authorized, version-bound, nonissuing real-`p1` v5 execution; it is not
+authorized and has not run. Protected `p2`, `p3`, and `p4` raw UMI
 count-matrix/endpoint bytes, outcomes, and lifecycle scoring authority remain sealed; their frozen
 split membership and benchmark-design metadata are public and are not an access grant. No
 biological runtime or validated belief may be registered

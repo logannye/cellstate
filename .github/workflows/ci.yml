@@ -46,3 +46,67 @@ jobs:
           enable-cache: true
       - run: uv sync --extra docs --no-editable
       - run: uv run --no-editable mkdocs build --strict
+
+  item12-v5-runtime:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        with:
+          python-version: "3.11"
+          enable-cache: true
+      - uses: docker/setup-buildx-action@v3
+        with:
+          version: v0.28.0
+          driver-opts: >-
+            image=moby/buildkit@sha256:6eceb8971ce4fceb3daca562832642706238b7eea72941fcf9896c93c3c4a53e
+      - run: uv sync --extra dev --no-editable
+      - name: Verify frozen Item 12.2 runtime inputs
+        run: >-
+          uv run --no-editable python scripts/verify_sciplex3_v5_runtime_oci.py
+          --lock containers/sciplex3-v5-runtime/runtime-image-lock.json
+          verify-inputs --context containers/sciplex3-v5-runtime
+      - name: Build first source-free OCI runtime
+        run: |
+          source_date_epoch="$(uv run --no-editable python \
+            scripts/verify_sciplex3_v5_runtime_oci.py \
+            --lock containers/sciplex3-v5-runtime/runtime-image-lock.json \
+            source-date-epoch)"
+          docker buildx build \
+            --no-cache \
+            --provenance=false \
+            --platform linux/amd64 \
+            --build-arg "SOURCE_DATE_EPOCH=${source_date_epoch}" \
+            --output "type=oci,dest=${RUNNER_TEMP}/sciplex3-v5-runtime-a.oci.tar" \
+            --tag cellstate-sciplex3-v5-runtime:20260811-locked \
+            containers/sciplex3-v5-runtime
+      - name: Build second independent source-free OCI runtime
+        run: |
+          source_date_epoch="$(uv run --no-editable python \
+            scripts/verify_sciplex3_v5_runtime_oci.py \
+            --lock containers/sciplex3-v5-runtime/runtime-image-lock.json \
+            source-date-epoch)"
+          docker buildx build \
+            --no-cache \
+            --provenance=false \
+            --platform linux/amd64 \
+            --build-arg "SOURCE_DATE_EPOCH=${source_date_epoch}" \
+            --output "type=oci,dest=${RUNNER_TEMP}/sciplex3-v5-runtime-b.oci.tar" \
+            --tag cellstate-sciplex3-v5-runtime:20260811-locked \
+            containers/sciplex3-v5-runtime
+      - name: Verify both OCI identities against the runtime lock
+        run: >-
+          uv run --no-editable python scripts/verify_sciplex3_v5_runtime_oci.py
+          --lock containers/sciplex3-v5-runtime/runtime-image-lock.json
+          verify-archives
+          --archive "${RUNNER_TEMP}/sciplex3-v5-runtime-a.oci.tar"
+          --archive "${RUNNER_TEMP}/sciplex3-v5-runtime-b.oci.tar"
+      - name: Load and verify the exact locked linux/amd64 image
+        run: |
+          docker load --input "${RUNNER_TEMP}/sciplex3-v5-runtime-a.oci.tar"
+          uv run --no-editable python scripts/verify_sciplex3_v5_runtime_oci.py \
+            --lock containers/sciplex3-v5-runtime/runtime-image-lock.json \
+            verify-loaded-image
+      - name: Run source-free real-Docker containment probes
+        run: >-
+          uv run --no-editable pytest -q tests/real_docker_item12_2.py --no-cov

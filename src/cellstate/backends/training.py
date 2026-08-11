@@ -13,7 +13,7 @@ from collections.abc import Iterable, Mapping, Sequence
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 from types import MappingProxyType
-from typing import BinaryIO, Literal, Protocol, TypeAlias, cast, runtime_checkable
+from typing import Any, BinaryIO, Literal, Protocol, TypeAlias, cast, runtime_checkable
 
 from pydantic import ConfigDict, Field, field_validator, model_validator
 
@@ -25,6 +25,15 @@ from cellstate.data.benchmarks import (
 from cellstate.data.manifests import SourceArtifact
 from cellstate.domain.common import SchemaModel, canonical_fingerprint, canonical_json_bytes
 from cellstate.domain.query import StateQuery
+from cellstate.training.execution import (
+    ContainedExecutionPolicy,
+    ContainedTrainingObservation,
+    ExecutionInputClosureManifest,
+    RuntimeImageLock,
+    StagedTrainingInventory,
+    TrainingCodeClosureManifest,
+)
+from cellstate.training.publication import generation_id_for_seed_sha256
 
 from .admission import (
     AdmissionArtifactReference,
@@ -130,6 +139,52 @@ def _canonical_artifacts(
     return tuple(by_key[key] for key in sorted(by_key))
 
 
+def _generation_seed_value(value: object) -> object:
+    """Remove only remote locations while retaining every content and semantic identity."""
+
+    if isinstance(value, SchemaModel):
+        return _generation_seed_value(value.model_dump(mode="python"))
+    if isinstance(value, Mapping):
+        artifact_keys = {"artifact_id", "uri", "sha256", "byte_count", "media_type"}
+        is_content_artifact = artifact_keys <= set(value)
+        return {
+            str(key): _generation_seed_value(item)
+            for key, item in value.items()
+            if not (is_content_artifact and key == "uri")
+        }
+    if isinstance(value, tuple):
+        return tuple(_generation_seed_value(item) for item in value)
+    if isinstance(value, list):
+        return [_generation_seed_value(item) for item in value]
+    return value
+
+
+def candidate_training_plan_generation_seed_bytes(
+    plan_or_fields: CandidateTrainingPlan | Mapping[str, object],
+) -> bytes:
+    """Canonical pre-render plan closure used to choose its immutable generation ID."""
+
+    raw: Mapping[str, Any]
+    if isinstance(plan_or_fields, SchemaModel):
+        raw = plan_or_fields.model_dump(mode="python")
+    elif isinstance(plan_or_fields, Mapping):
+        raw = plan_or_fields
+    else:
+        raise TypeError("candidate training generation seed requires plan fields")
+    plan = {
+        str(key): value
+        for key, value in raw.items()
+        if key not in {"planned_generation_id", "publication_generation_seed"}
+    }
+    return canonical_json_bytes(
+        {
+            "artifact_schema": "cellstate-candidate-training-generation-seed",
+            "artifact_schema_version": "1.0.0",
+            "pre_render_plan": _generation_seed_value(plan),
+        }
+    )
+
+
 def _canonical_artifact_references(
     artifacts: Iterable[ContentAddressedArtifact | SourceArtifact],
 ) -> tuple[AdmissionArtifactReference, ...]:
@@ -161,12 +216,29 @@ def _require_canonical_contract_artifact(
         raise ValueError(f"{name} artifact must use application/json")
 
 
+def _require_staged_identity(
+    inventory: StagedTrainingInventory,
+    *,
+    role: str,
+    sha256: str,
+    byte_count: int,
+) -> None:
+    entries = tuple(entry for entry in inventory.entries if entry.artifact_role == role)
+    if len(entries) != 1 or (entries[0].sha256, entries[0].byte_count) != (
+        sha256,
+        byte_count,
+    ):
+        raise ValueError(f"contained stage does not bind the exact {role} bytes")
+
+
 class CandidateTrainingPlan(TrainingContractModel):
     """Immutable pre-fit scope; it cannot name a future model or final bundle fingerprint."""
 
     schema_version: TrainingContractSchemaVersion = TRAINING_CONTRACT_SCHEMA_VERSION
     plan_id: str = Field(min_length=1)
     plan_version: str = Field(min_length=1)
+    planned_generation_id: str = Field(pattern=_SHA256_PATTERN)
+    publication_generation_seed: ContentAddressedArtifact
     query_fingerprint: str = Field(pattern=_SHA256_PATTERN)
     benchmark_fingerprint: str = Field(pattern=_SHA256_PATTERN)
     support_envelope_fingerprint: str = Field(pattern=_SHA256_PATTERN)
@@ -184,6 +256,10 @@ class CandidateTrainingPlan(TrainingContractModel):
     candidate_specification: ContentAddressedArtifact
     output_model_schema: ContentAddressedArtifact
     runtime_lock: ContentAddressedArtifact
+    contained_execution_policy: ContentAddressedArtifact
+    runtime_image_lock: ContentAddressedArtifact
+    training_code_closure: ContentAddressedArtifact
+    training_execution_input_closure: ContentAddressedArtifact
     trainer_implementation: PortImplementationBinding
     candidate_factory_implementation: PortImplementationBinding
     optimization_seed: int = Field(ge=0)
@@ -205,6 +281,7 @@ class CandidateTrainingPlan(TrainingContractModel):
         "ordered_feature_keys_sha256",
         "action_binding_sha256",
         "target_value_schema_sha256",
+        "planned_generation_id",
     )
     @classmethod
     def hashes_are_canonical(cls, value: str) -> str:
@@ -237,12 +314,28 @@ class CandidateTrainingPlan(TrainingContractModel):
                 self.candidate_specification,
                 self.output_model_schema,
                 self.runtime_lock,
+                self.contained_execution_policy,
+                self.runtime_image_lock,
+                self.training_code_closure,
+                self.training_execution_input_closure,
+                self.publication_generation_seed,
                 self.trainer_implementation.code_artifact,
                 self.candidate_factory_implementation.code_artifact,
             )
         )
-        if len(artifacts) != 7:
+        if len(artifacts) != 12:
             raise ValueError("training plan byte roles must have distinct artifact IDs")
+        seed_payload = candidate_training_plan_generation_seed_bytes(self)
+        if (
+            self.publication_generation_seed.media_type != "application/json"
+            or self.publication_generation_seed.sha256 != hashlib.sha256(seed_payload).hexdigest()
+            or self.publication_generation_seed.byte_count != len(seed_payload)
+        ):
+            raise ValueError("training plan publication-generation seed is stale")
+        if self.planned_generation_id != generation_id_for_seed_sha256(
+            self.publication_generation_seed.sha256
+        ):
+            raise ValueError("training plan generation ID differs from its pre-render seed")
         for implementation, role in (
             (self.trainer_implementation, "trainer"),
             (self.candidate_factory_implementation, "candidate factory"),
@@ -275,6 +368,7 @@ class P1TrainingEvidence(TrainingContractModel):
     finalized_count_scan: ContentAddressedArtifact
     assembly_receipt: ContentAddressedArtifact
     p1_materialization: ContentAddressedArtifact
+    contained_execution_observation: ContentAddressedArtifact
     count_stream_sha256: str = Field(pattern=_SHA256_PATTERN)
     finalized_count_scan_fingerprint: str = Field(pattern=_SHA256_PATTERN)
     assembly_fingerprint: str = Field(pattern=_SHA256_PATTERN)
@@ -340,9 +434,10 @@ class P1TrainingEvidence(TrainingContractModel):
                 self.finalized_count_scan,
                 self.assembly_receipt,
                 self.p1_materialization,
+                self.contained_execution_observation,
             )
         )
-        if len(artifacts) != 3:
+        if len(artifacts) != 4:
             raise ValueError("p1 evidence byte roles must have distinct artifact IDs")
         return self
 
@@ -534,6 +629,7 @@ class CandidateFitReceipt(TrainingContractModel):
     training_plan_fingerprint: str = Field(pattern=_SHA256_PATTERN)
     source_selection_fingerprint: str = Field(pattern=_SHA256_PATTERN)
     p1_training_evidence_fingerprint: str = Field(pattern=_SHA256_PATTERN)
+    contained_execution_observation_fingerprint: str = Field(pattern=_SHA256_PATTERN)
     training_result: ContentAddressedArtifact
     model_artifact: ContentAddressedArtifact
     behavior_manifest_sha256: str = Field(pattern=_SHA256_PATTERN)
@@ -566,6 +662,7 @@ class CandidateFitReceipt(TrainingContractModel):
         "training_plan_fingerprint",
         "source_selection_fingerprint",
         "p1_training_evidence_fingerprint",
+        "contained_execution_observation_fingerprint",
         "behavior_manifest_sha256",
         "verifier_fingerprint",
         "receipt_fingerprint",
@@ -609,6 +706,7 @@ def issue_candidate_fit_receipt(
     plan: CandidateTrainingPlan,
     source_selection: TrainingSourceSelectionReceipt,
     p1_evidence: P1TrainingEvidence,
+    contained_execution_observation: ContainedTrainingObservation,
     training_result: ContentAddressedArtifact,
     model_artifact: ContentAddressedArtifact,
     observed_model_content: ObservedTrainingBytes,
@@ -623,10 +721,44 @@ def issue_candidate_fit_receipt(
         source_selection.model_dump(mode="python")
     )
     evidence = P1TrainingEvidence.model_validate(p1_evidence.model_dump(mode="python"))
+    execution_observation = ContainedTrainingObservation.model_validate(
+        contained_execution_observation.model_dump(mode="python")
+    )
     if source_selection.training_plan_fingerprint != plan.fingerprint:
         raise ValueError("candidate fit source selection is bound to another plan")
     if evidence.training_plan_fingerprint != plan.fingerprint:
         raise ValueError("candidate fit evidence is bound to another plan")
+    if execution_observation.training_plan_fingerprint != plan.fingerprint:
+        raise ValueError("candidate fit execution observation is bound to another plan")
+    worker = execution_observation.worker_observation
+    if (
+        worker.expected_source_sha256 != evidence.source.sha256
+        or worker.expected_source_byte_count != evidence.source.byte_count
+    ):
+        raise ValueError("candidate fit execution observation used another source")
+    inventory = execution_observation.staged_inventory
+    plan_payload = canonical_json_bytes(plan.model_dump(mode="json"))
+    for role, artifact_sha256, artifact_byte_count in (
+        ("training_plan", hashlib.sha256(plan_payload).hexdigest(), len(plan_payload)),
+        ("training_result", training_result.sha256, training_result.byte_count),
+        ("model_artifact", model_artifact.sha256, model_artifact.byte_count),
+        (
+            "p1_finalized_count_scan",
+            evidence.finalized_count_scan.sha256,
+            evidence.finalized_count_scan.byte_count,
+        ),
+        (
+            "p1_assembly_receipt",
+            evidence.assembly_receipt.sha256,
+            evidence.assembly_receipt.byte_count,
+        ),
+    ):
+        _require_staged_identity(
+            inventory,
+            role=role,
+            sha256=artifact_sha256,
+            byte_count=artifact_byte_count,
+        )
     observed_sha256, observed_byte_count = _observe_bytes(observed_model_content)
     if observed_sha256 != model_artifact.sha256 or observed_byte_count != model_artifact.byte_count:
         raise ValueError("closed model bytes do not match the declared output artifact")
@@ -637,6 +769,7 @@ def issue_candidate_fit_receipt(
         "training_plan_fingerprint": plan.fingerprint,
         "source_selection_fingerprint": source_selection.selection_fingerprint,
         "p1_training_evidence_fingerprint": evidence.fingerprint,
+        "contained_execution_observation_fingerprint": execution_observation.fingerprint,
         "training_result": training_result,
         "model_artifact": model_artifact,
         "behavior_manifest_sha256": behavior_manifest_sha256,
@@ -675,6 +808,7 @@ def require_valid_candidate_fit_receipt(
     plan: CandidateTrainingPlan,
     source_selection: TrainingSourceSelectionReceipt,
     p1_evidence: P1TrainingEvidence,
+    contained_execution_observation: ContainedTrainingObservation,
     trusted_verifier: TrustedAdmissionVerifier,
 ) -> CandidateFitReceipt:
     """Re-authenticate exact fit semantics; a serialized receipt is never self-trusting."""
@@ -686,6 +820,11 @@ def require_valid_candidate_fit_receipt(
         raise ValueError("candidate-fit receipt is bound to another source selection")
     if receipt.p1_training_evidence_fingerprint != p1_evidence.fingerprint:
         raise ValueError("candidate-fit receipt is bound to other p1 evidence")
+    if (
+        receipt.contained_execution_observation_fingerprint
+        != contained_execution_observation.fingerprint
+    ):
+        raise ValueError("candidate-fit receipt is bound to another contained execution")
     attested = receipt.model_dump(
         mode="python",
         exclude={"attestation", "receipt_fingerprint"},
@@ -710,7 +849,7 @@ class TrainedCandidateFactory(Protocol):
     @property
     def model_artifact_sha256(self) -> str: ...
 
-    def supports(self, target: object) -> bool: ...
+    def supports(self, request: object) -> bool: ...
 
     def sample(self, request: object) -> object: ...
 
@@ -727,6 +866,11 @@ class TrainingVerificationContext:
     plan_artifact: ContentAddressedArtifact
     p1_evidence: P1TrainingEvidence
     p1_evidence_artifact: ContentAddressedArtifact
+    contained_execution_policy: ContainedExecutionPolicy
+    runtime_image_lock: RuntimeImageLock
+    training_code_closure: TrainingCodeClosureManifest
+    training_execution_input_closure: ExecutionInputClosureManifest
+    contained_execution_observation: ContainedTrainingObservation
     source_selection: TrainingSourceSelectionReceipt
     fit_receipt: CandidateFitReceipt
     query_prerequisite_report: QueryDerivedPrerequisiteReport
@@ -752,6 +896,39 @@ class TrainingVerificationContext:
             self,
             "p1_evidence",
             P1TrainingEvidence.model_validate(self.p1_evidence.model_dump(mode="python")),
+        )
+        object.__setattr__(
+            self,
+            "contained_execution_policy",
+            ContainedExecutionPolicy.model_validate(
+                self.contained_execution_policy.model_dump(mode="python")
+            ),
+        )
+        object.__setattr__(
+            self,
+            "runtime_image_lock",
+            RuntimeImageLock.model_validate(self.runtime_image_lock.model_dump(mode="python")),
+        )
+        object.__setattr__(
+            self,
+            "training_code_closure",
+            TrainingCodeClosureManifest.model_validate(
+                self.training_code_closure.model_dump(mode="python")
+            ),
+        )
+        object.__setattr__(
+            self,
+            "training_execution_input_closure",
+            ExecutionInputClosureManifest.model_validate(
+                self.training_execution_input_closure.model_dump(mode="python")
+            ),
+        )
+        object.__setattr__(
+            self,
+            "contained_execution_observation",
+            ContainedTrainingObservation.model_validate(
+                self.contained_execution_observation.model_dump(mode="python")
+            ),
         )
         object.__setattr__(
             self,
@@ -854,11 +1031,17 @@ def training_evidence_artifacts_for_context(
             plan.candidate_specification,
             plan.output_model_schema,
             plan.runtime_lock,
+            plan.contained_execution_policy,
+            plan.runtime_image_lock,
+            plan.training_code_closure,
+            plan.training_execution_input_closure,
+            plan.publication_generation_seed,
             plan.trainer_implementation.code_artifact,
             plan.candidate_factory_implementation.code_artifact,
             evidence.finalized_count_scan,
             evidence.assembly_receipt,
             evidence.p1_materialization,
+            evidence.contained_execution_observation,
             fit.training_result,
             *context.source_selection.workflow_resolution_artifacts,
         )
@@ -1093,6 +1276,82 @@ def require_exact_trained_candidate(
         evidence,
         name="p1 training evidence",
     )
+    policy = ContainedExecutionPolicy.model_validate(
+        context.contained_execution_policy.model_dump(mode="python")
+    )
+    image_lock = RuntimeImageLock.model_validate(
+        context.runtime_image_lock.model_dump(mode="python")
+    )
+    code_closure = TrainingCodeClosureManifest.model_validate(
+        context.training_code_closure.model_dump(mode="python")
+    )
+    input_closure = ExecutionInputClosureManifest.model_validate(
+        context.training_execution_input_closure.model_dump(mode="python")
+    )
+    execution_observation = ContainedTrainingObservation.model_validate(
+        context.contained_execution_observation.model_dump(mode="python")
+    )
+    _require_canonical_contract_artifact(
+        plan.contained_execution_policy,
+        policy,
+        name="contained execution policy",
+    )
+    _require_canonical_contract_artifact(
+        plan.runtime_image_lock,
+        image_lock,
+        name="runtime image lock",
+    )
+    _require_canonical_contract_artifact(
+        plan.training_code_closure,
+        code_closure,
+        name="training code closure",
+    )
+    _require_canonical_contract_artifact(
+        plan.training_execution_input_closure,
+        input_closure,
+        name="training execution-input closure",
+    )
+    _require_canonical_contract_artifact(
+        evidence.contained_execution_observation,
+        execution_observation,
+        name="contained execution observation",
+    )
+    if (
+        image_lock.runtime_image != policy.runtime_image
+        or image_lock.runtime_entrypoint != policy.runtime_entrypoint
+        or image_lock.container_user_mode != policy.container_user_mode
+        or image_lock.snapshot_volume_initialization != policy.snapshot_volume_initialization
+        or code_closure.fingerprint != plan.training_code_closure.sha256
+        or input_closure.training_code_closure_sha256 != code_closure.fingerprint
+        or input_closure.fingerprint != plan.training_execution_input_closure.sha256
+        or policy.training_code_closure_sha256 != code_closure.fingerprint
+        or policy.execution_input_closure_sha256 != input_closure.fingerprint
+        or image_lock.training_code_closure_sha256 != code_closure.fingerprint
+        or execution_observation.training_plan_fingerprint != plan.fingerprint
+        or execution_observation.policy_fingerprint != policy.fingerprint
+        or execution_observation.runtime_image_digest != image_lock.runtime_image.digest
+        or execution_observation.execution_observation.container_user_mode
+        != policy.container_user_mode
+        or execution_observation.training_code_closure_sha256 != code_closure.fingerprint
+        or execution_observation.execution_input_closure_sha256 != input_closure.fingerprint
+        or execution_observation.worker_observation.expected_source_sha256 != evidence.source.sha256
+        or execution_observation.worker_observation.expected_source_byte_count
+        != evidence.source.byte_count
+    ):
+        raise ValueError("contained execution identities differ from the exact pre-fit plan")
+    for role, artifact in (
+        ("training_plan", context.plan_artifact),
+        ("training_result", fit.training_result),
+        ("model_artifact", fit.model_artifact),
+        ("p1_finalized_count_scan", evidence.finalized_count_scan),
+        ("p1_assembly_receipt", evidence.assembly_receipt),
+    ):
+        _require_staged_identity(
+            execution_observation.staged_inventory,
+            role=role,
+            sha256=artifact.sha256,
+            byte_count=artifact.byte_count,
+        )
     expected_training_artifacts = training_evidence_artifacts_for_context(context)
     if training_run.training_evidence_artifacts != expected_training_artifacts:
         raise ValueError("training run does not bind the exact typed p1 evidence closure")
@@ -1115,6 +1374,7 @@ def require_exact_trained_candidate(
         plan=plan,
         source_selection=selection,
         p1_evidence=evidence,
+        contained_execution_observation=execution_observation,
         trusted_verifier=fit_verifier,
     )
     if fit.model_artifact != bundle.model_artifact:
@@ -1184,9 +1444,9 @@ def require_exact_trained_candidate(
     actual_by_key = {receipt.artifact.target_key: receipt for receipt in context.artifact_receipts}
     if tuple(actual_by_key) != tuple(item.target_key for item in required_artifacts):
         raise ValueError("stage artifact receipts do not exactly cover trained-candidate bytes")
-    for artifact in required_artifacts:
-        receipt = actual_by_key[artifact.target_key]
-        if receipt.artifact != artifact:
+    for admission_artifact in required_artifacts:
+        receipt = actual_by_key[admission_artifact.target_key]
+        if receipt.artifact != admission_artifact:
             raise ValueError("stage artifact receipt binds stale or substituted bytes")
         _require_artifact_receipt_trust(
             receipt,
@@ -1224,6 +1484,7 @@ __all__ = [
     "TrainedCandidateVerification",
     "TrainingSourceSelectionReceipt",
     "TrainingVerificationContext",
+    "candidate_training_plan_generation_seed_bytes",
     "issue_candidate_fit_receipt",
     "issue_training_source_selection_receipt",
     "require_exact_trained_candidate",

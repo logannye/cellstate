@@ -12,6 +12,7 @@ from typing import cast
 
 import pytest
 
+import cellstate.evaluation.sciplex3_candidate_runner as runner_contracts
 from cellstate.backends import (
     TRAINED_CANDIDATE_FACTORY_INTERFACE,
     BiologicalStagePort,
@@ -23,7 +24,13 @@ from cellstate.backends import (
     PortImplementationKind,
     assess_biological_model_bundle,
 )
-from cellstate.data import BenchmarkArtifact, ContentAddressedArtifact, DatasetManifest
+from cellstate.backends.training import candidate_training_plan_generation_seed_bytes
+from cellstate.data import (
+    BenchmarkArtifact,
+    BenchmarkPartitionRole,
+    ContentAddressedArtifact,
+    DatasetManifest,
+)
 from cellstate.domain import StateQuery
 from cellstate.domain.common import canonical_json_bytes
 from cellstate.evaluation.sciplex3_candidate import (
@@ -48,7 +55,17 @@ from cellstate.evaluation.sciplex3_candidate_runner import (
     SCIPLEX3_CANDIDATE_TRAINING_PLAN_VERSION,
     SciPlex3CandidateTrainingObservation,
     _sample_identity,
+    contained_training_contracts,
 )
+from cellstate.evaluation.sciplex3_sampling_v5 import V5SamplingEnvelopeCertificate
+from cellstate.training.execution import (
+    ContainedExecutionObservation,
+    ContainedTrainingObservation,
+    ContainedTrainingWorkerObservation,
+    StagedTrainingEntry,
+    StagedTrainingInventory,
+)
+from cellstate.training.publication import generation_id_for_seed, resolve_current_generation
 
 ROOT = Path(__file__).resolve().parents[1]
 RAW_BASE = "https://raw.githubusercontent.com/logannye/cellstate/main"
@@ -66,13 +83,14 @@ def _artifact(
     payload: bytes,
     *,
     artifact_id: str,
+    generation_id: str,
     media_type: str = "application/json",
 ) -> ContentAddressedArtifact:
-    return ContentAddressedArtifact(
+    return builder._artifact(
+        path,
+        payload,
         artifact_id=artifact_id,
-        uri=f"{RAW_BASE}/{path.as_posix()}",
-        sha256=_sha256(payload),
-        byte_count=len(payload),
+        generation_id=generation_id,
         media_type=media_type,
     )
 
@@ -168,90 +186,151 @@ def _write_synthetic_runner_closure(
             },
         }
     )
+    policy, code_closure, input_closure, image_lock = contained_training_contracts(ROOT)
     sealed_payloads = {
         "candidate-specification.json": specification_payload,
+        "contained-execution-policy.json": canonical_json_bytes(policy.model_dump(mode="json")),
         "output-model-schema.json": model_schema_payload,
         "p1-count-stream-descriptor.json": descriptor_payload,
         "runtime-lock.json": runtime_payload,
+        "runtime-image-lock.json": canonical_json_bytes(image_lock.model_dump(mode="json")),
+        "training-code-closure.json": canonical_json_bytes(code_closure.model_dump(mode="json")),
+        "training-execution-input-closure.json": canonical_json_bytes(
+            input_closure.model_dump(mode="json")
+        ),
     }
-    for filename, payload in sealed_payloads.items():
-        (support_directory / filename).write_bytes(payload)
 
     loader_payload = (ROOT / builder.P1_LOADER_CONTRACT_PATH).read_bytes()
     candidate_code = (ROOT / builder.CANDIDATE_CODE_PATH).read_bytes()
     runner_code = (ROOT / builder.CANDIDATE_RUNNER_CODE_PATH).read_bytes()
+
+    def plan_fields(generation_id: str) -> dict[str, object]:
+        return {
+            "schema_version": "0.1-experimental",
+            "plan_id": SCIPLEX3_CANDIDATE_TRAINING_PLAN_ID,
+            "plan_version": SCIPLEX3_CANDIDATE_TRAINING_PLAN_VERSION,
+            "query_fingerprint": query.fingerprint,
+            "benchmark_fingerprint": benchmark.fingerprint,
+            "support_envelope_fingerprint": support.fingerprint,
+            "training_partition_ids": ("p1-train",),
+            "training_partition_roles": (BenchmarkPartitionRole.TRAIN,),
+            "p1_loader_contract": _artifact(
+                builder.P1_LOADER_CONTRACT_PATH,
+                loader_payload,
+                artifact_id="sciplex3-item12-p1-loader-contract",
+                generation_id=generation_id,
+            ),
+            "p1_count_stream": _artifact(
+                builder.P1_COUNT_STREAM_DESCRIPTOR_PATH,
+                descriptor_payload,
+                artifact_id="sciplex3-item12-p1-count-stream-descriptor",
+                generation_id=generation_id,
+            ),
+            "p1_count_stream_sha256": scan["panel_count_stream_sha256"],
+            "p1_finalized_count_scan_fingerprint": _sha256(scan_payload),
+            "p1_assembly_fingerprint": _sha256(assembly_payload),
+            "p1_design_fingerprint": design_sha256,
+            "ordered_feature_keys_sha256": scan["ordered_feature_keys_sha256"],
+            "action_binding_sha256": exact_bindings["action_domain_sha256"],
+            "target_value_schema_sha256": exact_bindings["target_value_schema_sha256"],
+            "candidate_specification": _artifact(
+                builder.CANDIDATE_SPECIFICATION_PATH,
+                specification_payload,
+                artifact_id="sciplex3-item12-candidate-specification",
+                generation_id=generation_id,
+            ),
+            "output_model_schema": _artifact(
+                builder.CANDIDATE_OUTPUT_MODEL_SCHEMA_PATH,
+                model_schema_payload,
+                artifact_id="sciplex3-item12-output-model-schema",
+                generation_id=generation_id,
+            ),
+            "runtime_lock": _artifact(
+                builder.CANDIDATE_RUNTIME_LOCK_PATH,
+                runtime_payload,
+                artifact_id="sciplex3-item12-runtime-lock",
+                generation_id=generation_id,
+            ),
+            "contained_execution_policy": _artifact(
+                builder.CANDIDATE_CONTAINED_EXECUTION_POLICY_PATH,
+                sealed_payloads["contained-execution-policy.json"],
+                artifact_id="sciplex3-item12-contained-execution-policy",
+                generation_id=generation_id,
+            ),
+            "runtime_image_lock": _artifact(
+                builder.CANDIDATE_RUNTIME_IMAGE_LOCK_PATH,
+                sealed_payloads["runtime-image-lock.json"],
+                artifact_id="sciplex3-item12-runtime-image-lock",
+                generation_id=generation_id,
+            ),
+            "training_code_closure": _artifact(
+                builder.CANDIDATE_TRAINING_CODE_CLOSURE_PATH,
+                sealed_payloads["training-code-closure.json"],
+                artifact_id="sciplex3-item12-training-code-closure",
+                generation_id=generation_id,
+            ),
+            "training_execution_input_closure": _artifact(
+                builder.CANDIDATE_EXECUTION_INPUT_CLOSURE_PATH,
+                sealed_payloads["training-execution-input-closure.json"],
+                artifact_id="sciplex3-item12-training-execution-input-closure",
+                generation_id=generation_id,
+            ),
+            "trainer_implementation": PortImplementationBinding(
+                implementation_id="cellstate.sciplex3-candidate-runner",
+                implementation_version=SCIPLEX3_CANDIDATE_RUNNER_IMPLEMENTATION_VERSION,
+                interface=(
+                    "cellstate.evaluation.sciplex3_candidate_runner."
+                    "fit_and_write_sciplex3_candidate"
+                ),
+                kind=PortImplementationKind.PYTHON_ENTRY_POINT,
+                code_artifact=_artifact(
+                    builder.CANDIDATE_RUNNER_CODE_PATH,
+                    runner_code,
+                    artifact_id="sciplex3-item12-candidate-runner-code",
+                    generation_id=generation_id,
+                    media_type="text/x-python",
+                ),
+                entrypoint=(
+                    "cellstate.evaluation.sciplex3_candidate_runner:"
+                    "fit_and_write_sciplex3_candidate"
+                ),
+            ),
+            "candidate_factory_implementation": PortImplementationBinding(
+                implementation_id="cellstate.sciplex3-gamma-poisson-candidate-factory",
+                implementation_version=SCIPLEX3_CANDIDATE_IMPLEMENTATION_VERSION,
+                interface=TRAINED_CANDIDATE_FACTORY_INTERFACE,
+                kind=PortImplementationKind.PYTHON_ENTRY_POINT,
+                code_artifact=_artifact(
+                    builder.CANDIDATE_CODE_PATH,
+                    candidate_code,
+                    artifact_id="sciplex3-item12-candidate-factory-code",
+                    generation_id=generation_id,
+                    media_type="text/x-python",
+                ),
+                entrypoint=(
+                    "cellstate.evaluation.sciplex3_candidate:SciPlex3GammaPoissonCandidate"
+                ),
+            ),
+            "optimization_seed": 0,
+            "deterministic_thread_count": 1,
+            "future_calibration_plan": None,
+        }
+
+    generation_seed = candidate_training_plan_generation_seed_bytes(plan_fields("0" * 64))
+    generation_id = generation_id_for_seed(generation_seed)
+    sealed_payloads["publication-generation-seed.json"] = generation_seed
     plan = CandidateTrainingPlan(
-        plan_id=SCIPLEX3_CANDIDATE_TRAINING_PLAN_ID,
-        plan_version=SCIPLEX3_CANDIDATE_TRAINING_PLAN_VERSION,
-        query_fingerprint=query.fingerprint,
-        benchmark_fingerprint=benchmark.fingerprint,
-        support_envelope_fingerprint=support.fingerprint,
-        training_partition_ids=("p1-train",),
-        p1_loader_contract=_artifact(
-            builder.P1_LOADER_CONTRACT_PATH,
-            loader_payload,
-            artifact_id="sciplex3-item12-p1-loader-contract",
+        **plan_fields(generation_id),
+        planned_generation_id=generation_id,
+        publication_generation_seed=_artifact(
+            builder.PUBLICATION_GENERATION_SEED_PATH,
+            generation_seed,
+            artifact_id="sciplex3-item12-publication-generation-seed",
+            generation_id=generation_id,
         ),
-        p1_count_stream=_artifact(
-            builder.P1_COUNT_STREAM_DESCRIPTOR_PATH,
-            descriptor_payload,
-            artifact_id="sciplex3-item12-p1-count-stream-descriptor",
-        ),
-        p1_count_stream_sha256=scan["panel_count_stream_sha256"],
-        p1_finalized_count_scan_fingerprint=_sha256(scan_payload),
-        p1_assembly_fingerprint=_sha256(assembly_payload),
-        p1_design_fingerprint=design_sha256,
-        ordered_feature_keys_sha256=scan["ordered_feature_keys_sha256"],
-        action_binding_sha256=exact_bindings["action_domain_sha256"],
-        target_value_schema_sha256=exact_bindings["target_value_schema_sha256"],
-        candidate_specification=_artifact(
-            builder.CANDIDATE_SPECIFICATION_PATH,
-            specification_payload,
-            artifact_id="sciplex3-item12-candidate-specification",
-        ),
-        output_model_schema=_artifact(
-            builder.CANDIDATE_OUTPUT_MODEL_SCHEMA_PATH,
-            model_schema_payload,
-            artifact_id="sciplex3-item12-output-model-schema",
-        ),
-        runtime_lock=_artifact(
-            builder.CANDIDATE_RUNTIME_LOCK_PATH,
-            runtime_payload,
-            artifact_id="sciplex3-item12-runtime-lock",
-        ),
-        trainer_implementation=PortImplementationBinding(
-            implementation_id="cellstate.sciplex3-candidate-runner",
-            implementation_version=SCIPLEX3_CANDIDATE_RUNNER_IMPLEMENTATION_VERSION,
-            interface=(
-                "cellstate.evaluation.sciplex3_candidate_runner.fit_and_write_sciplex3_candidate"
-            ),
-            kind=PortImplementationKind.PYTHON_ENTRY_POINT,
-            code_artifact=_artifact(
-                builder.CANDIDATE_RUNNER_CODE_PATH,
-                runner_code,
-                artifact_id="sciplex3-item12-candidate-runner-code",
-                media_type="text/x-python",
-            ),
-            entrypoint=(
-                "cellstate.evaluation.sciplex3_candidate_runner:fit_and_write_sciplex3_candidate"
-            ),
-        ),
-        candidate_factory_implementation=PortImplementationBinding(
-            implementation_id="cellstate.sciplex3-gamma-poisson-candidate-factory",
-            implementation_version=SCIPLEX3_CANDIDATE_IMPLEMENTATION_VERSION,
-            interface=TRAINED_CANDIDATE_FACTORY_INTERFACE,
-            kind=PortImplementationKind.PYTHON_ENTRY_POINT,
-            code_artifact=_artifact(
-                builder.CANDIDATE_CODE_PATH,
-                candidate_code,
-                artifact_id="sciplex3-item12-candidate-factory-code",
-                media_type="text/x-python",
-            ),
-            entrypoint=("cellstate.evaluation.sciplex3_candidate:SciPlex3GammaPoissonCandidate"),
-        ),
-        optimization_seed=0,
-        deterministic_thread_count=1,
     )
+    for filename, payload in sealed_payloads.items():
+        (support_directory / filename).write_bytes(payload)
     plan_payload = canonical_json_bytes(plan.model_dump(mode="json"))
     (candidate_directory / builder.PLAN_FILENAME).write_bytes(plan_payload)
     (candidate_directory / builder.MODEL_FILENAME).write_bytes(model_payload)
@@ -269,6 +348,9 @@ def _write_synthetic_runner_closure(
         for item in candidate.trace
         for index, count in enumerate(item.inner_sweep_count_histogram)
     )
+    sampler = candidate._v5_runtime_sampler()
+    sampling_parameters = sampler.parameters
+    sampling_certificate = sampler.envelope_certificate
     observation = SciPlex3CandidateTrainingObservation(
         plan_fingerprint=plan.fingerprint,
         preparation_fingerprint=plan.p1_assembly_fingerprint,
@@ -281,15 +363,25 @@ def _write_synthetic_runner_closure(
         candidate_specification_sha256=SCIPLEX3_CANDIDATE_SPECIFICATION_SHA256,
         output_model_schema_sha256=SCIPLEX3_CANDIDATE_OUTPUT_MODEL_SCHEMA_SHA256,
         runtime_lock_sha256=plan.runtime_lock.sha256,
+        training_code_closure_sha256=plan.training_code_closure.sha256,
+        training_execution_input_closure_sha256=plan.training_execution_input_closure.sha256,
         loader_code_sha256=_sha256((ROOT / builder.LOADER_CODE_PATH).read_bytes()),
         item11_runner_code_sha256=_sha256((ROOT / builder.ITEM11_RUNNER_CODE_PATH).read_bytes()),
         candidate_runner_code_sha256=_sha256(runner_code),
         candidate_factory_code_sha256=_sha256(candidate_code),
+        candidate_objective_code_sha256=(runner_contracts._IMPORTED_CANDIDATE_V5_CODE_SHA256),
+        candidate_sampling_code_sha256=(runner_contracts._IMPORTED_SAMPLING_V5_CODE_SHA256),
         model_artifact_sha256=_sha256(model_payload),
         model_artifact_byte_count=len(model_payload),
         fitted_state_sha256=_sha256(canonical_json_bytes(fitted_state)),
         behavior_sha256=_sha256(canonical_json_bytes(behavior)),
-        plate_context_rho_sha256=cast(str, tensor_sha256["rho"]),
+        training_nuisance_rho_sha256=cast(str, tensor_sha256["rho"]),
+        sampling_contract_sha256=sampling_certificate.sampling_contract_sha256,
+        sampling_active_calibration_state_sha256=(
+            sampling_parameters.active_calibration_state_sha256
+        ),
+        sampling_parameter_fingerprint=sampling_parameters.parameter_fingerprint,
+        sampling_envelope_certificate_sha256=sampling_certificate.fingerprint,
         initial_equilibration_sha256=cast(str, fitted_state["initial_equilibration_sha256"]),
         inner_equilibration_trace_sha256=cast(
             str, fitted_state["inner_equilibration_trace_sha256"]
@@ -320,9 +412,107 @@ def _write_synthetic_runner_closure(
         terminal_elbo_relative_changes=tuple(
             cast(list[float], behavior["terminal_elbo_relative_changes"])
         ),
+        sampling_envelope_combination_count=sampling_certificate.combination_count,
+        sampling_envelope_maximum_request_count=sampling_certificate.maximum_request_count,
+        sampling_envelope_request_failure_budget_log=(
+            sampling_certificate.request_failure_budget_log
+        ),
+        sampling_envelope_worst_request_tail_log_upper_bound=(
+            sampling_certificate.worst_request_tail_log_upper_bound
+        ),
+        sampling_envelope_maximum_compound_poisson_intensity=(
+            sampling_certificate.maximum_compound_poisson_intensity
+        ),
+        sampling_envelope_rejection_reasons=sampling_certificate.rejection_reasons,
+        sampling_envelope_worst_action_id=sampling_certificate.worst_action_id,
+        sampling_envelope_worst_context_id=sampling_certificate.worst_context_id,
+        sampling_envelope_worst_tau_hex=sampling_certificate.worst_tau_hex,
     )
     observation_payload = canonical_json_bytes(observation.manifest())
     (candidate_directory / builder.OBSERVATION_FILENAME).write_bytes(observation_payload)
+    staged_inventory = StagedTrainingInventory(
+        entries=tuple(
+            sorted(
+                (
+                    StagedTrainingEntry(
+                        relative_path=builder.MODEL_FILENAME,
+                        artifact_role="model_artifact",
+                        sha256=_sha256(model_payload),
+                        byte_count=len(model_payload),
+                    ),
+                    StagedTrainingEntry(
+                        relative_path=builder.PLAN_FILENAME,
+                        artifact_role="training_plan",
+                        sha256=_sha256(plan_payload),
+                        byte_count=len(plan_payload),
+                    ),
+                    StagedTrainingEntry(
+                        relative_path=builder.ASSEMBLY_FILENAME,
+                        artifact_role="p1_assembly_receipt",
+                        sha256=_sha256(assembly_payload),
+                        byte_count=len(assembly_payload),
+                    ),
+                    StagedTrainingEntry(
+                        relative_path=builder.FINALIZED_SCAN_FILENAME,
+                        artifact_role="p1_finalized_count_scan",
+                        sha256=_sha256(scan_payload),
+                        byte_count=len(scan_payload),
+                    ),
+                    StagedTrainingEntry(
+                        relative_path=builder.OBSERVATION_FILENAME,
+                        artifact_role="training_result",
+                        sha256=_sha256(observation_payload),
+                        byte_count=len(observation_payload),
+                    ),
+                ),
+                key=lambda item: item.relative_path,
+            )
+        )
+    )
+    execution_id = "sciplex3-k562-v5-fit"
+    worker_observation = ContainedTrainingWorkerObservation(
+        execution_id=execution_id,
+        training_plan_fingerprint=plan.fingerprint,
+        policy_fingerprint=policy.fingerprint,
+        runtime_image_digest=image_lock.runtime_image.digest,
+        training_code_closure_sha256=code_closure.fingerprint,
+        execution_input_closure_sha256=input_closure.fingerprint,
+        expected_source_sha256=scan["source_sha256"],
+        source_pre_sha256=scan["source_sha256"],
+        source_post_sha256=scan["source_sha256"],
+        expected_source_byte_count=scan["source_byte_count"],
+        source_pre_byte_count=scan["source_byte_count"],
+        source_post_byte_count=scan["source_byte_count"],
+        staged_inventory=staged_inventory,
+        staged_tree_sha256=staged_inventory.fingerprint,
+        staged_file_count=len(staged_inventory.entries),
+    )
+    parent_observation = ContainedExecutionObservation(
+        execution_id=execution_id,
+        policy_fingerprint=policy.fingerprint,
+        runtime_image_digest=image_lock.runtime_image.digest,
+        container_user_mode=policy.container_user_mode,
+        observed_container_uid=1000,
+        observed_container_gid=1000,
+        outcome="success",
+        exit_code=0,
+        timed_out=False,
+        oom_killed=False,
+    )
+    contained_observation = ContainedTrainingObservation(
+        training_plan_fingerprint=plan.fingerprint,
+        policy_fingerprint=policy.fingerprint,
+        runtime_image_digest=image_lock.runtime_image.digest,
+        training_code_closure_sha256=code_closure.fingerprint,
+        execution_input_closure_sha256=input_closure.fingerprint,
+        staged_inventory=staged_inventory,
+        staged_tree_sha256=staged_inventory.fingerprint,
+        worker_observation=worker_observation,
+        execution_observation=parent_observation,
+    )
+    (candidate_directory / builder.CONTAINED_OBSERVATION_FILENAME).write_bytes(
+        canonical_json_bytes(contained_observation.model_dump(mode="json"))
+    )
 
     scan_receipt = SimpleNamespace(**scan, fingerprint=_sha256(scan_payload))
     assembly_receipt = SimpleNamespace(**assembly, fingerprint=_sha256(assembly_payload))
@@ -391,7 +581,7 @@ def test_prefit_support_is_exact_component_model_without_heldout_reads(
     monkeypatch.setattr(Path, "read_bytes", recording_read_bytes)
     support = builder.build_trained_candidate_support_envelope()
     assert support.bundle_kind is BundleContractKind.COMPONENT_MODEL
-    assert support.envelope_version == "4.0.0-trained-candidate"
+    assert support.envelope_version == "5.0.0-trained-candidate"
     assert support.runtime_operations == ()
     assert (
         support.fingerprint
@@ -416,13 +606,13 @@ def test_builder_derives_only_deterministic_trained_candidate_declarations(
     )
     assert built.training_plan == plan
     assert built.bundle.bundle_kind is BundleContractKind.COMPONENT_MODEL
-    assert built.bundle.bundle_version == "4.0.0-trained-candidate"
+    assert built.bundle.bundle_version == "5.0.0-trained-candidate"
     assert built.bundle.model_artifact == built.model_artifact
     assert built.bundle.training_run is not None
     assert built.bundle.validation_evidence == ()
     assert built.bundle.operation_implementations == ()
     assert built.training_run.training_partition_ids == ("p1-train",)
-    assert built.training_run.run_version == "4.0.0"
+    assert built.training_run.run_version == "5.0.0"
     assert built.training_run.calibration_partition_ids == ()
     assert built.training_run.model_selection_validation_partition_ids == ()
     assert built.p1_evidence.p2_membership_read is False
@@ -459,7 +649,7 @@ def test_builder_derives_only_deterministic_trained_candidate_declarations(
     model = json.loads((candidate_directory / builder.MODEL_FILENAME).read_bytes())
     assert model["model_id"] == SCIPLEX3_CANDIDATE_MODEL_ID
     assert model["model_schema"] == SCIPLEX3_CANDIDATE_MODEL_SCHEMA
-    assert model["implementation_version"] == "4.0.0"
+    assert model["implementation_version"] == "5.0.0"
     assert model["model_schema_version"] == SCIPLEX3_CANDIDATE_MODEL_SCHEMA_VERSION
     assert model["tensors"]["factor_shape"]["shape"] == [1]
     assert "rho" in model["tensors"]
@@ -469,7 +659,7 @@ def test_builder_derives_only_deterministic_trained_candidate_declarations(
     assert model["initial_equilibration"]
 
     observation = json.loads((candidate_directory / builder.OBSERVATION_FILENAME).read_bytes())
-    assert observation["artifact_schema_version"] == "4.0.0"
+    assert observation["artifact_schema_version"] == "5.0.0"
     assert observation["candidate_model_schema_version"] == SCIPLEX3_CANDIDATE_MODEL_SCHEMA_VERSION
     assert observation["factor_order_stable"] is True
     assert observation["factor_shape_mode"] == "fixed"
@@ -477,7 +667,8 @@ def test_builder_derives_only_deterministic_trained_candidate_declarations(
     assert observation["fixed_factor_shape"] == SCIPLEX3_CANDIDATE_FIXED_FACTOR_SHAPE
     assert observation["inner_equilibration_performed"] is True
     assert observation["inner_all_batches_converged"] is True
-    assert observation["plate_context_family"] == "uniform-whole-p1-rho-row"
+    assert observation["plate_context_family"] == "neutral-unit-context"
+    assert observation["plate_context_count"] == 1
     assert observation["capture_latent_present"] is False
     assert observation["plate_sigma_present"] is False
 
@@ -493,6 +684,31 @@ def test_deterministic_outputs_round_trip_but_do_not_self_mint_lifecycle(
     output_root = tmp_path / "output"
     builder.emit_trained_candidate_build(built, repository_root=output_root, check=False)
     builder.emit_trained_candidate_build(built, repository_root=output_root, check=True)
+    snapshot = resolve_current_generation(
+        output_root / builder.TRAINED_CANDIDATE_PUBLICATION_DIRECTORY
+    )
+    assert {entry.relative_path for entry in snapshot.manifest.entries} == {
+        path.as_posix() for path, _ in built.outputs
+    }
+    generation_prefix = (
+        f"{RAW_BASE}/{builder.TRAINED_CANDIDATE_PUBLICATION_DIRECTORY.as_posix()}"
+        f"/generations/{built.training_plan.planned_generation_id}/tree/"
+    )
+    generated_artifacts = (
+        built.model_artifact,
+        built.training_result_artifact,
+        built.bundle.support_envelope.artifact,
+        built.bundle.training_run.artifact,
+        *built.workflow_resolution_artifacts,
+        *built.training_run.training_evidence_artifacts,
+    )
+    for artifact in generated_artifacts:
+        assert artifact.uri.startswith(generation_prefix)
+        assert "/current/" not in artifact.uri
+        relative_path = artifact.uri.removeprefix(generation_prefix)
+        payload = snapshot.read_bytes(relative_path)
+        assert (_sha256(payload), len(payload)) == (artifact.sha256, artifact.byte_count)
+    assert not (output_root / builder.ITEM12_DIRECTORY).exists()
 
     query = StateQuery.model_validate_json((ROOT / builder.QUERY_PATH).read_bytes())
     benchmark = BenchmarkArtifact.model_validate_json((ROOT / builder.BENCHMARK_PATH).read_bytes())
@@ -515,7 +731,10 @@ def test_deterministic_outputs_round_trip_but_do_not_self_mint_lifecycle(
     assert not readiness.component_execution_allowed
     assert not readiness.runtime_registration_allowed
 
-    stale_path = output_root / builder.ITEM12_DIRECTORY / builder.MODEL_FILENAME
+    stale_path = (
+        snapshot.generation_root / "tree" / builder.ITEM12_DIRECTORY / builder.MODEL_FILENAME
+    )
+    stale_path.chmod(0o644)
     stale_path.write_bytes(stale_path.read_bytes() + b"\n")
     with pytest.raises(SystemExit, match="stale"):
         builder.emit_trained_candidate_build(built, repository_root=output_root, check=True)
@@ -597,6 +816,64 @@ def test_builder_rejects_pre_v4_materialization_support_and_model(
     materialization["artifact_schema_version"] = "2.0.0"
     materialization_path.write_bytes(canonical_json_bytes(materialization))
     with pytest.raises(builder.SciPlex3TrainedCandidateBuildError, match="source-free checker"):
+        builder.build_trained_candidate(
+            candidate_directory,
+            sealed_support_directory=support_directory,
+        )
+
+
+@pytest.mark.parametrize(
+    "mutation",
+    ("code_closure", "input_closure", "sampling_certificate_family"),
+)
+def test_builder_joins_observation_code_and_sampling_certificate_to_loaded_candidate(
+    tmp_path: Path,
+    mutation: str,
+) -> None:
+    candidate_directory, support_directory, _ = _write_synthetic_runner_closure(tmp_path / mutation)
+    observation_path = candidate_directory / builder.OBSERVATION_FILENAME
+    observation = json.loads(observation_path.read_bytes())
+    if mutation == "code_closure":
+        observation["training_code_closure_sha256"] = "0" * 64
+    elif mutation == "input_closure":
+        observation["training_execution_input_closure_sha256"] = "0" * 64
+    else:
+        observation["sampling_parameter_fingerprint"] = "0" * 64
+        forged_certificate = V5SamplingEnvelopeCertificate(
+            parameter_fingerprint=observation["sampling_parameter_fingerprint"],
+            combination_count=observation["sampling_envelope_combination_count"],
+            supported=observation["sampling_envelope_supported"],
+            rejection_reasons=tuple(observation["sampling_envelope_rejection_reasons"]),
+            maximum_request_count=observation["sampling_envelope_maximum_request_count"],
+            request_failure_budget_log=(
+                observation["sampling_envelope_request_failure_budget_log"]
+            ),
+            worst_request_tail_log_upper_bound=(
+                observation["sampling_envelope_worst_request_tail_log_upper_bound"]
+            ),
+            worst_action_id=observation["sampling_envelope_worst_action_id"],
+            worst_context_id=observation["sampling_envelope_worst_context_id"],
+            worst_tau_hex=observation["sampling_envelope_worst_tau_hex"],
+            maximum_compound_poisson_intensity=(
+                observation["sampling_envelope_maximum_compound_poisson_intensity"]
+            ),
+        )
+        observation["sampling_envelope_certificate_sha256"] = forged_certificate.fingerprint
+    observation_payload = canonical_json_bytes(observation)
+    observation_path.write_bytes(observation_payload)
+    materialization_path = candidate_directory / builder.MATERIALIZATION_FILENAME
+    materialization = json.loads(materialization_path.read_bytes())
+    observation_reference = materialization["artifacts"]["training_execution_observation"]
+    observation_reference["sha256"] = _sha256(observation_payload)
+    observation_reference["byte_count"] = len(observation_payload)
+    materialization["exact_bindings"]["training_observation_fingerprint"] = _sha256(
+        observation_payload
+    )
+    materialization_path.write_bytes(canonical_json_bytes(materialization))
+    with pytest.raises(
+        builder.SciPlex3TrainedCandidateBuildError,
+        match=r"source-free checker|candidate observation .* differs from current closure",
+    ):
         builder.build_trained_candidate(
             candidate_directory,
             sealed_support_directory=support_directory,

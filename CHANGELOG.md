@@ -141,12 +141,49 @@
   or performance claim.
 - Retire v4 and its planned Item 12.1b real-`p1` replay before execution after a source-code audit
   confirmed that the dose Newton objective omits the tracked full ELBO's `94785/768` equal-well
-  multiplier. No v4 model
-  or lifecycle evidence was issued. Make a source-free v5 objective/M-step redesign the next
-  milestone, requiring finite-difference full-ELBO gradient tests, fixed-`q` M-step nondecrease
-  tests, one-objective action/context updates, request-level sampler/RNG support gates, immutable-
-  generation atomic publication, and whole-process-tree hard wall-clock and memory containment
-  before any new real-`p1` authorization.
+  multiplier. No v4 model or lifecycle evidence was issued. At that checkpoint, record a source-
+  free v5 objective/M-step redesign as the next milestone, requiring finite-difference full-ELBO
+  gradient tests, fixed-`q` M-step nondecrease tests, one-objective action/context updates, request-
+  level sampler/RNG support gates, immutable-generation atomic publication, and whole-process-tree
+  hard wall-clock and memory containment before any new real-`p1` authorization. That milestone is
+  completed below as Item 12.2.
+- Complete **Item 12.2 — source-free v5 objective, M-step, sampling, publication, and containment**.
+  Replace the inconsistent v4 action block with one exact fixed-`q`, equal-well objective and an
+  all-768-well `alpha`/constrained-`log-rho`/`delta` M-step. Independently implemented objective,
+  finite-difference gradient and Hessian, treated-well adversarial, one-ULP decrease, accepted-
+  substep, and complete-block checks all bind updates to nondecrease of that same objective.
+- Add exact positive-panel sampling through the zero-truncated superposed compound-Poisson/log-
+  series representation. Exact `CandidateSampleRequest` support caps requests at 512 draws and
+  certifies a conservative conditional signed-`int64` tail bound no larger than `2^-64` over all
+  `753 * 1 * 27 = 20,331` action, neutral-context, and calibration-state combinations. Sampling is
+  prefix-stable and provenance-bound; target-only support, unsupported global envelopes, and RNG or
+  count overflow fail closed.
+- Add crash-safe immutable-generation publication through one atomic `current.json` pointer,
+  including concurrent old-or-new reader visibility, forced-termination recovery, stable-lock
+  release, orphan cleanup, and exact resealing. Bind the complete Python executable closure, exact
+  mounted public-control input closure, and typed no-follow staged-output inventory into the plan,
+  worker observation, parent containment observation, and future stage verification.
+- Freeze the source-free Linux `amd64` OCI runtime from two byte-identical no-cache builds: index
+  `sha256:ababac344fae7f3d679cf9b3bbf4c46b8f3b169b358566d4abd6e3b0e7b8251e`, runnable child
+  `sha256:edd451f171161472c1a3bb6a1ae434cdedc5b776e228757ac732522c1035df18`, and config
+  `sha256:b9cdf1e179f149319b038f2f58bb80470c2a1b5bda8f1cf9d2ccbe17fe3b59e5`;
+  the Dockerfile SHA-256 is
+  `ec21cc81a3b4d71f5de745adde74506d63da0d9b317996c8f97b067e90347e7a`.
+  Freeze native-Linux execution as `host-effective-uid-gid`, mount the bounded mode-`0700` tmpfs
+  with that same numeric UID/GID, and initialize the anonymous snapshot volume from an empty mode-
+  `1777` image directory. The contained non-root worker can therefore use the declared
+  `0400`/`0700` host binds without broadening their permissions.
+  The parent accounts its 3,600-second budget before public staging and actively bounds every
+  Docker command and wait; any returned staging overrun fails before container creation. An
+  independent 3,540-second in-container watchdog begins before protected-source open and covers
+  snapshot, fit, and close-reauthentication. Docker's memory and total-memory-plus-swap limits are
+  both 4 GiB, disabling additional swap. Source-free live probes pass for success, timeout with
+  descendants, cgroup OOM, supervisor death/watchdog recovery, anonymous-volume cleanup, no
+  canonical publication, and parent re-inventory and sealing of the exact worker stage.
+- Keep this completion strictly software-only. Item 12.2 opened no protected source, ran no real-
+  `p1` fit, and issued no candidate artifact, plan, observation, evidence, materialization, or
+  lifecycle result; sci-Plex3 remains `SCAFFOLD`. A separately authorized, version-bound,
+  nonissuing real-`p1` v5 execution is proposed as Item 12.3 but is not authorized or run.
 
 ## 0.1.0 - Unreleased
 
