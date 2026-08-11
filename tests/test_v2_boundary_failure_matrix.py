@@ -46,9 +46,10 @@ from cellstate.domain.query import (
     RealizationEvidenceRequirement,
     ScalarRange,
     ScheduleDomain,
+    SystemBoundary,
 )
 from cellstate.domain.request import EstimateCellStateRequest, InferenceOptions
-from cellstate.domain.scenarios import EvolutionScenario
+from cellstate.domain.scenarios import EvolutionScenario, StateForecast
 from cellstate.domain.specification import CompiledStateSpecification
 from cellstate.domain.subjects import BeliefSubject, IdentityBasis, SubjectKind
 from cellstate.errors import ContractViolationError, PosteriorCompatibilityError
@@ -136,6 +137,30 @@ class _InvalidCompilerEstimator(_MutatingEstimator):
         return _InvalidCompiler()
 
 
+class _MutatingEvolutionModel:
+    def __init__(self, model: Any, mutate: Callable[[StateForecast], StateForecast]) -> None:
+        self._model = model
+        self._mutate = mutate
+
+    @property
+    def descriptor(self) -> Any:
+        return self._model.descriptor
+
+    def capabilities(
+        self, belief: CellStateBelief, scenario: EvolutionScenario
+    ) -> CapabilityReport:
+        return self._model.capabilities(belief, scenario)
+
+    def evolve(
+        self,
+        belief: CellStateBelief,
+        scenario: EvolutionScenario,
+        *,
+        options: InferenceOptions,
+    ) -> StateForecast:
+        return self._mutate(self._model.evolve(belief, scenario, options=options))
+
+
 def _replace_provenance(
     belief: CellStateBelief,
     **updates: object,
@@ -210,6 +235,37 @@ def _omitted_provenance_event(belief: CellStateBelief) -> CellStateBelief:
     return belief.model_copy(update={"provenance": provenance, "factors": factors})
 
 
+def _ghost_active_context(belief: CellStateBelief) -> CellStateBelief:
+    ghost = intervention_factory(
+        event_id="ghost-active-intervention",
+        time_seconds=0,
+        duration_seconds=20,
+    )
+    return belief.model_copy(
+        update={"context": belief.context.model_copy(update={"active_interventions": (ghost,)})}
+    )
+
+
+def _ghost_environment_context(belief: CellStateBelief) -> CellStateBelief:
+    return belief.model_copy(
+        update={
+            "context": belief.context.model_copy(
+                update={"soluble_environment": {"ghost": "fabricated"}}
+            )
+        }
+    )
+
+
+def _ghost_physical_context(belief: CellStateBelief) -> CellStateBelief:
+    return belief.model_copy(
+        update={
+            "context": belief.context.model_copy(
+                update={"physical_environment": {"ghost": "fabricated"}}
+            )
+        }
+    )
+
+
 @pytest.mark.parametrize(
     ("mutate", "message"),
     (
@@ -230,6 +286,9 @@ def _omitted_provenance_event(belief: CellStateBelief) -> CellStateBelief:
         (_unknown_provenance_event, "unknown source events"),
         (_tampered_provenance_event, "fingerprint disagrees"),
         (_omitted_provenance_event, "omits eligible request history events"),
+        (_ghost_active_context, "active interventions are not derived"),
+        (_ghost_environment_context, "soluble environment is not derived"),
+        (_ghost_physical_context, "physical environment has no exact source derivation"),
     ),
     ids=(
         "time",
@@ -240,6 +299,9 @@ def _omitted_provenance_event(belief: CellStateBelief) -> CellStateBelief:
         "unknown-event",
         "tampered-event",
         "omitted-event",
+        "ghost-active-context",
+        "ghost-environment-context",
+        "ghost-physical-context",
     ),
 )
 def test_estimation_boundary_rejects_valid_but_misbound_results(
@@ -279,6 +341,175 @@ def test_estimation_boundary_normalizes_backend_contracts_before_use(model: Any)
         estimate_cell_state(
             request,
             estimator=_MutatingEstimator(model, lambda belief: object()),
+            options=SYNTHETIC_TEST_OPTIONS,
+        )
+
+
+@pytest.mark.parametrize(
+    ("mutate", "message"),
+    (
+        (
+            lambda forecast: forecast.model_copy(
+                update={
+                    "context": forecast.context.model_copy(
+                        update={
+                            "active_interventions": (
+                                intervention_factory(
+                                    event_id="ghost-forecast-intervention",
+                                    time_seconds=10,
+                                    duration_seconds=120,
+                                ),
+                            )
+                        }
+                    )
+                }
+            ),
+            "not derived from the exact source events",
+        ),
+        (
+            lambda forecast: forecast.model_copy(
+                update={
+                    "context": forecast.context.model_copy(
+                        update={"soluble_environment": {"ghost": "fabricated"}}
+                    )
+                }
+            ),
+            "not derived from the exact source events",
+        ),
+        (
+            lambda forecast: forecast.model_copy(
+                update={
+                    "context": forecast.context.model_copy(
+                        update={"neighborhood": {"ghost": "fabricated"}}
+                    )
+                }
+            ),
+            "has no exact source derivation",
+        ),
+        (
+            lambda forecast: forecast.model_copy(
+                update={
+                    "context": forecast.context.model_copy(
+                        update={"unsupported_dimensions": ("fabricated",)}
+                    )
+                }
+            ),
+            "changed inherited unsupported context dimensions",
+        ),
+    ),
+    ids=("active-intervention", "environment", "neighborhood", "unsupported-dimensions"),
+)
+def test_evolution_boundary_rejects_fabricated_derived_context(
+    model: Any,
+    mutate: Callable[[StateForecast], StateForecast],
+    message: str,
+) -> None:
+    request = request_factory()
+    belief = estimate_cell_state(
+        request,
+        estimator=model,
+        options=SYNTHETIC_TEST_OPTIONS,
+    )
+    scenario = EvolutionScenario(
+        scenario_id="no-action-context-check",
+        horizon_name="acute",
+        subject=belief.subject,
+        start_time_seconds=belief.as_of_seconds,
+        end_time_seconds=belief.as_of_seconds + 60,
+    )
+
+    with pytest.raises(ContractViolationError, match=message):
+        evolve_cell_state(
+            belief,
+            scenario=scenario,
+            evolution_model=_MutatingEvolutionModel(model, mutate),
+            options=SYNTHETIC_TEST_OPTIONS,
+        )
+
+
+@pytest.mark.parametrize(
+    ("mutate", "message"),
+    (
+        pytest.param(
+            lambda belief: belief.model_copy(
+                update={"context": belief.context.model_copy(update={"active_interventions": ()})}
+            ),
+            "active interventions are not derived",
+            id="omit-active-intervention",
+        ),
+        pytest.param(
+            lambda belief: belief.model_copy(
+                update={
+                    "context": belief.context.model_copy(
+                        update={
+                            "active_interventions": (
+                                belief.context.active_interventions[0].model_copy(
+                                    update={"duration_seconds": 30.0}
+                                ),
+                            )
+                        }
+                    )
+                }
+            ),
+            "active interventions are not derived",
+            id="alter-active-intervention",
+        ),
+        pytest.param(
+            lambda belief: belief.model_copy(
+                update={"context": belief.context.model_copy(update={"soluble_environment": {}})}
+            ),
+            "soluble environment is not derived",
+            id="omit-environment",
+        ),
+        pytest.param(
+            lambda belief: belief.model_copy(
+                update={
+                    "context": belief.context.model_copy(
+                        update={
+                            "soluble_environment": {"nutrient": {"value": 2.0, "units": "relative"}}
+                        }
+                    )
+                }
+            ),
+            "soluble environment is not derived",
+            id="alter-environment",
+        ),
+    ),
+)
+def test_estimation_boundary_rejects_omitted_or_altered_derived_context(
+    model: Any,
+    mutate: Callable[[CellStateBelief], CellStateBelief],
+    message: str,
+) -> None:
+    query = query_factory()
+    query = query.model_copy(
+        update={
+            "system_boundary": SystemBoundary.CELL_AND_SOLUBLE_ENVIRONMENT,
+            "environment_space": (environment_spec_factory(),),
+            "evidence_policy": query.evidence_policy.model_copy(update={"lookback_seconds": 10.0}),
+        }
+    )
+    history = CellHistory(
+        subject=subject_factory(),
+        events=(
+            observation_factory(),
+            intervention_factory(
+                event_id="ongoing-intervention",
+                time_seconds=0,
+                duration_seconds=20,
+            ),
+            environment_factory(
+                event_id="ongoing-environment",
+                time_seconds=0,
+                duration_seconds=20,
+            ),
+        ),
+    )
+
+    with pytest.raises(ContractViolationError, match=message):
+        estimate_cell_state(
+            request_factory(query=query, history=history),
+            estimator=_MutatingEstimator(model, mutate),
             options=SYNTHETIC_TEST_OPTIONS,
         )
 

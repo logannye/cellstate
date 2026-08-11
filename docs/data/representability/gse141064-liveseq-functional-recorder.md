@@ -62,6 +62,10 @@ Their canonical compact JSON UTF-8 string-array digest is
 trailing newline. The tagged author script that contains the selection predicate has SHA-256
 `1196d1fc8478623bc1405701062b335df12c205777b3bafa7a2a8360dbb0c1a3`.
 
+The checked-in representability artifact is a machine-checked reviewed attestation ledger. Its
+structural verifier binds these declared digests and the reviewed selector locator, but does not
+resolve either source, replay the selector, or independently recompute the 17-cell membership.
+
 ## Public artifacts and checksums
 
 | Artifact | Release and role | Bytes | SHA-256 |
@@ -166,4 +170,5 @@ The reviewed 17-cell slice proves that the manifest can encode a real public ind
 state-to-future functional estimand without inventing cell identity or collapsing a response window
 to a point. It does not admit data for model fitting or testing, validate a biological backend,
 freeze a query, support a causal effect, or rescue the unreconstructible 12-pair repeated-RNA
-cohort.
+cohort. This conclusion is a reviewed scientific attestation whose ledger passes structural checks,
+not a claim that the current verifier fetched biological bytes or executed the selector.

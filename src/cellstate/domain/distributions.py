@@ -42,6 +42,19 @@ class ParametricDistribution(SchemaModel):
                 raise ValueError("distribution covariance must be square")
         for value in (*self.mean, *(entry for row in self.covariance for entry in row)):
             require_finite(value, name="distribution parameter")
+        if self.support is DistributionSupport.NONNEGATIVE and any(
+            value < 0 for value in self.mean
+        ):
+            raise ValueError("a nonnegative distribution cannot have a negative mean")
+        if self.support is DistributionSupport.UNIT_INTERVAL and any(
+            not 0 <= value <= 1 for value in self.mean
+        ):
+            raise ValueError("a unit-interval distribution mean must lie in [0, 1]")
+        if self.support is DistributionSupport.SIMPLEX:
+            if any(not 0 <= value <= 1 for value in self.mean):
+                raise ValueError("simplex distribution means must lie in [0, 1]")
+            if not math.isclose(sum(self.mean), 1.0, rel_tol=1e-9, abs_tol=1e-12):
+                raise ValueError("simplex distribution means must sum to one")
         for row_index in range(size):
             if self.covariance[row_index][row_index] < 0:
                 raise ValueError("covariance diagonal must be nonnegative")

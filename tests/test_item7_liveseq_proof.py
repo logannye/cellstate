@@ -158,6 +158,8 @@ def test_liveseq_representability_proof_passes_without_authorizing_use() -> None
     assert resolution.accepted is True
     assert resolution.failed_criteria == ()
     assert resolution.structurally_failed_criteria == ()
+    assert resolution.selector_execution_replayed is False
+    assert resolution.source_bytes_resolved is False
     assert resolution.use_permission_evaluated is False
     assert resolution.use_authorized is False
 

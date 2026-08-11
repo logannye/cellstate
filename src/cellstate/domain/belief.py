@@ -101,6 +101,28 @@ class ContextBelief(SchemaModel):
     latent_context_posterior: StateDistribution | None = None
     unsupported_dimensions: tuple[str, ...] = ()
 
+    @model_validator(mode="after")
+    def deterministic_members_are_canonical(self) -> ContextBelief:
+        intervention_ids = [event.event_id for event in self.active_interventions]
+        if len(intervention_ids) != len(set(intervention_ids)):
+            raise ValueError("active context intervention IDs must be unique")
+        if any(not dimension.strip() for dimension in self.unsupported_dimensions):
+            raise ValueError("unsupported context dimensions must be nonblank")
+        if len(self.unsupported_dimensions) != len(set(self.unsupported_dimensions)):
+            raise ValueError("unsupported context dimensions must be unique")
+        for context_name, values in (
+            ("soluble environment", self.soluble_environment),
+            ("physical environment", self.physical_environment),
+            ("neighborhood", self.neighborhood),
+            ("spatial position", self.spatial_position),
+        ):
+            normalized = [key.casefold() for key in values]
+            if any(not key.strip() for key in values) or len(normalized) != len(set(normalized)):
+                raise ValueError(
+                    f"{context_name} keys must be nonblank and case-insensitively unique"
+                )
+        return self
+
 
 class EvaluatedScalar(SchemaModel):
     status: SupportStatus
@@ -151,6 +173,17 @@ class DynamicSummary(SchemaModel):
     fate_probabilities: tuple[FateProbability, ...] = ()
     bifurcation_proximity: EvaluatedScalar
     recovery_timescale: EvaluatedScalar
+
+    @model_validator(mode="after")
+    def hazards_and_timescale_are_nonnegative(self) -> DynamicSummary:
+        for name, scalar in (
+            ("division hazard", self.division_hazard),
+            ("death hazard", self.death_hazard),
+            ("recovery timescale", self.recovery_timescale),
+        ):
+            if scalar.value is not None and scalar.value < 0:
+                raise ValueError(f"{name} must be nonnegative")
+        return self
 
 
 class UncertaintyKind(StrEnum):
@@ -825,8 +858,8 @@ def _require_parametric_marginal(
     indices = [joint.dimensions.index(dimension) for dimension in marginal.dimensions]
     expected_mean = np.asarray(joint.mean)[indices]
     expected_covariance = np.asarray(joint.covariance)[np.ix_(indices, indices)]
-    if not np.allclose(expected_mean, marginal.mean, atol=1e-8) or not np.allclose(
-        expected_covariance, marginal.covariance, atol=1e-8
+    if not np.allclose(expected_mean, marginal.mean, rtol=0, atol=1e-8) or not np.allclose(
+        expected_covariance, marginal.covariance, rtol=0, atol=1e-8
     ):
         raise ValueError(f"parametric {label} posterior must match the joint marginal")
 

@@ -48,7 +48,7 @@ packages = ["src/cellstate"]
 [tool.pytest.ini_options]
 addopts = "-ra --strict-config --strict-markers --cov=cellstate --cov-report=term-missing --cov-fail-under=85"
 pythonpath = ["src"]
-testpaths = ["tests"]
+testpaths = ["tests", "audits/item12_1a"]
 
 [tool.coverage.run]
 branch = true
@@ -62,6 +62,7 @@ exclude_also = [
 ]
 
 [tool.ruff]
+extend-exclude = ["audits/item12_1a/*.py"]
 line-length = 100
 target-version = "py311"
 

@@ -289,7 +289,8 @@ or pass a scientific gate. Item 11 has now completed the first frozen-data softw
 immutable, single-purpose `p1-train` loader close-reauthenticated the exact 2,526,631,614-byte
 source, scanned all 94,785 training records across 768 wells, and froze content-addressed fitted-
 state identities for all six probabilistic baselines. The loader does not parse held-out outcomes
-and refuses `p2`, `p3`, and `p4` before source access unless future lifecycle-bound grants exist.
+and refuses `p2`, `p3`, and `p4` before protected raw-endpoint access unless future
+lifecycle-bound grants exist.
 These are software provenance artifacts, not benchmark results: no prediction campaign, metric,
 comparison, or performance gate has run. Item 12 now defines the separate p1-only training and
 verification boundary for a first candidate distribution model. Its original rank-16
@@ -302,9 +303,12 @@ rank but rejected its tail-dominated independent lognormal plate nuisance. The a
 software-only design fixes `r_theta=0.1`, adds row-local inner equilibration, and proposes an
 empirical whole-`rho`-row unseen-plate context. Its valid exact-reference, p1-only, nonissuing run
 failed closed during initial inner equilibration, before an outer update or ELBO trace, and its
-provisional `rho` reached near single-plate concentration. V4 is `NO-GO`. The sci-Plex3 component
-therefore remains a non-executable `SCAFFOLD` and must not present a candidate design, provisional
-initialization state, or unrun performance as a validated biological belief.
+provisional `rho` reached near single-plate concentration. A subsequent source-code audit also found
+that the v4 dose Newton objective omits the exact `94785/768` equal-well multiplier carried by the
+corresponding terms in the tracked full ELBO, so its dose penalty is on the wrong relative scale.
+V4 is retired and remains `NO-GO` and unissued. The sci-Plex3 component therefore remains a
+non-executable `SCAFFOLD` and must not present a candidate design, provisional initialization
+state, or unrun performance as a validated biological belief.
 
 The next development work proceeds in this order:
 
@@ -332,9 +336,11 @@ The next development work proceeds in this order:
    readouts, claim references, evidence sources, split safety, and layered legal permission; metric
    families whose benchmark semantics are not yet typed remain ineligible.
 7. **Completed 2026-08-09:** add content-addressed dataset slices, interval-valued evidence clocks,
-   and executable reviewed representability proofs. Replogle K562 proves destructive population-
-   snapshot semantics; GSE141064 Live-seq proves viability-preserving same-cell future-function
-   semantics. Both keep legal use unauthorized and all unsupported scientific casts explicit.
+   and machine-checked reviewed representability ledgers. They validate bound declarations and
+   reviewer attestations without resolving source bytes or replaying selectors. Replogle K562
+   establishes destructive population-snapshot semantics; GSE141064 Live-seq establishes
+   viability-preserving same-cell future-function semantics. Both keep legal use unauthorized and
+   all unsupported scientific casts explicit.
 8. **Completed 2026-08-09:** freeze Vertical A's first component query, benchmark, split semantics,
    metrics, mandatory baselines, and acceptance policy on corrected sci-Plex3 K562 data. The
    content-addressed artifact passes exact claim, loss, metric, split, source, and permission
@@ -365,8 +371,11 @@ The next development work proceeds in this order:
 11. **Completed 2026-08-10:** implement the first frozen-data software path without opening a
     held-out lifecycle stage. The single-purpose loader authenticates the exact sci-Plex3 H5AD and
     checked-in `p1` closure, then yields immutable sparse raw-count batches on the ordered 2,000-
-    feature panel. `p2` calibration, `p3` model selection, and `p4` untouched evaluation remain
-    hard sealed pending future grants bound respectively to `TRAINED_CANDIDATE`,
+    feature panel. Public frozen design metadata precommits exact split-membership arrays,
+    record/well/plate identities, and outcome-free prediction cases, but protected `p2` calibration
+    endpoint values, `p3` selection endpoint values, and `p4` source outcomes and scoring authority
+    remain hard sealed pending future grants bound respectively to
+    `TRAINED_CANDIDATE`,
     `CALIBRATED_CANDIDATE`, and `MODEL_SELECTED_FROZEN` lifecycle states. Six mandatory
     probabilistic algorithms fit only from `p1`: matched-vehicle resampling, exact-condition
     empirical resampling, exact-condition negative binomial, hierarchical well negative binomial,
@@ -410,7 +419,8 @@ The next development work proceeds in this order:
     invalid, contains no fit, and must not be interpreted as science. The replacement execution was
     an exact-reference, p1-only, nonissuing run. Its report,
     `66e9debc1a402e7aa68cbc934f7c5f641529eea3187ec15606364c912af8faa8`, passed integrity and
-    resource gates and kept all provisional tensors finite. It failed initial, untraced inner
+    post-hoc resource acceptance checks and kept all provisional tensors finite. It failed initial,
+    untraced inner
     equilibration at sweep 50 with passing streak 0, `Rshape=0.24714465227035654`, and
     `Relog=3.750385840630546`, before any outer update or ELBO trace. The two residuals are
     respectively 24,714,465 and 375,038,584 times the `1e-8` tolerance. The provisional loading-
@@ -424,15 +434,21 @@ The next development work proceeds in this order:
 
     V4 is `NO-GO`. It issued no model, plan, observation, training evidence, materialization, or
     lifecycle result. Item 12 remains in progress and the component remains `SCAFFOLD`. Throughout
-    this work `p2`, `p3`, and `p4` remain sealed, and calibration, selection, performance,
-    admission, component execution, and every public cell-state runtime remain false.
+    this work protected `p2`, `p3`, and `p4` raw H5AD/UMI endpoint values and lifecycle scoring
+    authority remain sealed, and calibration, selection, performance, admission, component
+    execution, and every public cell-state runtime remain false.
 
-**Item 12.1a — local-map and plate-context characterization software freeze** is complete. The
-source-free scratch harness SHA-256 is
+**Item 12.1a — local-map and plate-context characterization software freeze** is complete. Its
+historical evidence is now canonical under
+[`audits/item12_1a`](https://github.com/logannye/cellstate/tree/main/audits/item12_1a). The frozen
+harness SHA-256 is
 `f4e6b76847bd926952995d66233389768f091135699fb60a38d7d9762bb03ff1`; its test SHA-256 is
 `8989618e259fb4aed0e0798bc010e40092c45e6bd30234bb3a7b534cdc562903`.
-Twenty-six focused tests, Ruff check/format, compilation, and an independent SHA-bound
-math/containment audit passed with no P0/P1 finding. The contract fixes 50 production maps
+The exact parent driver (`795c5929...`) and both historical reports (`4677fc8e...` and
+`66e9debc...`) are stored beside them. Twenty-six focused tests, Ruff check/format, compilation, and
+an independent SHA-bound math/containment audit reported no P0/P1 finding within the frozen
+local-map and containment scope. That audit did not validate the outer dose objective. The contract
+fixes 50 production maps
 `A0 -> ... -> A50`, exactly one diagnostic-only `A51` lookahead, per-sweep `Rshape` and `Relog`,
 synchronized local objectives, one- and two-step distances and update cosine, deterministic worst
 row/factor/count summaries, shape/rate/mass invariants, per-sweep analytic 16-by-16 Jacobian
@@ -442,15 +458,48 @@ fix. An intact objective plus a two-cycle or noncontractive map routes to a vers
 safeguarded local solver. Near-zero prior/context behavior or effective context near one routes to
 v5 plate regularization or neutralization. The contract does not prefreeze damping or shrinkage.
 
-**Item 12.1b** is now the next gated step: one exact-reference, real-`p1`, nonissuing execution of
-that frozen harness. Item 12.1a did not open the source, and Item 12.1b still requires separate
-explicit audit authorization. Neither stage authorizes changing the predeclared cap or tolerance,
-emitting an artifact, opening `p2`, or making a biological or performance claim. Only a future
-successful trusted verification may move the component to `TRAINED_CANDIDATE`. A future one-use
-grant may open `p2` for calibration
-only after that exact state; a separate grant may open `p3` for model selection and freezing only
-after calibration; and `p4` remains untouched until a locked evaluator receives an exact
-`MODEL_SELECTED_FROZEN` candidate. Passing that component lifecycle would authorize only the exact
+**Item 12.1b — retired before execution.** The planned exact-reference real-`p1` replay of the v4
+harness is no longer the next step and must not run. Item 12.1a opened no source. The later
+source-code audit established that v4's dose-block objective minimizes an unweighted per-well Gamma
+term plus the global dose penalty, while the tracked full ELBO multiplies that Gamma term by
+`94785/768`. Because this changes the intended objective and can invalidate outer-step
+nondecrease, another real-source characterization of v4 would spend authorization on a candidate
+already known to be mathematically inconsistent. No Item 12.1b report, artifact, or lifecycle
+evidence exists.
+
+**Item 12.2 — source-free v5 objective, M-step, and execution-containment redesign** is the next
+milestone. Before any new real-`p1` authorization, v5 must define one objective whose equal-well
+normalization, dose penalty, and action/context M-step agree exactly; pass finite-difference
+full-ELBO gradient tests and fixed-`q` M-step nondecrease tests; and run behind hard process or
+container wall-clock and memory limits rather than relying on post-hoc elapsed/RSS acceptance
+checks. The source-free redesign must optimize `alpha`, constrained `log-rho`, and dose effects
+against an independently computed fixed-`q` full ELBO. Feasible-coordinate gradient tests under the
+arithmetic-mean-one `rho` gauge, treated-well adversarial fixtures, accepted-substep and complete-
+block nondecrease, and Hessian finite differences if Newton remains are required. Any surrogate or
+block schedule must nondecrease the same canonical full ELBO and share its stationary points.
+
+Sampling must either be exactly conditioned on a positive panel, or the API must freeze a maximum
+request size and request-level failure budget over every admitted action, context, and calibration
+`tau`; a target-only `supports()` result is insufficient because the 33-attempt failure compounds
+with sample count. Poisson-rate/RNG overflow must be included in the same support decision. The
+builder must publish each candidate in an immutable generation and switch one atomic pointer only
+after the complete generation verifies. A forced process termination mid-publication must recover
+automatically, leave no stale lock, and let readers observe only the complete old or complete new
+generation.
+
+Parent-enforced wall and memory limits must cover the whole source-touching process tree from before
+source open through close and verification. The exact limit policy and runtime-image digest must be
+frozen; timeout, cgroup/container OOM, descendant cleanup, no-canonical-publication, and next-run
+recovery tests are mandatory. This milestone does not open `p1`, change a fitted artifact, or
+authorize `p2`. Only after it passes review may a separately authorized, version-bound nonissuing v5
+real-`p1` execution be proposed.
+
+Only a future successful trusted verification may move the component to `TRAINED_CANDIDATE`. A
+future one-use grant may open `p2` for calibration only after that exact state; a separate grant may
+open `p3` for model selection and freezing only
+after calibration; and `p4` source outcomes and locked scoring remain untouched until a locked
+evaluator receives an exact `MODEL_SELECTED_FROZEN` candidate. Public frozen p4 design metadata is
+not evaluation authority. Passing that component lifecycle would authorize only the exact
 assay-response API; a hidden-state backend still requires its own observation/prior, inference,
 dynamics, sufficiency, identifiability, and operation-specific evidence.
 

@@ -144,6 +144,7 @@
       "type": "object"
     },
     "RepresentabilityEvidenceMethod": {
+      "description": "Method asserted by a reviewed evidence locator, not a runtime execution receipt.",
       "enum": [
         "checksum_verification",
         "selector_execution",

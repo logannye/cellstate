@@ -112,6 +112,43 @@ reasons, the required-port union, missing or extra envelope ports, unavailable d
 scope issues. Admission recompiles the report from source objects and requires structural
 satisfaction; a stale or caller-edited report fails.
 
+### P1-only trained-candidate boundary
+
+Training uses a smaller trust surface than full admission so fitting cannot resolve protected
+held-out raw H5AD/UMI endpoint values or lifecycle authority, or create a circular dependency on
+its own model output. A canonical
+`CandidateTrainingPlan` exists before fitting and binds opaque query, benchmark, and support
+identities; exact p1 loader, count-stream, scan, assembly, design, feature, action, and target
+identities; candidate specification and model schema; deterministic runtime and seed policy; and
+distinct trainer and candidate-factory code. It contains no final model or bundle fingerprint.
+
+An HMAC-authenticated `TrainingSourceSelectionReceipt` binds that plan to the exact p1 source and
+the workflow resolution that selected it. `P1TrainingEvidence` then records the close-
+reauthenticated source and complete count-stream closure with access restricted to the training
+role. Its p2, p3, and p4 membership, case, and outcome-read flags are literal false because that
+training session does not parse even the public held-out design files. After model close, reread,
+and rehash, a separate semantic verifier authenticates a `CandidateFitReceipt` that binds
+the plan, source selection, p1 evidence, deterministic training observation, exact model bytes,
+behavior-state manifest, convergence and finiteness checks, and a successful exact reload.
+
+The signed source and fit receipts live only in the runtime `TrainingVerificationContext`. They are
+not content artifacts in `TrainingRunBinding`, so deterministic model contracts do not depend on a
+secret or issuance timestamp and persisted receipt bytes never become access authority. Stage byte
+coverage is mechanically derived and includes only top-level query/benchmark/support identities,
+the deterministic training closure, the model and run, the selected p1 source, and the candidate-
+factory interface. It does not recursively expand public benchmark p2/p3/p4 membership and cases,
+or protected outcomes and later-stage implementations.
+
+The candidate port must provide a nonvacuous exact class interface containing `load_exact`,
+`model_artifact_sha256`, `supports`, `sample`, `model_bytes`, and `behavior_manifest`; the other
+support-envelope ports may honestly remain `REQUIRED`. `BundleReadiness` records training artifact,
+interface, and semantic verification separately. `TRAINED_CANDIDATE` is derived only when all three,
+the structural training binding, and exact query prerequisites verify. Calibration and model-
+selection lifecycle stages additionally require their own future semantic verifications: merely
+attaching artifacts cannot advance them. This boundary grants no protected p2 endpoint access or
+calibration authority, component execution, scientific admission, public operation, or runnable
+backend.
+
 ### Just-in-time execution authority
 
 `assess_biological_model_bundle` accepts an optional runtime-only `AdmissionVerificationContext`.
@@ -156,10 +193,11 @@ compiler drift invalidates the corresponding gate.
 The ordered lifecycle is derived rather than declared: `SCAFFOLD`, `TRAINED_CANDIDATE`,
 `CALIBRATED_CANDIDATE`, `MODEL_SELECTED_FROZEN`, `COMPONENT_EVALUATED`, and
 `COMPONENT_GATES_PASSED`. Trusted admission infrastructure alone advances nothing. Progress also
-requires the exact training/model bindings, calibrator and selection evidence, complete typed
-evaluation, executable benchmark results, mandatory baselines, acceptance-policy pass, and
-benchmark admission appropriate to each stage. A verified failed evaluation can reach the
-evaluated stage but never the gates-passed stage.
+requires exact stage-scoped byte, interface, and semantic verification in addition to structural
+training/model, calibration, and selection bindings; complete typed evaluation; executable
+benchmark results; mandatory baselines; acceptance-policy pass; and benchmark admission
+appropriate to each stage. Artifact presence alone cannot advance calibration or model selection.
+A verified failed evaluation can reach the evaluated stage but never the gates-passed stage.
 
 `require_biological_component_execution` can authorize only an admitted `COMPONENT_MODEL` on its
 separate direct component surface. `require_biological_execution` additionally requires the exact
@@ -180,7 +218,10 @@ are endpoint comparators. Neither is a pre-cutoff observation or a prior over hi
 The component therefore registers none of the four public cell-state operations, has no biological
 `EstimatorDescriptor`, and cannot emit a current-state belief.
 
-Item 10 supplies the admission machinery, not the component evidence. The checked-in sci-Plex3
-artifact has no trained model, immutable executable loader, completed mandatory baselines, locked
-performance evidence, or admitted benchmark. It remains `SCAFFOLD` and non-executable. The next
-milestone is the immutable loader and baseline suite recorded in the [roadmap](../roadmap.md).
+Items 10 and 11 supply the admission machinery, immutable p1-only loader, exact training scan, and
+six mandatory fitted baseline-state identities. They do not supply prediction runs, metrics,
+performance evidence, a trained candidate, or an admitted benchmark. Candidate revisions v1 through
+v4 all failed closed without issuing a model or lifecycle result, so the checked-in sci-Plex3
+component remains `SCAFFOLD` and non-executable. The next milestone is the source-free v5 objective,
+M-step, sampler, atomic-publication, and hard-containment redesign recorded in the
+[roadmap](../roadmap.md); it grants no new real-source authority.

@@ -16,6 +16,10 @@ from conftest import (
 from pydantic import ValidationError
 
 from cellstate import estimate_cell_state, evolve_cell_state
+from cellstate.api import (
+    _intervention_is_active,
+    _validate_causal_support_against_scenario,
+)
 from cellstate.domain.belief import (
     CausalEstimandBinding,
     CausalSupportReport,
@@ -23,7 +27,12 @@ from cellstate.domain.belief import (
     EvaluationStatus,
     QueryReadinessReport,
 )
-from cellstate.domain.common import CausalStatus, CriterionOutcome, Quantity
+from cellstate.domain.common import (
+    CausalStatus,
+    CriterionOutcome,
+    Quantity,
+    canonical_fingerprint,
+)
 from cellstate.domain.events import (
     ActualPerturbation,
     AssignmentMechanism,
@@ -66,6 +75,74 @@ def _history_with_environment(*events: Any) -> CellHistory:
         subject=subject_factory(),
         events=(observation_factory(), *events),
     )
+
+
+def test_zero_duration_intervention_is_active_only_at_its_exact_instant() -> None:
+    intervention = intervention_factory(time_seconds=10, duration_seconds=0)
+
+    assert _intervention_is_active(intervention, 10)
+    assert not _intervention_is_active(intervention, 10 + 1e-9)
+
+
+def test_inherited_point_intervention_is_part_of_scenario_causal_contrast() -> None:
+    subject = subject_factory()
+    target = query_factory().target_outputs[0]
+    point = intervention_factory(
+        event_id="point-drug",
+        subject=subject,
+        time_seconds=10,
+        duration_seconds=0,
+        intervention_spec_id="drug",
+    )
+    explicit = intervention_factory(
+        event_id="future-stimulus",
+        subject=subject,
+        time_seconds=10,
+        duration_seconds=60,
+        intervention_type="stimulus",
+        intervention_spec_id="stimulus",
+        estimated_efficiency=None,
+    )
+    scenario = EvolutionScenario(
+        scenario_id="point-plus-interval",
+        horizon_name="acute",
+        subject=subject,
+        start_time_seconds=10,
+        end_time_seconds=70,
+        interventions=(explicit,),
+        inherit_active_interventions=True,
+    )
+    estimand = CausalEstimandBinding(
+        target=target.term,
+        horizon_name="acute",
+        aggregation=target.aggregation,
+        intervention_spec_ids=("drug", "stimulus"),
+        comparator="matched randomized controls",
+        scenario_id=scenario.scenario_id,
+        scenario_fingerprint=canonical_fingerprint(scenario),
+    )
+    report = CausalSupportReport(
+        evaluation_status=EvaluationStatus.EVALUATED,
+        outcome=CriterionOutcome.PASSED,
+        causal_status=CausalStatus.IDENTIFIED_POPULATION_EFFECT,
+        identification_basis="randomized intervention assignment",
+        identification_design=AssignmentMechanism.RANDOMIZED,
+        estimands=(estimand,),
+        evidence_ids=("trial",),
+        evidence_fingerprints={"trial": "8" * 64},
+        source_scope="randomized source population",
+        target_scope="query target population",
+    )
+
+    _validate_causal_support_against_scenario(report, scenario, (point,))
+
+    omitted_point = report.model_copy(
+        update={
+            "estimands": (estimand.model_copy(update={"intervention_spec_ids": ("stimulus",)}),)
+        }
+    )
+    with pytest.raises(ContractViolationError, match="intervention contrast"):
+        _validate_causal_support_against_scenario(omitted_point, scenario, (point,))
 
 
 def test_required_environment_union_must_cover_the_complete_conditioning_interval() -> None:

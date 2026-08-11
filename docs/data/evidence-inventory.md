@@ -2,8 +2,9 @@
 
 **Audit date:** 2026-08-09
 **Status:** sanitized local-presence audit; no dataset is admitted for training or validation until a
-reviewed machine-readable manifest verifies exact source bytes, checksums, use terms, and
-experimental structure.
+reviewed machine-readable manifest records exact source-byte identities, checksums, use terms, and
+experimental structure, and a separately authorized workflow resolves and verifies the bytes needed
+for that use.
 
 This inventory preserves the evidence behind the project's local-data conclusion without making
 machine-specific storage paths part of the scientific contract.

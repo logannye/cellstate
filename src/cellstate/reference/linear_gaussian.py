@@ -768,30 +768,31 @@ class LinearGaussianReference:
         evidence_observation_events = tuple(
             event
             for event in request.history.events
-            if isinstance(event, ObservationEvent) and event.time_seconds <= request.as_of_seconds
+            if isinstance(event, ObservationEvent)
+            and event.end_time_seconds <= request.as_of_seconds
         )
         observation_events = tuple(
             event
             for event in request.history.events
             if isinstance(event, ObservationEvent)
-            and start_time <= event.time_seconds <= request.as_of_seconds
+            and start_time <= event.end_time_seconds <= request.as_of_seconds
             and (
                 request.previous_belief is None
                 or (
-                    event.time_seconds >= request.previous_belief.as_of_seconds
+                    event.end_time_seconds >= request.previous_belief.as_of_seconds
                     and event.event_id not in previous_event_ids
                 )
             )
         )
 
         current_time = start_time
-        at_start = [event for event in observation_events if event.time_seconds == current_time]
+        at_start = [event for event in observation_events if event.end_time_seconds == current_time]
         posterior = self._update_observations(posterior, at_start)
         update_times = sorted(
             {
-                event.time_seconds
+                event.end_time_seconds
                 for event in observation_events
-                if event.time_seconds > current_time
+                if event.end_time_seconds > current_time
             }
         )
         for update_time in update_times:
@@ -800,7 +801,7 @@ class LinearGaussianReference:
             )
             posterior = self._update_observations(
                 posterior,
-                [event for event in observation_events if event.time_seconds == update_time],
+                [event for event in observation_events if event.end_time_seconds == update_time],
             )
             current_time = update_time
         posterior = self._propagate(
@@ -839,16 +840,41 @@ class LinearGaussianReference:
         )
         dynamics = self._dynamics(propagated, scenario.end_time_seconds, events)
         uncertainty = self._uncertainty(propagated)
-        forecast_context = ContextBelief(
-            active_interventions=tuple(
+        inherited_active_interventions = (
+            tuple(
                 event
-                for event in events
-                if isinstance(event, InterventionEvent)
+                for event in belief.context.active_interventions
+                if event.duration_seconds > 0
                 and event.time_seconds
                 <= scenario.end_time_seconds
                 < event.time_seconds + event.duration_seconds
+            )
+            if scenario.inherit_active_interventions
+            else ()
+        )
+        scenario_active_interventions = tuple(
+            event
+            for event in scenario.interventions
+            if event.duration_seconds > 0
+            and event.time_seconds
+            <= scenario.end_time_seconds
+            < event.time_seconds + event.duration_seconds
+        )
+        inherited_environment = (
+            belief.context.soluble_environment if scenario.inherit_current_environment else {}
+        )
+        endpoint_environment = {
+            **inherited_environment,
+            **_latest_environment(scenario.environments, scenario.end_time_seconds),
+        }
+        forecast_context = ContextBelief(
+            active_interventions=(
+                *inherited_active_interventions,
+                *scenario_active_interventions,
             ),
-            soluble_environment=_latest_environment(events, scenario.end_time_seconds),
+            soluble_environment={
+                key: endpoint_environment[key] for key in sorted(endpoint_environment)
+            },
             unsupported_dimensions=belief.context.unsupported_dimensions,
         )
         scenario_hash = canonical_fingerprint(scenario)
@@ -1334,14 +1360,7 @@ class LinearGaussianReference:
     def _environment_drive(self, time: float, events: Iterable[object]) -> FloatArray:
         latest: dict[str, tuple[float, Quantity | object]] = {}
         for event in events:
-            if (
-                isinstance(event, EnvironmentEvent)
-                and event.time_seconds <= time
-                and (
-                    event.duration_seconds == 0
-                    or time < event.time_seconds + event.duration_seconds
-                )
-            ):
+            if isinstance(event, EnvironmentEvent) and _environment_is_active(event, time):
                 for key, value in event.variables.items():
                     normalized = key.casefold()
                     if normalized not in latest or event.time_seconds >= latest[normalized][0]:
@@ -1444,7 +1463,7 @@ class LinearGaussianReference:
                 if np.any(np.abs(matrix[:, index]) > 1e-12):
                     evidence_by_dimension[dimension].append(event.event_id)
                     modalities_by_dimension[dimension].add(event.modality.key.casefold())
-            if math.isclose(event.time_seconds, as_of_seconds, rel_tol=0, abs_tol=1e-12):
+            if math.isclose(event.end_time_seconds, as_of_seconds, rel_tol=0, abs_tol=1e-12):
                 direct_dimensions.update(model.direct_dimensions)
 
         beliefs: list[FactorBelief] = []
@@ -1519,7 +1538,7 @@ class LinearGaussianReference:
             self.config.observations_by_key[event.modality.key.casefold()].matrix,
             dtype=float,
         )
-        elapsed = as_of_seconds - event.time_seconds
+        elapsed = as_of_seconds - event.end_time_seconds
         if elapsed < 0:
             raise ValueError("observation cannot be later than the state being characterized")
         backward_transition = expm(-np.asarray(self.config.drift_matrix, dtype=float) * elapsed)
@@ -1683,7 +1702,7 @@ class LinearGaussianReference:
             if event.missingness.status is not MissingnessStatus.OBSERVED:
                 continue
             model = self.config.observations_by_key[event.modality.key.casefold()]
-            if math.isclose(event.time_seconds, as_of_seconds, rel_tol=0, abs_tol=1e-12):
+            if math.isclose(event.end_time_seconds, as_of_seconds, rel_tol=0, abs_tol=1e-12):
                 observed.update(model.direct_dimensions)
         identifiable = self._identifiable_dimensions(observation_tuple, as_of_seconds)
         dimension_status = {
@@ -2320,11 +2339,7 @@ def _discretize_linear_system(
 def _latest_environment(events: Iterable[object], time: float) -> dict[str, object]:
     latest: dict[str, tuple[float, object]] = {}
     for event in events:
-        if (
-            isinstance(event, EnvironmentEvent)
-            and event.time_seconds <= time
-            and (event.duration_seconds == 0 or time < event.time_seconds + event.duration_seconds)
-        ):
+        if isinstance(event, EnvironmentEvent) and _environment_is_active(event, time):
             for key, value in event.variables.items():
                 normalized = key.casefold()
                 if normalized not in latest or event.time_seconds >= latest[normalized][0]:
@@ -2333,3 +2348,14 @@ def _latest_environment(events: Iterable[object], time: float) -> dict[str, obje
                     )
                     latest[normalized] = (event.time_seconds, serialized)
     return {key: value for key, (_, value) in sorted(latest.items())}
+
+
+def _environment_is_active(event: EnvironmentEvent, time: float) -> bool:
+    ends_at = event.time_seconds + event.duration_seconds
+    instantaneous = event.duration_seconds == 0 and math.isclose(
+        time,
+        event.time_seconds,
+        rel_tol=0,
+        abs_tol=1e-12,
+    )
+    return event.time_seconds <= time < ends_at or instantaneous

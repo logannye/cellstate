@@ -5,10 +5,11 @@ from __future__ import annotations
 import json
 import math
 from collections.abc import Mapping
+from copy import deepcopy
 from datetime import UTC, datetime
 from enum import Enum, StrEnum
 from hashlib import sha256
-from typing import Any, Literal
+from typing import Any, Literal, NoReturn, Self, SupportsIndex
 from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
@@ -17,8 +18,110 @@ SchemaVersion = Literal["2.0"]
 SCHEMA_VERSION: SchemaVersion = "2.0"
 
 
+class _FrozenDict(dict[Any, Any]):
+    """Serialization-compatible dictionary that rejects in-place mutation."""
+
+    @staticmethod
+    def _mutation_error() -> NoReturn:
+        raise TypeError("nested schema mappings are frozen")
+
+    def __setitem__(self, key: Any, value: Any) -> NoReturn:
+        self._mutation_error()
+
+    def __delitem__(self, key: Any) -> NoReturn:
+        self._mutation_error()
+
+    def __ior__(self, other: Any) -> NoReturn:  # type: ignore[misc]
+        self._mutation_error()
+
+    def clear(self) -> NoReturn:
+        self._mutation_error()
+
+    def pop(self, key: Any, default: Any = None) -> NoReturn:
+        self._mutation_error()
+
+    def popitem(self) -> NoReturn:
+        self._mutation_error()
+
+    def setdefault(self, key: Any, default: Any = None) -> NoReturn:
+        self._mutation_error()
+
+    def update(self, *args: Any, **kwargs: Any) -> NoReturn:
+        self._mutation_error()
+
+    def __deepcopy__(self, memo: dict[int, Any]) -> _FrozenDict:
+        return _FrozenDict(
+            {deepcopy(key, memo): deepcopy(value, memo) for key, value in self.items()}
+        )
+
+
+class _FrozenList(list[Any]):
+    """Serialization-compatible JSON list that rejects in-place mutation."""
+
+    @staticmethod
+    def _mutation_error() -> NoReturn:
+        raise TypeError("nested schema lists are frozen")
+
+    def __setitem__(self, key: SupportsIndex | slice, value: Any) -> NoReturn:
+        self._mutation_error()
+
+    def __delitem__(self, key: SupportsIndex | slice) -> NoReturn:
+        self._mutation_error()
+
+    def __iadd__(self, value: Any) -> NoReturn:  # type: ignore[misc]
+        self._mutation_error()
+
+    def __imul__(self, value: Any) -> NoReturn:  # type: ignore[misc]
+        self._mutation_error()
+
+    def append(self, value: Any) -> NoReturn:
+        self._mutation_error()
+
+    def clear(self) -> NoReturn:
+        self._mutation_error()
+
+    def extend(self, values: Any) -> NoReturn:
+        self._mutation_error()
+
+    def insert(self, index: SupportsIndex, value: Any) -> NoReturn:
+        self._mutation_error()
+
+    def pop(self, index: SupportsIndex = -1) -> NoReturn:
+        self._mutation_error()
+
+    def remove(self, value: Any) -> NoReturn:
+        self._mutation_error()
+
+    def reverse(self) -> NoReturn:
+        self._mutation_error()
+
+    def sort(self, *args: Any, **kwargs: Any) -> NoReturn:
+        self._mutation_error()
+
+    def __deepcopy__(self, memo: dict[int, Any]) -> _FrozenList:
+        return _FrozenList(deepcopy(value, memo) for value in self)
+
+
+def _deep_freeze(value: Any) -> Any:
+    if isinstance(value, SchemaModel):
+        return value._freeze_nested_values()
+    if isinstance(value, BaseModel):
+        return value
+    if isinstance(value, dict):
+        return _FrozenDict({_deep_freeze(key): _deep_freeze(item) for key, item in value.items()})
+    if isinstance(value, list):
+        return _FrozenList(_deep_freeze(item) for item in value)
+    if isinstance(value, tuple):
+        return tuple(_deep_freeze(item) for item in value)
+    if isinstance(value, set):
+        return frozenset(_deep_freeze(item) for item in value)
+    if isinstance(value, frozenset):
+        return frozenset(_deep_freeze(item) for item in value)
+    return value
+
+
 class SchemaModel(BaseModel):
-    """Base for frozen top-level boundary objects with strict input validation."""
+    """Base for deeply immutable boundary objects with strict input validation."""
 
     model_config = ConfigDict(
         frozen=True,
@@ -26,6 +129,33 @@ class SchemaModel(BaseModel):
         validate_default=True,
         allow_inf_nan=False,
     )
+
+    @model_validator(mode="after")
+    def nested_values_are_frozen(self) -> Self:
+        return self._freeze_nested_values()
+
+    def _freeze_nested_values(self) -> Self:
+        for field_name, value in self.__dict__.items():
+            frozen = _deep_freeze(value)
+            if frozen is not value:
+                object.__setattr__(self, field_name, frozen)
+        return self
+
+    @classmethod
+    def model_construct(  # type: ignore[override]
+        cls, _fields_set: set[str] | None = None, **values: Any
+    ) -> Self:
+        constructed = super().model_construct(_fields_set=_fields_set, **values)
+        return constructed._freeze_nested_values()
+
+    def model_copy(
+        self,
+        *,
+        update: Mapping[str, Any] | None = None,
+        deep: bool = False,
+    ) -> Self:
+        copied = super().model_copy(update=update, deep=deep)
+        return copied._freeze_nested_values()
 
 
 def _canonical_json_value(value: Any) -> Any:

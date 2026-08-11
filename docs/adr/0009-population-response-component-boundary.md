@@ -56,7 +56,8 @@ The contract reserves this evidence-derived lifecycle and never accepts caller-s
 1. `SCAFFOLD`
 2. `TRAINED_CANDIDATE` -- parameters fit only from the training partition
 3. `CALIBRATED_CANDIDATE` -- exact calibration evidence from the calibration partition
-4. `MODEL_SELECTED_FROZEN` -- selection evidence and a frozen model before untouched-test access
+4. `MODEL_SELECTED_FROZEN` -- selection evidence and a frozen model before protected untouched-test
+   endpoint and scoring access
 5. `COMPONENT_EVALUATED` -- complete executable benchmark results and leakage evidence
 6. `COMPONENT_GATES_PASSED` -- the component benchmark is scientifically admitted
 

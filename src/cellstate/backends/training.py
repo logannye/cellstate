@@ -1046,6 +1046,22 @@ def require_exact_trained_candidate(
         or plan.support_envelope_fingerprint != support_envelope.fingerprint
     ):
         raise ValueError("pre-fit plan is bound to a different query/benchmark/support context")
+    split_plan = benchmark.definition.split_plan
+    if split_plan is None:
+        raise ValueError("trained-candidate verification requires a benchmark split plan")
+    benchmark_training_partition_ids = tuple(
+        partition.partition_id
+        for partition in split_plan.partitions
+        if partition.role is BenchmarkPartitionRole.TRAIN
+    )
+    if (
+        plan.training_partition_ids != benchmark_training_partition_ids
+        or evidence.partition_ids != benchmark_training_partition_ids
+        or training_run.training_partition_ids != benchmark_training_partition_ids
+    ):
+        raise ValueError(
+            "training plan, evidence, and run must bind the benchmark's exact training partitions"
+        )
     if training_run.training_partition_ids != plan.training_partition_ids:
         raise ValueError("training run partitions differ from the pre-fit plan")
     if any(
@@ -1138,6 +1154,7 @@ def require_exact_trained_candidate(
     required_factory_members = {
         "behavior_manifest",
         "load_exact",
+        "model_artifact_sha256",
         "model_bytes",
         "sample",
         "supports",
@@ -1147,7 +1164,7 @@ def require_exact_trained_candidate(
     }
     if not required_factory_members <= observed_factory_members:
         raise ValueError(
-            "registered candidate factory lacks exact load/support/sample/state members"
+            "registered candidate factory lacks exact load/support/sample/artifact-state members"
         )
     interface_receipt = LoadedInterfaceReceipt.model_validate(
         context.candidate_factory_interface_receipt.model_dump(mode="python")

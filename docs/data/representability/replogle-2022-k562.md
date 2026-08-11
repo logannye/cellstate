@@ -1,7 +1,8 @@
 # Replogle 2022 K562 essential-scale representability review
 
 - **Review date:** 2026-08-09
-- **Decision:** accepted by the executable destructive-population representability proof; not
+- **Decision:** accepted by the machine-checked reviewed destructive-population representability
+  ledger; not
   admitted for a future, causal, longitudinal, training-loss, or benchmark-metric role
 - **Reviewed bytes:** scPerturb 1.4 secondary packaging of the authors' day-6 raw-count
   single-cell object
@@ -59,7 +60,7 @@ Primary references:
 - [raw-sequencing BioProject PRJNA831566](https://www.ncbi.nlm.nih.gov/bioproject/831566)
 - [scPerturb source transformation](https://github.com/sanderlab/scPerturb/blob/master/dataset_processing/scripts/ReplogleWeissman2022.py)
 
-## Executable proof binding
+## Machine-checked reviewed proof binding
 
 The reviewed manifest is
 `data_manifests/reviewed/replogle-2022-k562-essential.json`; its fingerprint is
@@ -68,15 +69,19 @@ The reviewed manifest is
 `8e5fbd11b4705f3fedb92ef58b88bc92165f38b5848546e8cf2980f9304dfa7a`.
 
 The proof binds the exact manifest, slice, positive assessment, five required negative
-assessments, and both source checksums. All nine destructive-population criteria pass:
+assessments, and both declared source checksums. All nine reviewed destructive-population criteria
+pass structurally:
 
-- exact slice and source bytes;
+- declared exact slice and source-byte digests;
 - population subject, destructive collection, and endpoint linkage boundary; and
 - rejection of individual-cell, clone, causal, and transported casts.
 
 `verify_representability()` returns `accepted=true` with no failed or structurally failed
-criterion. Its result also returns `use_permission_evaluated=false` and `use_authorized=false`:
-representability is deliberately not a workflow authorization.
+criterion. It checks the reviewed ledger's content bindings and typed attestations; it does not
+resolve source bytes, recompute whole-axis membership, or replay any selector. Its result reports
+`selector_execution_replayed=false`, `source_bytes_resolved=false`,
+`use_permission_evaluated=false`, and `use_authorized=false`: representability is deliberately
+neither an execution receipt nor a workflow authorization.
 
 ## Content-addressed population slice
 

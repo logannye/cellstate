@@ -43,8 +43,9 @@ utility. Posterior covariance reduction alone is not EVSI.
 > cell model. Schema v2 now enforces the semantic spine needed before the first benchmark or
 > biological backend can be frozen, including a standalone measurement-decision contract. The
 > contract reference returns `NOT_EVALUATED` for assay value because it has no calibrated EVSI
-> pipeline. The contract and scoped-eligibility adversarial gates are complete. Two
-> content-addressed real-data representability proofs pass, and a corrected sci-Plex3 K562 24-hour
+> pipeline. The contract and scoped-eligibility adversarial gates are complete. Two machine-checked
+> reviewed real-data representability ledgers pass their structural checks without resolving source
+> bytes or replaying selectors, and a corrected sci-Plex3 K562 24-hour
 > component benchmark is frozen with exact well-level cases and plate-level splits. It remains
 > deliberately non-admitted: metric implementations, leakage audit, completed baseline runs, and
 > performance thresholds have not passed. The complete biological support-port map and a
@@ -58,8 +59,11 @@ utility. Posterior covariance reduction alone is not EVSI.
 > gates. Its Item 11 software path is now intentionally limited to an immutable `p1-train` loader,
 > six `p1`-fit probabilistic baseline algorithms, and content-addressed streaming-run scaffolding.
 > The exact 2.526 GB source has now been close-reauthenticated, all 94,785 `p1` rows scanned, and six
-> non-admissible fitted-state identities frozen. Held-out `p2`, `p3`, and `p4` access remains hard
-> sealed; no prediction campaign, metric, performance comparison, or scientific admission has run.
+> non-admissible fitted-state identities frozen. Protected `p2`, `p3`, and `p4` raw UMI
+> count-matrix/endpoint bytes, outcomes, and lifecycle scoring authority remain hard sealed; their
+> public frozen split membership and design metadata are not an access grant. No prediction
+> campaign, metric, performance comparison, or scientific
+> admission has run.
 > Item 12 adds a separate trusted-training boundary for a first `p1`-only candidate. Its original
 > rank-16 Gamma--Poisson design, with a separate `q`/capture term and 16 free factor shapes, failed
 > closed before model emission. V2 removed `q`/capture, but its free pooled shape drifted toward the
@@ -68,14 +72,19 @@ utility. Posterior covariance reduction alone is not EVSI.
 > independent lognormal unseen-plate model was not (`sigma_plate=5.66126548675`). The audited v4
 > software design keeps fixed `r_theta=0.1`, adds row-local inner equilibration, and proposes uniform
 > selection of one complete observed `p1` `rho` row. An exact-reference, p1-only, nonissuing v4 run
-> passed its integrity and resource gates but failed the initial, untraced inner equilibration at
+> passed its integrity checks and post-hoc resource acceptance checks but failed the initial,
+> untraced inner equilibration at
 > sweep 50, before any outer update or ELBO trace. It emitted no model or evidence. The observed
 > provisional `rho` maximum, `7.999995552807402` with each factor column summing to eight, also puts
 > the proposed unseen-plate context under renewed review. This is a candidate-family risk, not a
-> fitted-model pathology, because no fit was accepted. V4 is `NO-GO`; the component remains
-> `SCAFFOLD` and no lifecycle state has changed. **Item 12.1a** has now frozen and independently
-> audited the source-free characterization harness. **Item 12.1b**, its one-use real-`p1`
-> nonissuing replay, remains pending separate authorization.
+> fitted-model pathology, because no fit was accepted. A later source-code audit found that v4's dose
+> objective omits the tracked full ELBO's `94785/768` equal-well multiplier, putting its dose penalty
+> on the wrong relative scale. V4 is retired, remains `NO-GO`, and no lifecycle state has changed.
+> **Item 12.1a** is now reproducible from the exact historical harness, tests, parent driver, and
+> reports under [`audits/item12_1a`](audits/item12_1a/). The planned v4 **Item 12.1b** real-`p1`
+> replay is retired before execution. The next milestone is a source-free v5 objective/M-step
+> redesign with full-ELBO gradient and nondecrease tests plus hard wall-clock and memory containment
+> before any new real-`p1` authorization.
 
 ## Scientific thesis
 
@@ -270,8 +279,11 @@ verifies typed result semantics separately from result pass/fail, and recompiles
 prerequisites. Execution guards then reload and reverify the exact object immediately before use.
 This infrastructure does not graduate the component: sci-Plex3 remains a non-executable
 `SCAFFOLD`. Item 11 adds a single-purpose immutable `p1-train` loader and six `p1`-only
-probabilistic baselines while keeping `p2`, `p3`, and `p4` hard sealed behind future lifecycle
-grants. Each baseline supports the no-action condition; the alternate-dose baseline excludes the
+probabilistic baselines while keeping protected `p2`, `p3`, and `p4` raw UMI
+count-matrix/endpoint bytes, outcomes, and lifecycle scoring authority hard sealed behind future
+grants. Frozen split membership and benchmark-design metadata are public and supply outcome-free
+prediction schedules, but grant no endpoint or scoring access. Each
+baseline supports the no-action condition; the alternate-dose baseline excludes the
 requested dose. Frozen execution uses 512 samples per case and seed for seeds 0 through 4 with
 NumPy `PCG64DXSM`. The exact 2,526,631,614-byte source has been close-reauthenticated, all 94,785
 `p1` rows have been scanned, and content-addressed fitted-state identities for all six baselines
@@ -305,7 +317,8 @@ The first v4 launch was infrastructure-invalid: its audit hook rejected h5py's n
 `4677fc8ef1a458bf3616abc507250572c2da7a8d53c1c8a7a03d4b097f3d4877` is diagnostic only and is
 not scientific evidence. The replacement exact-reference, p1-only, nonissuing run is recorded by
 report `66e9debc1a402e7aa68cbc934f7c5f641529eea3187ec15606364c912af8faa8`. It passed its integrity
-and resource gates and kept every provisional tensor finite, then failed initial, untraced inner
+and post-hoc resource acceptance checks and kept every provisional tensor finite, then failed
+initial, untraced inner
 equilibration at sweep 50 with convergence streak 0, `Rshape=0.24714465227035654`, and
 `Relog=3.750385840630546`, before any outer update or ELBO trace. Those residuals are respectively
 24,714,465 and 375,038,584 times the `1e-8` tolerance. The provisional loading-rank ratio
@@ -317,16 +330,26 @@ approximately `1.0000011118`. This is a candidate-family risk, not a fitted-mode
 the empirical whole-row unseen-plate proposal must be reexamined.
 
 No v4 model, plan, observation, training evidence, materialization, or lifecycle result was issued.
-V4 is `NO-GO`, `TRAINED_CANDIDATE` cannot be derived, `p2`, `p3`, and `p4` remain sealed, and every
-later scientific and runtime gate remains false. **Item 12.1a** is complete: the separately hashed
-scratch harness (`f4e6b768...`) and its source-free tests (`8989618e...`) passed 26 focused tests,
-Ruff, formatting, compilation, and an independent math/containment audit with no P0/P1 finding.
-It fixes the exact 50 production-map replay, sole `A51` lookahead, synchronized local objective,
-one- and two-step diagnostics, analytic Jacobians, replay equality, and all 16 bounded `rho`
-context summaries. This is executable design evidence only. **Item 12.1b** remains a separately
-authorized one-use real-`p1` replay; no source was opened for 12.1a. Neither stage authorizes relaxed
-caps or tolerances, prefrozen damping or shrinkage, an artifact, or a biological or performance
-claim.
+V4 is `NO-GO`, `TRAINED_CANDIDATE` cannot be derived, and protected `p2`, `p3`, and `p4` raw endpoint
+and scoring access remains sealed; every later scientific and runtime gate remains false. **Item
+12.1a** is complete and reproducible from
+the exact historical harness (`f4e6b768...`), tests (`8989618e...`), parent driver (`795c5929...`),
+and reports under [`audits/item12_1a`](audits/item12_1a/). Its 26 focused tests and independent audit
+covered the bounded local-map and containment contract: 50 production maps, one `A51` lookahead,
+synchronized local objectives, one- and two-step diagnostics, analytic Jacobians, replay equality,
+and all 16 bounded `rho` context summaries.
+
+A subsequent source-code audit found an outer-objective defect outside that audit's scope. V4's dose
+Newton block minimizes an unweighted per-well Gamma term plus the global dose penalty, whereas the
+tracked full equal-well ELBO multiplies the corresponding Gamma term by `94785/768`. V4 is therefore
+retired, and the planned **Item 12.1b** real-`p1` replay is retired before execution. The next
+milestone is a source-free v5 objective and M-step redesign that must reconcile the exact full ELBO,
+pass finite-difference gradient and fixed-`q` nondecrease tests, bound or eliminate all-zero sampling
+and RNG-overflow failure at request scope, publish immutable generations through one atomic pointer,
+and add whole-process-tree hard wall-clock and memory containment before any new real-`p1`
+authorization. No
+protected dataset source was opened for Item 12.1a or this source-code audit; none of this authorizes
+an artifact or a biological or performance claim.
 
 The [project roadmap](docs/roadmap.md) is the sole authority for implementation order and graduation
 status. The [full buildout architecture](docs/architecture/full-buildout.md) defines the target
@@ -336,7 +359,7 @@ evidence.
 
 ## What the repository contains today
 
-- Strict, frozen-top-level, JSON-schema-versioned contracts for queries, histories, observations,
+- Strict, deeply immutable, JSON-schema-versioned contracts for queries, histories, observations,
   context, lineage, beliefs, forecasts, intervention plans, and measurement decisions.
 - Typed individual-cell, clone/lineage, population, and spatial-niche subjects with explicit
   evidence linkage, sampling unit, collection effect, and target aggregation.
@@ -358,11 +381,12 @@ evidence.
   restrictions, experimental units, sampling linkage, modality alignment, repeated canonical claim
   assessments, exact functional readouts, independently gated loss/metric eligibility,
   content-addressed slices, and interval-aware evidence clocks.
-- Executable representability proofs for a Replogle K562 destructive population snapshot and a
-  GSE141064 Live-seq individual functional recorder. These prove contract representability only;
-  both results keep `use_authorized=false` and admit no biological benchmark.
-- A frozen, content-addressed sci-Plex3 K562 24-hour component benchmark with exact source bytes,
-  output schema, well-level cases, physical plate splits, planned metrics/baselines, and a
+- Machine-checked reviewed representability ledgers for a Replogle K562 destructive population
+  snapshot and a GSE141064 Live-seq individual functional recorder. They validate bound reviewed
+  attestations rather than resolving source bytes or replaying selectors, establish contract
+  representability only, keep `use_authorized=false`, and admit no biological benchmark.
+- A frozen, content-addressed sci-Plex3 K562 24-hour component benchmark with exact source-byte
+  identity, output schema, well-level cases, physical plate splits, planned metrics/baselines, and a
   fail-closed acceptance policy. Its performance gates are unrun and it is not scientifically
   admitted.
 - A narrow sci-Plex3 K562 Item 11 software path: immutable CSR batches from `p1-train` only; six
@@ -375,8 +399,10 @@ evidence.
   behavior checks, and a registry-owned candidate-factory interface. V1, v2, and the v3
   counterfactual all failed closed without emitting a model. The exact-reference, p1-only,
   nonissuing v4 run also failed closed during initial inner equilibration, before any outer update
-  or ELBO trace. Its empirical whole-row plate proposal now requires reexamination; no v4 artifact
-  exists and `TRAINED_CANDIDATE` cannot be derived.
+  or ELBO trace. Its empirical whole-row plate proposal requires reexamination, and its dose
+  objective is now known to be inconsistently scaled relative to the full ELBO. V4 is retired; no
+  v4 artifact exists and `TRAINED_CANDIDATE` cannot be derived. Its exact historical audit lineage
+  is preserved under [`audits/item12_1a`](audits/item12_1a/).
 - An experimental biological-bundle and support-envelope contract with an exhaustive stage-port
   map, operation-specific prerequisites, content-addressed training/calibration/validation
   bindings, and a derived component lifecycle. The first sci-Plex3 population assay-response

@@ -132,6 +132,99 @@ def test_recursive_update_matches_single_pass(model, query) -> None:
     assert np.allclose(recursive.joint_posterior.covariance, batch.joint_posterior.covariance)
 
 
+def test_interval_observation_is_assimilated_at_collection_end(model, query) -> None:
+    interval_observation = observation_factory(
+        event_id="functional",
+        time_seconds=0,
+        duration_seconds=10,
+        modality="functional_readout",
+        value=0.8,
+    )
+    endpoint_observation = interval_observation.model_copy(
+        update={"time_seconds": 10, "duration_seconds": 0}
+    )
+    interval = estimate_cell_state(
+        request_factory(
+            history=CellHistory(subject=subject_factory(), events=(interval_observation,)),
+            as_of_seconds=10,
+            query=query,
+        ),
+        estimator=model,
+        options=SYNTHETIC_TEST_OPTIONS,
+    )
+    endpoint = estimate_cell_state(
+        request_factory(
+            history=CellHistory(subject=subject_factory(), events=(endpoint_observation,)),
+            as_of_seconds=10,
+            query=query,
+        ),
+        estimator=model,
+        options=SYNTHETIC_TEST_OPTIONS,
+    )
+
+    assert isinstance(interval.joint_posterior, ParametricDistribution)
+    assert isinstance(endpoint.joint_posterior, ParametricDistribution)
+    assert np.allclose(interval.joint_posterior.mean, endpoint.joint_posterior.mean)
+    assert np.allclose(interval.joint_posterior.covariance, endpoint.joint_posterior.covariance)
+    interval_factor = next(
+        factor for factor in interval.factors if factor.factor.value == "functional_capacity"
+    )
+    endpoint_factor = next(
+        factor for factor in endpoint.factors if factor.factor.value == "functional_capacity"
+    )
+    assert interval_factor.evidence_status is endpoint_factor.evidence_status
+
+
+def test_recursive_update_accepts_observation_that_finishes_after_prior_belief(
+    model, query
+) -> None:
+    prior_request = request_factory(
+        history=CellHistory(subject=subject_factory()),
+        as_of_seconds=5,
+        query=query,
+    )
+    prior = estimate_cell_state(
+        prior_request,
+        estimator=model,
+        options=SYNTHETIC_TEST_OPTIONS,
+    )
+    interval_observation = observation_factory(
+        event_id="spanning-observation",
+        time_seconds=0,
+        duration_seconds=10,
+        modality="functional_readout",
+        value=0.8,
+    )
+    history = CellHistory(
+        subject=subject_factory(),
+        events=(interval_observation,),
+        completeness=prior_request.history.completeness,
+    )
+    recursive_request = EstimateCellStateRequest(
+        query=query,
+        history=history,
+        as_of_seconds=10,
+        static_context=prior_request.static_context,
+        previous_belief=prior,
+    )
+    batch_request = request_factory(history=history, as_of_seconds=10, query=query)
+
+    recursive = estimate_cell_state(
+        recursive_request,
+        estimator=model,
+        options=SYNTHETIC_TEST_OPTIONS,
+    )
+    batch = estimate_cell_state(
+        batch_request,
+        estimator=model,
+        options=SYNTHETIC_TEST_OPTIONS,
+    )
+    assert isinstance(recursive.joint_posterior, ParametricDistribution)
+    assert isinstance(batch.joint_posterior, ParametricDistribution)
+    assert np.allclose(recursive.joint_posterior.mean, batch.joint_posterior.mean)
+    assert np.allclose(recursive.joint_posterior.covariance, batch.joint_posterior.covariance)
+
+
 def test_controlled_forecast_changes_posterior(model, estimate_request) -> None:
     belief = estimate_cell_state(
         estimate_request,
@@ -474,3 +567,71 @@ def test_forecast_requires_explicit_environment_persistence(model, query) -> Non
         options=SYNTHETIC_TEST_OPTIONS,
     )
     assert isinstance(forecast.joint_posterior, ParametricDistribution)
+    assert forecast.context.soluble_environment == {"nutrient": {"value": 1.0, "units": "relative"}}
+
+
+def test_zero_duration_environment_does_not_persist_after_its_instant(model, query) -> None:
+    environment_query = StateQuery.model_validate(
+        {
+            **query.model_dump(),
+            "system_boundary": SystemBoundary.CELL_AND_SOLUBLE_ENVIRONMENT,
+            "environment_space": (environment_spec_factory(required=False),),
+        }
+    )
+    observation = observation_factory(event_id="rna")
+    baseline_history = CellHistory(subject=subject_factory(), events=(observation,))
+    point_environment = environment_factory(
+        event_id="point-environment",
+        time_seconds=0,
+        duration_seconds=0,
+        variables={"nutrient": Quantity(value=1, units="relative")},
+    )
+    point_history = CellHistory(
+        subject=subject_factory(),
+        events=(point_environment, observation),
+    )
+
+    baseline = estimate_cell_state(
+        request_factory(history=baseline_history, query=environment_query),
+        estimator=model,
+        options=SYNTHETIC_TEST_OPTIONS,
+    )
+    with_point = estimate_cell_state(
+        request_factory(history=point_history, query=environment_query),
+        estimator=model,
+        options=SYNTHETIC_TEST_OPTIONS,
+    )
+    assert isinstance(baseline.joint_posterior, ParametricDistribution)
+    assert isinstance(with_point.joint_posterior, ParametricDistribution)
+    assert np.allclose(baseline.joint_posterior.mean, with_point.joint_posterior.mean)
+    assert np.allclose(baseline.joint_posterior.covariance, with_point.joint_posterior.covariance)
+    assert with_point.context.soluble_environment == {}
+
+
+def test_zero_duration_environment_is_present_at_its_exact_cutoff(model, query) -> None:
+    environment_query = StateQuery.model_validate(
+        {
+            **query.model_dump(),
+            "system_boundary": SystemBoundary.CELL_AND_SOLUBLE_ENVIRONMENT,
+            "environment_space": (environment_spec_factory(required=False),),
+        }
+    )
+    point_environment = environment_factory(
+        event_id="cutoff-environment",
+        time_seconds=10,
+        duration_seconds=0,
+        variables={"nutrient": Quantity(value=1, units="relative")},
+    )
+    belief = estimate_cell_state(
+        request_factory(
+            history=CellHistory(
+                subject=subject_factory(),
+                events=(observation_factory(event_id="rna"), point_environment),
+            ),
+            query=environment_query,
+        ),
+        estimator=model,
+        options=SYNTHETIC_TEST_OPTIONS,
+    )
+
+    assert belief.context.soluble_environment == {"nutrient": {"value": 1.0, "units": "relative"}}

@@ -22,9 +22,15 @@ observation and outcome clocks remain intervals; implementations may not replace
 invented midpoint.
 
 `RepresentabilityProof` is a separate `0.1-experimental` artifact. It binds one manifest
-fingerprint, slice fingerprint, exact positive and negative assessment fingerprints, source-byte
-digests, and a complete typed criterion ledger. `verify_representability` derives the result from
-those bindings and structural facts. A caller cannot assert a free-form passing boolean.
+fingerprint, slice fingerprint, exact positive and negative assessment fingerprints, declared
+source-byte digests, and a complete typed criterion ledger. `verify_representability` derives the
+result from those bindings and structural facts. A caller cannot assert a free-form passing boolean.
+
+The current verifier is a machine check of a reviewed attestation ledger. It does not fetch or
+resolve source bytes, execute a selector, or recompute selected membership. In particular, the wire
+value `selector_execution` names the evidence method attested by a reviewer; it is not a runtime
+execution receipt. Every resolution reports `selector_execution_replayed=false` and
+`source_bytes_resolved=false` so structural acceptance cannot be mistaken for an execution claim.
 
 Representability, scientific eligibility, and legal permission remain three distinct decisions:
 
@@ -35,12 +41,14 @@ Representability, scientific eligibility, and legal permission remain three dist
 
 A representability resolution always reports that it did not evaluate or authorize legal use.
 
-## First accepted proofs
+## First accepted reviewed ledgers
 
-- Replogle 2022 K562 essential-scale Perturb-seq proves that destructive single-cell observations
+- Replogle 2022 K562 essential-scale Perturb-seq establishes in the reviewed ledger that destructive
+  single-cell observations
   can be nested honestly under one population snapshot. It does not establish individual dynamics,
   independent biological replication, or an identified perturbation effect.
-- GSE141064 Live-seq proves that a content-addressed 17-cell slice can link a viability-preserving
+- GSE141064 Live-seq establishes in the reviewed ledger that a content-addressed 17-cell slice can
+  link a viability-preserving
   pre-LPS transcriptomic biopsy to a later same-cell Tnf-mCherry response window. It is an
   associational future-function relationship, not a transported or identified causal effect.
 
@@ -48,8 +56,9 @@ Both proofs retain explicit negative assessments and `use_authorized=false`.
 
 ## Consequences
 
-- Large biological bytes remain outside Git; committed artifacts contain immutable hashes and
-  reproducible selectors or whole-axis membership bindings.
+- Large biological bytes remain outside Git; committed artifacts contain immutable hashes,
+  content-bound selector declarations and reviewed execution attestations, or whole-axis membership
+  bindings. Structural verification does not replay those attestations.
 - Heterogeneous accessions require exact slices rather than prose-only cohort descriptions.
 - Dataset timing uncertainty stays visible in assessment identity and support checks.
 - A passing proof cannot be used as shorthand for training admission, benchmark readiness, causal
