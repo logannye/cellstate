@@ -26,7 +26,12 @@ jobs:
       - name: Type check on minimum supported Python
         if: matrix.python-version == '3.11'
         run: uv run --no-editable mypy src
-      - run: uv run --no-editable pytest
+      - name: Test with coverage on the reference runtime
+        if: matrix.python-version == '3.11'
+        run: uv run --no-editable pytest
+      - name: Test on compatibility runtimes
+        if: matrix.python-version != '3.11'
+        run: uv run --no-editable pytest --no-cov
       - run: uv run --no-editable python scripts/export_schemas.py
       - run: git diff --exit-code -- schemas
       - run: uv build
