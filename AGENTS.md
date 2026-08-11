@@ -67,8 +67,10 @@ not a biologically or clinically validated cell model.
 
 Phase 0 is active. The experimental public-data/claim manifest `0.3-experimental` supports
 canonical repeated claim assessments, exact loss/metric eligibility, layered permission
-resolution, content-addressed dataset slices, interval-valued evidence clocks, and executable
-representability proofs. Schema v2 enforces typed subjects, destructive evidence, bounded query
+resolution, content-addressed dataset slices, interval-valued evidence clocks, and machine-checked
+reviewed representability ledgers. Those ledgers validate bound declarations and attestations; the
+current verifier does not resolve source bytes or replay selectors. Schema v2 enforces typed
+subjects, destructive evidence, bounded query
 support, query-compiled state, perturbation realization, scientific readiness/abstention, causal
 status, and standalone decision-oriented measurement selection. The Replogle K562 destructive-
 population proof and the GSE141064 Live-seq individual functional-recorder proof passed on
@@ -91,11 +93,17 @@ loaded by the registry-owned trusted JIT loader, so independently supplied objec
 admitted bytes. The sci-Plex3 artifact remains a non-executable `SCAFFOLD`. Item 11 completed its
 immutable `p1` loader, close-reauthenticated count scan, and six mandatory non-admissible baselines.
 Item 12 candidate revisions v1–v4 all failed closed without issuing a model, prediction, metric,
-calibration, or lifecycle result. Item 12.1a has frozen the source-free local-map and plate-context
-characterization harness; Item 12.1b, its separately authorized one-use real-`p1` nonissuing
-execution, is the next gated step. Held-out `p2`, `p3`, and `p4` remain sealed. No biological
-runtime or validated belief may be registered before its separate operation-specific admission
-and scientific gates pass.
+calibration, or lifecycle result. Item 12.1a's exact harness, tests, parent driver, and historical
+reports are canonical under `audits/item12_1a`. A source-code audit subsequently confirmed that v4's
+dose objective omits the full ELBO's `94785/768` equal-well multiplier, so v4 is retired and the
+planned real-`p1` Item 12.1b replay must not run. The next milestone is a source-free v5 objective
+and M-step redesign with full-ELBO gradient/nondecrease tests, request-level sampler/RNG support,
+immutable-generation atomic publication, and whole-process-tree hard wall-clock and memory
+containment before any new real-`p1` authorization. Protected `p2`, `p3`, and `p4` raw UMI
+count-matrix/endpoint bytes, outcomes, and lifecycle scoring authority remain sealed; their frozen
+split membership and benchmark-design metadata are public and are not an access grant. No
+biological runtime or validated belief may be registered
+before its separate operation-specific admission and scientific gates pass.
 
 `docs/roadmap.md` is the sole authority for sequence and status. The full target architecture lives
 in `docs/architecture/full-buildout.md`; accepted rationale lives in ADRs. The sanitized local audit

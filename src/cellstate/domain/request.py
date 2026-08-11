@@ -393,7 +393,12 @@ class EstimateCellStateRequest(SchemaModel):
                 event.event_id
                 for event in self.history.events
                 if event.event_id not in previous_event_ids
-                and event.time_seconds < previous.as_of_seconds
+                and (
+                    event.end_time_seconds
+                    if isinstance(event, ObservationEvent)
+                    else event.time_seconds
+                )
+                < previous.as_of_seconds
             ]
             if late_arrivals:
                 raise ValueError(

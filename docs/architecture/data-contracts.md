@@ -105,9 +105,10 @@ Sample-backed posteriors use an explicit two-axis convention: sample artifacts h
 `(sample_count, state_dimension_count)` with axes `("sample", "state_dimension")`; optional weights
 have one `"sample"` axis and exactly one entry per sample.
 
-Public models prevent top-level field assignment, but Python mappings nested inside them are not
-deeply frozen. Callers must treat nested mappings as read-only, and adapters must serialize and
-revalidate contracts at process and storage boundaries before trusting their fingerprints.
+Public models prevent top-level field assignment and freeze nested mappings and JSON lists in
+serialization-compatible containers that reject in-place mutation. Adapters must still serialize
+and revalidate contracts at process and storage boundaries before trusting their fingerprints;
+immutability prevents local drift but does not authenticate an external payload.
 
 ## Public-real dataset manifests
 
@@ -119,9 +120,10 @@ hierarchy, sampling/linkage semantics, modality alignment, an exact whole-artifa
 content-addressed slice, and independently scoped claim, loss, and metric assessments.
 
 `RepresentabilityProof` is a separate experimental artifact. It binds an exact manifest, slice,
-assessment ledger, source bytes, and typed representability criteria. Its verifier answers whether
-the declared subject/evidence relationship is structurally expressible; it does not evaluate legal
-permission or admit a training loss, metric, benchmark, or biological model.
+assessment ledger, declared source-byte digests/locators, and typed representability criteria. Its
+current verifier checks whether the reviewed subject/evidence declarations are structurally
+expressible; it does not fetch source bytes, recompute slice membership, replay selectors, evaluate
+legal permission, or admit a training loss, metric, benchmark, or biological model.
 
 Experimental units distinguish donor, organism, tissue, clone, culture, organoid, plate, well,
 sample, cell, and spatial region. The manifest binds alignment keys and sampling subjects to those

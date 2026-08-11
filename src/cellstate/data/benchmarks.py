@@ -837,8 +837,11 @@ class BenchmarkEvaluationCaseSet(BenchmarkModel):
                     or control.context_fingerprint != case.context_fingerprint
                     or control.matching_stratum_id != case.matching_stratum_id
                     or control.matching_stratum_fingerprint != case.matching_stratum_fingerprint
+                    or control.horizon_name != case.horizon_name
                 ):
-                    raise ValueError("matched controls must share exact context and stratum")
+                    raise ValueError(
+                        "matched controls must share exact context and stratum at the same horizon"
+                    )
         return self
 
 

@@ -116,7 +116,8 @@ The benchmark definition is frozen while its admission remains component-only. I
 scientific-assessment, and benchmark-permission resolutions pass. Full scientific admission
 additionally requires executable metric and uncertainty implementations with golden cases, a
 complete passing leakage audit, executed mandatory baselines, complete metric reporting, paired
-compound-block comparisons, and passing thresholds frozen before untouched-test access. Planned
+compound-block comparisons, and passing thresholds frozen before protected untouched-test endpoint
+and scoring access. Planned
 specifications are typed separately from executable implementations and cannot satisfy those
 gates.
 

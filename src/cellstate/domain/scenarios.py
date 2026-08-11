@@ -162,6 +162,8 @@ class TransportReport(SchemaModel):
                 raise ValueError(
                     "transported or extrapolated results require source, target, and assumptions"
                 )
+            if self.status is TransportStatus.TRANSPORTED and not self.evidence_ids:
+                raise ValueError("transported results require transport evidence")
         elif self.status is TransportStatus.WITHIN_SUPPORT and self.assumptions:
             raise ValueError("within-support predictions must not claim transport assumptions")
         if len(self.evidence_ids) != len(set(self.evidence_ids)):
@@ -173,15 +175,29 @@ def _validate_causal_transport(
     causal_status: CausalStatus,
     transport: TransportReport,
     assumptions: tuple[str, ...],
+    *,
+    source_scope: str | None = None,
+    target_scope: str | None = None,
 ) -> None:
-    if causal_status is CausalStatus.TRANSPORTED_UNDER_ASSUMPTIONS:
+    if causal_status is CausalStatus.IDENTIFIED_POPULATION_EFFECT:
+        if transport.status is not TransportStatus.WITHIN_SUPPORT:
+            raise ValueError("an identified population effect requires within-support transport")
+    elif causal_status is CausalStatus.TRANSPORTED_UNDER_ASSUMPTIONS:
         if transport.status is not TransportStatus.TRANSPORTED:
             raise ValueError("transported causal status requires a transported result")
+        if not transport.evidence_ids:
+            raise ValueError("transported causal status requires transport evidence")
         if set(assumptions) != set(transport.assumptions):
             raise ValueError("causal and transport assumptions must agree")
-    elif causal_status is CausalStatus.MECHANISTIC_EXTRAPOLATION:
-        if transport.status is not TransportStatus.EXTRAPOLATED:
-            raise ValueError("mechanistic extrapolation requires extrapolated transport status")
+        if (source_scope is not None or target_scope is not None) and (
+            transport.source_domain != source_scope or transport.target_domain != target_scope
+        ):
+            raise ValueError("causal scopes and transport domains must agree")
+    elif (
+        causal_status is CausalStatus.MECHANISTIC_EXTRAPOLATION
+        and transport.status is not TransportStatus.EXTRAPOLATED
+    ):
+        raise ValueError("mechanistic extrapolation requires extrapolated transport status")
 
 
 class TargetPrediction(SchemaModel):
@@ -236,8 +252,8 @@ def _require_parametric_marginal(
     indices = [joint.dimensions.index(dimension) for dimension in marginal.dimensions]
     expected_mean = np.asarray(joint.mean)[indices]
     expected_covariance = np.asarray(joint.covariance)[np.ix_(indices, indices)]
-    if not np.allclose(expected_mean, marginal.mean, atol=1e-8) or not np.allclose(
-        expected_covariance, marginal.covariance, atol=1e-8
+    if not np.allclose(expected_mean, marginal.mean, rtol=0, atol=1e-8) or not np.allclose(
+        expected_covariance, marginal.covariance, rtol=0, atol=1e-8
     ):
         raise ValueError(f"parametric {label} posterior must match the forecast joint marginal")
 
@@ -391,6 +407,13 @@ class StateForecast(SchemaModel):
         elif self.context.latent_context_posterior is not None:
             raise ValueError("forecast must not emit out-of-query context state")
 
+        realization_ids = [
+            realization.intervention_event_id for realization in self.intervention_realizations
+        ]
+        if len(realization_ids) != len(set(realization_ids)):
+            raise ValueError("forecast realization blocks must name unique interventions")
+        if not set(realization_ids) <= source_event_ids:
+            raise ValueError("forecast realization blocks must reference provenance events")
         realization_dimensions = [
             dimension
             for realization in self.intervention_realizations
@@ -416,6 +439,8 @@ class StateForecast(SchemaModel):
                 or set(self.nuisance.posterior.dimensions) != nuisance_dimensions
             ):
                 raise ValueError("forecast Xi posterior must match the compiled nuisance state")
+            if not set(self.nuisance.evidence_event_ids) <= source_event_ids:
+                raise ValueError("forecast nuisance evidence must appear in provenance")
             _require_parametric_marginal(
                 self.joint_posterior,
                 self.nuisance.posterior,
@@ -444,7 +469,19 @@ class StateForecast(SchemaModel):
             self.causal_status,
             self.transport,
             self.diagnostics.causal_support.transport_assumptions,
+            source_scope=self.diagnostics.causal_support.source_scope,
+            target_scope=self.diagnostics.causal_support.target_scope,
         )
+        for prediction in self.target_predictions:
+            if prediction.causal_status is not CausalStatus.TRANSPORTED_UNDER_ASSUMPTIONS:
+                continue
+            _validate_causal_transport(
+                prediction.causal_status,
+                prediction.transport,
+                self.diagnostics.causal_support.transport_assumptions,
+                source_scope=self.diagnostics.causal_support.source_scope,
+                target_scope=self.diagnostics.causal_support.target_scope,
+            )
         if (
             not set(self.diagnostics.causal_support.evidence_ids)
             <= self.provenance.scientific_evidence_ids
@@ -547,10 +584,13 @@ class CandidateEvaluation(SchemaModel):
             return self
         if not self.readiness.valid_for_control:
             raise ValueError("a supported intervention candidate must be valid for control")
-        if self.causal_status is CausalStatus.UNSUPPORTED:
-            raise ValueError("a causally unsupported candidate cannot be selectable")
-        if self.transport.status is TransportStatus.UNSUPPORTED:
-            raise ValueError("a transport-unsupported candidate cannot be selectable")
+        if self.causal_status not in {
+            CausalStatus.IDENTIFIED_POPULATION_EFFECT,
+            CausalStatus.TRANSPORTED_UNDER_ASSUMPTIONS,
+        }:
+            raise ValueError(
+                "a selectable candidate requires identified or transported causal support"
+            )
         assert self.expected_utility is not None
         assert self.uncertainty_penalty is not None
         assert self.selection_score is not None
@@ -647,10 +687,13 @@ class InterventionPlan(SchemaModel):
                 raise ValueError("a selected plan cannot also report abstention reasons")
             if not self.readiness.valid_for_control:
                 raise ValueError("an intervention plan cannot select while control is invalid")
-            if self.causal_status is CausalStatus.UNSUPPORTED:
-                raise ValueError("a causally unsupported plan cannot select an intervention")
-            if self.transport.status is TransportStatus.UNSUPPORTED:
-                raise ValueError("a transport-unsupported plan cannot select an intervention")
+            if self.causal_status not in {
+                CausalStatus.IDENTIFIED_POPULATION_EFFECT,
+                CausalStatus.TRANSPORTED_UNDER_ASSUMPTIONS,
+            }:
+                raise ValueError(
+                    "a selected plan requires identified or transported causal support"
+                )
             if self.selected_scenario_id is None:
                 raise ValueError("a selected plan requires a selected scenario")
 
@@ -665,10 +708,8 @@ class InterventionPlan(SchemaModel):
                 raise ValueError("selected plan causal status must match its candidate evaluation")
             if selected_evaluation.causal_support != self.causal_support:
                 raise ValueError("selected plan causal support must equal its candidate evaluation")
-            if selected_evaluation.transport.status is not self.transport.status:
-                raise ValueError(
-                    "selected plan transport status must match its candidate evaluation"
-                )
+            if selected_evaluation.transport != self.transport:
+                raise ValueError("selected plan transport must equal its candidate evaluation")
         supported = [evaluation for evaluation in self.evaluations if evaluation.supported]
         if self.status is PlanStatus.SELECTED:
             if not supported:
@@ -685,6 +726,12 @@ class InterventionPlan(SchemaModel):
                 raise ValueError("the selected scenario must have the highest selection score")
         if self.provenance.query_fingerprint != self.query_fingerprint:
             raise ValueError("plan provenance/query fingerprints must agree")
+        transports = (self.transport, *(evaluation.transport for evaluation in self.evaluations))
+        if any(
+            not set(transport.evidence_ids) <= self.provenance.scientific_evidence_ids
+            for transport in transports
+        ):
+            raise ValueError("plan transport evidence must appear in provenance")
         return self
 
 

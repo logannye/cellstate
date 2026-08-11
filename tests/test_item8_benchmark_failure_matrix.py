@@ -443,6 +443,26 @@ def test_case_set_rejects_unknown_noncontrol_and_mismatched_controls(query: Stat
         )
 
 
+def test_case_set_rejects_a_matched_control_from_another_horizon(
+    query: StateQuery,
+) -> None:
+    case_set = admitted_artifact(query).definition.evaluation_case_set
+    assert case_set is not None
+    treated = next(case for case in case_set.cases if case.role is data.EvaluationCaseRole.TREATED)
+    control_id = treated.matched_control_evaluation_unit_ids[0]
+    control = next(case for case in case_set.cases if case.evaluation_unit_id == control_id)
+    wrong_horizon_control = control.model_copy(update={"horizon_name": "later-horizon"})
+
+    with pytest.raises(ValidationError, match="same horizon"):
+        rebuild_case_set(
+            case_set,
+            tuple(
+                wrong_horizon_control if case.case_id == control.case_id else case
+                for case in case_set.cases
+            ),
+        )
+
+
 def test_case_set_rejects_a_treated_case_used_as_control(query: StateQuery) -> None:
     case_set = admitted_artifact(query).definition.evaluation_case_set
     assert case_set is not None

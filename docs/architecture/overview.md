@@ -2,8 +2,9 @@
 
 The framework uses a functional core and replaceable model backends.
 
-- `domain/` owns strict, frozen-top-level, schema-versioned boundary objects. Nested mappings are
-  treated as read-only and revalidated at process/storage boundaries.
+- `domain/` owns strict, deeply immutable, schema-versioned boundary objects. Nested mappings and
+  JSON lists reject in-place mutation; serialized values are still revalidated at process/storage
+  boundaries.
 - `engine/` owns deterministic history/registry mechanics and no biology.
 - `ports/` defines estimation, transition, planning, observation, fusion, constraint, diagnostic,
   inheritance, and measurement-policy interfaces.

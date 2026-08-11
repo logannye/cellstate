@@ -11,13 +11,14 @@ performance.
 
 Item 11 adds a separate, non-public software path for this frozen scope. Its immutable H5AD loader
 can open only `p1-train`, authenticates the exact source and `p1` closure, and yields sparse raw-count
-batches on the ordered 2,000-feature panel. The loader refuses `p2`, `p3`, and `p4` before source
-access; future access requires grants bound to the preceding lifecycle state. Six probabilistic
+batches on the ordered 2,000-feature panel. The loader refuses `p2`, `p3`, and `p4` before protected
+raw-endpoint access; future access requires grants bound to the preceding lifecycle state. Six
+probabilistic
 baseline algorithms fit from `p1` only. The exact source scan and all six fitted-state identities
 are recorded, but no predictions, metrics, baseline comparisons, or performance results exist; the
 software path does not make this scaffold executable.
 
-Item 12 defines the next, still non-public lifecycle boundary. Its original rank-16
+Item 12 defines the still non-public trained-candidate lifecycle boundary. Its original rank-16
 Gamma--Poisson candidate used a separate `q`/capture term and 16 independently fitted factor
 shapes. The exact real-`p1` fit failed closed at the accepted Gamma-shape boundary before a model
 artifact was emitted. V2 removed `q`/capture, but its free pooled factor shape fell from `0.1` to
@@ -26,11 +27,17 @@ approximately `0.073524` and its outer fit remained unconverged at pass 50. V3 f
 gates. A follow-up characterization cleared the activation-rank gate and rejected the independent
 lognormal unseen-plate nuisance as tail-dominated at `sigma_plate=5.66126548675`.
 
-The audited v4 software design keeps the fixed shape, attempts to equilibrate row-local posterior
+The historical v4 software design keeps the fixed shape, attempts to equilibrate row-local posterior
 coordinates within every canonical batch, and proposes replacing that parametric tail with uniform
 selection of one complete observed `p1` `rho` row. Its valid exact-reference, p1-only, nonissuing run
 failed initial inner equilibration before an outer update or ELBO trace. No candidate artifact
-exists. V4 is `NO-GO`, so this page makes no trained-candidate or lifecycle claim.
+exists. A later source-code audit also found that v4's dose-block objective, gradient, and Hessian omit
+the equal-well factor `N/W = 94785/768` applied to the corresponding action likelihood in its
+tracked ELBO. The dose update therefore does not optimize that ELBO. V4 is retired and unissued,
+and the planned Item 12.1b real-`p1` characterization was retired before execution. The next
+milestone is a source-free v5 objective and M-step redesign, with full-ELBO gradient and
+fixed-`q` nondecrease tests plus hard wall-time and memory containment, before any new real-`p1`
+authorization can be considered.
 
 Its only eventual computation is:
 
@@ -46,13 +53,13 @@ label is `predictive_association`, intervention realization remains `unknown`, a
 cannot claim viability, survival, target engagement, individual-cell dynamics, transport, or a
 current-state belief.
 
-## Item 12 trained-candidate boundary
+## Historical Item 12 v4 trained-candidate boundary
 
-Candidate v4 is a continuous Gamma--Poisson model with exactly 16 factors, exact equal-well
-`p1-train` fitting, immutable tensor and behavior manifests, and raw-count sampling on the frozen
-ordered 2,000-feature panel. It has no `q`/capture term, estimated factor shape, calibration result,
-held-out plate embedding, outcome lookup, or public-runtime authority. Its factor shape is fixed at
-exactly `r_theta=0.1` and never estimated from `p1`.
+Candidate v4 was specified as a continuous Gamma--Poisson model with exactly 16 factors, exact
+equal-well `p1-train` fitting, immutable tensor and behavior manifests, and raw-count sampling on
+the frozen ordered 2,000-feature panel. It has no `q`/capture term, estimated factor shape,
+calibration result, held-out plate embedding, outcome lookup, or public-runtime authority. Its
+factor shape is fixed at exactly `r_theta=0.1` and never estimated from `p1`.
 
 Within each canonical sparse batch, deterministic row-local `phi`/`theta` fixed-point updates must
 equilibrate before their sufficient statistics can reach an outer update. Shape and expected-log
@@ -88,7 +95,8 @@ rejected h5py's nonpersistent `/dev/null` probe before fitting. It is infrastruc
 contains no fit, and must not be interpreted as science. The replacement exact-reference, p1-only,
 nonissuing run produced report
 `66e9debc1a402e7aa68cbc934f7c5f641529eea3187ec15606364c912af8faa8`. It passed integrity and
-resource gates with every provisional tensor finite, then failed initial, untraced inner
+post-hoc resource acceptance checks with every provisional tensor finite, then failed initial,
+untraced inner
 equilibration at sweep 50, passing streak 0, `Rshape=0.24714465227035654`, and
 `Relog=3.750385840630546`. No outer update or ELBO trace occurred. The residuals are respectively
 24,714,465 and 375,038,584 times the `1e-8` tolerance. The provisional loading-rank ratio
@@ -109,7 +117,7 @@ performance, scientific admission, component execution, or any public cell-state
 
 The v4 execution issued no plan, model, observation, training evidence, or materialization. None of
 those conditional declarations apply, trusted readiness remains `SCAFFOLD`, and Item 12 remains in
-progress.
+progress through the source-free v5 redesign. Retiring v4 does not authorize a v5 real-source run.
 
 ## Frozen component and historical diagnostic identities
 
@@ -131,11 +139,17 @@ progress.
 | Historical v2 synthetic golden sample | `26b601ce6779cb5bdca9337ed1f6eaeb41bd3e10c728ae1d111c15ba1bca8e01` |
 | Infrastructure-invalid v4 no-fit report | `4677fc8ef1a458bf3616abc507250572c2da7a8d53c1c8a7a03d4b097f3d4877` |
 | Valid exact-reference v4 nonissuing report | `66e9debc1a402e7aa68cbc934f7c5f641529eea3187ec15606364c912af8faa8` |
+| Frozen Item 12.1a characterization harness | `f4e6b76847bd926952995d66233389768f091135699fb60a38d7d9762bb03ff1` |
+| Frozen Item 12.1a characterization tests | `8989618e259fb4aed0e0798bc010e40092c45e6bd30234bb3a7b534cdc562903` |
+| Frozen Item 12.1a parent driver | `795c59296f5cefb1b6dd78a021ea0eb8e795217eda5226becf6c5bf909f6623a` |
 
 The v2 rows identify the software used for a rejected diagnostic trajectory. They are incompatible
 with v4 and do not identify a real-p1 fitted model, training plan, current candidate family, or
 trusted lifecycle result. The v4 report rows identify unsuccessful execution records, not a model,
-training evidence, or trusted lifecycle result.
+training evidence, or trusted lifecycle result. The Item 12.1a bytes and both report files are
+canonical under
+[`audits/item12_1a`](https://github.com/logannye/cellstate/tree/main/audits/item12_1a); they preserve a retired
+audit lineage and are not execution authority.
 
 There is deliberately no constructible or exported response/provenance model yet. A future admitted
 response contract must resolve and inspect its payload bytes—not trust `ArtifactRef` metadata—and
@@ -163,10 +177,16 @@ calibration, thresholds, feature order, baselines, or hyperparameters.
 
 The Item 11 loader is narrower still: its current session type opens `p1-train` only. `p2` requires
 a future trusted grant bound to an exact `TRAINED_CANDIDATE`; `p3` requires one bound to an exact
-`CALIBRATED_CANDIDATE`; and `p4` requires a locked-evaluation grant bound to an exact
-`MODEL_SELECTED_FROZEN` candidate. The `p1` session does not parse held-out outcome or membership
-ledgers. Item 12 retains the same seal: candidate planning, fitting, model reload, and training
-verification do not read `p2`, `p3`, or `p4` membership, cases, or outcomes.
+`CALIBRATED_CANDIDATE`; and `p4` raw endpoint outcomes and scoring require a locked-evaluation grant
+bound to an exact `MODEL_SELECTED_FROZEN` candidate. The `p1` session does not parse held-out source
+outcomes or the public held-out membership ledgers. Item 12 retains the same source seal: candidate
+planning, fitting, model reload, and training verification do not resolve protected `p2`, `p3`, or
+`p4` raw H5AD/UMI endpoint values, outcome/scoring results, or lifecycle evidence.
+
+The checked-in benchmark intentionally exposes public frozen design metadata: exact split-membership
+arrays, record/well/plate identities, well-level cases, action assignments, matched-control
+identities, and an outcome-free prediction schedule. Reading that metadata does not authorize raw
+endpoint access, scoring, or lifecycle evidence.
 
 ## Mandatory baseline software
 
@@ -235,15 +255,20 @@ across 768 wells, retained seven zero-panel records, and emitted six fitted-stat
 opening a held-out partition. The later sequence remains a candidate distribution model, p2
 calibration, p3 freeze, and one locked p4 evaluation. V1 and v2 failed their real fits; the v3
 counterfactual and characterization were deliberately nonissuing. V4's audited exact p1 execution
-also failed closed, and `TRAINED_CANDIDATE` cannot be derived.
+also failed closed, and `TRAINED_CANDIDATE` cannot be derived. The later objective-scale finding
+retires v4 independently of that execution failure.
 
 ### Item 12.1a — local-map and plate-context characterization software freeze
 
-This source-free milestone is complete. The separately hashed scratch harness (`f4e6b768...`) and
-tests (`8989618e...`) passed 26 focused tests, Ruff check/format, compilation, and an independent
-math/containment audit with no P0/P1 finding. The frozen contract contains 50 production maps,
-exactly one diagnostic-only `A51` lookahead, per-sweep `Rshape`/`Relog`, synchronized local
-objectives, one- and two-step state distances and update cosine, deterministic worst
+This source-free milestone is complete. The exact harness, tests, parent driver, invalid report,
+and valid nonissuing report are canonical under
+[`audits/item12_1a`](https://github.com/logannye/cellstate/tree/main/audits/item12_1a). The harness
+(`f4e6b768...`) and tests
+(`8989618e...`) passed 26 focused tests, Ruff check/format, compilation, and an independent bounded
+audit with no P0/P1 finding in the local-map characterization or containment implementation. That
+finding did not validate the separate outer dose objective. The frozen contract contains 50
+production maps, exactly one diagnostic-only `A51` lookahead, per-sweep `Rshape`/`Relog`,
+synchronized local objectives, one- and two-step state distances and update cosine, deterministic worst
 row/factor/count aggregates, shape/rate/mass invariants, per-sweep analytic 16-by-16 Jacobian
 spectral radii, exact replay equality, state/allocation digests, and all 16 bounded `rho`
 effective-context counts and maximum shares.
@@ -253,11 +278,28 @@ noncontractive map routes to a versioned v5 safeguarded local solver; near-zero 
 behavior or effective context near one routes to v5 plate regularization or neutralization. It does
 not prefreeze damping or shrinkage.
 
-### Item 12.1b — one-use real-p1 characterization, nonissuing
+### Item 12.1b — retired before execution
 
-This is the next gated step and remains pending separate explicit audit authorization. Item 12.1a
-opened no source. Item 12.1b cannot relax the cap or tolerance, emit an artifact, access `p2`, or
-make a biological or performance claim.
+The planned one-use real-`p1` characterization is no longer a pending gate. It was retired without
+opening a source, producing a characterization report, emitting an artifact, or changing lifecycle
+state after the v4 dose-objective scale inconsistency was confirmed.
+
+### Item 12.2 — source-free v5 objective, M-step, and containment redesign
+
+This is the next milestone. Before any real-`p1` authorization, v5 must state one canonical full
+objective whose equal-well action terms, dose penalty, analytic gradient, Hessian, and update agree
+exactly. Independently computed fixed-`q` checks must cover feasible-coordinate gradients for
+`alpha`, constrained `log-rho`, and dose effects; treated wells; accepted substeps and complete
+blocks; and Hessian finite differences if Newton remains. A surrogate must nondecrease the same full
+ELBO and share its stationary points.
+
+Sampling must be exactly positive-conditioned or use a frozen maximum request size and request-
+level failure budget over every action/context/calibration `tau`, including Poisson RNG overflow.
+Publication must use an immutable verified generation plus one atomic pointer, with forced process-
+termination and automatic-recovery tests. Parent-enforced wall and memory limits must cover the
+entire source-touching process tree, with frozen image/limit identity and timeout, OOM, descendant-
+cleanup, no-publication, and next-run recovery tests. All of that work is source-free: it does not
+authorize `p1` or open `p2`, `p3`, or protected `p4` source outcomes.
 
 Passing a later complete component lifecycle could authorize only this direct component surface;
 it would not authorize a hidden-state estimator.

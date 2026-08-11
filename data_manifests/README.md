@@ -30,9 +30,13 @@ readout IDs so one endpoint cannot silently substitute for another.
 Do not commit aspirational manifests, placeholder hashes, or inferred licensing. Candidate datasets
 remain in the evidence portfolio in `docs/architecture/full-buildout.md` until review is complete.
 
-A representability proof answers only whether an exact real-data slice can express a declared
-subject/evidence relationship. It does not resolve use permission, admit a loss or metric, or make
-the source a benchmark. The first two reviewed proofs are:
+A representability proof is a machine-checked reviewed ledger answering only whether an exact
+real-data slice can express a declared subject/evidence relationship. The current verifier checks
+content bindings, typed criteria, and reviewer attestations; it does not resolve source bytes,
+execute a selector, or recompute membership. The `selector_execution` evidence-method wire value is
+therefore an attested review method, not an execution receipt. Every resolution reports those two
+runtime actions as false. A proof does not resolve use permission, admit a loss or metric, or make
+the source a benchmark. The first two reviewed ledgers are:
 
 1. Replogle 2022 K562 essential-scale Perturb-seq: a destructive day-6 single-cell assay nested in
    one population snapshot. It proves population/destructive semantics and explicitly does not

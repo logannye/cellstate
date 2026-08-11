@@ -1204,6 +1204,10 @@ def test_forecasts_make_ongoing_intervention_persistence_explicit(
         evolution_model=model,
         options=SYNTHETIC_TEST_OPTIONS,
     )
+    assert tuple(event.event_id for event in continued.context.active_interventions) == (
+        "ongoing-drug",
+    )
+    assert cleared.context.active_interventions == ()
     assert continued.joint_posterior != cleared.joint_posterior
 
 
@@ -1410,3 +1414,35 @@ def test_plan_and_forecast_validators_cover_derived_artifacts(
     plan_payload["evaluations"] = ()
     with pytest.raises(ValidationError, match="every candidate"):
         InterventionPlan.model_validate(plan_payload)
+
+
+def test_schema_boundary_maps_and_json_values_are_deeply_immutable(
+    model: LinearGaussianReference,
+) -> None:
+    belief = estimate_cell_state(
+        request_factory(),
+        estimator=model,
+        options=SYNTHETIC_TEST_OPTIONS,
+    )
+    source_event_id = belief.provenance.source_event_ids[0]
+
+    with pytest.raises(TypeError, match="nested schema mappings are frozen"):
+        belief.provenance.source_event_fingerprints[source_event_id] = "0" * 64
+    with pytest.raises(TypeError, match="nested schema mappings are frozen"):
+        belief.context.physical_environment["ghost"] = "fabricated"
+
+    copied_context = belief.context.model_copy(
+        update={
+            "physical_environment": {
+                "nested": {"values": ["first", "second"]},
+            }
+        }
+    )
+    nested = copied_context.physical_environment["nested"]
+    assert isinstance(nested, dict)
+    with pytest.raises(TypeError, match="nested schema mappings are frozen"):
+        nested["extra"] = "fabricated"
+    values = nested["values"]
+    assert isinstance(values, list)
+    with pytest.raises(TypeError, match="nested schema lists are frozen"):
+        values.append("fabricated")

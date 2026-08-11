@@ -575,12 +575,51 @@ def test_destructive_population_proof_is_go_but_never_legal_authorization() -> N
     resolution = verify_representability(manifest, proof)
     assert resolution.accepted
     assert resolution.failed_criteria == ()
+    assert resolution.selector_execution_replayed is False
+    assert resolution.source_bytes_resolved is False
     assert resolution.use_permission_evaluated is False
     assert resolution.use_authorized is False
     assert (
         manifest.permission_status(DataUseCase.RESEARCH_MODEL_TRAINING)
         is PermissionStatus.PROHIBITED
     )
+
+
+def test_selector_execution_locator_is_a_reviewed_attestation_not_a_replay() -> None:
+    manifest = _individual_manifest()
+    proof = _proof(
+        manifest,
+        RepresentabilityProofKind.INDIVIDUAL_CELL_FUNCTIONAL_RECORDER,
+    )
+    traces = tuple(
+        RepresentabilityCriterionTrace(
+            criterion=trace.criterion,
+            status=trace.status,
+            evidence_locators=tuple(
+                RepresentabilityEvidenceLocator(
+                    source_id=locator.source_id,
+                    method=locator.method,
+                    locator="fabricated locator prose; no selector was replayed",
+                )
+                if locator.method is RepresentabilityEvidenceMethod.SELECTOR_EXECUTION
+                else locator
+                for locator in trace.evidence_locators
+            ),
+            evidence_notes=trace.evidence_notes,
+            blockers=trace.blockers,
+        )
+        if trace.criterion is RepresentabilityCriterion.EXACT_SLICE_BOUND
+        else trace
+        for trace in proof.criterion_traces
+    )
+    reviewed_attestation = _revalidate_proof(proof, criterion_traces=traces)
+
+    resolution = verify_representability(manifest, reviewed_attestation)
+
+    assert resolution.accepted is True
+    assert resolution.structurally_failed_criteria == ()
+    assert resolution.selector_execution_replayed is False
+    assert resolution.source_bytes_resolved is False
 
 
 def test_exact_source_hash_and_negative_claim_bindings_fail_closed() -> None:

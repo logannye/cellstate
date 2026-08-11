@@ -89,6 +89,32 @@ class CandidateImplementation:
     def sample(self, request: object) -> object:
         return request
 
+    @property
+    def model_artifact_sha256(self) -> str:
+        return sha256(MODEL_BYTES).hexdigest()
+
+    def model_bytes(self) -> bytes:
+        return MODEL_BYTES
+
+    def behavior_manifest(self) -> Mapping[str, object]:
+        return {"heldout_read": False}
+
+
+class CandidateImplementationWithoutArtifactHash:
+    """Adversarial registry entry matching the old, incomplete verifier minimum."""
+
+    @classmethod
+    def load_exact(cls, model_bytes: bytes, *, expected_sha256: str) -> object:
+        if sha256(model_bytes).hexdigest() != expected_sha256:
+            raise ValueError("wrong model bytes")
+        return cls()
+
+    def supports(self, target: object) -> bool:
+        return target is not None
+
+    def sample(self, request: object) -> object:
+        return request
+
     def model_bytes(self) -> bytes:
         return MODEL_BYTES
 
@@ -179,7 +205,11 @@ def _trusted_verifier(content_by_sha256: dict[str, bytes]) -> TrustedAdmissionVe
     )
 
 
-def _training_fixture() -> TrainingFixture:
+def _training_fixture(
+    *,
+    training_partition_ids: tuple[str, ...] = ("p1-train",),
+    candidate_factory_class: type[object] = CandidateImplementation,
+) -> TrainingFixture:
     content_by_sha256: dict[str, bytes] = {}
     query = StateQuery.model_validate_json(QUERY_PATH.read_bytes())
     benchmark = BenchmarkArtifact.model_validate_json(BENCHMARK_PATH.read_bytes())
@@ -230,7 +260,7 @@ def _training_fixture() -> TrainingFixture:
         interface=TRAINED_CANDIDATE_FACTORY_INTERFACE,
         kind=PortImplementationKind.PYTHON_ENTRY_POINT,
         code_artifact=candidate_code,
-        entrypoint=f"{__name__}:CandidateImplementation",
+        entrypoint=f"{__name__}:{candidate_factory_class.__name__}",
     )
     count_stream_sha256 = sha256(b"conceptual-p1-count-stream").hexdigest()
     scan_fingerprint = sha256(b"finalized-p1-scan").hexdigest()
@@ -241,7 +271,7 @@ def _training_fixture() -> TrainingFixture:
         query_fingerprint=query.fingerprint,
         benchmark_fingerprint=benchmark.fingerprint,
         support_envelope_fingerprint=support.fingerprint,
-        training_partition_ids=("p1-train",),
+        training_partition_ids=training_partition_ids,
         p1_loader_contract=_artifact(
             "item12-p1-loader-contract",
             b"p1-loader-contract",
@@ -319,7 +349,7 @@ def _training_fixture() -> TrainingFixture:
         evidence_id="item12-real-p1-training-evidence",
         evidence_version="0.1.0",
         training_plan_fingerprint=plan.fingerprint,
-        partition_ids=("p1-train",),
+        partition_ids=training_partition_ids,
         source=source,
         finalized_count_scan=_artifact(
             "item12-p1-finalized-count-scan",
@@ -410,7 +440,7 @@ def _training_fixture() -> TrainingFixture:
         benchmark_fingerprint=benchmark.fingerprint,
         support_envelope_fingerprint=support.fingerprint,
         model_artifact=model_artifact,
-        training_partition_ids=("p1-train",),
+        training_partition_ids=training_partition_ids,
         training_evidence_artifacts=deterministic_training_evidence,
     )
     training_run_reference = _contract_reference(
@@ -462,7 +492,7 @@ def _training_fixture() -> TrainingFixture:
     trusted_interface = TrustedRuntimeInterface(
         declared_interface=TRAINED_CANDIDATE_FACTORY_INTERFACE,
         interface_artifact=interface_artifact,
-        runtime_interface=CandidateImplementation,
+        runtime_interface=candidate_factory_class,
     )
     requirement = implementation_requirement_for_binding(
         bundle,
@@ -473,8 +503,8 @@ def _training_fixture() -> TrainingFixture:
     )
     loaded_identity = LoadedObjectIdentity(
         entrypoint=candidate_factory.entrypoint or "",
-        module=CandidateImplementation.__module__,
-        qualname=CandidateImplementation.__qualname__,
+        module=candidate_factory_class.__module__,
+        qualname=candidate_factory_class.__qualname__,
         object_kind=LoadedObjectKind.CLASS,
         loaded_code_sha256=candidate_code.sha256,
     )
@@ -595,6 +625,11 @@ def test_exact_p1_context_derives_only_trained_candidate(
     )
     assert type(verification) is TrainedCandidateVerification
     assert verification.model_artifact_sha256 == fixture.training_run.model_artifact.sha256
+    factory_requirement = fixture.context.candidate_factory_interface_receipt.requirement
+    assert any(
+        signature.startswith("model_artifact_sha256|property|")
+        for signature in factory_requirement.required_member_signatures
+    )
     assert fixture.context.plan.training_partition_roles == (BenchmarkPartitionRole.TRAIN,)
 
     readiness = assess_biological_model_bundle(
@@ -638,6 +673,47 @@ def test_exact_p1_context_derives_only_trained_candidate(
         for port in fixture.support.required_ports
         if port is not BiologicalStagePort.POPULATION_ASSAY_RESPONSE_DISTRIBUTION_MODEL
     )
+
+
+def test_trained_candidate_factory_requires_artifact_identity_property() -> None:
+    fixture = _training_fixture(
+        candidate_factory_class=CandidateImplementationWithoutArtifactHash,
+    )
+    with pytest.raises(ValueError, match="artifact-state members"):
+        require_exact_trained_candidate(
+            fixture.bundle,
+            query=fixture.query,
+            benchmark=fixture.benchmark,
+            support_envelope=fixture.support,
+            training_run=fixture.training_run,
+            context=fixture.context,
+        )
+
+
+def test_consistently_renamed_training_partition_cannot_bypass_benchmark_role_binding() -> None:
+    fixture = _training_fixture(training_partition_ids=("renamed-p1-train",))
+    assert (
+        fixture.context.plan.training_partition_ids
+        == fixture.context.p1_evidence.partition_ids
+        == fixture.training_run.training_partition_ids
+        == ("renamed-p1-train",)
+    )
+    assert fixture.benchmark.definition.split_plan is not None
+    assert tuple(
+        partition.partition_id
+        for partition in fixture.benchmark.definition.split_plan.partitions
+        if partition.role is BenchmarkPartitionRole.TRAIN
+    ) == ("p1-train",)
+
+    with pytest.raises(ValueError, match="benchmark's exact training partitions"):
+        require_exact_trained_candidate(
+            fixture.bundle,
+            query=fixture.query,
+            benchmark=fixture.benchmark,
+            support_envelope=fixture.support,
+            training_run=fixture.training_run,
+            context=fixture.context,
+        )
 
 
 def test_stage_coverage_is_nonvacuous_and_never_expands_heldout_partitions(

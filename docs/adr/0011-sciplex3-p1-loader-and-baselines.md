@@ -12,12 +12,14 @@ first executable data path needs the source counts in `p1-train` to fit mandator
 later, a candidate distribution model. It does not yet need calibration outcomes from `p2`, model-
 selection outcomes from `p3`, or untouched-test outcomes from `p4`.
 
-A general partition reader at this stage would make held-out membership or outcomes available before
-the artifact that justifies their lifecycle use exists. It would also allow a software milestone to
-look like a completed scientific benchmark even if the exact source had not been scanned, the
-baselines had not been run, and no metric or acceptance gate had passed. The first path must instead
-demonstrate deterministic raw-count ingestion and executable probabilistic algorithms while
-preserving the benchmark's sealed evaluation sequence.
+A general source-partition reader at this stage would make protected held-out endpoint values or
+scoring available before the artifact that justifies their lifecycle use exists. Exact frozen split
+membership and outcome-free case design are already public checked-in metadata; the current session
+still does not need to parse them. The software milestone could otherwise look like a completed
+scientific benchmark even if the exact source had not been scanned, the baselines had not been run,
+and no metric or acceptance gate had passed. The first path must instead demonstrate deterministic
+raw-count ingestion and executable probabilistic algorithms while preserving the benchmark's sealed
+outcome-evaluation sequence.
 
 The target remains the direct population endpoint from ADR 0009: raw nonnegative integer UMI counts
 on the exact ordered 2,000-feature panel in recovered K562 nuclei at 24 hours, conditional on static
@@ -39,8 +41,9 @@ row provenance; and binds the exact manifest, query, benchmark, target schema, s
 feature panel, and ordered-feature identities.
 
 The same seekable source object is hashed before HDF5 parsing and reauthenticated after HDF5 closes.
-The `p1` session neither parses held-out membership/outcome ledgers nor exposes a caller-selectable
-partition. `p2`, `p3`, and `p4` fail before source access. Their future gates are respectively:
+The `p1` session neither parses the public held-out membership ledgers nor protected outcome values,
+and it exposes no caller-selectable partition. `p2`, `p3`, and `p4` fail before protected
+raw-endpoint access. Their future gates are respectively:
 
 - `p2-calibration`: a trusted calibration grant bound to an exact `TRAINED_CANDIDATE`;
 - `p3-model-selection-validation`: a trusted selection grant bound to an exact
@@ -119,8 +122,9 @@ Item 11 is complete only when tests and checked-in receipts demonstrate that it:
 - authenticates the exact source object before and after use and validates the full frozen H5AD
   structure needed for `p1`;
 - resolves complete, one-to-one `p1` record, well, condition, row, and ordered-feature closure while
-  never parsing held-out memberships or outcomes;
-- refuses `p2`, `p3`, and `p4` without their future lifecycle-bound trusted grants;
+  never parsing public held-out membership files or protected outcomes in the `p1` session;
+- refuses protected `p2`, `p3`, and `p4` raw-endpoint access without future lifecycle-bound
+  trusted grants;
 - fits all six algorithms only from `p1`, including no-action cases, p1-only matched controls, and
   exact-dose-excluding nearest-dose behavior;
 - reproduces the 512-draw, five-seed `PCG64DXSM` contract and content-addresses fitted state and

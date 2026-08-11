@@ -15,6 +15,13 @@
 - Add request/scenario/decision-scoped capability preflights, numerical acceptance thresholds,
   support/sufficiency/identifiability/calibration/causal diagnostics, independent readiness flags,
   causal and transport labels, and typed planning abstention.
+- Correct contract-boundary defects found in the pre-roadmap audit: assimilate interval observations
+  at collection end; treat zero-duration environment records as points; bind returned context,
+  forecast realization/nuisance provenance, and planning transport to exact inputs; use absolute
+  marginal tolerances; validate distribution-support means and nonnegative dynamics; require
+  same-horizon matched controls and the benchmark's exact training partitions; and expose that
+  representability resolutions neither fetch source bytes nor replay selectors. Deep-freeze nested
+  schema mappings and JSON lists so provenance and context cannot drift after boundary validation.
 - Return structured scientific abstentions while keeping computational capability preflights
   fail-closed; remove capability and scientific-validity bypass flags.
 - Bind passing population-effect claims to typed target/horizon/aggregation/action estimands,
@@ -34,8 +41,8 @@
   claim assessments, stable functional-readout IDs, separately scoped loss/metric eligibility,
   exact supporting evidence and split-unit closure, layered most-restrictive use policy, and an
   exact science-plus-permission resolver. Add content-addressed dataset slices, interval-valued
-  evidence clocks, derived-readout provenance, and executable representability proofs. Unsupported
-  benchmark metric semantics remain fail-closed.
+  evidence clocks, derived-readout provenance, and machine-checked reviewed representability
+  ledgers. Unsupported benchmark metric semantics remain fail-closed.
 - Add reviewed real-data proofs for a Replogle K562 destructive population snapshot and an exact
   GSE141064 Live-seq individual functional-recorder slice. Both proofs preserve explicit negative
   claims and keep data-use authorization and benchmark admission closed.
@@ -70,8 +77,10 @@
   `p1-train`-scoped immutable H5AD loader; six `p1`-fit probabilistic raw-count baselines with
   explicit no-action behavior and an exact-dose-excluding nearest-dose comparator; fixed
   512-sample, five-seed `PCG64DXSM` execution semantics; and streamed, content-addressed fitted-
-  state and prediction-run scaffolding. `p2`, `p3`, and `p4` remain hard sealed behind future
-  lifecycle grants. Record the exact close-reauthenticated source scan of 94,785 `p1` rows across
+  state and prediction-run scaffolding. Protected `p2`, `p3`, and `p4` raw UMI endpoint values,
+  outcome scoring, and lifecycle authority remain hard sealed behind future grants; frozen split
+  membership and outcome-free case design are public. Record the exact close-reauthenticated source
+  scan of 94,785 `p1` rows across
   768 wells and all six content-addressed fitted-state identities, retaining seven genuine zero-
   panel rows. These are software provenance, not prediction or performance results: the benchmark
   stays `COMPONENT_BENCHMARK`, the bundle stays `SCAFFOLD`, and no public cell-state runtime is
@@ -98,7 +107,8 @@
   invalid and contains no fit; h5py's nonpersistent `/dev/null` probe triggered the filesystem
   audit, so that report must not be interpreted scientifically. The replacement exact-reference,
   p1-only report, `66e9debc1a402e7aa68cbc934f7c5f641529eea3187ec15606364c912af8faa8`,
-  passed integrity and resource gates with finite provisional tensors, then failed initial,
+  passed integrity checks and post-hoc resource acceptance checks with finite provisional tensors,
+  then failed initial,
   untraced inner equilibration at sweep 50, streak 0, `Rshape=0.24714465227035654`, and
   `Relog=3.750385840630546`, before any outer update or ELBO trace. These are 24,714,465 and
   375,038,584 times the `1e-8` tolerance. Initialization-only loading-rank, activation-rank, and
@@ -109,13 +119,16 @@
   `1.0000011118`. This is a candidate-family risk, not a fitted-model pathology, and requires
   reexamination of the empirical whole-row proposal. V4 is `NO-GO`: no model, plan, observation,
   training evidence, materialization, or lifecycle result was issued. Item 12 remains in progress
-  and the component remains `SCAFFOLD`; `p2`, `p3`, and `p4` remain sealed.
+  and the component remains `SCAFFOLD`; protected `p2`, `p3`, and `p4` raw UMI endpoint values,
+  outcome scoring, and lifecycle authority remain sealed.
 - Completed **Item 12.1a — local-map and plate-context characterization software freeze**. The
-  scratch harness SHA-256 is `f4e6b76847bd926952995d66233389768f091135699fb60a38d7d9762bb03ff1`
+  historical harness SHA-256 is `f4e6b76847bd926952995d66233389768f091135699fb60a38d7d9762bb03ff1`
   and its source-free test SHA-256 is
   `8989618e259fb4aed0e0798bc010e40092c45e6bd30234bb3a7b534cdc562903`.
-  Twenty-six focused tests, Ruff check/format, compilation, and an independent math/containment
-  audit passed with no P0/P1 finding. The harness predeclares one bounded first-failing-batch replay
+  The exact harness, test, parent driver, and both historical reports are now canonical under
+  [`audits/item12_1a`](audits/item12_1a/). Twenty-six focused tests, Ruff check/format, compilation,
+  and an independent math/containment audit reported no P0/P1 finding within the bounded local-map
+  and containment scope. The harness predeclares one bounded first-failing-batch replay
   with per-sweep `Rshape`/`Relog`, local ELBO, one- and two-step state distances and update cosine,
   the worst
   row/factor/count aggregate, shape/rate/mass invariants, the 16-by-16 Jacobian spectral radius,
@@ -123,10 +136,17 @@
   maximum shares. Objective decrease routes to an implementation fix; an intact objective plus a
   two-cycle or noncontractive map routes to a versioned v5 safeguarded local solver; near-zero
   prior/context behavior or effective context near one routes to v5 plate regularization or
-  neutralization. **Item 12.1b**—one separately authorized real-`p1`, nonissuing execution—remains
-  pending. Item 12.1a opened no source and does not prefreeze damping or shrinkage or authorize a
-  real-source run, cap or tolerance relaxation, an artifact, p2 access, or any biology or
-  performance claim.
+  neutralization. Item 12.1a opened no source and does not prefreeze damping or shrinkage or
+  authorize a real-source run, cap or tolerance relaxation, an artifact, p2 access, or any biology
+  or performance claim.
+- Retire v4 and its planned Item 12.1b real-`p1` replay before execution after a source-code audit
+  confirmed that the dose Newton objective omits the tracked full ELBO's `94785/768` equal-well
+  multiplier. No v4 model
+  or lifecycle evidence was issued. Make a source-free v5 objective/M-step redesign the next
+  milestone, requiring finite-difference full-ELBO gradient tests, fixed-`q` M-step nondecrease
+  tests, one-objective action/context updates, request-level sampler/RNG support gates, immutable-
+  generation atomic publication, and whole-process-tree hard wall-clock and memory containment
+  before any new real-`p1` authorization.
 
 ## 0.1.0 - Unreleased
 

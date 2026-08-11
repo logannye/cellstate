@@ -138,6 +138,8 @@ def test_replogle_destructive_population_proof_accepts_without_authorizing_use()
     assert resolution.accepted is True
     assert resolution.failed_criteria == ()
     assert resolution.structurally_failed_criteria == ()
+    assert resolution.selector_execution_replayed is False
+    assert resolution.source_bytes_resolved is False
     assert resolution.use_permission_evaluated is False
     assert resolution.use_authorized is False
     assert {trace.criterion for trace in proof.criterion_traces} == {

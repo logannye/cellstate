@@ -8,6 +8,7 @@ import pytest
 from conftest import (
     environment_factory,
     intervention_factory,
+    intervention_spec_factory,
     query_factory,
     subject_factory,
 )
@@ -23,11 +24,32 @@ from cellstate import (
     estimate_cell_state,
     evolve_cell_state,
 )
-from cellstate.domain.belief import CellStateBelief, ContextBelief
-from cellstate.domain.common import CausalStatus, ProvenanceRecord
+from cellstate.domain.belief import (
+    CausalEstimandBinding,
+    CausalSupportReport,
+    CellStateBelief,
+    ContextBelief,
+    EvaluationStatus,
+    QueryReadinessReport,
+)
+from cellstate.domain.common import (
+    CausalStatus,
+    CriterionOutcome,
+    ProvenanceRecord,
+    canonical_fingerprint,
+)
+from cellstate.domain.events import AssignmentMechanism
 from cellstate.domain.query import StateQuery
 from cellstate.domain.request import EstimateCellStateRequest
-from cellstate.domain.scenarios import InterventionPlan, StateForecast
+from cellstate.domain.scenarios import (
+    CandidateEvaluation,
+    InterventionPlan,
+    PlanStatus,
+    ScenarioReference,
+    StateForecast,
+    TransportReport,
+    TransportStatus,
+)
 from cellstate.domain.specification import (
     CompiledStateSpecification,
     ExcludedStateFactor,
@@ -41,6 +63,7 @@ from cellstate.ports import (
     ModelArtifactKind,
     QueryCompilerDescriptor,
     estimation_capability_scope_fingerprint,
+    planning_capability_scope_fingerprint,
 )
 
 _MODEL_FINGERPRINT = "b" * 64
@@ -487,4 +510,379 @@ def test_scenarios_must_be_members_of_bounded_query_domains(
             belief,
             scenario=scenario,
             evolution_model=_WrongScopeEvolutionModel(),
+        )
+
+
+_VALIDATION_EVIDENCE_ID = "transport-trial"
+_VALIDATION_EVIDENCE_FINGERPRINT = "8" * 64
+_TRANSPORT_ASSUMPTION = "conditional exchangeability"
+_SOURCE_SCOPE = "randomized source population"
+_TARGET_SCOPE = "query target population"
+
+
+def _transport_descriptor() -> EstimatorDescriptor:
+    return EstimatorDescriptor(
+        model_id="transport-api-test",
+        model_version="2.0",
+        model_fingerprint="7" * 64,
+        posterior_schema_id="cellstate/transport-test-v2",
+        description="Synthetic model used to exercise planning transport boundaries.",
+        artifact_kind=ModelArtifactKind.SYNTHETIC_TEST_MODEL,
+        support_envelope_id="transport-envelope",
+        support_envelope_fingerprint="6" * 64,
+        training_support_id="transport-training",
+        training_support_fingerprint="5" * 64,
+        validation_evidence_ids=(_VALIDATION_EVIDENCE_ID,),
+        validation_evidence_fingerprints={
+            _VALIDATION_EVIDENCE_ID: _VALIDATION_EVIDENCE_FINGERPRINT
+        },
+    )
+
+
+def _transport_query(*, allow_transport: bool) -> StateQuery:
+    query = query_factory()
+    intervention = intervention_spec_factory(
+        allowed_assignment_mechanisms=(AssignmentMechanism.RANDOMIZED,),
+        randomization_unit_kind="well",
+        require_randomization_unit=True,
+    )
+    return query.model_copy(
+        update={
+            "intervention_space": (intervention,),
+            "constraints": query.constraints.model_copy(
+                update={"allow_transport": allow_transport}
+            ),
+        }
+    )
+
+
+def _transport_belief(query: StateQuery) -> CellStateBelief:
+    descriptor = _transport_descriptor()
+    provenance = ProvenanceRecord(
+        model_id=descriptor.model_id,
+        model_version=descriptor.model_version,
+        model_fingerprint=descriptor.model_fingerprint,
+        posterior_schema_id=descriptor.posterior_schema_id,
+        query_fingerprint=query.fingerprint,
+        history_fingerprint="c" * 64,
+        history_structure_fingerprint="d" * 64,
+        context_fingerprint="e" * 64,
+        support_envelope_id=descriptor.support_envelope_id,
+        support_envelope_fingerprint=descriptor.support_envelope_fingerprint,
+        training_support_id=descriptor.training_support_id,
+        training_support_fingerprint=descriptor.training_support_fingerprint,
+        validation_evidence_ids=descriptor.validation_evidence_ids,
+        validation_evidence_fingerprints=descriptor.validation_evidence_fingerprints,
+        seed=0,
+    )
+    return CellStateBelief.model_construct(
+        belief_id=uuid4(),
+        subject=subject_factory(),
+        as_of_seconds=10,
+        query=query,
+        query_fingerprint=query.fingerprint,
+        history_fingerprint=provenance.history_fingerprint,
+        context_fingerprint=provenance.context_fingerprint,
+        state_specification=_state_specification(query),
+        context=ContextBelief(),
+        provenance=provenance,
+    )
+
+
+def _transport_problem(
+    *, allow_transport: bool
+) -> tuple[CellStateBelief, InterventionObjective, EvolutionScenario]:
+    belief = _transport_belief(_transport_query(allow_transport=allow_transport))
+    candidate = EvolutionScenario(
+        scenario_id="transport-candidate",
+        horizon_name="acute",
+        subject=belief.subject,
+        start_time_seconds=belief.as_of_seconds,
+        end_time_seconds=belief.as_of_seconds + 60,
+        interventions=(
+            intervention_factory(
+                event_id="randomized-drug",
+                subject=belief.subject,
+                time_seconds=belief.as_of_seconds,
+                estimated_efficiency=None,
+                assignment_mechanism=AssignmentMechanism.RANDOMIZED,
+                randomization_unit_kind="well",
+                randomization_unit_id="well-randomization-1",
+            ),
+        ),
+    )
+    objective = InterventionObjective(
+        objective_id="transport-objective",
+        horizon_name="acute",
+        terms=(
+            ObjectiveTerm(
+                target=belief.query.target_outputs[0].term,
+                direction=ObjectiveDirection.MAXIMIZE,
+            ),
+        ),
+    )
+    return belief, objective, candidate
+
+
+def _control_ready() -> QueryReadinessReport:
+    return QueryReadinessReport(
+        support=CriterionOutcome.PASSED,
+        sufficiency=CriterionOutcome.PASSED,
+        identifiability=CriterionOutcome.PASSED,
+        decision_uncertainty=CriterionOutcome.PASSED,
+        calibration=CriterionOutcome.PASSED,
+        causal=CriterionOutcome.PASSED,
+        measurement_model=CriterionOutcome.UNSUPPORTED,
+        control_requested=True,
+        valid_for_prediction=True,
+        valid_for_control=True,
+        valid_for_measurement_selection=False,
+        abstention_required=False,
+    )
+
+
+def _causal_support(
+    belief: CellStateBelief,
+    candidate: EvolutionScenario,
+    causal_status: CausalStatus,
+) -> CausalSupportReport:
+    target = belief.query.target_outputs[0]
+    transported = causal_status is CausalStatus.TRANSPORTED_UNDER_ASSUMPTIONS
+    return CausalSupportReport(
+        evaluation_status=EvaluationStatus.EVALUATED,
+        outcome=CriterionOutcome.PASSED,
+        causal_status=causal_status,
+        identification_basis="randomized assignment in the synthetic validation study",
+        identification_design=AssignmentMechanism.RANDOMIZED,
+        estimands=(
+            CausalEstimandBinding(
+                target=target.term,
+                horizon_name=candidate.horizon_name,
+                aggregation=target.aggregation,
+                intervention_spec_ids=("drug",),
+                comparator="matched randomized vehicle-control wells",
+                scenario_id=candidate.scenario_id,
+                scenario_fingerprint=canonical_fingerprint(candidate),
+            ),
+        ),
+        evidence_ids=(_VALIDATION_EVIDENCE_ID,),
+        evidence_fingerprints={_VALIDATION_EVIDENCE_ID: _VALIDATION_EVIDENCE_FINGERPRINT},
+        source_scope=_SOURCE_SCOPE,
+        target_scope=_TARGET_SCOPE,
+        transport_assumptions=(_TRANSPORT_ASSUMPTION,) if transported else (),
+    )
+
+
+def _transport_report(*, source_domain: str = _SOURCE_SCOPE) -> TransportReport:
+    return TransportReport(
+        status=TransportStatus.TRANSPORTED,
+        source_domain=source_domain,
+        target_domain=_TARGET_SCOPE,
+        assumptions=(_TRANSPORT_ASSUMPTION,),
+        evidence_ids=(_VALIDATION_EVIDENCE_ID,),
+    )
+
+
+def _within_support_report() -> TransportReport:
+    return TransportReport(
+        status=TransportStatus.WITHIN_SUPPORT,
+        evidence_ids=(_VALIDATION_EVIDENCE_ID,),
+    )
+
+
+class _TransportPlanner:
+    descriptor = _transport_descriptor()
+
+    def __init__(self, mode: str) -> None:
+        self._mode = mode
+
+    def capabilities(
+        self,
+        belief: CellStateBelief,
+        objective: InterventionObjective,
+        candidates: Sequence[EvolutionScenario],
+    ) -> CapabilityReport:
+        return CapabilityReport(
+            supported=True,
+            scope_fingerprint=planning_capability_scope_fingerprint(
+                belief,
+                objective,
+                candidates,
+            ),
+        )
+
+    def choose(
+        self,
+        belief: CellStateBelief,
+        objective: InterventionObjective,
+        candidates: Sequence[EvolutionScenario],
+        *,
+        options: InferenceOptions,
+    ) -> InterventionPlan:
+        candidate = candidates[0]
+        transported_support = _causal_support(
+            belief,
+            candidate,
+            CausalStatus.TRANSPORTED_UNDER_ASSUMPTIONS,
+        )
+        identified_support = _causal_support(
+            belief,
+            candidate,
+            CausalStatus.IDENTIFIED_POPULATION_EFFECT,
+        )
+        transported_report = _transport_report(
+            source_domain=(
+                "mismatched source population" if self._mode == "domain-mismatch" else _SOURCE_SCOPE
+            )
+        )
+
+        evaluation_is_transported = self._mode != "top-level-transported-abstention"
+        evaluation_is_supported = self._mode not in {
+            "unsupported-transported-evaluation",
+            "top-level-transported-abstention",
+        }
+        evaluation_support = (
+            transported_support if evaluation_is_transported else identified_support
+        )
+        evaluation_transport = (
+            transported_report if evaluation_is_transported else _within_support_report()
+        )
+        evaluation = CandidateEvaluation(
+            scenario_id=candidate.scenario_id,
+            expected_utility=1.0 if evaluation_is_supported else None,
+            uncertainty_penalty=0.0 if evaluation_is_supported else None,
+            selection_score=1.0 if evaluation_is_supported else None,
+            supported=evaluation_is_supported,
+            causal_status=evaluation_support.causal_status,
+            causal_support=evaluation_support,
+            transport=evaluation_transport,
+            readiness=_control_ready(),
+        )
+
+        plan_is_selected = evaluation_is_supported
+        top_level_is_transported = self._mode != "unsupported-transported-evaluation"
+        plan_support = transported_support if top_level_is_transported else identified_support
+        plan_transport = (
+            transported_report if top_level_is_transported else _within_support_report()
+        )
+        return InterventionPlan(
+            plan_id=f"transport-plan:{self._mode}",
+            parent_belief_id=belief.belief_id,
+            query_fingerprint=belief.query_fingerprint,
+            horizon_name=objective.horizon_name,
+            objective_id=objective.objective_id,
+            objective_fingerprint=canonical_fingerprint(objective),
+            candidates=(
+                ScenarioReference(
+                    scenario_id=candidate.scenario_id,
+                    fingerprint=canonical_fingerprint(candidate),
+                ),
+            ),
+            status=PlanStatus.SELECTED if plan_is_selected else PlanStatus.ABSTAINED,
+            selected_scenario_id=candidate.scenario_id if plan_is_selected else None,
+            evaluations=(evaluation,),
+            readiness=_control_ready(),
+            causal_status=plan_support.causal_status,
+            causal_support=plan_support,
+            transport=plan_transport,
+            abstention_reasons=() if plan_is_selected else ("no selectable numeric candidate",),
+            rationale="Synthetic plan for public transport-boundary testing.",
+            seed=options.seed,
+            provenance=belief.provenance.model_copy(update={"seed": options.seed}),
+        )
+
+
+class _MissingTransportEvidencePlanner(_TransportPlanner):
+    def choose(
+        self,
+        belief: CellStateBelief,
+        objective: InterventionObjective,
+        candidates: Sequence[EvolutionScenario],
+        *,
+        options: InferenceOptions,
+    ) -> InterventionPlan:
+        plan = super().choose(belief, objective, candidates, options=options)
+        evaluation = plan.evaluations[0]
+        updates: dict[str, object] = {}
+        if self._mode in {"selected-transported", "unsupported-transported-evaluation"}:
+            evaluation = evaluation.model_copy(
+                update={"transport": evaluation.transport.model_copy(update={"evidence_ids": ()})}
+            )
+            updates["evaluations"] = (evaluation,)
+        if self._mode in {"selected-transported", "top-level-transported-abstention"}:
+            updates["transport"] = plan.transport.model_copy(update={"evidence_ids": ()})
+        return plan.model_copy(update=updates)
+
+
+@pytest.mark.parametrize(
+    "mode",
+    (
+        "selected-transported",
+        "unsupported-transported-evaluation",
+        "top-level-transported-abstention",
+    ),
+)
+def test_planning_rejects_transport_claims_when_query_forbids_transport(mode: str) -> None:
+    belief, objective, candidate = _transport_problem(allow_transport=False)
+
+    with pytest.raises(
+        ContractViolationError,
+        match="causal or transport support is not authorized",
+    ):
+        choose_intervention(
+            belief,
+            objective=objective,
+            candidates=(candidate,),
+            planner=_TransportPlanner(mode),
+        )
+
+
+def test_planning_accepts_transport_when_query_explicitly_allows_it() -> None:
+    belief, objective, candidate = _transport_problem(allow_transport=True)
+
+    plan = choose_intervention(
+        belief,
+        objective=objective,
+        candidates=(candidate,),
+        planner=_TransportPlanner("selected-transported"),
+    )
+
+    assert plan.status is PlanStatus.SELECTED
+    assert plan.selected_scenario_id == candidate.scenario_id
+    assert plan.causal_status is CausalStatus.TRANSPORTED_UNDER_ASSUMPTIONS
+    assert plan.transport.status is TransportStatus.TRANSPORTED
+
+
+@pytest.mark.parametrize(
+    "mode",
+    (
+        "selected-transported",
+        "unsupported-transported-evaluation",
+        "top-level-transported-abstention",
+    ),
+)
+def test_planning_rejects_transport_claims_without_transport_evidence(mode: str) -> None:
+    belief, objective, candidate = _transport_problem(allow_transport=True)
+
+    with pytest.raises(ContractViolationError, match="invalid intervention plan"):
+        choose_intervention(
+            belief,
+            objective=objective,
+            candidates=(candidate,),
+            planner=_MissingTransportEvidencePlanner(mode),
+        )
+
+
+def test_planning_rejects_transport_domains_that_do_not_match_causal_scopes() -> None:
+    belief, objective, candidate = _transport_problem(allow_transport=True)
+
+    with pytest.raises(
+        ContractViolationError,
+        match="causal or transport support is not authorized",
+    ):
+        choose_intervention(
+            belief,
+            objective=objective,
+            candidates=(candidate,),
+            planner=_TransportPlanner("domain-mismatch"),
         )

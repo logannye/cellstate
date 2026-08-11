@@ -11,6 +11,7 @@ from .domain.belief import (
     BeliefStatus,
     CausalSupportReport,
     CellStateBelief,
+    ContextBelief,
     _validate_causal_support_against_query,
     _validate_identified_evidence_provenance,
 )
@@ -19,12 +20,14 @@ from .domain.common import (
     CriterionOutcome,
     EvidenceStatus,
     ProvenanceRecord,
+    Quantity,
     SchemaModel,
     SupportStatus,
     canonical_fingerprint,
 )
 from .domain.events import (
     CollectionEffect,
+    EnvironmentEvent,
     EvidenceRole,
     InterventionEvent,
     MissingnessStatus,
@@ -50,6 +53,7 @@ from .domain.scenarios import (
     InterventionObjective,
     InterventionPlan,
     StateForecast,
+    TransportReport,
     TransportStatus,
 )
 from .domain.specification import CompiledStateSpecification
@@ -162,6 +166,95 @@ def _validated_capability_report(
             + ("; ".join(details) if details else "backend declared the scope unsupported")
         )
     return report
+
+
+def _intervention_is_active(event: InterventionEvent, time_seconds: float) -> bool:
+    """Return whether an interval or point intervention is active at one instant."""
+
+    if event.duration_seconds == 0:
+        return math.isclose(time_seconds, event.time_seconds, rel_tol=0, abs_tol=1e-12)
+    return event.time_seconds <= time_seconds < event.time_seconds + event.duration_seconds
+
+
+def _environment_is_active(event: EnvironmentEvent, time_seconds: float) -> bool:
+    """Treat zero-duration environment records as points, never persistent assignments."""
+
+    if event.duration_seconds == 0:
+        return math.isclose(time_seconds, event.time_seconds, rel_tol=0, abs_tol=1e-12)
+    return event.time_seconds <= time_seconds < event.time_seconds + event.duration_seconds
+
+
+def _serialized_environment_value(value: Quantity | JsonValue) -> JsonValue:
+    if isinstance(value, Quantity):
+        return value.model_dump(mode="json")
+    return value
+
+
+def _derived_soluble_environment(
+    events: Sequence[object],
+    query: StateQuery,
+    time_seconds: float,
+    *,
+    inherited: Mapping[str, JsonValue] | None = None,
+) -> dict[str, JsonValue]:
+    """Reduce exact active environment records into the canonical endpoint context."""
+
+    latest: dict[str, tuple[float, JsonValue]] = {
+        key.casefold(): (-math.inf, value) for key, value in (inherited or {}).items()
+    }
+    for event in events:
+        if not isinstance(event, EnvironmentEvent) or not _environment_is_active(
+            event, time_seconds
+        ):
+            continue
+        for key, value in event.variables.items():
+            normalized = key.casefold()
+            if normalized not in latest or event.time_seconds >= latest[normalized][0]:
+                latest[normalized] = (
+                    event.time_seconds,
+                    _serialized_environment_value(value),
+                )
+    for specification in query.environment_space:
+        key = specification.variable.key.casefold()
+        if key not in latest and specification.default_value is not None:
+            latest[key] = (
+                -math.inf,
+                _serialized_environment_value(specification.default_value),
+            )
+    return {key: value for key, (_, value) in sorted(latest.items())}
+
+
+def _require_derived_context(
+    context: ContextBelief,
+    *,
+    active_interventions: tuple[InterventionEvent, ...],
+    soluble_environment: Mapping[str, JsonValue],
+    result_name: str,
+    inherited_context: ContextBelief | None = None,
+) -> None:
+    """Bind deterministic context fields to the exact source events crossing the API."""
+
+    if context.active_interventions != active_interventions:
+        raise ContractViolationError(
+            f"{result_name} active interventions are not derived from the exact source events"
+        )
+    if context.soluble_environment != dict(soluble_environment):
+        raise ContractViolationError(
+            f"{result_name} soluble environment is not derived from the exact source events"
+        )
+    inherited_maps = inherited_context or ContextBelief()
+    for field_name in ("physical_environment", "neighborhood", "spatial_position"):
+        if getattr(context, field_name) != getattr(inherited_maps, field_name):
+            raise ContractViolationError(
+                f"{result_name} {field_name.replace('_', ' ')} has no exact source derivation"
+            )
+    if (
+        inherited_context is not None
+        and context.unsupported_dimensions != inherited_context.unsupported_dimensions
+    ):
+        raise ContractViolationError(
+            f"{result_name} changed inherited unsupported context dimensions"
+        )
 
 
 def _validated_measurement_capability_report(
@@ -693,7 +786,7 @@ def _validate_causal_support_against_scenario(
         tuple(
             event
             for event in active_interventions
-            if event.time_seconds + event.duration_seconds > scenario.start_time_seconds
+            if _intervention_is_active(event, scenario.start_time_seconds)
         )
         if scenario.inherit_active_interventions
         else ()
@@ -723,6 +816,30 @@ def _validate_causal_support_against_scenario(
             raise ContractViolationError(
                 "causal estimand environment contrast does not match explicit scenario changes"
             )
+
+
+def _validate_planning_transport_against_query(
+    report: CausalSupportReport,
+    transport: TransportReport,
+    query: StateQuery,
+) -> None:
+    """Reject causal transport claims that the exact query did not authorize."""
+
+    if report.causal_status is CausalStatus.IDENTIFIED_POPULATION_EFFECT:
+        if transport.status is not TransportStatus.WITHIN_SUPPORT:
+            raise ValueError("identified intervention support must remain within support")
+        return
+    if report.causal_status is not CausalStatus.TRANSPORTED_UNDER_ASSUMPTIONS:
+        return
+    if not query.constraints.allow_transport:
+        raise ValueError("query constraints forbid transported intervention support")
+    if transport.status is not TransportStatus.TRANSPORTED:
+        raise ValueError("transported intervention support requires transported status")
+    if (
+        transport.source_domain != report.source_scope
+        or transport.target_domain != report.target_scope
+    ):
+        raise ValueError("intervention causal scopes and transport domains must agree")
 
 
 def estimate_cell_state(
@@ -783,6 +900,22 @@ def estimate_cell_state(
         )
 
     events_by_id = {event.event_id: event for event in request.history.events}
+    expected_active_interventions = tuple(
+        event
+        for event in request.history.events
+        if isinstance(event, InterventionEvent)
+        and _intervention_is_active(event, request.as_of_seconds)
+    )
+    _require_derived_context(
+        belief.context,
+        active_interventions=expected_active_interventions,
+        soluble_environment=_derived_soluble_environment(
+            request.history.events,
+            request.query,
+            request.as_of_seconds,
+        ),
+        result_name="belief",
+    )
     _validate_provenance_evidence(
         belief.provenance,
         events_by_id,
@@ -964,6 +1097,52 @@ def evolve_cell_state(
         forecast_events,
         result_name="forecast",
     )
+
+    inherited_active_interventions = (
+        tuple(
+            event
+            for event in belief.context.active_interventions
+            if _intervention_is_active(event, scenario.end_time_seconds)
+        )
+        if scenario.inherit_active_interventions
+        else ()
+    )
+    scenario_active_interventions = tuple(
+        event
+        for event in scenario.interventions
+        if _intervention_is_active(event, scenario.end_time_seconds)
+    )
+    inherited_environment = (
+        belief.context.soluble_environment if scenario.inherit_current_environment else None
+    )
+    _require_derived_context(
+        forecast.context,
+        active_interventions=(
+            *inherited_active_interventions,
+            *scenario_active_interventions,
+        ),
+        soluble_environment=_derived_soluble_environment(
+            scenario.environments,
+            belief.query,
+            scenario.end_time_seconds,
+            inherited=inherited_environment,
+        ),
+        result_name="forecast",
+        inherited_context=belief.context,
+    )
+
+    allowed_realization_ids = {
+        *(item.intervention_event_id for item in belief.intervention_realizations),
+        *(event.event_id for event in belief.context.active_interventions),
+        *(event.event_id for event in scenario.interventions),
+    }
+    forecast_realization_ids = {
+        item.intervention_event_id for item in forecast.intervention_realizations
+    }
+    if not forecast_realization_ids <= allowed_realization_ids:
+        raise ContractViolationError(
+            "forecast intervention realizations do not resolve to belief or scenario interventions"
+        )
 
     evidence_ids = {
         *forecast.transport.evidence_ids,
@@ -1465,6 +1644,11 @@ def choose_intervention(
                 belief.query,
                 required_target_horizons=required_objective_estimands,
             )
+        _validate_planning_transport_against_query(
+            plan.causal_support,
+            plan.transport,
+            belief.query,
+        )
         candidates_by_id = {candidate.scenario_id: candidate for candidate in candidates}
         for evaluation in plan.evaluations:
             _validate_causal_support_against_scenario(
@@ -1472,9 +1656,23 @@ def choose_intervention(
                 candidates_by_id[evaluation.scenario_id],
                 belief.context.active_interventions,
             )
+            _validate_planning_transport_against_query(
+                evaluation.causal_support,
+                evaluation.transport,
+                belief.query,
+            )
+            if not evaluation.supported:
+                continue
+            if evaluation.causal_status not in {
+                CausalStatus.IDENTIFIED_POPULATION_EFFECT,
+                CausalStatus.TRANSPORTED_UNDER_ASSUMPTIONS,
+            }:
+                raise ValueError(
+                    "a selectable intervention requires identified or transported causal support"
+                )
     except ValueError as error:
         raise ContractViolationError(
-            "plan causal support is not bound to the requested objective estimand"
+            "plan causal or transport support is not authorized by the query and objective"
         ) from error
 
     provenance_ids = plan.provenance.scientific_evidence_ids

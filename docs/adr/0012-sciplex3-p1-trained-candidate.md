@@ -1,6 +1,6 @@
 # ADR 0012: Define a sci-Plex3 p1-only trained-candidate boundary
 
-- **Status:** Accepted
+- **Status:** Accepted; amended 2026-08-11 to retire v4 before Item 12.1b
 - **Date:** 2026-08-10
 - **Extends:** ADR 0009 population-response component boundary, ADR 0010 trusted admission
   verification, and ADR 0011 p1-only loader and baselines
@@ -8,7 +8,9 @@
 ## Context
 
 Item 11 established an exact, close-reauthenticated `p1-train` count surface and fitted all six
-mandatory baseline algorithms without opening `p2`, `p3`, or `p4`. The next lifecycle transition
+mandatory baseline algorithms without opening protected `p2`, `p3`, or `p4` raw endpoint bytes or
+scoring authority. Public frozen split membership and outcome-free case design were already checked
+in. The next lifecycle transition
 needs one nonvacuous population-response candidate trained from those same `p1` bytes. A model file
 cannot mint that transition by declaring itself trained: the training plan, selected source, count
 stream, code, runtime, fitted behavior, sealed model bytes, and loaded candidate interface all need
@@ -47,10 +49,27 @@ treating a diagnostic output as a trained model would create an unreviewed recov
 
 ## Decision
 
-Retain the p1-only trusted-training boundary and its incompatible v4 candidate implementation. The
-audited exact-reference v4 execution failed closed during initial inner equilibration. The v4
-candidate and artifact are therefore `NO-GO`; this decision records no successful fit, model
-artifact, training evidence, or lifecycle transition.
+Retain the p1-only trusted-training boundary. Preserve the incompatible v4 implementation only as
+historical source and audit lineage. The audited exact-reference v4 execution failed closed during
+initial inner equilibration, and a later source-code audit confirmed an objective-scale inconsistency
+before the planned Item 12.1b replay. The v4 candidate and artifact are therefore retired and
+`NO-GO`; this decision records no successful fit, model artifact, training evidence, or lifecycle
+transition.
+
+### 2026-08-11 amendment: v4 dose-objective inconsistency
+
+The tracked full ELBO gives every cell in well `w` weight `94785/(768*n_w)`. Summing the
+mean-dependent Gamma-prior term over that well therefore multiplies it by `94785/768`, while the
+global magnitude and second-difference dose penalty is subtracted once. V4's dose Newton block
+instead minimizes the unweighted per-well Gamma term plus that same global penalty. Its gradient and
+Hessian omit the `94785/768` multiplier, placing the dose penalty on the wrong relative scale and
+breaking the claimed correspondence between the action update and tracked objective.
+
+This is a source-level implementation and objective-design defect, not a result inferred from a
+held-out partition. It does not reinterpret the historical v4 run, which failed before an outer
+update; it independently establishes that v4 must not be revived or characterized with another
+real-source run. A v5 design must reconcile the full objective and M-step before any new
+authorization.
 
 ### Candidate family v4
 
@@ -130,7 +149,8 @@ contains no fit, and must not be interpreted as a scientific result.
 
 The replacement launch was a valid exact-reference, p1-only, nonissuing execution. Report
 `66e9debc1a402e7aa68cbc934f7c5f641529eea3187ec15606364c912af8faa8` passed its integrity and
-resource gates and kept every provisional tensor finite. It failed initial, untraced inner
+post-hoc resource acceptance checks and kept every provisional tensor finite. It failed initial,
+untraced inner
 equilibration at the predeclared sweep limit of 50, with passing streak 0,
 `Rshape=0.24714465227035654`, and `Relog=3.750385840630546`. The failure occurred before any outer
 update or ELBO trace. The residuals are respectively 24,714,465 and 375,038,584 times the `1e-8`
@@ -139,16 +159,20 @@ tolerance. The provisional loading-rank ratio `0.101239623839`, activation-rank 
 they are not evidence that rescues the failed fit.
 
 The execution issued no model, plan, observation, training evidence, or materialization and derived
-no lifecycle state. It did not open `p2`, `p3`, or `p4`, inspect held-out cases or outcomes, run a
-metric, or create biological or performance evidence.
+no lifecycle state. It did not open protected `p2`, `p3`, or `p4` raw endpoint values, inspect
+held-out outcomes, run a metric, or create biological or performance evidence.
 
 Before any separately authorized real-source replay, the software milestone is now complete:
 
 ### Item 12.1a — local-map and plate-context characterization software freeze
 
-The source-free scratch harness (`f4e6b768...`) and tests (`8989618e...`) passed 26 focused tests,
-Ruff check/format, compilation, and an independent SHA-bound math/containment audit with no P0/P1
-finding. The frozen contract records 50 production maps and exactly one diagnostic `A51` lookahead;
+The exact historical harness (`f4e6b768...`), tests (`8989618e...`), parent driver (`795c5929...`),
+and both reports (`4677fc8e...` and `66e9debc...`) are canonical under
+[`audits/item12_1a`](https://github.com/logannye/cellstate/tree/main/audits/item12_1a). The 26 focused
+tests, Ruff check/format, compilation,
+and independent SHA-bound audit reported no P0/P1 finding within the bounded local-map and
+containment scope; they did not validate the outer dose objective. The frozen contract records 50
+production maps and exactly one diagnostic `A51` lookahead;
 per-sweep `Rshape` and `Relog`; synchronized local objectives; one- and two-step state distances and
 update cosine; deterministic worst row/factor/count aggregates; shape/rate/mass invariants;
 per-sweep analytic 16-by-16 Jacobian spectral radii; exact replay equality; state/allocation
@@ -160,12 +184,36 @@ behavior or effective context near one routes to v5 plate regularization or neut
 decision does not prefreeze damping or shrinkage and does not authorize cap or tolerance
 relaxation, an artifact, p2 access, or any biological or performance claim.
 
-### Item 12.1b — one-use real-p1 characterization, nonissuing
+### Item 12.1b — retired before execution
 
-Execution remains pending a separate explicit audit authorization. Item 12.1a did not open the
-source or run Docker. A future Item 12.1b execution may produce only its bounded nonauthoritative
-diagnostic record; it cannot issue a model, plan, observation, evidence receipt, lifecycle state,
-or scientific claim.
+The planned one-use real-`p1` v4 characterization is no longer pending and must not run. Item 12.1a
+opened no source and did not run Docker, and no Item 12.1b report exists. Once the dose-objective
+inconsistency was known, another v4 source execution could not establish a candidate worth advancing
+and would spend authorization on a retired objective.
+
+### Item 12.2 — source-free v5 objective, M-step, and containment redesign
+
+Before any new real-`p1` authorization, v5 must define one exact full objective and a compatible
+action/context M-step. Independently computed fixed-`q` full-ELBO checks must cover feasible
+coordinates for `alpha`, constrained `log-rho` under its arithmetic-mean-one gauge, and dose effects;
+a treated-well adversarial fixture; accepted-substep and complete-block nondecrease; and Hessian
+finite differences if Newton remains. A surrogate schedule is acceptable only if it nondecreases
+the same canonical full ELBO and shares its stationary points.
+
+Sampling must be exactly positive-conditioned or the API must freeze a maximum request size and a
+request-level failure budget over every admitted action, context, and calibration `tau`. A
+target-only support check cannot bound the current 33-attempt rejection failure for unbounded sample
+counts; Poisson-rate/RNG overflow is also part of support. Multi-file publication must use immutable
+generation directories plus one atomic verified-generation pointer. A subprocess-kill test must
+prove crash recovery, stale-lock cleanup, and old-or-new reader visibility; exception-only rollback
+is insufficient.
+
+Parent-enforced process or container wall-clock and memory limits must cover the complete
+source-touching process tree from before source open through close and verification. The runtime-
+image digest and exact limit policy are frozen, and tests cover timeout, cgroup/container OOM,
+descendant cleanup, no canonical publication, and next-invocation recovery. Post-hoc elapsed and RSS
+checks may remain evidence, but they are not hard containment. This work is source-free and grants
+no authority to open `p1` or any held-out endpoint partition.
 
 ### Pre-fit and post-fit evidence
 
@@ -173,7 +221,7 @@ The pre-fit `CandidateTrainingPlan` is immutable and cannot name a future model 
 opaque query, benchmark, and support-envelope identities; the exact typed `p1` role; loader and
 count-stream closure; feature, action, target, design, specification, schema, trainer, factory, and
 runtime identities; and deterministic fit settings. Computing this plan does not parse protected
-partition descendants.
+held-out endpoint bytes.
 
 After fitting, a model would have to be closed, reread, rehashed, loaded through the exact
 registered candidate class, and checked against its fitted-state and behavior manifests before any
@@ -202,15 +250,24 @@ byte-resolution, query-prerequisite, and loaded-interface verification, readines
 `SCAFFOLD`. The valid v4 run failed before artifact emission; no v4 model artifact exists and no
 lifecycle transition has occurred.
 
-### Held-out partitions remain sealed
+### Held-out source data and lifecycle authority remain sealed
 
-Item 12 opens only `p1-train`. It does not read `p2`, `p3`, or `p4` membership, cases, or outcomes
-during planning or fitting.
+The repository intentionally publishes frozen benchmark-design metadata: exact split-membership
+arrays, record/well/plate identities, well-level cases, action assignments, matched-control
+identities, and the outcome-free prediction schedule. Reading that metadata is not permission to
+resolve protected raw H5AD/UMI endpoint values, inspect an outcome, score a prediction, or issue
+lifecycle evidence.
+
+Item 12 planning and fitting open only `p1-train` source bytes. They do not resolve protected `p2`,
+`p3`, or `p4` raw H5AD/UMI endpoint values, outcome/scoring results, or lifecycle evidence. The
+training session also does not read the public held-out membership files, but their checked-in
+existence is not itself a protected boundary.
 
 - `p2-calibration` requires a future one-use calibration grant freshly bound to the exact verified
   `TRAINED_CANDIDATE`.
 - `p3-model-selection-validation` remains unavailable until an exact calibrated candidate exists.
-- `p4-untouched-test` remains unavailable until an exact candidate is selected and frozen.
+- `p4-untouched-test` source outcomes and locked scoring remain unavailable until an exact
+  candidate is selected and frozen; its public frozen design metadata grants no such access.
 
 Neither this ADR nor the v4 calibration declaration authorizes those grants.
 
@@ -222,6 +279,8 @@ Neither this ADR nor the v4 calibration declaration authorizes those grants.
   before outer updates, but its exact run did not equilibrate within the frozen limit. Its empirical
   context is arithmetically bounded yet near single-plate concentration and remains scientifically
   unresolved.
+- V4's dose objective is inconsistently scaled relative to its tracked full equal-well ELBO. V4 and
+  the planned Item 12.1b replay are retired; historical bytes remain evidence, not executable work.
 - V4 is incompatible with all v1, v2, and v3 candidate bytes, schemas, specifications, plans,
   observations, fixtures, and manifests; they must be rejected rather than migrated or relabeled.
 - Exact BLAS binding narrows reproducibility claims but prevents materially different numerical
@@ -237,6 +296,18 @@ Item 12 is complete only when a final audit demonstrates that it:
 
 - fits a separately authorized candidate version from the exact close-reauthenticated real `p1`
   stream under its frozen Linux/Python/NumPy/SciPy/BLAS runtime;
+- proves source-free that its action/context M-step matches the exact full ELBO through finite-
+  difference gradients for `alpha`, constrained `log-rho`, and dose effects; treated-well
+  adversarial coverage; accepted-substep and complete-block fixed-`q` nondecrease; and Hessian
+  finite differences if Newton remains;
+- exactly conditions sampling on a positive panel, or freezes request-size and request-level
+  failure budgets over every admitted action/context/calibration state, including Poisson RNG
+  overflow;
+- publishes one immutable, verified artifact generation through one atomic pointer and recovers
+  after forced termination without mixed files or stale locks;
+- enforces parent-owned hard wall-clock and memory containment over the complete source-touching
+  process tree, with frozen image/limit identity and timeout, OOM, descendant-cleanup,
+  no-publication, and next-run recovery tests;
 - passes the predeclared inner-equilibration, outer convergence, factor-order, identifiability, and
   finite-state gates without post hoc cap or tolerance changes;
 - emits no artifact for an unconverged, nonfinite, stale, substituted, or behavior-inconsistent
@@ -244,7 +315,8 @@ Item 12 is complete only when a final audit demonstrates that it:
 - closes, rereads, rehashes, and exactly reloads the model and reproduces its frozen golden sample;
 - binds the exact source, scan, assembly, design, feature, action, target, code, runtime, plan,
   training observation, and model identities;
-- proves no `p2`, `p3`, or `p4` descendant was opened and all later authority flags remain false;
+- proves no protected `p2`, `p3`, or `p4` raw endpoint, outcome, scoring, or lifecycle artifact was
+  opened and all later authority flags remain false;
 - rejects every incompatible earlier candidate artifact at the active candidate boundary;
 - derives `TRAINED_CANDIDATE` only with fresh external trust and exact candidate-factory interface
   verification; and
@@ -253,12 +325,13 @@ Item 12 is complete only when a final audit demonstrates that it:
 
 ## Current implementation status
 
-The p1-only training and verification contracts exist, and the v4 software implementation passed
-its source-free audit. V1 failed at its shape boundary; v2 retained pooled-shape drift; v3 fixed the
-shape but failed relative-ELBO and factor-order stability, while its characterization also rejected
-the parametric lognormal plate nuisance. The valid exact-reference v4 run then failed initial inner
-equilibration before any outer update or ELBO trace. V4 is `NO-GO`: there is no v4 training plan,
-observation, fitted model, training evidence, materialization, or trusted lifecycle result. Item 12
-remains in progress, and the component remains a non-runnable `SCAFFOLD`. The next authorized work
-is only the bounded first-failing-batch inner-map diagnostic described above; another real-source
-run requires a separate audit authorization.
+The p1-only training and verification contracts exist. V1 failed at its shape boundary; v2 retained
+pooled-shape drift; v3 fixed the shape but failed relative-ELBO and factor-order stability, while its
+characterization also rejected the parametric lognormal plate nuisance. The valid exact-reference
+v4 run then failed initial inner equilibration before any outer update or ELBO trace. Item 12.1a's
+exact historical bytes are canonical, but the later source-code audit found v4's dose-objective scale
+inconsistency outside that local-map audit's scope. V4 and Item 12.1b are retired: there is no v4
+training plan, observation, fitted model, training evidence, materialization, or trusted lifecycle
+result. Item 12 remains in progress, and the component remains a non-runnable `SCAFFOLD`. The next
+work is the source-free v5 objective/M-step and hard-containment redesign; no further real-source run
+is authorized.

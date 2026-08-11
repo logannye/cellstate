@@ -257,11 +257,14 @@ This draft must remain unfrozen until all of the following are complete:
 5. **Satisfied 2026-08-09:** dataset manifest `0.3-experimental` allows independently scoped claim,
    loss, and metric eligibility. Concrete benchmark metric definitions and split membership remain
    blocker 8 rather than being inferred from this structural ledger.
-6. **Satisfied 2026-08-09:** a reviewed Replogle K562 destructive-sampling manifest and executable
-   proof establish population-snapshot representability without inventing same-cell linkage.
+6. **Satisfied 2026-08-09:** a reviewed Replogle K562 destructive-sampling manifest and
+   machine-checked reviewed proof ledger establish population-snapshot representability without
+   inventing same-cell linkage. The structural verifier does not resolve source bytes or replay a
+   selector.
 7. **Satisfied 2026-08-09:** a reviewed GSE141064 Live-seq 17-cell functional-recorder slice and
-   executable proof establish viability-preserving same-cell future-function linkage without
-   claiming causal intervention identification or repeated transcriptomic state.
+   machine-checked reviewed proof ledger establish viability-preserving same-cell future-function
+   linkage without claiming causal intervention identification, repeated transcriptomic state, or
+   runtime selector replay.
 8. Exact source-backed horizons, targets, intervention ranges, thresholds, splits, and baselines are
    approved in a versioned frozen benchmark manifest.
 

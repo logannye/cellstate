@@ -538,12 +538,16 @@ def test_fit_artifact_binds_final_scan_exact_code_golden_and_no_admission(
     assert b'"status":"passed"' not in payload
 
 
-def test_p4_design_opens_only_post_fit_and_maps_all_treated_and_no_action_cases(
+def test_public_p4_design_metadata_opens_post_fit_without_source_or_scoring_authority(
     fitted_and_design: tuple[FittedSciPlex3Baseline, SciPlex3P4PredictionDesign, tuple[Path, ...]],
 ) -> None:
     fitted, design, observed_reads = fitted_and_design
     assert BENCHMARK_PATH.resolve() in observed_reads
     assert CASES_PATH.resolve() in observed_reads
+    assert not any(
+        path.parent.name == "memberships" and path.name.startswith("untouched_test-")
+        for path in observed_reads
+    )
     assert len(design.p4_targets) == SCIPLEX3_P4_CASE_COUNT
     no_action = tuple(
         target for target in design.p4_targets if isinstance(target.condition, NoAction)

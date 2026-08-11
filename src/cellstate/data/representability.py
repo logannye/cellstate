@@ -108,6 +108,8 @@ class RepresentabilityCriterionStatus(StrEnum):
 
 
 class RepresentabilityEvidenceMethod(StrEnum):
+    """Method asserted by a reviewed evidence locator, not a runtime execution receipt."""
+
     CHECKSUM_VERIFICATION = "checksum_verification"
     SELECTOR_EXECUTION = "selector_execution"
     SOURCE_FIELD = "source_field"
@@ -263,12 +265,16 @@ class RepresentabilityProof(ManifestModel):
 
 
 class RepresentabilityResolution(ManifestModel):
+    """Machine-checked resolution of a reviewed ledger, not source or selector execution."""
+
     proof_fingerprint: str = Field(pattern=r"^[a-fA-F0-9]{64}$")
     manifest_fingerprint: str = Field(pattern=r"^[a-fA-F0-9]{64}$")
     proof_kind: RepresentabilityProofKind
     accepted: bool
     failed_criteria: tuple[RepresentabilityCriterion, ...] = ()
     structurally_failed_criteria: tuple[RepresentabilityCriterion, ...] = ()
+    selector_execution_replayed: Literal[False] = False
+    source_bytes_resolved: Literal[False] = False
     use_permission_evaluated: Literal[False] = False
     use_authorized: Literal[False] = False
 
@@ -402,7 +408,7 @@ def verify_representability(
     manifest: DatasetManifest,
     proof: RepresentabilityProof,
 ) -> RepresentabilityResolution:
-    """Verify exact evidence identity and derive a fail-closed representability decision."""
+    """Check a reviewed proof ledger without resolving source bytes or replaying selectors."""
 
     reference = proof.assessment_reference
     if reference.dataset_manifest_fingerprint != manifest.fingerprint:

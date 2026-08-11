@@ -42,7 +42,11 @@ from cellstate.domain.common import (
     Quantity,
     SupportStatus,
 )
-from cellstate.domain.distributions import ParametricDistribution, UnavailableDistribution
+from cellstate.domain.distributions import (
+    DistributionSupport,
+    ParametricDistribution,
+    UnavailableDistribution,
+)
 from cellstate.domain.events import (
     ActualPerturbation,
     AssignmentMechanism,
@@ -611,6 +615,98 @@ def _forecast() -> StateForecast:
     )
 
 
+def _transported_forecast() -> StateForecast:
+    base = _forecast()
+    query_payload = base.query.model_dump(mode="python")
+    query_payload["intervention_space"] = (
+        intervention_spec_factory(
+            allowed_assignment_mechanisms=(AssignmentMechanism.RANDOMIZED,),
+            randomization_unit_kind="well",
+            require_randomization_unit=True,
+        ).model_dump(mode="python"),
+    )
+    query_payload["constraints"]["allow_transport"] = True
+    query = StateQuery.model_validate(query_payload)
+    specification = _specification(query)
+    target = query.target_outputs[0]
+    scenario_id = "transported-candidate"
+    scenario_fingerprint = "6" * 64
+    assumptions = ("conditional exchangeability",)
+    causal_support = CausalSupportReport(
+        evaluation_status=EvaluationStatus.EVALUATED,
+        outcome=CriterionOutcome.PASSED,
+        causal_status=CausalStatus.TRANSPORTED_UNDER_ASSUMPTIONS,
+        identification_basis="randomized source-population trial",
+        identification_design=AssignmentMechanism.RANDOMIZED,
+        estimands=(
+            CausalEstimandBinding(
+                target=target.term,
+                horizon_name="acute",
+                aggregation=target.aggregation,
+                intervention_spec_ids=("drug",),
+                comparator="matched vehicle-control wells",
+                scenario_id=scenario_id,
+                scenario_fingerprint=scenario_fingerprint,
+            ),
+        ),
+        evidence_ids=("trial-1",),
+        evidence_fingerprints={"trial-1": "8" * 64},
+        source_scope="audited source population",
+        target_scope="audited target population",
+        transport_assumptions=assumptions,
+    )
+    diagnostics_payload = _passing_diagnostics(specification.joint_dimensions).model_dump(
+        mode="python"
+    )
+    diagnostics_payload["decision_uncertainty"] = DecisionUncertaintyReport(
+        evaluation_status=EvaluationStatus.EVALUATED,
+        outcome=CriterionOutcome.PASSED,
+        decision_uncertainty=0.1,
+        maximum_decision_uncertainty=1.0,
+        counterfactual_uncertainty=0.1,
+        maximum_counterfactual_uncertainty=0.5,
+    ).model_dump(mode="python")
+    diagnostics_payload["causal_support"] = causal_support.model_dump(mode="python")
+    transport = TransportReport(
+        status=TransportStatus.TRANSPORTED,
+        source_domain=causal_support.source_scope,
+        target_domain=causal_support.target_scope,
+        assumptions=assumptions,
+        evidence_ids=("trial-1",),
+    )
+    prediction = TargetPrediction(
+        target=target,
+        units=target.units,
+        horizon_seconds=60,
+        status=SupportStatus.SUPPORTED,
+        distribution=base.target_predictions[0].distribution,
+        causal_status=CausalStatus.TRANSPORTED_UNDER_ASSUMPTIONS,
+        transport=transport,
+        causal_assumptions=assumptions,
+    )
+    payload = base.model_dump(mode="python")
+    payload.update(
+        {
+            "scenario_id": scenario_id,
+            "scenario_fingerprint": scenario_fingerprint,
+            "query": query.model_dump(mode="python"),
+            "query_fingerprint": query.fingerprint,
+            "state_specification": specification.model_dump(mode="python"),
+            "target_predictions": (prediction.model_dump(mode="python"),),
+            "diagnostics": diagnostics_payload,
+            "readiness": _control_ready().model_dump(mode="python"),
+            "causal_status": CausalStatus.TRANSPORTED_UNDER_ASSUMPTIONS,
+            "transport": transport.model_dump(mode="python"),
+            "provenance": _provenance(
+                query.fingerprint,
+                source_event_ids=("prior-drug",),
+                validation_evidence_ids=("trial-1",),
+            ).model_dump(mode="python"),
+        }
+    )
+    return StateForecast.model_validate(payload)
+
+
 def test_compiled_factors_explicitly_partition_active_and_out_of_query() -> None:
     query = _query()
     payload = _specification(query).model_dump(mode="python")
@@ -779,8 +875,40 @@ def test_transport_and_causal_claims_require_explicit_assumptions() -> None:
                 source_domain="study",
                 target_domain="deployment",
                 assumptions=("conditional exchangeability",),
+                evidence_ids=("transport-study",),
             ),
         )
+
+
+@pytest.mark.parametrize(
+    ("mutation", "message"),
+    (
+        pytest.param("top-domain", "scopes and transport domains", id="top-domain"),
+        pytest.param("target-domain", "scopes and transport domains", id="target-domain"),
+        pytest.param("top-evidence", "transport evidence", id="top-evidence"),
+        pytest.param("target-evidence", "transport evidence", id="target-evidence"),
+    ),
+)
+def test_transported_forecast_binds_every_transport_claim_to_scope_and_evidence(
+    mutation: str,
+    message: str,
+) -> None:
+    payload = _transported_forecast().model_dump(mode="python")
+    if mutation == "top-domain":
+        payload["transport"]["source_domain"] = "unrelated source population"
+    elif mutation == "target-domain":
+        payload["target_predictions"][0]["transport"]["target_domain"] = (
+            "unrelated target population"
+        )
+    elif mutation == "top-evidence":
+        payload["transport"]["evidence_ids"] = ()
+    elif mutation == "target-evidence":
+        payload["target_predictions"][0]["transport"]["evidence_ids"] = ()
+    else:  # pragma: no cover - the parameter table is closed above
+        raise AssertionError(f"unknown mutation {mutation}")
+
+    with pytest.raises(ValidationError, match=message):
+        StateForecast.model_validate(payload)
 
 
 def test_plan_can_abstain_without_fabricating_a_selected_candidate() -> None:
@@ -911,6 +1039,74 @@ def test_dynamic_summaries_reject_numeric_sentinels_and_invalid_risk_values() ->
                     magnitude=0.1,
                 ),
             )
+        )
+
+
+@pytest.mark.parametrize(
+    ("field", "units"),
+    (
+        pytest.param("division_hazard", "1/s", id="division-hazard"),
+        pytest.param("death_hazard", "1/s", id="death-hazard"),
+        pytest.param("recovery_timescale", "s", id="recovery-timescale"),
+    ),
+)
+def test_dynamic_summaries_reject_negative_hazards_and_timescales(field: str, units: str) -> None:
+    payload = _dynamics().model_dump(mode="python")
+    payload[field] = EvaluatedScalar(
+        status=SupportStatus.SUPPORTED,
+        value=-0.1,
+        units=units,
+    ).model_dump(mode="python")
+
+    with pytest.raises(ValidationError, match=field.replace("_", " ")):
+        DynamicSummary.model_validate(payload)
+
+
+@pytest.mark.parametrize(
+    ("support", "mean", "message"),
+    (
+        pytest.param(
+            DistributionSupport.NONNEGATIVE,
+            (-0.1,),
+            "negative mean",
+            id="nonnegative",
+        ),
+        pytest.param(
+            DistributionSupport.UNIT_INTERVAL,
+            (1.1,),
+            "unit-interval",
+            id="unit-interval",
+        ),
+        pytest.param(
+            DistributionSupport.SIMPLEX,
+            (-0.1, 1.1),
+            "simplex distribution means must lie",
+            id="simplex-component",
+        ),
+        pytest.param(
+            DistributionSupport.SIMPLEX,
+            (0.2, 0.2),
+            "sum to one",
+            id="simplex-total",
+        ),
+    ),
+)
+def test_parametric_distribution_mean_respects_declared_support(
+    support: DistributionSupport,
+    mean: tuple[float, ...],
+    message: str,
+) -> None:
+    size = len(mean)
+    with pytest.raises(ValidationError, match=message):
+        ParametricDistribution(
+            family="test",
+            dimensions=tuple(f"dimension-{index}" for index in range(size)),
+            support=support,
+            mean=mean,
+            covariance=tuple(
+                tuple(1.0 if row == column else 0.0 for column in range(size))
+                for row in range(size)
+            ),
         )
 
 
@@ -1151,6 +1347,36 @@ def test_belief_rejects_marginals_that_disagree_with_the_authoritative_joint() -
         CellStateBelief.model_validate(payload)
 
 
+@pytest.mark.parametrize("artifact_kind", ("belief", "forecast"))
+@pytest.mark.parametrize("component", ("mean", "covariance"))
+def test_marginal_consistency_uses_scale_independent_tolerance(
+    artifact_kind: str,
+    component: str,
+) -> None:
+    artifact = _belief() if artifact_kind == "belief" else _forecast()
+    payload = artifact.model_dump(mode="python")
+    contract = CellStateBelief if artifact_kind == "belief" else StateForecast
+    message = (
+        "parametric functional_capacity posterior"
+        if artifact_kind == "belief"
+        else "forecast joint marginal"
+    )
+
+    if component == "mean":
+        joint_mean = list(payload["joint_posterior"]["mean"])
+        joint_mean[0] = 1_000_000_000.0
+        payload["joint_posterior"]["mean"] = tuple(joint_mean)
+        payload["factors"][0]["posterior"]["mean"] = (1_000_001_000.0,)
+    else:
+        joint_covariance = [list(row) for row in payload["joint_posterior"]["covariance"]]
+        joint_covariance[0][0] = 1_000_000_000.0
+        payload["joint_posterior"]["covariance"] = tuple(tuple(row) for row in joint_covariance)
+        payload["factors"][0]["posterior"]["covariance"] = ((1_000_001_000.0,),)
+
+    with pytest.raises(ValidationError, match=message):
+        contract.model_validate(payload)
+
+
 def test_structural_belief_status_does_not_smuggle_unavailable_posteriors() -> None:
     payload = _belief().model_dump(mode="python")
     payload["status"] = BeliefStatus.UNAVAILABLE
@@ -1247,6 +1473,13 @@ def test_objectives_and_transport_reports_are_explicit_and_unambiguous() -> None
 
     with pytest.raises(ValidationError, match="source, target, and assumptions"):
         TransportReport(status=TransportStatus.TRANSPORTED, source_domain="study")
+    with pytest.raises(ValidationError, match="transport evidence"):
+        TransportReport(
+            status=TransportStatus.TRANSPORTED,
+            source_domain="study",
+            target_domain="deployment",
+            assumptions=("conditional exchangeability",),
+        )
     with pytest.raises(ValidationError, match="must not claim transport assumptions"):
         TransportReport(
             status=TransportStatus.WITHIN_SUPPORT,
@@ -1317,6 +1550,21 @@ def test_target_prediction_support_causal_status_and_transport_must_cohere() -> 
         ),
         pytest.param("observed-factor", "cannot be directly observed", id="future-observation"),
         pytest.param("factor-marginal", "forecast joint marginal", id="joint-marginal"),
+        pytest.param(
+            "duplicate-realization",
+            "realization blocks must name unique interventions",
+            id="duplicate-realization",
+        ),
+        pytest.param(
+            "ghost-realization",
+            "realization blocks must reference provenance events",
+            id="ghost-realization",
+        ),
+        pytest.param(
+            "nuisance-provenance",
+            "forecast nuisance evidence must appear in provenance",
+            id="nuisance-provenance",
+        ),
         pytest.param("causal-status", "must match its causal-support", id="causal-status"),
         pytest.param("support-readiness", "support/readiness", id="support-readiness"),
         pytest.param("threshold", "query OOD threshold", id="threshold"),
@@ -1366,6 +1614,15 @@ def test_forecast_is_fully_bound_to_query_state_horizon_and_diagnostics(
         payload["provenance"]["source_event_fingerprints"] = {"future-observation": "9" * 64}
     elif mutation == "factor-marginal":
         payload["factors"][0]["posterior"]["mean"] = (99.0,)
+    elif mutation == "duplicate-realization":
+        payload["intervention_realizations"] = (
+            payload["intervention_realizations"][0],
+            payload["intervention_realizations"][0],
+        )
+    elif mutation == "ghost-realization":
+        payload["intervention_realizations"][0]["intervention_event_id"] = "ghost-action"
+    elif mutation == "nuisance-provenance":
+        payload["nuisance"]["evidence_event_ids"] = ("ghost-observation",)
     elif mutation == "causal-status":
         payload["causal_status"] = CausalStatus.PREDICTIVE_ASSOCIATION
     elif mutation == "support-readiness":
@@ -1408,6 +1665,13 @@ def test_candidate_evaluation_requires_causal_control_readiness_and_real_score_m
     with pytest.raises(ValidationError, match="causal support must match readiness"):
         CandidateEvaluation.model_validate(payload)
 
+    payload = candidate.model_dump(mode="python")
+    payload["transport"] = TransportReport(status=TransportStatus.NOT_EVALUATED).model_dump(
+        mode="python"
+    )
+    with pytest.raises(ValidationError, match="requires within-support transport"):
+        CandidateEvaluation.model_validate(payload)
+
 
 @pytest.mark.parametrize(
     ("mutation", "message"),
@@ -1428,8 +1692,18 @@ def test_candidate_evaluation_requires_causal_control_readiness_and_real_score_m
         ),
         pytest.param(
             "selected-transport-status",
-            "transport status must match its candidate evaluation",
+            "requires within-support transport",
             id="selected-transport-status",
+        ),
+        pytest.param(
+            "selected-transport-details",
+            "transport must equal its candidate evaluation",
+            id="selected-transport-details",
+        ),
+        pytest.param(
+            "transport-provenance",
+            "transport evidence must appear in provenance",
+            id="transport-provenance",
         ),
         pytest.param("not-best", "highest selection score", id="argmax"),
         pytest.param("provenance", "provenance/query", id="provenance"),
@@ -1466,9 +1740,15 @@ def test_selected_plan_cannot_bypass_candidate_coverage_abstention_or_argmax(
             source_domain="source study",
             target_domain="query population",
             assumptions=assumptions,
+            evidence_ids=("trial-1",),
         ).model_dump(mode="python")
     elif mutation == "selected-transport-status":
         payload["transport"]["status"] = TransportStatus.NOT_EVALUATED
+    elif mutation == "selected-transport-details":
+        payload["transport"]["source_domain"] = "fabricated source domain"
+    elif mutation == "transport-provenance":
+        payload["transport"]["evidence_ids"] = ("ghost-transport-evidence",)
+        payload["evaluations"][0]["transport"]["evidence_ids"] = ("ghost-transport-evidence",)
     elif mutation == "not-best":
         payload["selected_scenario_id"] = "alternative"
         payload["causal_support"] = payload["evaluations"][1]["causal_support"]
