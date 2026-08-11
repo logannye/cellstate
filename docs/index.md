@@ -37,10 +37,21 @@ bytes are canonical under
 [`audits/item12_1a`](https://github.com/logannye/cellstate/tree/main/audits/item12_1a), but a later
 source-code audit found
 that v4's dose objective is inconsistently scaled relative to its tracked full equal-well ELBO. V4
-and its planned real-`p1` Item 12.1b replay are retired. The next milestone is a source-free v5
-objective and M-step redesign, full-ELBO gradient and nondecrease tests, request-level sampler/RNG
-support gates, immutable-generation atomic publication, and whole-process-tree hard execution
-containment before any new real-`p1` authorization. The scaffold is not a current-state estimator
-and exposes none of the four public cell-state operations. Protected `p2`, `p3`, and `p4` raw UMI
-count-matrix/endpoint bytes, outcomes, and lifecycle scoring authority remain sealed; public frozen
-split membership and benchmark-design metadata are not an access grant.
+and its planned real-`p1` Item 12.1b replay are retired. Item 12.2 has now completed its source-free
+v5 software scope: the equal-well objective and all-well M-step agree; independent derivative and
+nondecrease checks pass; exact positive-panel sampling supports at most 512 draws under a global
+`2^-64` conditional signed-`int64` tail budget; publication uses immutable generations and one
+atomic pointer; and exact code/input/stage closure runs behind a reproducible Linux `amd64` OCI
+identity with parent-owned whole-container containment and host-effective UID/GID execution on
+native Linux. The clean-final archive is byte-identical across three independent native and
+emulated builder environments under frozen inputs and toolchain, excludes build-host caches, and
+freezes its builder identity in the workflow and runtime lock. No protected source was opened, no
+real-`p1` fit ran, and no candidate artifact, plan, observation, evidence, or lifecycle result was
+issued. The component remains `SCAFFOLD`. Item 12.3 is only a proposed, separately authorized,
+version-bound, nonissuing real-`p1` v5 execution; it is not authorized or run. The exact image is
+not remotely published, and durable
+distribution of its locally loaded OCI archive is a prerequisite to that authorization. The
+scaffold is not a current-state estimator and exposes none of the four public cell-state operations.
+Protected `p2`, `p3`, and `p4` raw UMI count-matrix/endpoint bytes, outcomes, and lifecycle scoring
+authority remain sealed; public frozen split membership and benchmark-design metadata are not an
+access grant.

@@ -1,14 +1,10 @@
 #!/usr/bin/env python3
-"""Materialize the exact p1-only sci-Plex3 trained candidate.
+"""Check legacy sci-Plex3 candidate materializations; direct materialization is retired.
 
-This command is the only Item 12 path that opens the 2.53 GB source H5AD.  It reconstructs the
-closed Item 11 p1 preparation, seals the immutable candidate training plan before fitting, applies
-the frozen runtime/resource gates, and persists only deterministic, non-authorizing artifacts.
-
-The canonical outputs are installed as one staged repository transaction.  The vertical Item 12
-directory is renamed into place last, so its materialization manifest is never visible before the
-support and count-stream artifacts it names.  ``--check`` only reauthenticates checked-in bytes and
-never opens, stats, or hashes the source H5AD.
+Both the public and compatibility materialization entry points fail before path or source access.
+Only the Item 12.2 contained v5 supervisor may launch a future source-touching worker. ``--check``
+reauthenticates an already published deterministic closure and never opens, stats, or hashes the
+source H5AD.
 """
 
 from __future__ import annotations
@@ -20,10 +16,7 @@ import json
 import os
 import platform
 import resource
-import shutil
 import sys
-import tempfile
-import time
 from collections.abc import Mapping
 from contextlib import suppress
 from dataclasses import asdict
@@ -104,12 +97,10 @@ _THREAD_ENVIRONMENT_KEYS = (
     "VECLIB_MAXIMUM_THREADS",
 )
 
-# Item 12's candidate and runner sources were independently frozen before real-source
-# materialization. Both boundaries fail closed before opening the H5AD.
-EXPECTED_CANDIDATE_CODE_SHA256 = "f316edbc4f3204686d2d9d7a0a7fbc1d809dcac61601416f7f02323dece152b8"
-EXPECTED_CANDIDATE_RUNNER_CODE_SHA256 = (
-    "7d8ae937d1188979b461a94f39f7a9bddc3c7e793d1c4ce00134722b81a928c4"
-)
+# The import boundary captures exact v5 bytes; the contained execution-input manifest binds the
+# same digests before Docker imports this module from its sealed code tree.
+EXPECTED_CANDIDATE_CODE_SHA256 = _candidate_runner_module._IMPORTED_CANDIDATE_CODE_SHA256
+EXPECTED_CANDIDATE_RUNNER_CODE_SHA256 = _candidate_runner_module._IMPORTED_RUNNER_CODE_SHA256
 
 _BUILDER_RELATIVE_PATH = Path("scripts/build_sciplex3_k562_trained_candidate.py")
 _REPOSITORY_BINDING_PATHS: Mapping[str, Path] = {
@@ -744,7 +735,7 @@ def _build_manifest(
     }
     return {
         "artifact_schema": "sciplex3-k562-p1-candidate-materialization",
-        "artifact_schema_version": "4.0.0",
+        "artifact_schema_version": "5.0.0",
         "artifacts": artifacts,
         "exact_bindings": {
             "action_binding_sha256": plan.action_binding_sha256,
@@ -778,7 +769,7 @@ def _build_manifest(
             "query_sha256": plan.query_fingerprint,
             "runtime_lock_sha256": plan.runtime_lock.sha256,
             "fixed_factor_shape": SCIPLEX3_CANDIDATE_FIXED_FACTOR_SHAPE,
-            "plate_context_rho_sha256": observation.plate_context_rho_sha256,
+            "training_nuisance_rho_sha256": observation.training_nuisance_rho_sha256,
             "software_golden_model_sha256": SCIPLEX3_CANDIDATE_GOLDEN_MODEL_SHA256,
             "software_golden_sample_sha256": SCIPLEX3_CANDIDATE_GOLDEN_SAMPLE_SHA256,
             "scoring_transform_sha256": assembly.scoring_transform_sha256,
@@ -829,7 +820,7 @@ def _build_manifest(
             "fixed_factor_shape": SCIPLEX3_CANDIDATE_FIXED_FACTOR_SHAPE,
             "optimization_seed": plan.optimization_seed,
             "partition_id": "p1-train",
-            "plate_context_family": "uniform-whole-p1-rho-row",
+            "plate_context_family": "neutral-unit-context",
             "plate_sigma_present": False,
         },
         "source": {
@@ -890,7 +881,7 @@ def _check_manifest(
 ) -> str:
     if (
         manifest.get("artifact_schema") != "sciplex3-k562-p1-candidate-materialization"
-        or manifest.get("artifact_schema_version") != "4.0.0"
+        or manifest.get("artifact_schema_version") != "5.0.0"
     ):
         raise CandidateMaterializationError("Item 12 materialization header drifted")
     if set(manifest) != {
@@ -1262,7 +1253,7 @@ def _check_manifest(
             "fixed_factor_shape": SCIPLEX3_CANDIDATE_FIXED_FACTOR_SHAPE,
             "optimization_seed": 0,
             "partition_id": "p1-train",
-            "plate_context_family": "uniform-whole-p1-rho-row",
+            "plate_context_family": "neutral-unit-context",
             "plate_sigma_present": False,
         },
     ):
@@ -1293,8 +1284,8 @@ def _check_manifest(
         or behavior.get("fixed_factor_shape") != SCIPLEX3_CANDIDATE_FIXED_FACTOR_SHAPE
         or behavior.get("inner_equilibration_performed") is not True
         or behavior.get("inner_all_batches_converged") is not True
-        or behavior.get("plate_context_family") != "uniform-whole-p1-rho-row"
-        or behavior.get("plate_context_count") != 8
+        or behavior.get("plate_context_family") != "neutral-unit-context"
+        or behavior.get("plate_context_count") != 1
         or behavior.get("plate_context_factorwise_mean_one") is not True
         or behavior.get("capture_latent_present") is not False
         or behavior.get("fit_converged") is not True
@@ -1345,6 +1336,7 @@ def _check_manifest(
     for field_name in (
         "initial_factor_order",
         "initial_inner_sweep_count_histogram",
+        "sampling_envelope_rejection_reasons",
         "terminal_elbo_relative_changes",
     ):
         values = observation_python.get(field_name)
@@ -1365,7 +1357,7 @@ def _check_manifest(
         or observation.candidate_specification_sha256 != plan.candidate_specification.sha256
         or observation.output_model_schema_sha256 != plan.output_model_schema.sha256
         or observation.runtime_lock_sha256 != plan.runtime_lock.sha256
-        or observation.plate_context_rho_sha256 != tensor_sha256["rho"]
+        or observation.training_nuisance_rho_sha256 != tensor_sha256["rho"]
         or observation.initial_equilibration_sha256
         != fitted_state.get("initial_equilibration_sha256")
         or observation.inner_equilibration_trace_sha256
@@ -1452,7 +1444,7 @@ def _check_manifest(
         "output_model_schema_sha256": plan.output_model_schema.sha256,
         "p1_count_stream_sha256": plan.p1_count_stream_sha256,
         "p1_design_fingerprint": plan.p1_design_fingerprint,
-        "plate_context_rho_sha256": observation.plate_context_rho_sha256,
+        "training_nuisance_rho_sha256": observation.training_nuisance_rho_sha256,
         "query_fingerprint": plan.query_fingerprint,
         "query_sha256": plan.query_fingerprint,
         "runtime_lock_sha256": plan.runtime_lock.sha256,
@@ -1575,183 +1567,26 @@ def materialize(
     *,
     repository_root: Path = REPOSITORY_ROOT,
 ) -> str:
-    """Run the one exact p1 fit and atomically install its non-authorizing artifacts."""
+    """Reject the retired in-process source-touching/publication path before source access."""
 
-    root = Path(repository_root).resolve()
-    source = Path(source_h5ad)
-    output = Path(output_directory).resolve()
-    if output.exists():
-        raise CandidateMaterializationError(f"refusing to overwrite output directory: {output}")
-    output_relative = _output_relative_path(output, root, MATERIALIZATION_MANIFEST).parent
-    if output_relative != BENCHMARK_RELATIVE_DIRECTORY / "item12-p1":
-        raise CandidateMaterializationError("Item 12 output directory must use its canonical path")
-    canonical_external = [
-        *(root / path for path in SUPPORT_RELATIVE_PATHS.values()),
-        root / COUNT_DESCRIPTOR_RELATIVE_PATH,
-    ]
-    existing = [path for path in canonical_external if path.exists()]
-    if existing:
-        raise CandidateMaterializationError(
-            f"refusing to overwrite existing Item 12 artifact: {existing[0]}"
-        )
+    del source_h5ad, output_directory, repository_root
+    raise CandidateMaterializationError(
+        "legacy direct materialization is retired; use the contained v5 supervisor"
+    )
 
-    output.parent.mkdir(parents=True, exist_ok=True)
-    lock_path = output.parent / f".{output.name}.materialization.lock"
-    try:
-        lock_descriptor = os.open(lock_path, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
-    except OSError as error:
-        raise CandidateMaterializationError(
-            f"cannot acquire exclusive Item 12 materialization lock: {lock_path}"
-        ) from error
 
-    transaction: Path | None = None
-    installed_files: list[Path] = []
-    output_installed = False
-    completed = False
-    try:
-        # All cheap executable/runtime checks precede the first source operation.
-        runtime_payload = _require_reference_runtime()
-        repository_bindings_before = _repository_bindings(root)
-        _verify_imported_module_provenance(root, repository_bindings_before)
-        support_envelope_fingerprint, _ = _planned_support_envelope(root)
-        benchmark_fingerprint = _binding_sha256(repository_bindings_before, "benchmark")
-        source = source.resolve()
-        preparation = _prepare_exact_p1(source, root)
+def _retired_materialize_implementation(
+    source_h5ad: Path,
+    output_directory: Path = DEFAULT_OUTPUT_DIRECTORY,
+    *,
+    repository_root: Path = REPOSITORY_ROOT,
+) -> str:
+    """Fail closed; retained only as a compatibility name for retirement assertions."""
 
-        transaction = Path(tempfile.mkdtemp(prefix=f".{output.name}.tmp-", dir=output.parent))
-        sealed_directory = transaction / "sealed-plan"
-        fit_directory = transaction / "fit"
-        stage_output = transaction / "final-output"
-        stage_output.mkdir()
-
-        plan = build_sciplex3_candidate_training_plan(
-            preparation,
-            benchmark_fingerprint=benchmark_fingerprint,
-            support_envelope_fingerprint=support_envelope_fingerprint,
-        )
-        sealed = seal_sciplex3_candidate_training_plan(
-            preparation,
-            plan,
-            sealed_directory,
-        )
-        if sealed.plan != plan or sealed.preparation_fingerprint != preparation.receipt.fingerprint:
-            raise CandidateMaterializationError("sealed training plan changed before fitting")
-
-        fit_started = time.monotonic()
-        fitted = fit_and_write_sciplex3_candidate(preparation, sealed, fit_directory)
-        fit_elapsed = time.monotonic() - fit_started
-        peak_rss = _peak_rss_bytes()
-        if fit_elapsed > FIT_WALL_LIMIT_SECONDS:
-            raise CandidateMaterializationError("candidate fit exceeded the 60-minute wall limit")
-        if peak_rss > FIT_RSS_LIMIT_BYTES:
-            raise CandidateMaterializationError("candidate fit exceeded the 4-GiB RSS limit")
-        observation = verify_sciplex3_candidate_fit(preparation, sealed, fitted)
-
-        _copy_verified(sealed.artifact.path, stage_output / TRAINING_PLAN)
-        _copy_verified(fitted.model_artifact.path, stage_output / CANDIDATE_MODEL)
-        _copy_verified(fitted.observation_artifact.path, stage_output / TRAINING_OBSERVATION)
-        _write_canonical_exclusive(
-            stage_output / FINALIZED_SCAN_RECEIPT,
-            preparation.finalized_count_scan_manifest(),
-        )
-        _write_canonical_exclusive(stage_output / ASSEMBLY_RECEIPT, asdict(preparation.receipt))
-
-        sealed_support = {
-            artifact.path.name: artifact.path for artifact in sealed.support_artifacts
-        }
-        if set(sealed_support) != {
-            "candidate-specification.json",
-            "output-model-schema.json",
-            "p1-count-stream-descriptor.json",
-            "runtime-lock.json",
-        }:
-            raise CandidateMaterializationError("sealed runner support closure is not exact")
-        if _read_bytes(sealed_support["runtime-lock.json"], name="sealed runtime lock") != (
-            runtime_payload
-        ):
-            raise CandidateMaterializationError("sealed runtime lock changed after source access")
-
-        stage_promotions = transaction / "promotions"
-        stage_support: dict[Path, Path] = {}
-        for runner_name, relative_path in SUPPORT_RELATIVE_PATHS.items():
-            staged = stage_promotions / relative_path
-            _copy_verified(sealed_support[runner_name], staged)
-            stage_support[relative_path] = staged
-        stage_count_descriptor = stage_promotions / COUNT_DESCRIPTOR_RELATIVE_PATH
-        _copy_verified(sealed_support["p1-count-stream-descriptor.json"], stage_count_descriptor)
-
-        payloads = _artifact_payloads(
-            stage_output=stage_output,
-            stage_support=stage_support,
-            stage_count_descriptor=stage_count_descriptor,
-            output_directory=output,
-            repository_root=root,
-        )
-        repository_bindings_after = _repository_bindings(root)
-        if repository_bindings_after != repository_bindings_before:
-            raise CandidateMaterializationError("repository bytes changed during Item 12 fitting")
-        manifest = _build_manifest(
-            preparation,
-            plan,
-            observation,
-            payloads,
-            repository_bindings_after,
-            support_envelope_fingerprint=support_envelope_fingerprint,
-        )
-        manifest_payload = canonical_json_bytes(manifest)
-        _write_exclusive(stage_output / MATERIALIZATION_MANIFEST, manifest_payload)
-        overrides = {
-            relative_path: (
-                stage_output / relative_path.relative_to(output_relative)
-                if relative_path.is_relative_to(output_relative)
-                else stage_support.get(relative_path, stage_count_descriptor)
-            )
-            for relative_path, _ in payloads.values()
-        }
-        fingerprint = _check_manifest(
-            manifest,
-            manifest_payload,
-            repository_root=root,
-            repository_bindings=repository_bindings_after,
-            overrides=overrides,
-        )
-
-        # Install external artifacts first.  The vertical directory, containing the manifest, is
-        # the final atomic visibility point.  Every normal failure removes all paths created here.
-        for relative_path, staged in sorted(stage_support.items(), key=lambda item: str(item[0])):
-            target = root / relative_path
-            _install_exclusive_file(staged, target)
-            installed_files.append(target)
-        count_target = root / COUNT_DESCRIPTOR_RELATIVE_PATH
-        _install_exclusive_file(stage_count_descriptor, count_target)
-        installed_files.append(count_target)
-        if output.exists():
-            raise CandidateMaterializationError("Item 12 output appeared concurrently")
-        stage_output.rename(output)
-        output_installed = True
-        _fsync_directory(output.parent)
-        observed = check_materialization(output, repository_root=root)
-        if observed != fingerprint:
-            raise CandidateMaterializationError("installed Item 12 transaction changed on re-read")
-        completed = True
-        return fingerprint
-    finally:
-        if transaction is not None:
-            shutil.rmtree(transaction, ignore_errors=True)
-        if output_installed and not (output / MATERIALIZATION_MANIFEST).is_file():
-            shutil.rmtree(output, ignore_errors=True)
-        # On an exception, the function has not returned; remove all transaction-created paths.
-        # On success each path remains and the output manifest proves the complete closure.
-        if not completed:
-            if output_installed:
-                shutil.rmtree(output, ignore_errors=True)
-            for path in reversed(installed_files):
-                with suppress(FileNotFoundError):
-                    path.unlink()
-                _remove_empty_parents(path, stop=root)
-        os.close(lock_descriptor)
-        with suppress(FileNotFoundError):
-            lock_path.unlink()
+    del source_h5ad, output_directory, repository_root
+    raise CandidateMaterializationError(
+        "legacy direct materialization is retired; use the contained v5 supervisor"
+    )
 
 
 def main() -> None:

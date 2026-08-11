@@ -82,9 +82,19 @@ utility. Posterior covariance reduction alone is not EVSI.
 > on the wrong relative scale. V4 is retired, remains `NO-GO`, and no lifecycle state has changed.
 > **Item 12.1a** is now reproducible from the exact historical harness, tests, parent driver, and
 > reports under [`audits/item12_1a`](audits/item12_1a/). The planned v4 **Item 12.1b** real-`p1`
-> replay is retired before execution. The next milestone is a source-free v5 objective/M-step
-> redesign with full-ELBO gradient and nondecrease tests plus hard wall-clock and memory containment
-> before any new real-`p1` authorization.
+> replay is retired before execution. **Item 12.2** has completed its source-free v5 software scope:
+> the exact equal-well objective and all-well action/context M-step agree; independent derivative
+> and nondecrease checks pass; sampling is exactly positive-conditioned and request-bounded;
+> publication is generation-immutable and atomically pointed; executable, mounted-input, and staged-
+> output byte closure is explicit; and the reproducible Linux `amd64` OCI runtime is covered by
+> parent-owned hard wall-clock and memory containment. Its clean-final OCI archive is byte-identical
+> across three independent native and emulated builder environments under frozen inputs and
+> toolchain and excludes build-host caches. This work opened no protected source, ran no
+> real-`p1` fit, and issued no candidate artifact, plan, observation, evidence, or lifecycle result.
+> The component remains `SCAFFOLD`. The next proposed milestone is a separately authorized,
+> version-bound, nonissuing real-`p1` v5 execution under **Item 12.3**; it is not authorized and has
+> not run. Durable distribution of the exact locally loaded OCI archive is a prerequisite; no remote
+> image publication is claimed.
 
 ## Scientific thesis
 
@@ -342,14 +352,55 @@ and all 16 bounded `rho` context summaries.
 A subsequent source-code audit found an outer-objective defect outside that audit's scope. V4's dose
 Newton block minimizes an unweighted per-well Gamma term plus the global dose penalty, whereas the
 tracked full equal-well ELBO multiplies the corresponding Gamma term by `94785/768`. V4 is therefore
-retired, and the planned **Item 12.1b** real-`p1` replay is retired before execution. The next
-milestone is a source-free v5 objective and M-step redesign that must reconcile the exact full ELBO,
-pass finite-difference gradient and fixed-`q` nondecrease tests, bound or eliminate all-zero sampling
-and RNG-overflow failure at request scope, publish immutable generations through one atomic pointer,
-and add whole-process-tree hard wall-clock and memory containment before any new real-`p1`
-authorization. No
-protected dataset source was opened for Item 12.1a or this source-code audit; none of this authorizes
-an artifact or a biological or performance claim.
+retired, and the planned **Item 12.1b** real-`p1` replay is retired before execution. **Item 12.2**
+then completed the replacement source-free v5 design. Its canonical fixed-`q` action/context
+objective applies the exact `94785/768` equal-well scale to all 768 wells, and its all-well M-step
+jointly covers `alpha`, arithmetic-mean-one constrained `log-rho`, and the `delta` dose-effect
+tensor. A separately implemented scalar objective, finite-difference gradients and Hessians,
+treated-well adversarial
+fixtures, and accepted-substep and complete-block checks establish nondecrease on that same
+objective.
+
+The v5 sampler conditions the whole panel exactly through a zero-truncated superposed compound-
+Poisson/log-series construction. Exact `CandidateSampleRequest` support caps a request at 512 draws
+and certifies a conservative conditional signed-`int64` tail bound of at most `2^-64` across all 753
+actions (752 compound-dose actions plus no action), one neutral unit unseen-plate context, and all 27
+declared calibration `tau` values. Target-only support is rejected. Publication stages and verifies
+one immutable generation before atomically replacing `current.json`, with reader old-or-new
+visibility and forced-termination recovery. The pre-fit contract now binds a complete Python code
+closure and exact mounted public-control inputs; worker and parent observations re-inventory and seal
+the typed staged output closure.
+
+Three independent no-cache, provenance-disabled builds at `SOURCE_DATE_EPOCH=1786406400`—Docker
+Desktop `amd64` emulation, the separate local `tinyzkp` `docker-container` builder pinned to the
+locked BuildKit image, and native Linux `amd64` GitHub Actions—produced the same byte-for-byte OCI
+archive under frozen inputs and toolchain, SHA-256
+`37c2fa5846acfbd8357476859bd7f8f0ac6591261d79c2f6f46f0aa22fb76454`. Its index is
+`sha256:e0f0afd6c66197a37d0ab7a05e7cccfe5990da1fd8497e175fdf3ab909a67812`, its runnable child
+manifest is `sha256:12c2faa6019fb60cdcabaa8f38f70e99be7998997b97ddb0ca59fbe2e82f1e25`, and its config is
+`sha256:80ed48f278d7a46c0ae7811285efc69181ae59872a358cc9b176079aa09f3cc8`. The Dockerfile SHA-256 is
+`a3a71c3d61c71235d9c1a99c16aa00568b398971adfc2da65388b0c7ea3987a0`. A multi-stage build copies
+only the curated runtime tree into a clean final base, excluding build-host caches such as Rosetta's
+`/root/.cache/rosetta`; the workflow and runtime lock freeze the exact Buildx/BuildKit builder
+identity.
+Native-Linux execution freezes `host-effective-uid-gid`: the worker uses the host's numeric
+effective UID/GID, the mode-`0700` tmpfs uses that same UID/GID, and the anonymous snapshot volume
+initializes from an empty mode-`1777` image directory. This lets the contained non-root worker use
+the declared `0400`/`0700` host binds without weakening their permissions.
+The parent accounts its 3,600-second budget before public staging and actively bounds Docker
+commands and waits; any returned staging overrun fails before container creation. An independent
+3,540-second in-container watchdog begins before protected-source open and covers snapshot, fit,
+and close-reauthentication. Docker's memory and total-memory-plus-swap limits are both 4 GiB,
+disabling additional swap. Tests prove timeout, OOM, descendant/container and anonymous-volume
+cleanup, no canonical publication, and next-run recovery behavior; the successful live path also
+proves parent no-follow re-inventory and sealing of the exact worker stage. These are source-free
+software results. No protected source was opened, no real-`p1` fit ran, and no candidate artifact,
+plan, observation, evidence, materialization, or lifecycle result was issued. The component remains
+`SCAFFOLD`. A separately authorized, version-bound, nonissuing real-`p1` v5 execution is merely
+proposed as **Item 12.3**; it is neither authorized nor run and grants no held-out access or
+biological/performance claim. The image still requires loading from the exact local OCI layout and
+is not claimed to be remotely published. Durable distribution of that exact archive is a
+prerequisite to any Item 12.3 authorization.
 
 The [project roadmap](docs/roadmap.md) is the sole authority for implementation order and graduation
 status. The [full buildout architecture](docs/architecture/full-buildout.md) defines the target
@@ -403,6 +454,15 @@ evidence.
   objective is now known to be inconsistently scaled relative to the full ELBO. V4 is retired; no
   v4 artifact exists and `TRAINED_CANDIDATE` cannot be derived. Its exact historical audit lineage
   is preserved under [`audits/item12_1a`](audits/item12_1a/).
+- A completed source-free Item 12.2 v5 software boundary: exact equal-well objective/M-step
+  agreement; independent derivative and nondecrease checks; exact-positive request-level sampling
+  through 512 draws with a global `2^-64` conditional signed-`int64` tail budget; immutable atomic
+  generation publication; exact code/input/stage closure; a clean-final Linux `amd64` OCI archive
+  reproduced byte-for-byte across three independent native and emulated builder environments under
+  frozen inputs and toolchain;
+  and parent-owned whole-container containment. It is software scaffolding only: no real `p1` fit
+  or issued candidate/lifecycle artifact exists, and Item 12.3 remains an unauthorized proposal
+  whose prerequisites include durable distribution of the exact locally loaded archive.
 - An experimental biological-bundle and support-envelope contract with an exhaustive stage-port
   map, operation-specific prerequisites, content-addressed training/calibration/validation
   bindings, and a derived component lifecycle. The first sci-Plex3 population assay-response

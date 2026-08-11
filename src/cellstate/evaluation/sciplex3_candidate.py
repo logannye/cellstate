@@ -12,9 +12,9 @@ and ``y_g ~ Poisson(sum_k theta_k B[k, g])``.  The factor shape is fixed at exac
 ``r_theta = 0.1``; it is never estimated from p1.
 
 Every loading row sums to one, so the model generates a future panel total.  It never conditions
-on an observed target depth.  New plates use one uniformly selected, whole observed p1 ``rho`` row,
-shared across every draw for one target-plate/seed pair.  This preserves the observed cross-factor
-plate context without a fitted parametric plate tail.
+on an observed target depth.  New plates use one conservative, deterministic unit context rather
+than replaying a concentrated observed p1 ``rho`` row.  Observable counts are sampled exactly
+conditional on a positive panel through the source-free v5 compound-Poisson construction.
 """
 
 from __future__ import annotations
@@ -46,24 +46,48 @@ from cellstate.evaluation.sciplex3_baselines import (
     PredictionTarget,
     TargetCondition,
 )
+from cellstate.evaluation.sciplex3_candidate_v5 import (
+    SCIPLEX3_V5_EQUAL_WELL_SCALE,
+    SCIPLEX3_V5_GRADIENT_TOL,
+    SCIPLEX3_V5_OBJECTIVE_VERSION,
+    SciPlex3V5ActionParameters,
+    SciPlex3V5Design,
+    SciPlex3V5ObjectiveError,
+    fit_fixed_q_action_context_m_step,
+    fixed_q_full_elbo_action_context,
+)
+from cellstate.evaluation.sciplex3_sampling_v5 import (
+    SCIPLEX3_V5_MAX_COMPOUND_POISSON_INTENSITY,
+    SCIPLEX3_V5_MAX_SAMPLE_COUNT,
+    SCIPLEX3_V5_REQUEST_FAILURE_BUDGET_LOG,
+    SCIPLEX3_V5_SAMPLING_CONTRACT_SHA256,
+    SciPlex3SamplingV5Error,
+    V5PositiveConditionedSampler,
+    V5SampleRequest,
+    V5SamplingEnvelopeCertificate,
+    V5SamplingParameters,
+    V5SamplingTarget,
+    canonical_target_fingerprint,
+    freeze_positive_int64_samples,
+)
 
 FloatArray = NDArray[np.float64]
 IntArray = NDArray[np.int64]
 
 SCIPLEX3_CANDIDATE_MODEL_ID: Final = (
-    "sciplex3-k562-24h-gamma-poisson-fixed-r0p1-empirical-plate-k16"
+    "sciplex3-k562-24h-gamma-poisson-fixed-r0p1-neutral-unseen-plate-k16-v5"
 )
-SCIPLEX3_CANDIDATE_IMPLEMENTATION_VERSION: Final = "4.0.0"
+SCIPLEX3_CANDIDATE_IMPLEMENTATION_VERSION: Final = "5.0.0"
 SCIPLEX3_CANDIDATE_MODEL_SCHEMA: Final = (
-    "sciplex3-gamma-poisson-fixed-r0p1-empirical-plate-candidate-model-v4"
+    "sciplex3-gamma-poisson-fixed-r0p1-neutral-context-candidate-model-v5"
 )
-SCIPLEX3_CANDIDATE_MODEL_SCHEMA_VERSION: Final = "4.0.0"
+SCIPLEX3_CANDIDATE_MODEL_SCHEMA_VERSION: Final = "5.0.0"
 SCIPLEX3_CANDIDATE_SPECIFICATION_SCHEMA: Final = (
-    "sciplex3-gamma-poisson-fixed-r0p1-empirical-plate-candidate-specification"
+    "sciplex3-gamma-poisson-fixed-r0p1-neutral-context-candidate-specification-v5"
 )
-SCIPLEX3_CANDIDATE_SPECIFICATION_SCHEMA_VERSION: Final = "4.0.0"
+SCIPLEX3_CANDIDATE_SPECIFICATION_SCHEMA_VERSION: Final = "5.0.0"
 SCIPLEX3_CANDIDATE_OUTPUT_MODEL_TOPOLOGY: Final = (
-    "sciplex3-gamma-poisson-fixed-r0p1-empirical-plate-output-topology-v4"
+    "sciplex3-gamma-poisson-fixed-r0p1-neutral-context-output-topology-v5"
 )
 SCIPLEX3_CANDIDATE_FACTOR_COUNT: Final = 16
 SCIPLEX3_CANDIDATE_COMPOUND_COUNT: Final = 188
@@ -95,11 +119,6 @@ SCIPLEX3_CANDIDATE_FACTOR_ORDER_DECIMALS: Final = 12
 SCIPLEX3_CANDIDATE_IDENTIFIABILITY_THRESHOLD: Final = math.sqrt(np.finfo(np.float64).eps)
 SCIPLEX3_CANDIDATE_IDENTIFIABILITY_MARGIN: Final = 1e-12
 SCIPLEX3_CANDIDATE_QUANTIZATION_BOUNDARY_EPS_MULTIPLIER: Final = 64.0
-SCIPLEX3_CANDIDATE_MAX_POSITIVE_REDRAWS: Final = 32
-SCIPLEX3_CANDIDATE_BLOCK_NEWTON_MAX_STEPS: Final = 50
-SCIPLEX3_CANDIDATE_BLOCK_BACKTRACK_MAX_STEPS: Final = 20
-SCIPLEX3_CANDIDATE_BLOCK_GRADIENT_TOL: Final = 1e-10
-SCIPLEX3_CANDIDATE_BLOCK_DECREMENT_EPS_MULTIPLIER: Final = 64.0
 SCIPLEX3_CANDIDATE_LAMBDA_INITIAL_MASS: Final = 1_000.0
 SCIPLEX3_CANDIDATE_NNDSVD_SCORE_FLOOR_FRACTION: Final = 1e-8
 SCIPLEX3_CANDIDATE_TARGET_PARTITIONS: Final = (
@@ -109,6 +128,8 @@ SCIPLEX3_CANDIDATE_TARGET_PARTITIONS: Final = (
 )
 SCIPLEX3_CANDIDATE_CONTEXT_ID: Final = "sciplex3-k562-24h-population-assay-response-v1"
 SCIPLEX3_CANDIDATE_TAU_GRID: Final = tuple(math.exp(index / 20.0) for index in range(-20, 7))
+SCIPLEX3_CANDIDATE_V5_NEUTRAL_CONTEXT_ID: Final = "neutral-unit-unseen-plate-context"
+SCIPLEX3_CANDIDATE_V5_NO_ACTION_ID: Final = "no-action"
 SCIPLEX3_CANDIDATE_REFERENCE_RUNTIME: Final[Mapping[str, object]] = MappingProxyType(
     {
         "blas_name": "scipy-openblas",
@@ -130,7 +151,7 @@ class SciPlex3CandidateError(ValueError):
 
 @dataclass(frozen=True, slots=True)
 class CandidateSampleRequest:
-    """Seed-bound, outcome-free request for the candidate (never a baseline request)."""
+    """Seed-bound, outcome-free request whose complete count enters v5 support."""
 
     target: PredictionTarget
     sample_count: int
@@ -149,11 +170,16 @@ class CandidateSampleRequest:
 
 @dataclass(frozen=True, slots=True, eq=False)
 class CandidateRawCountSamples:
-    """Immutable candidate samples with candidate-specific provenance."""
+    """Immutable candidate samples with exact model/calibration/contract provenance."""
 
     candidate_id: str
     target: PredictionTarget
     ordered_feature_keys: tuple[str, ...]
+    model_artifact_sha256: str
+    calibration_state_sha256: str
+    sampling_contract_sha256: str
+    target_fingerprint: str
+    context_id: str
     seed: int
     samples: IntArray
     rng_algorithm: Literal["numpy-pcg64dxsm-v1"] = RNG_ALGORITHM
@@ -170,26 +196,25 @@ class CandidateRawCountSamples:
             raise SciPlex3CandidateError("candidate sample seed is invalid")
         if self.rng_algorithm != RNG_ALGORITHM:
             raise SciPlex3CandidateError("candidate sample RNG algorithm drifted")
-        raw = np.asarray(self.samples)
-        if (
-            raw.ndim != 2
-            or raw.shape[0] == 0
-            or raw.shape[1] != SCIPLEX3_FEATURE_COUNT
-            or raw.dtype.kind not in {"i", "u"}
+        for value, name in (
+            (self.model_artifact_sha256, "candidate sample model artifact sha256"),
+            (self.calibration_state_sha256, "candidate sample calibration state sha256"),
+            (self.sampling_contract_sha256, "candidate sample contract sha256"),
+            (self.target_fingerprint, "candidate sample target fingerprint"),
         ):
-            raise SciPlex3CandidateError(
-                "candidate raw-count samples have an invalid shape or dtype"
-            )
-        if raw.dtype.kind == "u" and bool(np.any(raw > np.iinfo(np.int64).max)):
-            raise SciPlex3CandidateError("candidate raw-count sample exceeds signed 64-bit range")
-        converted = np.asarray(raw, dtype="<i8", order="C")
-        if bool(np.any(converted < 0)) or bool(
-            np.any(np.sum(converted, axis=1, dtype=np.int64) <= 0)
-        ):
-            raise SciPlex3CandidateError(
-                "candidate raw-count samples must be positive-total counts"
-            )
-        frozen = np.frombuffer(converted.tobytes(order="C"), dtype="<i8").reshape(converted.shape)
+            _strict_sha256(value, name=name)
+        if self.sampling_contract_sha256 != SCIPLEX3_V5_SAMPLING_CONTRACT_SHA256:
+            raise SciPlex3CandidateError("candidate sample contract provenance drifted")
+        if self.target_fingerprint != _v5_target_fingerprint(self.target):
+            raise SciPlex3CandidateError("candidate sample target provenance drifted")
+        if self.context_id != SCIPLEX3_CANDIDATE_V5_NEUTRAL_CONTEXT_ID:
+            raise SciPlex3CandidateError("candidate sample context is not the neutral v5 context")
+        try:
+            frozen = freeze_positive_int64_samples(self.samples)
+        except SciPlex3SamplingV5Error as error:
+            raise SciPlex3CandidateError("candidate raw-count samples are invalid") from error
+        if frozen.shape[1] != SCIPLEX3_FEATURE_COUNT:
+            raise SciPlex3CandidateError("candidate raw-count sample feature panel is invalid")
         object.__setattr__(self, "ordered_feature_keys", keys)
         object.__setattr__(self, "samples", frozen)
 
@@ -215,6 +240,40 @@ def _sha256_bytes(value: bytes) -> str:
 
 def _canonical_json_sha256(value: object) -> str:
     return _sha256_bytes(_canonical_json_bytes(value))
+
+
+def _v5_action_id(condition: TargetCondition) -> str:
+    if type(condition) is NoAction:
+        return SCIPLEX3_CANDIDATE_V5_NO_ACTION_ID
+    if type(condition) is CompoundDose:
+        return "compound-dose:" + _canonical_json_sha256(
+            {"compound": condition.compound, "dose_nm": condition.dose_nm}
+        )
+    raise SciPlex3CandidateError("candidate condition has an unsupported exact type")
+
+
+def _v5_target_fingerprint(target: PredictionTarget) -> str:
+    condition = target.condition
+    condition_payload: dict[str, object]
+    if type(condition) is NoAction:
+        condition_payload = {"kind": "no_action"}
+    elif type(condition) is CompoundDose:
+        condition_payload = {
+            "compound": condition.compound,
+            "dose_nm": condition.dose_nm,
+            "kind": "compound_dose",
+        }
+    else:
+        raise SciPlex3CandidateError("candidate target condition has an unsupported exact type")
+    return canonical_target_fingerprint(
+        {
+            "case_id": target.case_id,
+            "condition": condition_payload,
+            "partition_id": target.partition_id,
+            "plate_id": target.plate_id,
+            "target_well_id": target.target_well_id,
+        }
+    )
 
 
 def _strict_text(value: object, *, name: str) -> str:
@@ -271,6 +330,10 @@ def candidate_specification_manifest() -> dict[str, object]:
             "unseen_compounds_supported": False,
             "dose_interpolation_supported": False,
             "dose_extrapolation_supported": False,
+            "maximum_samples_per_request": SCIPLEX3_V5_MAX_SAMPLE_COUNT,
+            "request_failure_budget": "2^-64-conditional-int64-tail",
+            "sampling_contract_sha256": SCIPLEX3_V5_SAMPLING_CONTRACT_SHA256,
+            "supports_argument": "exact-CandidateSampleRequest-not-target-only",
         },
         "distribution": {
             "family": "continuous-gamma-poisson-admixture",
@@ -289,19 +352,20 @@ def candidate_specification_manifest() -> dict[str, object]:
             "zero_inflation": False,
             "hurdle": False,
             "observed_target_depth_conditioning": False,
-            "positive_panel_conditioning": True,
-            "maximum_positive_redraws": SCIPLEX3_CANDIDATE_MAX_POSITIVE_REDRAWS,
+            "positive_panel_conditioning": ("exact-zero-truncated-compound-poisson-log-series"),
+            "positive_panel_rejection_redraws": False,
+            "int64_tail_support": "global-action-context-tau-chernoff-request-bound",
         },
         "uncertainty_scope": {
             "included": [
                 "poisson-umi-shot-noise",
                 "fixed-continuous-gamma-factor-activation-heterogeneity",
-                "uniform-whole-p1-rho-row-unseen-plate-context",
             ],
             "excluded_or_unclaimed": [
                 "technical-capture-attribution-q-removed",
                 "fitted-parameter-or-model-uncertainty",
                 "identifiable-action-specific-between-well-variance-one-p1-well-per-action",
+                "unseen-plate-context-variation-neutralized",
                 "intervention-realization",
                 "viability-or-survival",
                 "mechanism-pathway-or-cell-state-interpretation",
@@ -324,48 +388,34 @@ def candidate_specification_manifest() -> dict[str, object]:
             ],
         },
         "action_model": {
-            "no_action_log_mean": "alpha_k+log(rho_plate_k)",
-            "treated_log_mean": "alpha_k+log(rho_plate_k)+delta_compound_dose_k",
-            "control_pair_plate_mean": (
-                "arithmetic-mean-of-two-vehicle-well-posterior-theta-means"
+            "no_action_log_mean": "alpha_k-at-neutral-unseen-plate-context",
+            "treated_log_mean": "alpha_k+delta_compound_dose_k-at-neutral-context",
+            "canonical_fixed_q_objective": (
+                "-(94785/768)*0.1*sum_wk(eta_wk+tbar_wk*exp(-eta_wk))-dose-penalty"
             ),
-            "alpha": (
-                "log-arithmetic-mean-of-eight-control-pair-plate-means-after-rho-normalization"
-            ),
+            "canonical_objective_version": SCIPLEX3_V5_OBJECTIVE_VERSION,
+            "equal_well_scale": SCIPLEX3_V5_EQUAL_WELL_SCALE,
+            "plate_intercept_fit": "all-768-wells-including-treated-and-vehicle-wells",
+            "alpha": "factorwise-logmeanexp-of-eight-fitted-plate-intercepts",
             "rho_normalization": "arithmetic-mean-over-eight-plates-equals-one-per-factor",
+            "solver": ("factorwise-arrowhead-newton-with-exact-four-dose-block-schur-complement"),
             "dose_penalty_magnitude_sd": SCIPLEX3_CANDIDATE_DOSE_MAGNITUDE_SD,
             "dose_penalty_second_difference_sd": (SCIPLEX3_CANDIDATE_DOSE_SECOND_DIFFERENCE_SD),
             "monotonicity_constraint": False,
-            "newton_numerical_stationarity": {
-                "primary_infinity_gradient_tolerance": (SCIPLEX3_CANDIDATE_BLOCK_GRADIENT_TOL),
-                "half_decrement": "0.5*g.T@solve(H,g)",
-                "decrement_epsilon_multiplier": (SCIPLEX3_CANDIDATE_BLOCK_DECREMENT_EPS_MULTIPLIER),
-                "decrement_threshold": "64*eps64*max(1,abs(F(delta)))",
-                "allowed_routes": [
-                    "bitwise-unchanged-newton-proposal",
-                    "exhausted-20-half-step-backtracking",
-                ],
-                "ordinary_step_acceptance": "finite-strict-objective-decrease",
-                "nonfinite_or_negative_decrement": "fail",
-            },
+            "terminal_gradient_tolerance": SCIPLEX3_V5_GRADIENT_TOL,
+            "accepted_substep_gate": "canonical-fixed-q-full-objective-nondecrease",
+            "complete_block_gate": "canonical-and-independent-objectives-agree-and-nondecrease",
         },
         "unseen_plate": {
-            "family": "uniform-whole-p1-rho-row",
-            "context_count": SCIPLEX3_CANDIDATE_PLATE_COUNT,
-            "selection_unit": "one-complete-16-factor-rho-row",
-            "selection_probability": "uniform-one-eighth",
-            "one_context_per_model_target_plate_and_seed": True,
-            "shared_across_request_nuclei_and_actions": True,
-            "seed_binding": [
-                "plate-context-selection-domain-label",
-                "exact-model-artifact-sha256",
-                "target-plate-id",
-                "seed",
-                "candidate-specification-sha256",
-            ],
+            "family": "neutral-unit-context",
+            "context_count": 1,
+            "context_id": SCIPLEX3_CANDIDATE_V5_NEUTRAL_CONTEXT_ID,
+            "factor_multiplier": 1.0,
+            "deterministic": True,
+            "target_plate_context_learned": False,
+            "p1_rho_sampling_input": False,
             "rng": RNG_ALGORITHM,
             "factorwise_arithmetic_mean": 1.0,
-            "factorwise_bound": "strictly-between-zero-and-eight",
             "factor_independent_draws": False,
             "parametric_lognormal": False,
             "ordinal_plate_id_embedding": False,
@@ -463,8 +513,9 @@ def candidate_specification_manifest() -> dict[str, object]:
         },
         "rng_algorithm": RNG_ALGORITHM,
         "rng_substreams": {
-            "plate_context": "plate-context-selection",
-            "raw_counts": "case-local-raw-counts",
+            "neutral_context": "single-context-target-key-binding",
+            "raw_counts": "model-calibration-target-context-seed-draw-index",
+            "prefix_stable_by_draw_index": True,
             "domain_labels_required": True,
         },
         "calibration_declaration_only": {
@@ -472,11 +523,9 @@ def candidate_specification_manifest() -> dict[str, object]:
             "tau_grid_exponents": list(range(-20, 7)),
             "factor_shape_transform": "0.1/tau^2",
             "factor_shape_lower_guard": SCIPLEX3_CANDIDATE_FACTOR_SHAPE_LOWER_GUARD,
-            "plate_context_transform": (
-                "rho[p,k]^tau/fixed-order-math-fsum_q(rho[q,k]^tau)/8-stable-log-domain"
-            ),
-            "tau_one_branch": "bit-exact-original-rho",
-            "whole_row_selection_unchanged": True,
+            "unseen_plate_context_transform": "unit-context-invariant-under-tau",
+            "tau_one_branch": "bit-exact-factor-shape-0.1-and-unit-context",
+            "active_training_candidate_tau": 1.0,
             "other_means_weights_and_support_unchanged": True,
             "p2_outcomes_read_by_training": False,
         },
@@ -942,53 +991,6 @@ def _rho_factorwise_means(rho: FloatArray) -> FloatArray:
     )
 
 
-def _power_normalized_plate_contexts(rho: FloatArray, tau: object) -> FloatArray:
-    exact_tau = _require_declared_tau(tau)
-    frozen_rho = _freeze_float_array(
-        rho,
-        shape=(SCIPLEX3_CANDIDATE_PLATE_COUNT, SCIPLEX3_CANDIDATE_FACTOR_COUNT),
-        name="candidate plate contexts",
-        strictly_positive=True,
-    )
-    if bool(np.any(frozen_rho >= SCIPLEX3_CANDIDATE_PLATE_COUNT)):
-        raise SciPlex3CandidateError(
-            "candidate empirical plate context must be strictly less than eight"
-        )
-    if not bool(np.allclose(_rho_factorwise_means(frozen_rho), 1.0, rtol=0.0, atol=5e-13)):
-        raise SciPlex3CandidateError(
-            "candidate empirical plate contexts must have factorwise arithmetic mean one"
-        )
-    if exact_tau == 1.0:
-        return frozen_rho
-    powered_log = exact_tau * np.log(frozen_rho)
-    shifted = np.exp(powered_log - np.max(powered_log, axis=0)[None, :])
-    factor_means = np.asarray(
-        [
-            math.fsum(
-                float(shifted[plate_index, factor_index])
-                for plate_index in range(SCIPLEX3_CANDIDATE_PLATE_COUNT)
-            )
-            / SCIPLEX3_CANDIDATE_PLATE_COUNT
-            for factor_index in range(SCIPLEX3_CANDIDATE_FACTOR_COUNT)
-        ],
-        dtype=np.float64,
-    )
-    contexts = shifted / factor_means[None, :]
-    if (
-        not bool(np.all(np.isfinite(contexts)))
-        or bool(np.any(contexts <= 0.0))
-        or bool(np.any(contexts >= SCIPLEX3_CANDIDATE_PLATE_COUNT))
-        or not bool(np.allclose(_rho_factorwise_means(contexts), 1.0, rtol=0.0, atol=5e-13))
-    ):
-        raise SciPlex3CandidateError("candidate powered plate contexts are invalid")
-    return _freeze_float_array(
-        contexts,
-        shape=(SCIPLEX3_CANDIDATE_PLATE_COUNT, SCIPLEX3_CANDIDATE_FACTOR_COUNT),
-        name="candidate powered plate contexts",
-        strictly_positive=True,
-    )
-
-
 def _factor_contribution_shares(contributions: FloatArray) -> FloatArray:
     total = math.fsum(float(value) for value in contributions)
     if not math.isfinite(total) or total <= 0.0:
@@ -1061,6 +1063,15 @@ class SciPlex3GammaPoissonCandidate:
     initial_equilibration: SciPlex3CandidateInitialEquilibration
     trace: tuple[SciPlex3CandidateTraceEntry, ...]
     training_summary: SciPlex3CandidateTrainingSummary
+    _v5_sampling_parameters_cache: V5SamplingParameters = field(
+        init=False, repr=False, compare=False
+    )
+    _v5_sampling_envelope_certificate_cache: V5SamplingEnvelopeCertificate = field(
+        init=False, repr=False, compare=False
+    )
+    _v5_runtime_sampler_cache: V5PositiveConditionedSampler = field(
+        init=False, repr=False, compare=False
+    )
 
     def __post_init__(self) -> None:
         keys = tuple(self.ordered_feature_keys)
@@ -1314,15 +1325,53 @@ class SciPlex3GammaPoissonCandidate:
         object.__setattr__(self, "_vehicle_well_indices", vehicle_well_indices)
         object.__setattr__(self, "trace", trace)
 
+        # The support envelope is purely numerical, while the row RNG and result provenance bind
+        # the final content-addressed model digest.  Cache a placeholder-provenance sampler first
+        # so behavior serialization can read its certificate without recursively asking for the
+        # model digest; then rebind the same certificate to the completed digest exactly once.
+        placeholder_parameters = self._v5_sampling_parameters(model_artifact_sha256="0" * 64)
+        placeholder_sampler = V5PositiveConditionedSampler(placeholder_parameters)
+        sampling_certificate = placeholder_sampler.envelope_certificate
+        expected_combination_count = (
+            (SCIPLEX3_CANDIDATE_ACTION_COUNT + 1)
+            * len(placeholder_parameters.context_ids)
+            * len(SCIPLEX3_CANDIDATE_TAU_GRID)
+        )
+        if (
+            not sampling_certificate.supported
+            or sampling_certificate.rejection_reasons
+            or sampling_certificate.maximum_request_count != SCIPLEX3_V5_MAX_SAMPLE_COUNT
+            or sampling_certificate.combination_count != expected_combination_count
+            or sampling_certificate.request_failure_budget_log
+            != SCIPLEX3_V5_REQUEST_FAILURE_BUDGET_LOG
+            or sampling_certificate.worst_request_tail_log_upper_bound
+            > SCIPLEX3_V5_REQUEST_FAILURE_BUDGET_LOG
+            or not 0.0
+            < sampling_certificate.maximum_compound_poisson_intensity
+            <= SCIPLEX3_V5_MAX_COMPOUND_POISSON_INTENSITY
+            or sampling_certificate.sampling_contract_sha256 != SCIPLEX3_V5_SAMPLING_CONTRACT_SHA256
+            or sampling_certificate.parameter_fingerprint
+            != placeholder_parameters.parameter_fingerprint
+        ):
+            raise SciPlex3CandidateError(
+                "candidate numerical state does not support the complete v5 sampling envelope"
+            )
+        object.__setattr__(self, "_v5_sampling_parameters_cache", placeholder_parameters)
+        object.__setattr__(
+            self,
+            "_v5_sampling_envelope_certificate_cache",
+            sampling_certificate,
+        )
+        object.__setattr__(self, "_v5_runtime_sampler_cache", placeholder_sampler)
+        runtime_sampler = placeholder_sampler.with_model_artifact_sha256(self.model_artifact_sha256)
+        object.__setattr__(self, "_v5_sampling_parameters_cache", runtime_sampler.parameters)
+        object.__setattr__(self, "_v5_runtime_sampler_cache", runtime_sampler)
+
     @property
     def factor_shape(self) -> float:
         return float(self._factor_shape[0])
 
-    def supports(self, target: object) -> bool:
-        """Return support without reading any outcome or matching a target plate to p1."""
-
-        if type(target) is not PredictionTarget:
-            return False
+    def _target_is_supported(self, target: PredictionTarget) -> bool:
         if target.partition_id not in SCIPLEX3_CANDIDATE_TARGET_PARTITIONS:
             return False
         condition = target.condition
@@ -1335,143 +1384,113 @@ class SciPlex3GammaPoissonCandidate:
             return False
         return condition.compound in self.compounds
 
-    def _action_log_means(self, condition: TargetCondition) -> FloatArray:
-        if type(condition) is NoAction:
-            values = self._alpha
-        elif type(condition) is CompoundDose:
-            try:
-                compound_index = self.compounds.index(condition.compound)
-                dose_index = SCIPLEX3_CANDIDATE_DOSES_NM.index(condition.dose_nm)
-            except ValueError as error:
-                raise SciPlex3CandidateError(
-                    "candidate action is outside exact p1 support"
-                ) from error
-            values = self._alpha + self._delta[compound_index, dose_index]
-        else:
-            raise SciPlex3CandidateError("candidate condition has an unsupported exact type")
-        return np.asarray(values, dtype=np.float64)
-
-    def _plate_context_index(self, target: PredictionTarget, seed: int) -> int:
-        binding = _canonical_json_bytes(
-            {
-                "family": "uniform-whole-p1-rho-row",
-                "model_artifact_sha256": self.model_artifact_sha256,
-                "model_id": self.model_id,
-                "plate_id": target.plate_id,
-                "rng_domain": "plate-context-selection",
-                "seed": seed,
-                "specification_sha256": SCIPLEX3_CANDIDATE_SPECIFICATION_SHA256,
-            }
-        )
-        derived_seed = int.from_bytes(hashlib.sha256(binding).digest()[:8], "little")
-        generator = np.random.Generator(np.random.PCG64DXSM(derived_seed))
-        return int(generator.integers(0, SCIPLEX3_CANDIDATE_PLATE_COUNT))
-
-    def _plate_context_row(
-        self, target: PredictionTarget, seed: int, *, tau: float = 1.0
-    ) -> FloatArray:
-        contexts = _power_normalized_plate_contexts(self._rho, tau)
-        context_index = self._plate_context_index(target, seed)
-        return _freeze_float_array(
-            contexts[context_index],
-            shape=(SCIPLEX3_CANDIDATE_FACTOR_COUNT,),
-            name="candidate selected whole-row plate context",
-            strictly_positive=True,
+    def _v5_sampling_parameters(self, *, model_artifact_sha256: str) -> V5SamplingParameters:
+        action_ids = [SCIPLEX3_CANDIDATE_V5_NO_ACTION_ID]
+        action_log_means = [self._alpha]
+        for compound_index, compound in enumerate(self.compounds):
+            for dose_index, dose_nm in enumerate(SCIPLEX3_CANDIDATE_DOSES_NM):
+                action_ids.append(_v5_action_id(CompoundDose(compound, dose_nm)))
+                action_log_means.append(self._alpha + self._delta[compound_index, dose_index])
+        return V5SamplingParameters(
+            model_artifact_sha256=model_artifact_sha256,
+            action_ids=tuple(action_ids),
+            context_ids=(SCIPLEX3_CANDIDATE_V5_NEUTRAL_CONTEXT_ID,),
+            calibration_taus=SCIPLEX3_CANDIDATE_TAU_GRID,
+            active_tau=1.0,
+            action_log_means=np.stack(action_log_means),
+            context_multipliers=np.ones(
+                (
+                    len(SCIPLEX3_CANDIDATE_TAU_GRID),
+                    1,
+                    SCIPLEX3_CANDIDATE_FACTOR_COUNT,
+                ),
+                dtype=np.float64,
+            ),
+            factor_shapes=np.asarray(
+                [_factor_shape_for_tau(tau) for tau in SCIPLEX3_CANDIDATE_TAU_GRID],
+                dtype=np.float64,
+            ),
+            basis=self._basis,
         )
 
-    def _draw_raw_counts(
-        self,
-        *,
-        sample_count: int,
-        factor_means: FloatArray,
-        generator: np.random.Generator,
-    ) -> IntArray:
-        theta = generator.gamma(
-            shape=self.factor_shape,
-            scale=factor_means / self.factor_shape,
-            size=(sample_count, SCIPLEX3_CANDIDATE_FACTOR_COUNT),
-        )
-        rates = theta @ self._basis
-        if not bool(np.all(np.isfinite(rates))) or bool(np.any(rates < 0.0)):
-            raise SciPlex3CandidateError("candidate predictive Poisson rates are invalid")
-        try:
-            return np.asarray(generator.poisson(rates), dtype=np.int64)
-        except ValueError as error:
-            raise SciPlex3CandidateError(
-                "candidate predictive Poisson rates exceed RNG support"
-            ) from error
-
-    def _sample_validated(self, request: CandidateSampleRequest) -> CandidateRawCountSamples:
-        """Execute a request after its support boundary has been checked."""
-
-        plate_context = self._plate_context_row(request.target, request.seed)
-        factor_means = np.exp(self._action_log_means(request.target.condition)) * plate_context
-        if not bool(np.all(np.isfinite(factor_means))) or bool(np.any(factor_means <= 0.0)):
-            raise SciPlex3CandidateError("candidate predictive factor means are invalid")
-        condition = request.target.condition
-        condition_binding: dict[str, object]
-        if type(condition) is NoAction:
-            condition_binding = {"active_dose_nm": 0, "kind": "no_action"}
-        else:
-            compound_dose = cast(CompoundDose, condition)
-            condition_binding = {
-                "compound": compound_dose.compound,
-                "dose_nm": compound_dose.dose_nm,
-                "kind": "compound_dose",
-            }
-        count_binding = _canonical_json_bytes(
-            {
-                "case_id": request.target.case_id,
-                "condition": condition_binding,
-                "model_sha256": self.model_artifact_sha256,
-                "rng_domain": "case-local-raw-counts",
-                "seed": request.seed,
-                "target_well_id": request.target.target_well_id,
-            }
-        )
-        count_seed = int.from_bytes(hashlib.sha256(count_binding).digest()[:8], "little")
-        generator = np.random.Generator(np.random.PCG64DXSM(count_seed))
-        samples = self._draw_raw_counts(
+    def _v5_sampling_request(self, request: CandidateSampleRequest) -> V5SampleRequest:
+        target = request.target
+        return V5SampleRequest(
+            target=V5SamplingTarget(
+                target_fingerprint=_v5_target_fingerprint(target),
+                action_id=_v5_action_id(target.condition),
+                context_key=target.plate_id,
+            ),
             sample_count=request.sample_count,
-            factor_means=factor_means,
-            generator=generator,
+            seed=request.seed,
         )
-        zero_total = np.sum(samples, axis=1, dtype=np.int64) <= 0
-        for _ in range(SCIPLEX3_CANDIDATE_MAX_POSITIVE_REDRAWS):
-            redraw_count = int(np.sum(zero_total))
-            if redraw_count == 0:
-                break
-            samples[zero_total] = self._draw_raw_counts(
-                sample_count=redraw_count,
-                factor_means=factor_means,
-                generator=generator,
-            )
-            zero_total = np.sum(samples, axis=1, dtype=np.int64) <= 0
-        if bool(np.any(zero_total)):
-            raise SciPlex3CandidateError(
-                "candidate sampler exhausted bounded positive-panel rejection draws"
-            )
+
+    def _v5_runtime_sampler(self) -> V5PositiveConditionedSampler:
+        return self._v5_runtime_sampler_cache
+
+    def supports(self, request: object) -> bool:
+        """Return support for one exact count-bearing request; target-only checks fail."""
+
+        if type(request) is not CandidateSampleRequest:
+            return False
+        exact_request = request
+        if not self._target_is_supported(exact_request.target):
+            return False
+        return self._v5_runtime_sampler().supports(self._v5_sampling_request(exact_request))
+
+    def _sample_validated(
+        self,
+        request: CandidateSampleRequest,
+        *,
+        sampler: V5PositiveConditionedSampler | None = None,
+        sampling_request: V5SampleRequest | None = None,
+    ) -> CandidateRawCountSamples:
+        """Execute a structurally validated request through the exact-positive v5 sampler."""
+
+        active_sampler = sampler if sampler is not None else self._v5_runtime_sampler()
+        active_request = (
+            sampling_request if sampling_request is not None else self._v5_sampling_request(request)
+        )
+        try:
+            sample = active_sampler.sample(active_request)
+        except SciPlex3SamplingV5Error as error:
+            raise SciPlex3CandidateError("candidate v5 sampling request is unsupported") from error
         return CandidateRawCountSamples(
             candidate_id=self.model_id,
             target=request.target,
             ordered_feature_keys=self.ordered_feature_keys,
+            model_artifact_sha256=sample.model_artifact_sha256,
+            calibration_state_sha256=sample.calibration_state_sha256,
+            sampling_contract_sha256=sample.sampling_contract_sha256,
+            target_fingerprint=sample.target_fingerprint,
+            context_id=sample.context_id,
             seed=request.seed,
-            samples=samples,
+            samples=sample.samples,
         )
 
     def sample(self, request: object) -> object:
-        """Sample positive future raw panels with deterministic bounded rejection."""
+        """Sample exact-positive future raw panels from one fully supported request."""
 
         if type(request) is not CandidateSampleRequest:
             raise SciPlex3CandidateError(
                 "candidate sampling requires an exact CandidateSampleRequest"
             )
         exact_request = request
-        if not self.supports(exact_request.target):
+        if not self._target_is_supported(exact_request.target):
             raise SciPlex3CandidateError(
-                "candidate request action, dose, or context is unsupported"
+                "candidate request action, dose, context, count, or RNG support is unsupported"
             )
-        return self._sample_validated(exact_request)
+        sampler = self._v5_runtime_sampler()
+        sampling_request = self._v5_sampling_request(exact_request)
+        if not sampler.supports(sampling_request):
+            raise SciPlex3CandidateError(
+                "candidate request action, dose, context, count, or RNG support is unsupported"
+            )
+        return self._sample_validated(
+            exact_request,
+            sampler=sampler,
+            sampling_request=sampling_request,
+        )
 
     def golden_sample(self) -> CandidateRawCountSamples:
         """Exercise deterministic sampling without naming or reading a protected partition."""
@@ -1494,6 +1513,12 @@ class SciPlex3GammaPoissonCandidate:
 
         terminal = self.trace[-SCIPLEX3_CANDIDATE_CONVERGENCE_STREAK:]
         shares = _factor_contribution_shares(self._factor_contributions)
+        # These cached fields originate from the placeholder-provenance construction during
+        # ``__post_init__``.  Their serialized values are numerical only, so hashing the canonical
+        # model remains acyclic; after hashing, the runtime sampler reuses the same certificate with
+        # the actual model digest bound to RNG and output provenance.
+        sampling_parameters = self._v5_sampling_parameters_cache
+        sampling_certificate = self._v5_sampling_envelope_certificate_cache
         return {
             "all_parameters_finite": True,
             "can_mint_lifecycle_evidence": False,
@@ -1541,9 +1566,26 @@ class SciPlex3GammaPoissonCandidate:
             "minimum_factor_contribution_share": float(np.min(shares)),
             "model_schema_version": SCIPLEX3_CANDIDATE_MODEL_SCHEMA_VERSION,
             "outer_iteration_count": len(self.trace),
-            "plate_context_count": SCIPLEX3_CANDIDATE_PLATE_COUNT,
+            "plate_context_count": 1,
             "plate_context_factorwise_mean_one": True,
-            "plate_context_family": "uniform-whole-p1-rho-row",
+            "plate_context_family": "neutral-unit-context",
+            "sampling_active_calibration_state_sha256": (
+                sampling_parameters.active_calibration_state_sha256
+            ),
+            "sampling_contract_sha256": SCIPLEX3_V5_SAMPLING_CONTRACT_SHA256,
+            "sampling_envelope_combination_count": sampling_certificate.combination_count,
+            "sampling_envelope_maximum_compound_poisson_intensity": (
+                sampling_certificate.maximum_compound_poisson_intensity
+            ),
+            "sampling_envelope_maximum_request_count": (sampling_certificate.maximum_request_count),
+            "sampling_envelope_rejection_reasons": list(sampling_certificate.rejection_reasons),
+            "sampling_envelope_request_failure_budget_log": (
+                sampling_certificate.request_failure_budget_log
+            ),
+            "sampling_envelope_supported": sampling_certificate.supported,
+            "sampling_envelope_worst_request_tail_log_upper_bound": (
+                sampling_certificate.worst_request_tail_log_upper_bound
+            ),
             "scientifically_admissible": False,
             "terminal_elbo_relative_changes": [item.relative_change for item in terminal],
             "training_partition_ids": ["p1-train"],
@@ -1997,6 +2039,7 @@ def candidate_model_schema_manifest() -> dict[str, object]:
         "output_model_topology": SCIPLEX3_CANDIDATE_OUTPUT_MODEL_TOPOLOGY,
         "request_class": "cellstate.evaluation.sciplex3_candidate.CandidateSampleRequest",
         "result_class": "cellstate.evaluation.sciplex3_candidate.CandidateRawCountSamples",
+        "sampling_contract_sha256": SCIPLEX3_V5_SAMPLING_CONTRACT_SHA256,
         "tensor_encoding": "base64-canonical-little-endian-with-sha256",
         "derived_witnesses": {
             "factor_contributions": "fixed-row-order-math-fsum-of-mean_activation/768",
@@ -2004,7 +2047,7 @@ def candidate_model_schema_manifest() -> dict[str, object]:
             "mean_activation": "canonical-audit-matrix-reconstructed-from-p1-topology-and-means",
             "rho": "eight-positive-whole-plate-context-rows-factorwise-arithmetic-mean-one",
         },
-        "plate_context_family": "uniform-whole-p1-rho-row",
+        "plate_context_family": "neutral-unit-context",
         "required_model_keys": [
             "authority",
             "behavior",
@@ -2315,92 +2358,6 @@ def _regularize_nndsvd_initialization(
     return positive_scores, unchanged_basis
 
 
-_SECOND_DIFFERENCE = np.asarray([[1.0, -2.0, 1.0, 0.0], [0.0, 1.0, -2.0, 1.0]], dtype=np.float64)
-
-
-def _dose_objective(
-    delta: FloatArray, baseline: FloatArray, means: FloatArray, shape: float
-) -> float:
-    eta = baseline + delta
-    penalty = float(np.dot(delta, delta)) / 8.0
-    second = _SECOND_DIFFERENCE @ delta
-    penalty += 0.5 * float(np.dot(second, second))
-    return float(shape * np.sum(eta + means * np.exp(-eta)) + penalty)
-
-
-def _fit_dose_block(
-    baseline: FloatArray, means: FloatArray, shape: float, initial: FloatArray
-) -> FloatArray:
-    delta = np.asarray(initial, dtype=np.float64).copy()
-    if (
-        delta.shape != (4,)
-        or baseline.shape != (4,)
-        or means.shape != (4,)
-        or not bool(np.all(np.isfinite(delta)))
-        or not bool(np.all(np.isfinite(baseline)))
-        or not bool(np.all(np.isfinite(means)))
-        or bool(np.any(means <= 0.0))
-    ):
-        raise SciPlex3CandidateError("dose block inputs are invalid")
-    penalty_hessian = np.eye(4, dtype=np.float64) / 4.0 + _SECOND_DIFFERENCE.T @ _SECOND_DIFFERENCE
-    objective = _dose_objective(delta, baseline, means, shape)
-    for _ in range(SCIPLEX3_CANDIDATE_BLOCK_NEWTON_MAX_STEPS):
-        eta = baseline + delta
-        scaled = shape * means * np.exp(-eta)
-        gradient = (
-            shape - scaled + delta / 4.0 + _SECOND_DIFFERENCE.T @ (_SECOND_DIFFERENCE @ delta)
-        )
-        if float(np.max(np.abs(gradient))) <= SCIPLEX3_CANDIDATE_BLOCK_GRADIENT_TOL:
-            return np.asarray(delta, dtype=np.float64)
-        hessian = np.diag(scaled) + penalty_hessian
-        try:
-            step = np.linalg.solve(hessian, gradient)
-        except np.linalg.LinAlgError as error:
-            raise SciPlex3CandidateError("dose block Newton Hessian is singular") from error
-        half_decrement = 0.5 * float(np.dot(gradient, step))
-        if np.array_equal(delta - step, delta):
-            if _dose_numerically_stationary(half_decrement, objective):
-                return np.asarray(delta, dtype=np.float64)
-            raise SciPlex3CandidateError(
-                "dose block Newton proposal stalled above numerical-stationarity threshold"
-            )
-        accepted = False
-        scale = 1.0
-        for _ in range(SCIPLEX3_CANDIDATE_BLOCK_BACKTRACK_MAX_STEPS + 1):
-            proposal = delta - scale * step
-            if np.array_equal(proposal, delta):
-                if _dose_numerically_stationary(half_decrement, objective):
-                    return np.asarray(delta, dtype=np.float64)
-                raise SciPlex3CandidateError(
-                    "dose block backtracking stalled above numerical-stationarity threshold"
-                )
-            proposed_objective = _dose_objective(proposal, baseline, means, shape)
-            if math.isfinite(proposed_objective) and proposed_objective < objective:
-                delta = proposal
-                objective = proposed_objective
-                accepted = True
-                break
-            scale *= 0.5
-        if not accepted:
-            if _dose_numerically_stationary(half_decrement, objective):
-                return np.asarray(delta, dtype=np.float64)
-            raise SciPlex3CandidateError(
-                "dose block failed deterministic nonincreasing backtracking"
-            )
-    raise SciPlex3CandidateError("dose block failed the frozen infinity-gradient tolerance")
-
-
-def _dose_numerically_stationary(half_decrement: float, objective: float) -> bool:
-    threshold = (
-        SCIPLEX3_CANDIDATE_BLOCK_DECREMENT_EPS_MULTIPLIER
-        * np.finfo(np.float64).eps
-        * max(1.0, abs(objective))
-    )
-    return bool(
-        math.isfinite(half_decrement) and half_decrement >= 0.0 and half_decrement <= threshold
-    )
-
-
 @dataclass(slots=True)
 class _LocalVariationalState:
     theta_shape: FloatArray
@@ -2436,47 +2393,48 @@ def _well_factor_means(
     )
 
 
+def _v5_action_parameters(
+    alpha: FloatArray, rho: FloatArray, delta: FloatArray
+) -> SciPlex3V5ActionParameters:
+    try:
+        with np.errstate(divide="ignore", invalid="ignore"):
+            log_rho = np.log(rho)
+        return SciPlex3V5ActionParameters(alpha=alpha, log_rho=log_rho, delta=delta)
+    except SciPlex3V5ObjectiveError as error:
+        raise SciPlex3CandidateError("candidate v5 action parameters are invalid") from error
+
+
 def _update_action_block(
     well_theta_means: FloatArray,
     validated: _ValidatedTrainingDesign,
+    *,
+    initial: tuple[FloatArray, FloatArray, FloatArray] | None = None,
 ) -> tuple[FloatArray, FloatArray, FloatArray, FloatArray]:
     if well_theta_means.shape != (
         SCIPLEX3_CANDIDATE_TRAINING_WELL_COUNT,
         SCIPLEX3_CANDIDATE_FACTOR_COUNT,
     ) or not bool(np.all(np.isfinite(well_theta_means))):
         raise SciPlex3CandidateError("posterior well factor means are invalid")
-    controls = well_theta_means[validated.vehicle_well_indices]
-    plate_means = np.mean(controls, axis=1)
-    if bool(np.any(plate_means <= 0.0)):
-        raise SciPlex3CandidateError("posterior vehicle factor mean is degenerate")
-    global_means = np.mean(plate_means, axis=0)
-    rho = plate_means / global_means[None, :]
-    normalization = np.mean(rho, axis=0)
-    rho /= normalization[None, :]
-    global_means *= normalization
-    alpha = np.log(global_means)
-    delta = np.empty(
-        (
-            SCIPLEX3_CANDIDATE_COMPOUND_COUNT,
-            len(SCIPLEX3_CANDIDATE_DOSES_NM),
-            SCIPLEX3_CANDIDATE_FACTOR_COUNT,
-        ),
-        dtype=np.float64,
-    )
-    for compound_index in range(SCIPLEX3_CANDIDATE_COMPOUND_COUNT):
-        action_wells = validated.action_well_indices[compound_index]
-        action_plates = validated.action_plate_indices[compound_index]
-        action_means = well_theta_means[action_wells]
-        for factor_index in range(SCIPLEX3_CANDIDATE_FACTOR_COUNT):
-            baseline = alpha[factor_index] + np.log(rho[action_plates, factor_index])
-            observed = action_means[:, factor_index]
-            initial = np.log(observed) - baseline
-            delta[compound_index, :, factor_index] = _fit_dose_block(
-                np.asarray(baseline, dtype=np.float64),
-                np.asarray(observed, dtype=np.float64),
-                SCIPLEX3_CANDIDATE_FIXED_FACTOR_SHAPE,
-                np.asarray(initial, dtype=np.float64),
-            )
+    try:
+        objective_design = SciPlex3V5Design(
+            training_well_plate_indices=validated.training_well_plate_indices,
+            action_well_indices=validated.action_well_indices,
+            vehicle_well_indices=validated.vehicle_well_indices,
+        )
+        initial_parameters = None
+        if initial is not None:
+            initial_alpha, initial_rho, initial_delta = initial
+            initial_parameters = _v5_action_parameters(initial_alpha, initial_rho, initial_delta)
+        fitted = fit_fixed_q_action_context_m_step(
+            well_theta_means,
+            objective_design,
+            initial=initial_parameters,
+        )
+    except SciPlex3V5ObjectiveError as error:
+        raise SciPlex3CandidateError("candidate v5 action/context M-step failed") from error
+    alpha = np.asarray(fitted.parameters.alpha, dtype=np.float64).copy()
+    rho = np.exp(fitted.parameters.log_rho)
+    delta = np.asarray(fitted.parameters.delta, dtype=np.float64).copy()
     means = _well_factor_means(alpha, rho, delta, validated)
     return alpha, rho, delta, means
 
@@ -2732,20 +2690,15 @@ def _gamma_entropy(shape: FloatArray, rate: FloatArray) -> FloatArray:
     )
 
 
-def _dose_penalty(delta: FloatArray) -> float:
-    magnitude = float(np.sum(np.square(delta))) / 8.0
-    second = np.einsum("sd,cdk->csk", _SECOND_DIFFERENCE, delta)
-    return magnitude + 0.5 * float(np.sum(np.square(second)))
-
-
 def _elbo(
     validated: _ValidatedTrainingDesign,
     state: _LocalVariationalState,
     sufficient: _PassSufficientStatistics,
     loading_concentration: FloatArray,
-    well_factor_means: FloatArray,
-    delta: FloatArray,
+    action_parameters: SciPlex3V5ActionParameters,
 ) -> float:
+    if type(action_parameters) is not SciPlex3V5ActionParameters:
+        raise SciPlex3CandidateError("candidate tracked ELBO requires exact v5 action parameters")
     factor_prior_shape = SCIPLEX3_CANDIDATE_FIXED_FACTOR_SHAPE
     loading_sum = np.sum(loading_concentration, axis=1)
     expected_log_loading = digamma(loading_concentration) - digamma(loading_sum)[:, None]
@@ -2756,6 +2709,10 @@ def _elbo(
         - sufficient.poisson_factorial
     )
     local_terms = 0.0
+    posterior_well_factor_means = np.empty(
+        (SCIPLEX3_CANDIDATE_TRAINING_WELL_COUNT, SCIPLEX3_CANDIDATE_FACTOR_COUNT),
+        dtype=np.float64,
+    )
     offset = 0
     for well_index, well in enumerate(validated.wells):
         stop = offset + well.counts.row_count
@@ -2767,17 +2724,18 @@ def _elbo(
         theta_mean = theta_shape / theta_rate
         theta_elog = digamma(theta_shape) - np.log(theta_rate)
         likelihood -= omega * float(np.sum(theta_mean))
-        means = well_factor_means[well_index]
+        posterior_well_factor_means[well_index] = np.mean(theta_mean, axis=0)
         theta_prior = (
-            factor_prior_shape * (math.log(factor_prior_shape) - np.log(means)[None, :])
+            factor_prior_shape * math.log(factor_prior_shape)
             - float(gammaln(factor_prior_shape))
             + (factor_prior_shape - 1.0) * theta_elog
-            - factor_prior_shape * theta_mean / means[None, :]
         )
         local_terms += omega * float(
             np.sum(theta_prior) + np.sum(_gamma_entropy(theta_shape, theta_rate))
         )
         offset = stop
+    if offset != validated.record_count:
+        raise SciPlex3CandidateError("candidate tracked ELBO did not exhaust the record stream")
     feature_count = float(SCIPLEX3_FEATURE_COUNT)
     prior = SCIPLEX3_CANDIDATE_DIRICHLET_CONCENTRATION
     loading_prior = SCIPLEX3_CANDIDATE_FACTOR_COUNT * (
@@ -2791,7 +2749,19 @@ def _elbo(
             - np.sum((loading_concentration - 1.0) * digamma(loading_concentration), axis=1)
         )
     )
-    result = likelihood + local_terms + loading_prior + loading_entropy - _dose_penalty(delta)
+    try:
+        action_context = fixed_q_full_elbo_action_context(
+            posterior_well_factor_means,
+            action_parameters,
+            SciPlex3V5Design(
+                training_well_plate_indices=validated.training_well_plate_indices,
+                action_well_indices=validated.action_well_indices,
+                vehicle_well_indices=validated.vehicle_well_indices,
+            ),
+        )
+    except SciPlex3V5ObjectiveError as error:
+        raise SciPlex3CandidateError("candidate tracked v5 action objective failed") from error
+    result = likelihood + local_terms + loading_prior + loading_entropy + action_context
     if not math.isfinite(result):
         raise SciPlex3CandidateError("candidate tracked ELBO is nonfinite")
     return float(result)
@@ -2867,8 +2837,7 @@ def _fit_sciplex3_candidate_exact(
         state,
         previous_sufficient,
         loading_concentration,
-        well_factor_means,
-        delta,
+        _v5_action_parameters(alpha, rho, delta),
     )
     initial_basis_mean = loading_concentration / np.sum(
         loading_concentration, axis=1, keepdims=True
@@ -2890,7 +2859,9 @@ def _fit_sciplex3_candidate_exact(
             SCIPLEX3_CANDIDATE_DIRICHLET_CONCENTRATION + previous_sufficient.loading_counts
         )
         alpha, rho, delta, well_factor_means = _update_action_block(
-            previous_sufficient.well_theta_means, validated
+            previous_sufficient.well_theta_means,
+            validated,
+            initial=(alpha, rho, delta),
         )
         current_sufficient = _cavi_pass(
             validated,
@@ -2903,8 +2874,7 @@ def _fit_sciplex3_candidate_exact(
             state,
             current_sufficient,
             loading_concentration,
-            well_factor_means,
-            delta,
+            _v5_action_parameters(alpha, rho, delta),
         )
         current_basis = loading_concentration / np.sum(loading_concentration, axis=1, keepdims=True)
         current_contributions = _factor_contributions(well_factor_means)
@@ -3134,7 +3104,7 @@ def build_sciplex3_synthetic_golden_candidate() -> SciPlex3GammaPoissonCandidate
             zero_panel_record_count=SCIPLEX3_CANDIDATE_ZERO_PANEL_RECORD_COUNT,
             design_sha256=_canonical_json_sha256(synthetic_design),
             training_data_sha256=_canonical_json_sha256(
-                {"fixture": "full-topology-no-biological-data-v4"}
+                {"fixture": "full-topology-no-biological-data-v5"}
             ),
             provenance="synthetic-golden",
         ),
@@ -3142,10 +3112,10 @@ def build_sciplex3_synthetic_golden_candidate() -> SciPlex3GammaPoissonCandidate
 
 
 SCIPLEX3_CANDIDATE_GOLDEN_MODEL_SHA256: Final = (
-    "d3a5cb630ad4344bda04945a865682531860508ccb8473fa57fb2397c8297be1"
+    "e5f81e28b8f4efbf5cffd64afa326d380b4c071450fd02339b4a46102a2e70a2"
 )
 SCIPLEX3_CANDIDATE_GOLDEN_SAMPLE_SHA256: Final = (
-    "6e01b44440c04ccc0ae1540de57d26c3723ff0b12f7e8033d4c980818776fa9f"
+    "9c364005b01142bcfe74a8400ab4b9209ed635b74a703167969aa5e8d80b9e2c"
 )
 
 
@@ -3213,6 +3183,7 @@ __all__ = [
     "SCIPLEX3_CANDIDATE_SPECIFICATION_SCHEMA_VERSION",
     "SCIPLEX3_CANDIDATE_SPECIFICATION_SHA256",
     "SCIPLEX3_CANDIDATE_TAU_GRID",
+    "SCIPLEX3_CANDIDATE_V5_NEUTRAL_CONTEXT_ID",
     "CandidateRawCountSamples",
     "CandidateSampleRequest",
     "SciPlex3CandidateError",

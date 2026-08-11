@@ -128,6 +128,9 @@
     "candidate_specification": {
       "$ref": "#/$defs/ContentAddressedArtifact"
     },
+    "contained_execution_policy": {
+      "$ref": "#/$defs/ContentAddressedArtifact"
+    },
     "deterministic_thread_count": {
       "default": 1,
       "minimum": 1,
@@ -194,10 +197,21 @@
       "title": "Plan Version",
       "type": "string"
     },
+    "planned_generation_id": {
+      "pattern": "^[a-fA-F0-9]{64}$",
+      "title": "Planned Generation Id",
+      "type": "string"
+    },
+    "publication_generation_seed": {
+      "$ref": "#/$defs/ContentAddressedArtifact"
+    },
     "query_fingerprint": {
       "pattern": "^[a-fA-F0-9]{64}$",
       "title": "Query Fingerprint",
       "type": "string"
+    },
+    "runtime_image_lock": {
+      "$ref": "#/$defs/ContentAddressedArtifact"
     },
     "runtime_lock": {
       "$ref": "#/$defs/ContentAddressedArtifact"
@@ -221,6 +235,12 @@
     "trainer_implementation": {
       "$ref": "#/$defs/PortImplementationBinding"
     },
+    "training_code_closure": {
+      "$ref": "#/$defs/ContentAddressedArtifact"
+    },
+    "training_execution_input_closure": {
+      "$ref": "#/$defs/ContentAddressedArtifact"
+    },
     "training_partition_ids": {
       "items": {
         "type": "string"
@@ -243,6 +263,8 @@
   "required": [
     "plan_id",
     "plan_version",
+    "planned_generation_id",
+    "publication_generation_seed",
     "query_fingerprint",
     "benchmark_fingerprint",
     "support_envelope_fingerprint",
@@ -259,6 +281,10 @@
     "candidate_specification",
     "output_model_schema",
     "runtime_lock",
+    "contained_execution_policy",
+    "runtime_image_lock",
+    "training_code_closure",
+    "training_execution_input_closure",
     "trainer_implementation",
     "candidate_factory_implementation",
     "optimization_seed"

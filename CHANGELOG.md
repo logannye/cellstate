@@ -141,12 +141,56 @@
   or performance claim.
 - Retire v4 and its planned Item 12.1b real-`p1` replay before execution after a source-code audit
   confirmed that the dose Newton objective omits the tracked full ELBO's `94785/768` equal-well
-  multiplier. No v4 model
-  or lifecycle evidence was issued. Make a source-free v5 objective/M-step redesign the next
-  milestone, requiring finite-difference full-ELBO gradient tests, fixed-`q` M-step nondecrease
-  tests, one-objective action/context updates, request-level sampler/RNG support gates, immutable-
-  generation atomic publication, and whole-process-tree hard wall-clock and memory containment
-  before any new real-`p1` authorization.
+  multiplier. No v4 model or lifecycle evidence was issued. At that checkpoint, record a source-
+  free v5 objective/M-step redesign as the next milestone, requiring finite-difference full-ELBO
+  gradient tests, fixed-`q` M-step nondecrease tests, one-objective action/context updates, request-
+  level sampler/RNG support gates, immutable-generation atomic publication, and whole-process-tree
+  hard wall-clock and memory containment before any new real-`p1` authorization. That milestone is
+  completed below as Item 12.2.
+- Complete **Item 12.2 — source-free v5 objective, M-step, sampling, publication, and containment**.
+  Replace the inconsistent v4 action block with one exact fixed-`q`, equal-well objective and an
+  all-768-well `alpha`/constrained-`log-rho`/`delta` M-step. Independently implemented objective,
+  finite-difference gradient and Hessian, treated-well adversarial, one-ULP decrease, accepted-
+  substep, and complete-block checks all bind updates to nondecrease of that same objective.
+- Add exact positive-panel sampling through the zero-truncated superposed compound-Poisson/log-
+  series representation. Exact `CandidateSampleRequest` support caps requests at 512 draws and
+  certifies a conservative conditional signed-`int64` tail bound no larger than `2^-64` over all
+  `753 * 1 * 27 = 20,331` action, neutral-context, and calibration-state combinations. Sampling is
+  prefix-stable and provenance-bound; target-only support, unsupported global envelopes, and RNG or
+  count overflow fail closed.
+- Add crash-safe immutable-generation publication through one atomic `current.json` pointer,
+  including concurrent old-or-new reader visibility, forced-termination recovery, stable-lock
+  release, orphan cleanup, and exact resealing. Bind the complete Python executable closure, exact
+  mounted public-control input closure, and typed no-follow staged-output inventory into the plan,
+  worker observation, parent containment observation, and future stage verification.
+- Freeze the source-free Linux `amd64` OCI runtime from byte-identical no-cache,
+  provenance-disabled builds in three independent environments under frozen inputs and toolchain:
+  Docker Desktop `amd64` emulation, the separate local `tinyzkp` `docker-container` builder pinned
+  to the locked BuildKit image, and native Linux `amd64` GitHub Actions. The exact archive SHA-256 is
+  `37c2fa5846acfbd8357476859bd7f8f0ac6591261d79c2f6f46f0aa22fb76454`; its index is
+  `sha256:e0f0afd6c66197a37d0ab7a05e7cccfe5990da1fd8497e175fdf3ab909a67812`, runnable child is
+  `sha256:12c2faa6019fb60cdcabaa8f38f70e99be7998997b97ddb0ca59fbe2e82f1e25`, and config is
+  `sha256:80ed48f278d7a46c0ae7811285efc69181ae59872a358cc9b176079aa09f3cc8`; the Dockerfile SHA-256 is
+  `a3a71c3d61c71235d9c1a99c16aa00568b398971adfc2da65388b0c7ea3987a0`. The multi-stage clean final
+  copies only the curated runtime tree and excludes build-host caches; the lock and workflow freeze
+  the exact Buildx/BuildKit builder identity.
+  Freeze native-Linux execution as `host-effective-uid-gid`, mount the bounded mode-`0700` tmpfs
+  with that same numeric UID/GID, and initialize the anonymous snapshot volume from an empty mode-
+  `1777` image directory. The contained non-root worker can therefore use the declared
+  `0400`/`0700` host binds without broadening their permissions.
+  The parent accounts its 3,600-second budget before public staging and actively bounds every
+  Docker command and wait; any returned staging overrun fails before container creation. An
+  independent 3,540-second in-container watchdog begins before protected-source open and covers
+  snapshot, fit, and close-reauthentication. Docker's memory and total-memory-plus-swap limits are
+  both 4 GiB, disabling additional swap. Source-free live probes pass for success, timeout with
+  descendants, cgroup OOM, supervisor death/watchdog recovery, anonymous-volume cleanup, no
+  canonical publication, and parent re-inventory and sealing of the exact worker stage.
+- Keep this completion strictly software-only. Item 12.2 opened no protected source, ran no real-
+  `p1` fit, and issued no candidate artifact, plan, observation, evidence, materialization, or
+  lifecycle result; sci-Plex3 remains `SCAFFOLD`. A separately authorized, version-bound,
+  nonissuing real-`p1` v5 execution is proposed as Item 12.3 but is not authorized or run. The exact
+  OCI layout must still be loaded locally and is not claimed to be remotely published; durable
+  distribution of the locked archive is an Item 12.3 prerequisite.
 
 ## 0.1.0 - Unreleased
 

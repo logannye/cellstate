@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import importlib
+import json
 import shutil
 from dataclasses import replace
 from pathlib import Path
@@ -26,6 +27,7 @@ from cellstate.evaluation.sciplex3_candidate import (
     SCIPLEX3_CANDIDATE_GOLDEN_SAMPLE_SHA256,
     SCIPLEX3_CANDIDATE_MAX_INNER_SWEEPS,
     SCIPLEX3_CANDIDATE_REFERENCE_RUNTIME,
+    SCIPLEX3_CANDIDATE_V5_NEUTRAL_CONTEXT_ID,
     SciPlex3CandidateError,
     SciPlex3CandidateInitialEquilibration,
     SciPlex3CandidateTraceEntry,
@@ -38,6 +40,11 @@ from cellstate.evaluation.sciplex3_runner import (
     LocalContentAddressedArtifact,
     SciPlex3BaselinePreparation,
     assemble_sciplex3_p1_training_data,
+)
+from cellstate.evaluation.sciplex3_sampling_v5 import (
+    SCIPLEX3_V5_MAX_SAMPLE_COUNT,
+    SCIPLEX3_V5_REQUEST_FAILURE_BUDGET_LOG,
+    SCIPLEX3_V5_SAMPLING_CONTRACT_SHA256,
 )
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[1]
@@ -216,6 +223,55 @@ def fitted_candidate(
         patch.undo()
 
 
+def test_contained_runtime_lock_binds_builder_archive_and_layer_closure() -> None:
+    policy, code_closure, _, image_lock = runner.contained_training_contracts(REPOSITORY_ROOT)
+
+    assert image_lock.runtime_image == policy.runtime_image
+    assert image_lock.training_code_closure_sha256 == code_closure.fingerprint
+    assert image_lock.archive_sha256 == (
+        "37c2fa5846acfbd8357476859bd7f8f0ac6591261d79c2f6f46f0aa22fb76454"
+    )
+    assert image_lock.oci_index_digest == (
+        "sha256:e0f0afd6c66197a37d0ab7a05e7cccfe5990da1fd8497e175fdf3ab909a67812"
+    )
+    assert image_lock.config_digest == (
+        "sha256:80ed48f278d7a46c0ae7811285efc69181ae59872a358cc9b176079aa09f3cc8"
+    )
+    assert image_lock.builder.buildx_version == "v0.28.0"
+    assert image_lock.builder.buildx_commit == "b1281b81bba797b21d9eaf256e6a13eb14419836"
+    assert image_lock.builder.buildkit_version == "v0.24.0"
+    assert image_lock.builder.output_options == ("type=oci",)
+    assert len(image_lock.layers) == 6
+    assert image_lock.layers[4].digest == (
+        "sha256:4eaeda62bd74078a1cd0f387c18cac3c1273826cbda1222ba571bf4e06b26533"
+    )
+    assert image_lock.layers[4].byte_count == 67_847_890
+
+
+@pytest.mark.parametrize("target", ("archive", "builder", "layer"))
+def test_contained_runtime_lock_rejects_provenance_substitution(
+    target: str, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    original_read = runner._read_bytes
+
+    def substituted_read(path: Path, *, name: str) -> bytes:
+        payload = original_read(path, name=name)
+        if name != "runtime image provenance lock":
+            return payload
+        provenance = json.loads(payload)
+        if target == "archive":
+            provenance["archive_sha256"] = "f" * 64
+        elif target == "builder":
+            provenance["builder"]["buildx_commit"] = "f" * 40
+        else:
+            provenance["layers"][4]["byte_count"] += 1
+        return runner._canonical_json(provenance)
+
+    monkeypatch.setattr(runner, "_read_bytes", substituted_read)
+    with pytest.raises(runner.SciPlex3CandidateRunnerError, match="contradicts its exact files"):
+        runner.contained_training_contracts(REPOSITORY_ROOT)
+
+
 def test_plan_and_fit_are_exact_p1_non_authorizing_artifacts(
     exact_preparation: SciPlex3BaselinePreparation,
     sealed_plan: runner.SealedSciPlex3CandidateTrainingPlan,
@@ -223,9 +279,9 @@ def test_plan_and_fit_are_exact_p1_non_authorizing_artifacts(
 ) -> None:
     plan = sealed_plan.plan
     assert plan.plan_id == runner.SCIPLEX3_CANDIDATE_TRAINING_PLAN_ID
-    assert plan.plan_version == "4.0.0"
-    assert plan.trainer_implementation.implementation_version == "4.0.0"
-    assert plan.candidate_factory_implementation.implementation_version == "4.0.0"
+    assert plan.plan_version == "5.0.0"
+    assert plan.trainer_implementation.implementation_version == "5.0.0"
+    assert plan.candidate_factory_implementation.implementation_version == "5.0.0"
     assert plan.training_partition_ids == ("p1-train",)
     assert plan.training_partition_roles == (BenchmarkPartitionRole.TRAIN,)
     assert plan.future_calibration_plan is None
@@ -236,9 +292,14 @@ def test_plan_and_fit_are_exact_p1_non_authorizing_artifacts(
     )
     assert {item.path.name for item in sealed_plan.support_artifacts} == {
         "candidate-specification.json",
+        "contained-execution-policy.json",
         "output-model-schema.json",
         "p1-count-stream-descriptor.json",
+        "publication-generation-seed.json",
         "runtime-lock.json",
+        "runtime-image-lock.json",
+        "training-code-closure.json",
+        "training-execution-input-closure.json",
     }
     assert {
         fitted_candidate.model_artifact.path.name,
@@ -248,13 +309,17 @@ def test_plan_and_fit_are_exact_p1_non_authorizing_artifacts(
         "training-execution-observation.json",
     }
     observation = fitted_candidate.observation
+    assert observation.training_code_closure_sha256 == plan.training_code_closure.sha256
+    assert observation.training_execution_input_closure_sha256 == (
+        plan.training_execution_input_closure.sha256
+    )
     assert observation.software_golden_model_sha256 == SCIPLEX3_CANDIDATE_GOLDEN_MODEL_SHA256
     assert observation.software_golden_sample_sha256 == SCIPLEX3_CANDIDATE_GOLDEN_SAMPLE_SHA256
     assert observation.fit_converged is True
     assert observation.factor_order_stable is True
     assert observation.capture_latent_present is False
-    assert observation.artifact_schema_version == "4.0.0"
-    assert observation.candidate_model_schema_version == "4.0.0"
+    assert observation.artifact_schema_version == "5.0.0"
+    assert observation.candidate_model_schema_version == "5.0.0"
     assert observation.factor_shape_mode == "fixed"
     assert observation.factor_shape_estimated is False
     assert observation.fixed_factor_shape == SCIPLEX3_CANDIDATE_FIXED_FACTOR_SHAPE
@@ -280,9 +345,29 @@ def test_plan_and_fit_are_exact_p1_non_authorizing_artifacts(
     assert observation.initial_factor_order == (
         fitted_candidate.candidate.initial_equilibration.factor_order
     )
-    assert observation.plate_context_family == "uniform-whole-p1-rho-row"
-    assert observation.plate_context_count == 8
+    assert observation.plate_context_family == "neutral-unit-context"
+    assert observation.plate_context_id == SCIPLEX3_CANDIDATE_V5_NEUTRAL_CONTEXT_ID
+    assert observation.plate_context_count == 1
     assert observation.plate_context_factorwise_mean_one is True
+    assert observation.sampling_conditioning == (
+        "exact-positive-panel-via-zero-truncated-compound-poisson"
+    )
+    assert observation.sampling_request_support == ("exact-CandidateSampleRequest-not-target-only")
+    assert observation.sampling_contract_sha256 == SCIPLEX3_V5_SAMPLING_CONTRACT_SHA256
+    assert observation.sampling_envelope_supported is True
+    assert observation.sampling_envelope_combination_count == 753 * 1 * 27
+    assert observation.sampling_envelope_maximum_request_count == SCIPLEX3_V5_MAX_SAMPLE_COUNT
+    assert observation.sampling_envelope_rejection_reasons == ()
+    assert observation.sampling_envelope_request_failure_budget_log == (
+        SCIPLEX3_V5_REQUEST_FAILURE_BUDGET_LOG
+    )
+    assert observation.sampling_envelope_worst_request_tail_log_upper_bound <= (
+        SCIPLEX3_V5_REQUEST_FAILURE_BUDGET_LOG
+    )
+    assert observation.candidate_objective_code_sha256 == (
+        runner._IMPORTED_CANDIDATE_V5_CODE_SHA256
+    )
+    assert observation.candidate_sampling_code_sha256 == (runner._IMPORTED_SAMPLING_V5_CODE_SHA256)
     assert observation.plate_sigma_present is False
     fitted_state = fitted_candidate.candidate.fitted_state_manifest()
     assert observation.initial_equilibration_sha256 == fitted_state["initial_equilibration_sha256"]
@@ -291,7 +376,22 @@ def test_plan_and_fit_are_exact_p1_non_authorizing_artifacts(
         == fitted_state["inner_equilibration_trace_sha256"]
     )
     tensor_sha256 = cast(dict[str, str], fitted_state["tensor_sha256"])
-    assert observation.plate_context_rho_sha256 == tensor_sha256["rho"]
+    assert observation.training_nuisance_rho_sha256 == tensor_sha256["rho"]
+    sampler = fitted_candidate.candidate._v5_runtime_sampler()
+    assert observation.sampling_active_calibration_state_sha256 == (
+        sampler.parameters.active_calibration_state_sha256
+    )
+    assert observation.sampling_envelope_certificate_sha256 == (
+        sampler.envelope_certificate.fingerprint
+    )
+    assert np.array_equal(
+        sampler.parameters.context_multipliers,
+        np.ones((27, 1, SCIPLEX3_CANDIDATE_FACTOR_COUNT)),
+    )
+    assert not np.shares_memory(
+        sampler.parameters.context_multipliers,
+        fitted_candidate.candidate._rho,
+    )
     assert len(observation.terminal_elbo_relative_changes) == 3
     assert not hasattr(observation, "terminal_factor_shape_log_changes")
     assert not hasattr(observation, "final_factor_shape")
@@ -498,6 +598,28 @@ def test_unconverged_or_nonfinite_fit_emits_no_artifact(
     assert not output.exists()
 
 
+def test_unsupported_v5_sampling_certificate_emits_no_artifact(
+    exact_preparation: SciPlex3BaselinePreparation,
+    exact_candidate: SciPlex3GammaPoissonCandidate,
+    sealed_plan: runner.SealedSciPlex3CandidateTrainingPlan,
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    candidate = SciPlex3GammaPoissonCandidate.load_exact(
+        exact_candidate.canonical_model_bytes(),
+        expected_sha256=exact_candidate.model_artifact_sha256,
+    )
+    certificate = candidate._v5_sampling_envelope_certificate_cache
+    object.__setattr__(certificate, "supported", False)
+    object.__setattr__(certificate, "rejection_reasons", ("forged unsafe envelope",))
+    monkeypatch.setattr(runner, "_fit_exact_candidate", lambda *_: candidate)
+    output = tmp_path / "unsupported-v5-sampling-envelope"
+
+    with pytest.raises(runner.SciPlex3CandidateRunnerError, match=r"sampling cache|certificate"):
+        runner.fit_and_write_sciplex3_candidate(exact_preparation, sealed_plan, output)
+    assert not output.exists()
+
+
 def test_reload_substitution_is_rejected_before_output(
     exact_preparation: SciPlex3BaselinePreparation,
     exact_candidate: SciPlex3GammaPoissonCandidate,
@@ -513,7 +635,7 @@ def test_reload_substitution_is_rejected_before_output(
     assert not output.exists()
 
 
-def test_runner_independently_rejects_forged_v4_topology(
+def test_runner_independently_rejects_forged_v5_topology(
     exact_preparation: SciPlex3BaselinePreparation,
     exact_candidate: SciPlex3GammaPoissonCandidate,
 ) -> None:
@@ -532,7 +654,7 @@ def test_runner_independently_rejects_forged_v4_topology(
         )
 
 
-def test_runner_rejects_mutable_fixed_shape_and_rho_lookalikes(
+def test_runner_rejects_mutable_fixed_shape_and_training_nuisance_rho_lookalikes(
     exact_preparation: SciPlex3BaselinePreparation,
     exact_candidate: SciPlex3GammaPoissonCandidate,
 ) -> None:
@@ -545,12 +667,12 @@ def test_runner_rejects_mutable_fixed_shape_and_rho_lookalikes(
         object.__setattr__(candidate, field, getattr(candidate, field).copy())
         with pytest.raises(
             runner.SciPlex3CandidateRunnerError,
-            match=r"fixed factor-shape|empirical plate",
+            match=r"fixed factor-shape|training nuisance rho",
         ):
             runner._validate_candidate_state(candidate, exact_preparation, design)
 
 
-def test_runner_independently_rejects_invalid_empirical_plate_means(
+def test_runner_independently_rejects_invalid_training_nuisance_rho_means(
     exact_preparation: SciPlex3BaselinePreparation,
     exact_candidate: SciPlex3GammaPoissonCandidate,
     monkeypatch: pytest.MonkeyPatch,
@@ -568,7 +690,7 @@ def test_runner_independently_rejects_invalid_empirical_plate_means(
         "_validate_candidate_topology",
         lambda *_: tuple(float(value) for value in candidate._factor_contributions),
     )
-    with pytest.raises(runner.SciPlex3CandidateRunnerError, match="empirical plate"):
+    with pytest.raises(runner.SciPlex3CandidateRunnerError, match="training nuisance rho"):
         runner._validate_candidate_state(
             candidate,
             exact_preparation,
@@ -615,9 +737,12 @@ def test_runner_independently_rejects_forged_initial_and_inner_witnesses(
         ("outer_iteration_count", 11),
         ("inner_all_batches_converged", False),
         ("plate_context_family", "independent-lognormal"),
+        ("sampling_contract_sha256", "f" * 64),
+        ("sampling_envelope_supported", False),
+        ("sampling_envelope_maximum_request_count", 513),
     ],
 )
-def test_runner_rederives_v4_behavior_gates(
+def test_runner_rederives_v5_behavior_and_sampling_gates(
     exact_preparation: SciPlex3BaselinePreparation,
     exact_candidate: SciPlex3GammaPoissonCandidate,
     monkeypatch: pytest.MonkeyPatch,
@@ -753,6 +878,16 @@ def test_public_observation_and_fit_constructors_reject_drift(
         {"factor_shape_estimated": True},
         {"inner_all_batches_converged": False},
         {"plate_context_family": "independent-lognormal"},
+        {"plate_context_id": "empirical-rho-row"},
+        {"plate_context_count": 8},
+        {"sampling_contract_sha256": "0" * 64},
+        {"sampling_active_calibration_state_sha256": "0" * 64},
+        {"sampling_envelope_certificate_sha256": "0" * 64},
+        {"sampling_envelope_maximum_request_count": 513},
+        {"sampling_envelope_supported": False},
+        {"sampling_envelope_rejection_reasons": ("unsafe",)},
+        {"candidate_objective_code_sha256": "0" * 64},
+        {"candidate_sampling_code_sha256": "0" * 64},
         {"plate_sigma_present": True},
         {"capture_latent_present": True},
         {"model_reloaded": False},
@@ -760,8 +895,11 @@ def test_public_observation_and_fit_constructors_reject_drift(
         {"heldout_artifacts_resolved": True},
     )
     for update in invalid_updates:
-        with pytest.raises(runner.SciPlex3CandidateRunnerError):
+        try:
             replace(observation, **update)  # type: ignore[arg-type]
+        except runner.SciPlex3CandidateRunnerError:
+            continue
+        pytest.fail(f"observation constructor accepted drift: {update!r}")
 
     with pytest.raises(runner.SciPlex3CandidateRunnerError, match="incomplete or unordered"):
         replace(sealed_plan, support_artifacts=tuple(reversed(sealed_plan.support_artifacts)))

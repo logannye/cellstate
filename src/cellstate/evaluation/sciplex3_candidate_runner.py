@@ -23,13 +23,20 @@ import numpy as np
 import scipy
 
 import cellstate.evaluation.sciplex3_candidate as _candidate_module
+import cellstate.evaluation.sciplex3_candidate_v5 as _candidate_v5_module
 import cellstate.evaluation.sciplex3_runner as _item11
+import cellstate.evaluation.sciplex3_sampling_v5 as _sampling_v5_module
 from cellstate.backends.contracts import PortImplementationBinding, PortImplementationKind
+from cellstate.backends.sciplex3_loader import (
+    SCIPLEX3_SOURCE_BYTE_COUNT,
+    SCIPLEX3_SOURCE_SHA256,
+)
 from cellstate.backends.training import (
     TRAINED_CANDIDATE_FACTORY_INTERFACE,
     CandidateTrainingPlan,
+    candidate_training_plan_generation_seed_bytes,
 )
-from cellstate.data.benchmarks import ContentAddressedArtifact
+from cellstate.data.benchmarks import BenchmarkPartitionRole, ContentAddressedArtifact
 from cellstate.domain.common import canonical_json_bytes
 from cellstate.errors import ContractViolationError
 from cellstate.evaluation.sciplex3_baselines import (
@@ -38,6 +45,7 @@ from cellstate.evaluation.sciplex3_baselines import (
     NoAction,
 )
 from cellstate.evaluation.sciplex3_candidate import (
+    SCIPLEX3_CANDIDATE_ACTION_COUNT,
     SCIPLEX3_CANDIDATE_BATCH_SIZE,
     SCIPLEX3_CANDIDATE_COMPOUND_COUNT,
     SCIPLEX3_CANDIDATE_CONVERGENCE_RTOL,
@@ -62,9 +70,12 @@ from cellstate.evaluation.sciplex3_candidate import (
     SCIPLEX3_CANDIDATE_PLATE_COUNT,
     SCIPLEX3_CANDIDATE_REFERENCE_RUNTIME,
     SCIPLEX3_CANDIDATE_SPECIFICATION_SHA256,
+    SCIPLEX3_CANDIDATE_TAU_GRID,
     SCIPLEX3_CANDIDATE_TRAINING_RECORD_COUNT,
     SCIPLEX3_CANDIDATE_TRAINING_WELL_COUNT,
+    SCIPLEX3_CANDIDATE_V5_NEUTRAL_CONTEXT_ID,
     CandidateRawCountSamples,
+    CandidateSampleRequest,
     SciPlex3CandidateError,
     SciPlex3CandidateInitialEquilibration,
     SciPlex3CandidateTraceEntry,
@@ -82,19 +93,117 @@ from cellstate.evaluation.sciplex3_runner import (
     LocalContentAddressedArtifact,
     SciPlex3BaselinePreparation,
 )
+from cellstate.evaluation.sciplex3_sampling_v5 import (
+    SCIPLEX3_V5_MAX_COMPOUND_POISSON_INTENSITY,
+    SCIPLEX3_V5_MAX_SAMPLE_COUNT,
+    SCIPLEX3_V5_REQUEST_FAILURE_BUDGET_LOG,
+    SCIPLEX3_V5_SAMPLING_CONTRACT_SHA256,
+    V5PositiveConditionedSampler,
+    V5SamplingEnvelopeCertificate,
+    V5SamplingParameters,
+)
+from cellstate.training.execution import (
+    ContainedExecutionPolicy,
+    ExecutionInputClosureManifest,
+    RuntimeBuilderIdentity,
+    RuntimeImageIdentity,
+    RuntimeImageLayerIdentity,
+    RuntimeImageLock,
+    TrainingCodeClosureEntry,
+    TrainingCodeClosureManifest,
+)
+from cellstate.training.publication import generation_id_for_seed
 
-SCIPLEX3_CANDIDATE_RUNNER_IMPLEMENTATION_VERSION: Final = "4.0.0"
+SCIPLEX3_CANDIDATE_RUNNER_IMPLEMENTATION_VERSION: Final = "5.0.0"
 SCIPLEX3_CANDIDATE_TRAINING_PLAN_ID: Final = SCIPLEX3_CANDIDATE_MODEL_ID
-SCIPLEX3_CANDIDATE_TRAINING_PLAN_VERSION: Final = "4.0.0"
+SCIPLEX3_CANDIDATE_TRAINING_PLAN_VERSION: Final = "5.0.0"
 SCIPLEX3_CANDIDATE_OPTIMIZATION_SEED: Final = 0
 
 _P1_PARTITION_ID = "p1-train"
 _RAW_BASE = "https://raw.githubusercontent.com/logannye/cellstate/main/"
+_CANDIDATE_PUBLICATION_RELATIVE_PATH = (
+    "backends/vertical-a/sciplex3-k562-24h-v1/candidate-publication"
+)
 _LOADER_CONTRACT_RELATIVE_PATH = (
     "benchmarks/vertical-a/sciplex3-k562-24h-v1/support/p1-loader-contract.json"
 )
 _CANDIDATE_CODE_RELATIVE_PATH = "src/cellstate/evaluation/sciplex3_candidate.py"
+_CANDIDATE_V5_CODE_RELATIVE_PATH = "src/cellstate/evaluation/sciplex3_candidate_v5.py"
+_SAMPLING_V5_CODE_RELATIVE_PATH = "src/cellstate/evaluation/sciplex3_sampling_v5.py"
 _RUNNER_CODE_RELATIVE_PATH = "src/cellstate/evaluation/sciplex3_candidate_runner.py"
+_WORKER_CODE_RELATIVE_PATH = "scripts/sciplex3_k562_v5_worker.py"
+_SUPERVISOR_CODE_RELATIVE_PATH = "scripts/run_sciplex3_k562_v5_contained.py"
+_EXECUTION_CODE_RELATIVE_PATH = "src/cellstate/training/execution.py"
+_PUBLICATION_CODE_RELATIVE_PATH = "src/cellstate/training/publication.py"
+_MATERIALIZER_CODE_RELATIVE_PATH = "scripts/materialize_sciplex3_k562_p1_candidate.py"
+_BUILDER_CODE_RELATIVE_PATH = "scripts/build_sciplex3_k562_trained_candidate.py"
+_CONTAINED_POLICY_RELATIVE_PATH = (
+    "benchmarks/vertical-a/sciplex3-k562-24h-v1/support/contained-execution-policy.json"
+)
+_RUNTIME_IMAGE_LOCK_RELATIVE_PATH = (
+    "benchmarks/vertical-a/sciplex3-k562-24h-v1/support/candidate-runtime-image-lock.json"
+)
+_TRAINING_CODE_CLOSURE_RELATIVE_PATH = (
+    "benchmarks/vertical-a/sciplex3-k562-24h-v1/support/training-code-closure.json"
+)
+_EXECUTION_INPUT_CLOSURE_RELATIVE_PATH = (
+    "benchmarks/vertical-a/sciplex3-k562-24h-v1/support/training-execution-input-closure.json"
+)
+_PUBLICATION_GENERATION_SEED_RELATIVE_PATH = (
+    "benchmarks/vertical-a/sciplex3-k562-24h-v1/item12-p1/"
+    "candidate-publication-generation-seed.json"
+)
+_CONTAINED_EXECUTION_ID = "sciplex3-k562-v5-fit"
+_RUNTIME_IMAGE_REFERENCE = (
+    "cellstate-sciplex3-v5-runtime@"
+    "sha256:12c2faa6019fb60cdcabaa8f38f70e99be7998997b97ddb0ca59fbe2e82f1e25"
+)
+_RUNTIME_IMAGE_DIGEST = "sha256:12c2faa6019fb60cdcabaa8f38f70e99be7998997b97ddb0ca59fbe2e82f1e25"
+_RUNTIME_IMAGE_INDEX_DIGEST = (
+    "sha256:e0f0afd6c66197a37d0ab7a05e7cccfe5990da1fd8497e175fdf3ab909a67812"
+)
+_RUNTIME_IMAGE_CONFIG_DIGEST = (
+    "sha256:80ed48f278d7a46c0ae7811285efc69181ae59872a358cc9b176079aa09f3cc8"
+)
+_RUNTIME_IMAGE_ARCHIVE_SHA256 = "37c2fa5846acfbd8357476859bd7f8f0ac6591261d79c2f6f46f0aa22fb76454"
+_RUNTIME_IMAGE_SOURCE_DATE_EPOCH = 1_786_406_400
+_RUNTIME_IMAGE_TAG = "cellstate-sciplex3-v5-runtime:20260811-locked"
+_RUNTIME_BUILDX_VERSION = "v0.28.0"
+_RUNTIME_BUILDX_COMMIT = "b1281b81bba797b21d9eaf256e6a13eb14419836"
+_RUNTIME_BUILDKIT_VERSION = "v0.24.0"
+_RUNTIME_BUILDKIT_IMAGE_DIGEST = (
+    "sha256:6eceb8971ce4fceb3daca562832642706238b7eea72941fcf9896c93c3c4a53e"
+)
+_RUNTIME_DOCKERFILE_FRONTEND_DIGEST = (
+    "sha256:a57df69d0ea827fb7266491f2813635de6f17269be881f696fbfdf2d83dda33e"
+)
+_RUNTIME_OUTPUT_OPTIONS = ("type=oci",)
+_RUNTIME_IMAGE_LAYERS = (
+    RuntimeImageLayerIdentity(
+        digest="sha256:039e6f9f9752f74a3ff4a6a224f64c7c864da16ed98f882107704328f41b9c42",
+        byte_count=28_232_590,
+    ),
+    RuntimeImageLayerIdentity(
+        digest="sha256:a818f21dc3b91f21ff6a387603a68f05631236d4ef4da78c62263192f17efc5f",
+        byte_count=3_520_836,
+    ),
+    RuntimeImageLayerIdentity(
+        digest="sha256:51dd2349a5f3cda316dcc78934383fdd473c905d1070f1c822e4011c39e23774",
+        byte_count=16_019_435,
+    ),
+    RuntimeImageLayerIdentity(
+        digest="sha256:87e3be58ade05b9abd82eedde89ebfca06a7d656332edb0991939c130f9e32bd",
+        byte_count=249,
+    ),
+    RuntimeImageLayerIdentity(
+        digest="sha256:4eaeda62bd74078a1cd0f387c18cac3c1273826cbda1222ba571bf4e06b26533",
+        byte_count=67_847_890,
+    ),
+    RuntimeImageLayerIdentity(
+        digest="sha256:4f4fb700ef54461cfa02571ae0db9a0dc1e0cdb5577484a6d75e68dc38e8acc1",
+        byte_count=32,
+    ),
+)
 _THREAD_ENVIRONMENT_KEYS = (
     "MKL_NUM_THREADS",
     "NUMEXPR_NUM_THREADS",
@@ -104,9 +213,14 @@ _THREAD_ENVIRONMENT_KEYS = (
 )
 _SUPPORT_FILENAMES = (
     "candidate-specification.json",
+    "contained-execution-policy.json",
     "output-model-schema.json",
     "p1-count-stream-descriptor.json",
+    "publication-generation-seed.json",
     "runtime-lock.json",
+    "runtime-image-lock.json",
+    "training-code-closure.json",
+    "training-execution-input-closure.json",
 )
 
 if _candidate_module.__file__ is None:  # pragma: no cover - import boundary
@@ -114,6 +228,16 @@ if _candidate_module.__file__ is None:  # pragma: no cover - import boundary
 _IMPORTED_CANDIDATE_CODE_PATH: Final = Path(_candidate_module.__file__).resolve()
 _IMPORTED_CANDIDATE_CODE_SHA256: Final = hashlib.sha256(
     _IMPORTED_CANDIDATE_CODE_PATH.read_bytes()
+).hexdigest()
+if _candidate_v5_module.__file__ is None or _sampling_v5_module.__file__ is None:
+    raise ImportError("loaded sci-Plex3 v5 objective or sampler module has no source path")
+_IMPORTED_CANDIDATE_V5_CODE_PATH: Final = Path(_candidate_v5_module.__file__).resolve()
+_IMPORTED_CANDIDATE_V5_CODE_SHA256: Final = hashlib.sha256(
+    _IMPORTED_CANDIDATE_V5_CODE_PATH.read_bytes()
+).hexdigest()
+_IMPORTED_SAMPLING_V5_CODE_PATH: Final = Path(_sampling_v5_module.__file__).resolve()
+_IMPORTED_SAMPLING_V5_CODE_SHA256: Final = hashlib.sha256(
+    _IMPORTED_SAMPLING_V5_CODE_PATH.read_bytes()
 ).hexdigest()
 _IMPORTED_RUNNER_CODE_PATH: Final = Path(__file__).resolve()
 _IMPORTED_RUNNER_CODE_SHA256: Final = hashlib.sha256(
@@ -134,6 +258,23 @@ def _canonical_json(value: object) -> bytes:
         return canonical_json_bytes(value)
     except (TypeError, ValueError) as error:
         raise SciPlex3CandidateRunnerError("value is not canonical-JSON-compatible") from error
+
+
+def _expected_v5_active_calibration_state_sha256() -> str:
+    """Bind the fixed shape, neutral context, and active tau without candidate-owned state."""
+
+    neutral_context = np.ones((1, SCIPLEX3_CANDIDATE_FACTOR_COUNT), dtype="<f8")
+    return _sha256(
+        _canonical_json(
+            {
+                "context_multipliers_sha256": _sha256(neutral_context.tobytes(order="C")),
+                "context_shape": list(neutral_context.shape),
+                "factor_shape_hex": SCIPLEX3_CANDIDATE_FIXED_FACTOR_SHAPE.hex(),
+                "sampling_contract_sha256": SCIPLEX3_V5_SAMPLING_CONTRACT_SHA256,
+                "tau_hex": (1.0).hex(),
+            }
+        )
+    )
 
 
 def _exact_sha256(value: object, *, name: str) -> str:
@@ -182,11 +323,18 @@ def _artifact_for_payload(
     artifact_id: str,
     relative_uri: str,
     payload: bytes,
+    generation_id: str,
     media_type: str = "application/json",
 ) -> ContentAddressedArtifact:
+    generation_id = _exact_sha256(generation_id, name="planned generation ID")
     return ContentAddressedArtifact(
         artifact_id=artifact_id,
-        uri=_RAW_BASE + relative_uri,
+        uri=(
+            _RAW_BASE
+            + _CANDIDATE_PUBLICATION_RELATIVE_PATH
+            + f"/generations/{generation_id}/tree/"
+            + relative_uri
+        ),
         sha256=_sha256(payload),
         byte_count=len(payload),
         media_type=media_type,
@@ -241,6 +389,289 @@ def _runtime_lock_payload() -> bytes:
             "thread_environment": {key: "1" for key in _THREAD_ENVIRONMENT_KEYS},
         }
     )
+
+
+def _training_code_closure(repository_root: Path) -> TrainingCodeClosureManifest:
+    """Inventory every local module plus the exact worker/supervisor entry points."""
+
+    root = Path(repository_root)
+    paths = {
+        path.relative_to(root).as_posix()
+        for path in (root / "src/cellstate").rglob("*.py")
+        if path.is_file() and not path.is_symlink()
+    }
+    paths.update(
+        {
+            _BUILDER_CODE_RELATIVE_PATH,
+            _MATERIALIZER_CODE_RELATIVE_PATH,
+            _SUPERVISOR_CODE_RELATIVE_PATH,
+            _WORKER_CODE_RELATIVE_PATH,
+        }
+    )
+    entries: list[TrainingCodeClosureEntry] = []
+    for relative_path in sorted(paths):
+        path = root / relative_path
+        try:
+            observed = path.lstat()
+            payload = path.read_bytes()
+        except OSError as error:
+            raise SciPlex3CandidateRunnerError(
+                f"missing training-code closure entry: {relative_path}"
+            ) from error
+        if path.is_symlink() or not path.is_file() or observed.st_size != len(payload):
+            raise SciPlex3CandidateRunnerError(
+                f"training-code closure entry is not one stable regular file: {relative_path}"
+            )
+        entries.append(
+            TrainingCodeClosureEntry(
+                relative_path=relative_path,
+                sha256=_sha256(payload),
+                byte_count=len(payload),
+            )
+        )
+    manifest = TrainingCodeClosureManifest(entries=tuple(entries))
+    by_path = {entry.relative_path: entry.sha256 for entry in manifest.entries}
+    expected_imports = {
+        _CANDIDATE_CODE_RELATIVE_PATH: _IMPORTED_CANDIDATE_CODE_SHA256,
+        _CANDIDATE_V5_CODE_RELATIVE_PATH: _IMPORTED_CANDIDATE_V5_CODE_SHA256,
+        _SAMPLING_V5_CODE_RELATIVE_PATH: _IMPORTED_SAMPLING_V5_CODE_SHA256,
+        _RUNNER_CODE_RELATIVE_PATH: _IMPORTED_RUNNER_CODE_SHA256,
+    }
+    if any(by_path.get(path) != digest for path, digest in expected_imports.items()):
+        raise SciPlex3CandidateRunnerError(
+            "loaded v5 candidate modules differ from the exact training-code closure"
+        )
+    return manifest
+
+
+def _training_execution_input_closure(
+    repository_root: Path,
+    code_closure: TrainingCodeClosureManifest,
+) -> ExecutionInputClosureManifest:
+    """Add only authenticated p1/public control inputs to the complete code closure."""
+
+    root = Path(repository_root)
+    loader_contract_path = root / _LOADER_CONTRACT_RELATIVE_PATH
+    loader_contract_payload = _read_bytes(loader_contract_path, name="p1 loader contract")
+    contract = _json_object(loader_contract_payload, name="p1 loader contract")
+    artifact_declarations = contract.get("artifacts")
+    if type(artifact_declarations) is not dict:
+        raise SciPlex3CandidateRunnerError("p1 loader contract artifact map is malformed")
+    input_paths = {
+        "backends/vertical-a/sciplex3-k562-24h-v1/support-envelope.json",
+        "benchmarks/vertical-a/sciplex3-k562-24h-v1/benchmark-artifact.json",
+        "benchmarks/vertical-a/sciplex3-k562-24h-v1/state-query.json",
+        "benchmarks/vertical-a/sciplex3-k562-24h-v1/support/action-domain-mapping.json",
+        _LOADER_CONTRACT_RELATIVE_PATH,
+        "benchmarks/vertical-a/sciplex3-k562-24h-v1/support/scoring-transform.json",
+        "benchmarks/vertical-a/sciplex3-k562-24h-v1/support/target-value-schema.json",
+        "containers/sciplex3-v5-runtime/Dockerfile",
+        "containers/sciplex3-v5-runtime/requirements.lock",
+        "containers/sciplex3-v5-runtime/runtime-image-lock.json",
+        "data_manifests/reviewed/sciplex3-k562-24h.json",
+    }
+    declared_identity: dict[str, tuple[str, int]] = {}
+    for declaration in artifact_declarations.values():
+        if type(declaration) is not dict:
+            raise SciPlex3CandidateRunnerError("p1 loader artifact declaration is malformed")
+        relative = declaration.get("relative_path")
+        digest = declaration.get("sha256")
+        byte_count = declaration.get("byte_count")
+        if type(relative) is not str or type(digest) is not str or type(byte_count) is not int:
+            raise SciPlex3CandidateRunnerError("p1 loader artifact identity is malformed")
+        path = (
+            relative
+            if relative.startswith("benchmarks/")
+            else f"benchmarks/artifacts/sciplex3-k562-24h-v1/{relative}"
+        )
+        input_paths.add(path)
+        declared_identity[path] = (digest, byte_count)
+
+    entries = {entry.relative_path: entry for entry in code_closure.entries}
+    for relative_path in sorted(input_paths):
+        payload = _read_bytes(root / relative_path, name="contained execution input")
+        entry = TrainingCodeClosureEntry(
+            relative_path=relative_path,
+            sha256=_sha256(payload),
+            byte_count=len(payload),
+        )
+        declared = declared_identity.get(relative_path)
+        if declared is not None and declared != (entry.sha256, entry.byte_count):
+            raise SciPlex3CandidateRunnerError("p1 loader input differs from its contract")
+        entries[relative_path] = entry
+    return ExecutionInputClosureManifest(
+        training_code_closure_sha256=code_closure.fingerprint,
+        entries=tuple(entries[path] for path in sorted(entries)),
+    )
+
+
+def _contained_execution_policy(
+    training_code_closure_sha256: str,
+    execution_input_closure_sha256: str,
+) -> ContainedExecutionPolicy:
+    return ContainedExecutionPolicy(
+        policy_id="sciplex3-k562-v5-contained-fit",
+        owner_id="sciplex3-k562-v5",
+        runtime_image=RuntimeImageIdentity(
+            reference=_RUNTIME_IMAGE_REFERENCE,
+            digest=_RUNTIME_IMAGE_DIGEST,
+        ),
+        training_code_closure_sha256=training_code_closure_sha256,
+        execution_input_closure_sha256=execution_input_closure_sha256,
+        wall_clock_seconds=3_600,
+        cleanup_timeout_seconds=30,
+        memory_max_bytes=4 * 1024**3,
+        memory_swap_max_bytes=4 * 1024**3,
+        pids_limit=256,
+        temporary_max_bytes=256 * 1024**2,
+        snapshot_max_bytes=3 * 1024**3,
+        observed_training_peak_memory_bytes=1_731_055_616,
+        source_container_path="/run/cellstate/source/source.h5ad",
+        code_container_path="/workspace",
+        output_container_path="/run/cellstate/output",
+        snapshot_container_path="/run/cellstate/snapshot",
+        temporary_container_path="/run/cellstate/tmp",
+        workdir="/workspace",
+        environment={
+            "LANG": "C.UTF-8",
+            "MKL_NUM_THREADS": "1",
+            "NUMEXPR_NUM_THREADS": "1",
+            "OMP_NUM_THREADS": "1",
+            "OPENBLAS_NUM_THREADS": "1",
+            "PYTHONDONTWRITEBYTECODE": "1",
+            "PYTHONHASHSEED": "0",
+            "PYTHONPATH": "/workspace/src:/workspace",
+            "TMPDIR": "/run/cellstate/tmp",
+            "VECLIB_MAXIMUM_THREADS": "1",
+        },
+        worker_command=(
+            "--signal=KILL",
+            "--kill-after=5s",
+            "3540",
+            "/opt/runtime/bin/python",
+            _WORKER_CODE_RELATIVE_PATH,
+            "--source",
+            "/run/cellstate/source/source.h5ad",
+            "--output",
+            "/run/cellstate/output",
+            "--repository-root",
+            "/workspace",
+            "--execution-id",
+            _CONTAINED_EXECUTION_ID,
+            "--expected-source-sha256",
+            SCIPLEX3_SOURCE_SHA256,
+            "--expected-source-byte-count",
+            str(SCIPLEX3_SOURCE_BYTE_COUNT),
+            "--snapshot-directory",
+            "/run/cellstate/snapshot",
+            "--snapshot-max-bytes",
+            str(3 * 1024**3),
+        ),
+    )
+
+
+def contained_training_contracts(
+    repository_root: Path,
+) -> tuple[
+    ContainedExecutionPolicy,
+    TrainingCodeClosureManifest,
+    ExecutionInputClosureManifest,
+    RuntimeImageLock,
+]:
+    """Reconstruct the source-free policy, executable closure, and image lock."""
+
+    root = Path(repository_root)
+    code_closure = _training_code_closure(root)
+    input_closure = _training_execution_input_closure(repository_root, code_closure)
+    policy = _contained_execution_policy(code_closure.fingerprint, input_closure.fingerprint)
+    provenance_path = root / "containers/sciplex3-v5-runtime/runtime-image-lock.json"
+    provenance_payload = _read_bytes(provenance_path, name="runtime image provenance lock")
+    provenance = _json_object(provenance_payload, name="runtime image provenance lock")
+    canonical_provenance = canonical_json_bytes(provenance)
+    if provenance_payload not in {canonical_provenance, canonical_provenance + b"\n"}:
+        raise SciPlex3CandidateRunnerError("runtime image provenance lock is not canonical JSON")
+    build = provenance.get("build")
+    builder = provenance.get("builder")
+    layer_payloads = provenance.get("layers")
+    if type(build) is not dict or type(builder) is not dict or type(layer_payloads) is not list:
+        raise SciPlex3CandidateRunnerError("runtime image provenance build identity is malformed")
+    dockerfile = _read_bytes(
+        root / "containers/sciplex3-v5-runtime/Dockerfile", name="runtime Dockerfile"
+    )
+    requirements = _read_bytes(
+        root / "containers/sciplex3-v5-runtime/requirements.lock",
+        name="runtime requirements lock",
+    )
+    output_options = build.get("output_options")
+    if type(output_options) is not list:
+        raise SciPlex3CandidateRunnerError("runtime image output options are malformed")
+    try:
+        builder_identity = RuntimeBuilderIdentity.model_validate(
+            {
+                "buildx_version": builder.get("buildx_version"),
+                "buildx_commit": builder.get("buildx_commit"),
+                "buildkit_version": builder.get("buildkit_version"),
+                "buildkit_image_digest": builder.get("buildkit_image_digest"),
+                "dockerfile_frontend_digest": builder.get("dockerfile_frontend_digest"),
+                "dockerfile_sha256": build.get("dockerfile_sha256"),
+                "requirements_sha256": build.get("requirements_sha256"),
+                "source_date_epoch": build.get("source_date_epoch"),
+                "no_cache": build.get("no_cache"),
+                "platform": build.get("platform"),
+                "provenance_attestation_disabled": build.get("provenance_attestation_disabled"),
+                "image_tag": build.get("image_tag"),
+                "output_options": tuple(output_options),
+            }
+        )
+        layers = tuple(RuntimeImageLayerIdentity.model_validate(item) for item in layer_payloads)
+    except (TypeError, ValueError) as error:
+        raise SciPlex3CandidateRunnerError(
+            "runtime image typed provenance identity is malformed"
+        ) from error
+    if (
+        provenance.get("runtime_image_lock_schema") != "cellstate-sciplex3-v5-runtime-image-lock"
+        or provenance.get("runtime_image_lock_version") != "1.0.0"
+        or provenance.get("image_reference") != policy.runtime_image.reference
+        or provenance.get("image_digest") != policy.runtime_image.digest
+        or provenance.get("platform") != policy.runtime_image.platform
+        or provenance.get("operating_system") != "linux"
+        or provenance.get("architecture") != "amd64"
+        or provenance.get("archive_sha256") != _RUNTIME_IMAGE_ARCHIVE_SHA256
+        or provenance.get("oci_index_digest") != _RUNTIME_IMAGE_INDEX_DIGEST
+        or provenance.get("config_digest") != _RUNTIME_IMAGE_CONFIG_DIGEST
+        or provenance.get("distribution") != "local-oci-layout-load-required"
+        or provenance.get("container_user_mode") != policy.container_user_mode
+        or provenance.get("snapshot_volume_initialization") != policy.snapshot_volume_initialization
+        or builder_identity.buildx_version != _RUNTIME_BUILDX_VERSION
+        or builder_identity.buildx_commit != _RUNTIME_BUILDX_COMMIT
+        or builder_identity.buildkit_version != _RUNTIME_BUILDKIT_VERSION
+        or builder_identity.buildkit_image_digest != _RUNTIME_BUILDKIT_IMAGE_DIGEST
+        or builder_identity.dockerfile_frontend_digest != _RUNTIME_DOCKERFILE_FRONTEND_DIGEST
+        or builder_identity.dockerfile_sha256 != _sha256(dockerfile)
+        or builder_identity.requirements_sha256 != _sha256(requirements)
+        or builder_identity.source_date_epoch != _RUNTIME_IMAGE_SOURCE_DATE_EPOCH
+        or builder_identity.no_cache is not True
+        or builder_identity.platform != policy.runtime_image.platform
+        or builder_identity.provenance_attestation_disabled is not True
+        or builder_identity.image_tag != _RUNTIME_IMAGE_TAG
+        or builder_identity.output_options != _RUNTIME_OUTPUT_OPTIONS
+        or build.get("reproducibility_build_count") != 2
+        or layers != _RUNTIME_IMAGE_LAYERS
+    ):
+        raise SciPlex3CandidateRunnerError("runtime image provenance contradicts its exact files")
+    image_lock = RuntimeImageLock(
+        runtime_image=policy.runtime_image,
+        container_user_mode=policy.container_user_mode,
+        snapshot_volume_initialization=policy.snapshot_volume_initialization,
+        builder=builder_identity,
+        archive_sha256=_RUNTIME_IMAGE_ARCHIVE_SHA256,
+        oci_index_digest=_RUNTIME_IMAGE_INDEX_DIGEST,
+        config_digest=_RUNTIME_IMAGE_CONFIG_DIGEST,
+        layers=layers,
+        training_code_closure_sha256=code_closure.fingerprint,
+        image_provenance_sha256=_sha256(provenance_payload),
+    )
+    return policy, code_closure, input_closure, image_lock
 
 
 def _current_code_payload(path: Path, imported_sha256: str, *, name: str) -> bytes:
@@ -356,24 +787,6 @@ def _verify_factory_golden() -> None:
         raise SciPlex3CandidateRunnerError("candidate software golden sample identity drifted")
 
 
-def _support_payloads(
-    preparation: SciPlex3BaselinePreparation,
-    *,
-    design: SciPlex3P1DesignBindings,
-) -> dict[str, bytes]:
-    specification = _canonical_json(candidate_specification_manifest())
-    if _sha256(specification) != SCIPLEX3_CANDIDATE_SPECIFICATION_SHA256:
-        raise SciPlex3CandidateRunnerError("candidate specification identity drifted")
-    return {
-        "candidate-specification.json": specification,
-        "output-model-schema.json": _output_model_schema_payload(),
-        "p1-count-stream-descriptor.json": _count_stream_descriptor_payload(
-            preparation, design=design
-        ),
-        "runtime-lock.json": _runtime_lock_payload(),
-    }
-
-
 def _expected_plan(
     preparation: SciPlex3BaselinePreparation,
     *,
@@ -386,16 +799,21 @@ def _expected_plan(
         support_envelope_fingerprint, name="support-envelope fingerprint"
     )
     design = _candidate_design(preparation)
-    support_payloads = _support_payloads(preparation, design=design)
     # The runtime gate precedes executable-golden construction so supported nonreference
     # interpreters can import this module while fitting still fails before numerical work.
+    runtime_lock_payload = _runtime_lock_payload()
     _verify_factory_golden()
     repository_root = preparation.repository_root
-    if (
-        repository_root / _CANDIDATE_CODE_RELATIVE_PATH
-    ).resolve() != _IMPORTED_CANDIDATE_CODE_PATH or (
-        repository_root / _RUNNER_CODE_RELATIVE_PATH
-    ).resolve() != _IMPORTED_RUNNER_CODE_PATH:
+    imported_paths = {
+        _CANDIDATE_CODE_RELATIVE_PATH: _IMPORTED_CANDIDATE_CODE_PATH,
+        _CANDIDATE_V5_CODE_RELATIVE_PATH: _IMPORTED_CANDIDATE_V5_CODE_PATH,
+        _SAMPLING_V5_CODE_RELATIVE_PATH: _IMPORTED_SAMPLING_V5_CODE_PATH,
+        _RUNNER_CODE_RELATIVE_PATH: _IMPORTED_RUNNER_CODE_PATH,
+    }
+    if any(
+        (repository_root / relative).resolve() != loaded
+        for relative, loaded in imported_paths.items()
+    ):
         raise SciPlex3CandidateRunnerError(
             "loaded candidate implementation paths differ from the repository closure"
         )
@@ -424,96 +842,187 @@ def _expected_plan(
     )
     if _sha256(item11_runner) != _item11._IMPORTED_RUNNER_CODE_SHA256:
         raise SciPlex3CandidateRunnerError("Item 11 runner code identity drifted")
-
-    p1_loader_contract = _artifact_for_payload(
-        artifact_id="sciplex3-item12-p1-loader-contract",
-        relative_uri=_LOADER_CONTRACT_RELATIVE_PATH,
-        payload=loader_payload,
-    )
-    p1_count_stream = _artifact_for_payload(
-        artifact_id="sciplex3-item12-p1-count-stream-descriptor",
-        relative_uri=(
-            "benchmarks/artifacts/sciplex3-k562-24h-v1/item12-p1/p1-count-stream-descriptor.json"
+    policy, code_closure, input_closure, image_lock = contained_training_contracts(repository_root)
+    specification = _canonical_json(candidate_specification_manifest())
+    if _sha256(specification) != SCIPLEX3_CANDIDATE_SPECIFICATION_SHA256:
+        raise SciPlex3CandidateRunnerError("candidate specification identity drifted")
+    support_payloads = {
+        "candidate-specification.json": specification,
+        "contained-execution-policy.json": _canonical_json(policy.model_dump(mode="json")),
+        "output-model-schema.json": _output_model_schema_payload(),
+        "p1-count-stream-descriptor.json": _count_stream_descriptor_payload(
+            preparation, design=design
         ),
-        payload=support_payloads["p1-count-stream-descriptor.json"],
-    )
-    candidate_specification = _artifact_for_payload(
-        artifact_id="sciplex3-item12-candidate-specification",
-        relative_uri=(
-            "benchmarks/vertical-a/sciplex3-k562-24h-v1/support/candidate-specification.json"
+        "runtime-lock.json": runtime_lock_payload,
+        "runtime-image-lock.json": _canonical_json(image_lock.model_dump(mode="json")),
+        "training-code-closure.json": _canonical_json(code_closure.model_dump(mode="json")),
+        "training-execution-input-closure.json": _canonical_json(
+            input_closure.model_dump(mode="json")
         ),
-        payload=support_payloads["candidate-specification.json"],
-    )
-    output_model_schema = _artifact_for_payload(
-        artifact_id="sciplex3-item12-output-model-schema",
-        relative_uri=(
-            "benchmarks/vertical-a/sciplex3-k562-24h-v1/support/candidate-output-model-schema.json"
-        ),
-        payload=support_payloads["output-model-schema.json"],
-    )
-    runtime_lock = _artifact_for_payload(
-        artifact_id="sciplex3-item12-runtime-lock",
-        relative_uri=(
-            "benchmarks/vertical-a/sciplex3-k562-24h-v1/support/candidate-runtime-lock.json"
-        ),
-        payload=support_payloads["runtime-lock.json"],
-    )
-    trainer_code = _artifact_for_payload(
-        artifact_id="sciplex3-item12-candidate-runner-code",
-        relative_uri=_RUNNER_CODE_RELATIVE_PATH,
-        payload=runner_code,
-        media_type="text/x-python",
-    )
-    factory_code = _artifact_for_payload(
-        artifact_id="sciplex3-item12-candidate-factory-code",
-        relative_uri=_CANDIDATE_CODE_RELATIVE_PATH,
-        payload=candidate_code,
-        media_type="text/x-python",
-    )
+    }
     identity = _item11._recompute_in_memory_p1_identity(preparation)
-    plan = CandidateTrainingPlan(
-        plan_id=SCIPLEX3_CANDIDATE_TRAINING_PLAN_ID,
-        plan_version=SCIPLEX3_CANDIDATE_TRAINING_PLAN_VERSION,
-        query_fingerprint=preparation.design.query_fingerprint,
-        benchmark_fingerprint=benchmark_fingerprint,
-        support_envelope_fingerprint=support_envelope_fingerprint,
-        training_partition_ids=(_P1_PARTITION_ID,),
-        p1_loader_contract=p1_loader_contract,
-        p1_count_stream=p1_count_stream,
-        p1_count_stream_sha256=identity.panel_count_stream_sha256,
-        p1_finalized_count_scan_fingerprint=(preparation.finalized_count_scan_receipt.fingerprint),
-        p1_assembly_fingerprint=preparation.receipt.fingerprint,
-        p1_design_fingerprint=design.fingerprint,
-        ordered_feature_keys_sha256=identity.ordered_feature_keys_sha256,
-        action_binding_sha256=preparation.design.action_domain_sha256,
-        target_value_schema_sha256=preparation.design.target_value_schema_sha256,
-        candidate_specification=candidate_specification,
-        output_model_schema=output_model_schema,
-        runtime_lock=runtime_lock,
-        trainer_implementation=PortImplementationBinding(
-            implementation_id="cellstate.sciplex3-candidate-runner",
-            implementation_version=SCIPLEX3_CANDIDATE_RUNNER_IMPLEMENTATION_VERSION,
-            interface=(
-                "cellstate.evaluation.sciplex3_candidate_runner.fit_and_write_sciplex3_candidate"
+
+    def artifact_set(generation_id: str) -> dict[str, ContentAddressedArtifact]:
+        return {
+            "p1_loader_contract": _artifact_for_payload(
+                artifact_id="sciplex3-item12-p1-loader-contract",
+                relative_uri=_LOADER_CONTRACT_RELATIVE_PATH,
+                payload=loader_payload,
+                generation_id=generation_id,
             ),
-            kind=PortImplementationKind.PYTHON_ENTRY_POINT,
-            code_artifact=trainer_code,
-            entrypoint=(
-                "cellstate.evaluation.sciplex3_candidate_runner:fit_and_write_sciplex3_candidate"
+            "p1_count_stream": _artifact_for_payload(
+                artifact_id="sciplex3-item12-p1-count-stream-descriptor",
+                relative_uri=(
+                    "benchmarks/artifacts/sciplex3-k562-24h-v1/item12-p1/"
+                    "p1-count-stream-descriptor.json"
+                ),
+                payload=support_payloads["p1-count-stream-descriptor.json"],
+                generation_id=generation_id,
             ),
-        ),
-        candidate_factory_implementation=PortImplementationBinding(
-            implementation_id="cellstate.sciplex3-gamma-poisson-candidate-factory",
-            implementation_version=SCIPLEX3_CANDIDATE_IMPLEMENTATION_VERSION,
-            interface=TRAINED_CANDIDATE_FACTORY_INTERFACE,
-            kind=PortImplementationKind.PYTHON_ENTRY_POINT,
-            code_artifact=factory_code,
-            entrypoint=("cellstate.evaluation.sciplex3_candidate:SciPlex3GammaPoissonCandidate"),
-        ),
-        optimization_seed=SCIPLEX3_CANDIDATE_OPTIMIZATION_SEED,
-        deterministic_thread_count=1,
-        future_calibration_plan=None,
+            "candidate_specification": _artifact_for_payload(
+                artifact_id="sciplex3-item12-candidate-specification",
+                relative_uri=(
+                    "benchmarks/vertical-a/sciplex3-k562-24h-v1/support/"
+                    "candidate-specification.json"
+                ),
+                payload=support_payloads["candidate-specification.json"],
+                generation_id=generation_id,
+            ),
+            "output_model_schema": _artifact_for_payload(
+                artifact_id="sciplex3-item12-output-model-schema",
+                relative_uri=(
+                    "benchmarks/vertical-a/sciplex3-k562-24h-v1/support/"
+                    "candidate-output-model-schema.json"
+                ),
+                payload=support_payloads["output-model-schema.json"],
+                generation_id=generation_id,
+            ),
+            "runtime_lock": _artifact_for_payload(
+                artifact_id="sciplex3-item12-runtime-lock",
+                relative_uri=(
+                    "benchmarks/vertical-a/sciplex3-k562-24h-v1/support/candidate-runtime-lock.json"
+                ),
+                payload=support_payloads["runtime-lock.json"],
+                generation_id=generation_id,
+            ),
+            "contained_execution_policy": _artifact_for_payload(
+                artifact_id="sciplex3-item12-contained-execution-policy",
+                relative_uri=_CONTAINED_POLICY_RELATIVE_PATH,
+                payload=support_payloads["contained-execution-policy.json"],
+                generation_id=generation_id,
+            ),
+            "runtime_image_lock": _artifact_for_payload(
+                artifact_id="sciplex3-item12-runtime-image-lock",
+                relative_uri=_RUNTIME_IMAGE_LOCK_RELATIVE_PATH,
+                payload=support_payloads["runtime-image-lock.json"],
+                generation_id=generation_id,
+            ),
+            "training_code_closure": _artifact_for_payload(
+                artifact_id="sciplex3-item12-training-code-closure",
+                relative_uri=_TRAINING_CODE_CLOSURE_RELATIVE_PATH,
+                payload=support_payloads["training-code-closure.json"],
+                generation_id=generation_id,
+            ),
+            "training_execution_input_closure": _artifact_for_payload(
+                artifact_id="sciplex3-item12-training-execution-input-closure",
+                relative_uri=_EXECUTION_INPUT_CLOSURE_RELATIVE_PATH,
+                payload=support_payloads["training-execution-input-closure.json"],
+                generation_id=generation_id,
+            ),
+            "trainer_code": _artifact_for_payload(
+                artifact_id="sciplex3-item12-candidate-runner-code",
+                relative_uri=_RUNNER_CODE_RELATIVE_PATH,
+                payload=runner_code,
+                generation_id=generation_id,
+                media_type="text/x-python",
+            ),
+            "factory_code": _artifact_for_payload(
+                artifact_id="sciplex3-item12-candidate-factory-code",
+                relative_uri=_CANDIDATE_CODE_RELATIVE_PATH,
+                payload=candidate_code,
+                generation_id=generation_id,
+                media_type="text/x-python",
+            ),
+        }
+
+    def plan_fields(generation_id: str) -> dict[str, object]:
+        artifacts = artifact_set(generation_id)
+        return {
+            "schema_version": "0.1-experimental",
+            "plan_id": SCIPLEX3_CANDIDATE_TRAINING_PLAN_ID,
+            "plan_version": SCIPLEX3_CANDIDATE_TRAINING_PLAN_VERSION,
+            "query_fingerprint": preparation.design.query_fingerprint,
+            "benchmark_fingerprint": benchmark_fingerprint,
+            "support_envelope_fingerprint": support_envelope_fingerprint,
+            "training_partition_ids": (_P1_PARTITION_ID,),
+            "training_partition_roles": (BenchmarkPartitionRole.TRAIN,),
+            "p1_loader_contract": artifacts["p1_loader_contract"],
+            "p1_count_stream": artifacts["p1_count_stream"],
+            "p1_count_stream_sha256": identity.panel_count_stream_sha256,
+            "p1_finalized_count_scan_fingerprint": (
+                preparation.finalized_count_scan_receipt.fingerprint
+            ),
+            "p1_assembly_fingerprint": preparation.receipt.fingerprint,
+            "p1_design_fingerprint": design.fingerprint,
+            "ordered_feature_keys_sha256": identity.ordered_feature_keys_sha256,
+            "action_binding_sha256": preparation.design.action_domain_sha256,
+            "target_value_schema_sha256": preparation.design.target_value_schema_sha256,
+            "candidate_specification": artifacts["candidate_specification"],
+            "output_model_schema": artifacts["output_model_schema"],
+            "runtime_lock": artifacts["runtime_lock"],
+            "contained_execution_policy": artifacts["contained_execution_policy"],
+            "runtime_image_lock": artifacts["runtime_image_lock"],
+            "training_code_closure": artifacts["training_code_closure"],
+            "training_execution_input_closure": artifacts["training_execution_input_closure"],
+            "trainer_implementation": PortImplementationBinding(
+                implementation_id="cellstate.sciplex3-candidate-runner",
+                implementation_version=SCIPLEX3_CANDIDATE_RUNNER_IMPLEMENTATION_VERSION,
+                interface=(
+                    "cellstate.evaluation.sciplex3_candidate_runner.fit_and_write_sciplex3_candidate"
+                ),
+                kind=PortImplementationKind.PYTHON_ENTRY_POINT,
+                code_artifact=artifacts["trainer_code"],
+                entrypoint=(
+                    "cellstate.evaluation.sciplex3_candidate_runner:fit_and_write_sciplex3_candidate"
+                ),
+            ),
+            "candidate_factory_implementation": PortImplementationBinding(
+                implementation_id="cellstate.sciplex3-gamma-poisson-candidate-factory",
+                implementation_version=SCIPLEX3_CANDIDATE_IMPLEMENTATION_VERSION,
+                interface=TRAINED_CANDIDATE_FACTORY_INTERFACE,
+                kind=PortImplementationKind.PYTHON_ENTRY_POINT,
+                code_artifact=artifacts["factory_code"],
+                entrypoint=(
+                    "cellstate.evaluation.sciplex3_candidate:SciPlex3GammaPoissonCandidate"
+                ),
+            ),
+            "optimization_seed": SCIPLEX3_CANDIDATE_OPTIMIZATION_SEED,
+            "deterministic_thread_count": 1,
+            "future_calibration_plan": None,
+        }
+
+    placeholder_generation_id = "0" * 64
+    generation_seed = candidate_training_plan_generation_seed_bytes(
+        plan_fields(placeholder_generation_id)
     )
+    planned_generation_id = generation_id_for_seed(generation_seed)
+    final_fields = plan_fields(planned_generation_id)
+    publication_generation_seed = _artifact_for_payload(
+        artifact_id="sciplex3-item12-publication-generation-seed",
+        relative_uri=_PUBLICATION_GENERATION_SEED_RELATIVE_PATH,
+        payload=generation_seed,
+        generation_id=planned_generation_id,
+    )
+    plan = CandidateTrainingPlan.model_validate(
+        {
+            **final_fields,
+            "planned_generation_id": planned_generation_id,
+            "publication_generation_seed": publication_generation_seed,
+        }
+    )
+    if candidate_training_plan_generation_seed_bytes(plan) != generation_seed:
+        raise SciPlex3CandidateRunnerError("rendered plan changed its pre-render generation seed")
+    support_payloads["publication-generation-seed.json"] = generation_seed
     return plan, support_payloads
 
 
@@ -678,6 +1187,28 @@ def _sample_identity(candidate: SciPlex3GammaPoissonCandidate) -> tuple[str, str
         or sample.samples.shape != (8, len(candidate.ordered_feature_keys))
     ):
         raise SciPlex3CandidateRunnerError("candidate golden sample contract drifted")
+    request = CandidateSampleRequest(
+        target=sample.target,
+        sample_count=int(sample.samples.shape[0]),
+        seed=sample.seed,
+    )
+    sampler = candidate._v5_runtime_sampler()
+    certificate = sampler.envelope_certificate
+    if (
+        candidate.supports(sample.target)
+        or not sampler.supports(candidate._v5_sampling_request(request))
+        or sample.model_artifact_sha256 != candidate.model_artifact_sha256
+        or sample.model_artifact_sha256 != sampler.parameters.model_artifact_sha256
+        or sample.calibration_state_sha256 != sampler.parameters.active_calibration_state_sha256
+        or sample.sampling_contract_sha256 != SCIPLEX3_V5_SAMPLING_CONTRACT_SHA256
+        or sample.target_fingerprint != _candidate_module._v5_target_fingerprint(sample.target)
+        or sample.context_id != SCIPLEX3_CANDIDATE_V5_NEUTRAL_CONTEXT_ID
+        or certificate.sampling_contract_sha256 != SCIPLEX3_V5_SAMPLING_CONTRACT_SHA256
+        or not certificate.supported
+    ):
+        raise SciPlex3CandidateRunnerError(
+            "candidate golden request-level sampling provenance drifted"
+        )
     values = np.asarray(sample.samples, dtype="<i8", order="C")
     request_manifest = _golden_request_manifest(sample)
     identity = _sha256(
@@ -687,6 +1218,14 @@ def _sample_identity(candidate: SciPlex3GammaPoissonCandidate) -> tuple[str, str
                 "rng_algorithm": sample.rng_algorithm,
                 "sample_bytes_sha256": _sha256(values.tobytes(order="C")),
                 "sample_shape": list(values.shape),
+                "sampling_provenance": {
+                    "active_calibration_state_sha256": sample.calibration_state_sha256,
+                    "context_id": sample.context_id,
+                    "envelope_certificate_sha256": certificate.fingerprint,
+                    "model_artifact_sha256": sample.model_artifact_sha256,
+                    "sampling_contract_sha256": sample.sampling_contract_sha256,
+                    "target_fingerprint": sample.target_fingerprint,
+                },
             }
         )
     )
@@ -904,7 +1443,7 @@ def _validate_candidate_state(
         or bool(np.any(rho <= 0.0))
         or bool(np.any(rho >= SCIPLEX3_CANDIDATE_PLATE_COUNT))
     ):
-        raise SciPlex3CandidateRunnerError("candidate empirical plate contexts are invalid")
+        raise SciPlex3CandidateRunnerError("candidate training nuisance rho is invalid")
     rho_means = np.asarray(
         [
             math.fsum(float(rho[plate, factor]) for plate in range(SCIPLEX3_CANDIDATE_PLATE_COUNT))
@@ -914,8 +1453,60 @@ def _validate_candidate_state(
         dtype=np.float64,
     )
     if not bool(np.allclose(rho_means, 1.0, rtol=0.0, atol=5e-13)):
-        raise SciPlex3CandidateRunnerError("candidate empirical plate contexts are invalid")
-    rho_sha256 = _sha256(rho.tobytes(order="C"))
+        raise SciPlex3CandidateRunnerError("candidate training nuisance rho is invalid")
+    training_nuisance_rho_sha256 = _sha256(rho.tobytes(order="C"))
+
+    sampling_parameters = candidate._v5_sampling_parameters_cache
+    sampling_sampler = candidate._v5_runtime_sampler()
+    sampling_certificate = sampling_sampler.envelope_certificate
+    expected_sampling_parameters = candidate._v5_sampling_parameters(
+        model_artifact_sha256=sampling_parameters.model_artifact_sha256
+    )
+    expected_combination_count = (
+        (SCIPLEX3_CANDIDATE_ACTION_COUNT + 1)
+        * len(expected_sampling_parameters.context_ids)
+        * len(SCIPLEX3_CANDIDATE_TAU_GRID)
+    )
+    if (
+        type(sampling_parameters) is not V5SamplingParameters
+        or type(sampling_sampler) is not V5PositiveConditionedSampler
+        or sampling_sampler is not candidate._v5_runtime_sampler_cache
+        or sampling_sampler.parameters is not sampling_parameters
+        or type(sampling_certificate) is not V5SamplingEnvelopeCertificate
+        or sampling_certificate is not candidate._v5_sampling_envelope_certificate_cache
+        or sampling_parameters.parameter_fingerprint
+        != expected_sampling_parameters.parameter_fingerprint
+        or sampling_parameters.active_calibration_state_sha256
+        != expected_sampling_parameters.active_calibration_state_sha256
+        or sampling_parameters.context_ids != (SCIPLEX3_CANDIDATE_V5_NEUTRAL_CONTEXT_ID,)
+        or sampling_parameters.context_multipliers.shape
+        != (len(SCIPLEX3_CANDIDATE_TAU_GRID), 1, SCIPLEX3_CANDIDATE_FACTOR_COUNT)
+        or not np.array_equal(
+            sampling_parameters.context_multipliers,
+            np.ones(
+                (len(SCIPLEX3_CANDIDATE_TAU_GRID), 1, SCIPLEX3_CANDIDATE_FACTOR_COUNT),
+                dtype=np.float64,
+            ),
+        )
+        or np.shares_memory(sampling_parameters.context_multipliers, rho)
+        or sampling_parameters.active_tau != 1.0
+        or len(sampling_parameters.action_ids) != SCIPLEX3_CANDIDATE_ACTION_COUNT + 1
+        or sampling_certificate.parameter_fingerprint != sampling_parameters.parameter_fingerprint
+        or sampling_certificate.sampling_contract_sha256 != SCIPLEX3_V5_SAMPLING_CONTRACT_SHA256
+        or sampling_certificate.combination_count != expected_combination_count
+        or sampling_certificate.maximum_request_count != SCIPLEX3_V5_MAX_SAMPLE_COUNT
+        or sampling_certificate.request_failure_budget_log != SCIPLEX3_V5_REQUEST_FAILURE_BUDGET_LOG
+        or sampling_certificate.worst_request_tail_log_upper_bound
+        > SCIPLEX3_V5_REQUEST_FAILURE_BUDGET_LOG
+        or not 0.0
+        < sampling_certificate.maximum_compound_poisson_intensity
+        <= SCIPLEX3_V5_MAX_COMPOUND_POISSON_INTENSITY
+        or not sampling_certificate.supported
+        or sampling_certificate.rejection_reasons
+    ):
+        raise SciPlex3CandidateRunnerError(
+            "candidate neutral-context v5 sampling cache or certificate drifted"
+        )
 
     initial = candidate.initial_equilibration
     if type(initial) is not SciPlex3CandidateInitialEquilibration:
@@ -1010,6 +1601,15 @@ def _validate_candidate_state(
         "plate_context_count",
         "plate_context_factorwise_mean_one",
         "plate_context_family",
+        "sampling_active_calibration_state_sha256",
+        "sampling_contract_sha256",
+        "sampling_envelope_combination_count",
+        "sampling_envelope_maximum_compound_poisson_intensity",
+        "sampling_envelope_maximum_request_count",
+        "sampling_envelope_rejection_reasons",
+        "sampling_envelope_request_failure_budget_log",
+        "sampling_envelope_supported",
+        "sampling_envelope_worst_request_tail_log_upper_bound",
         "scientifically_admissible",
         "terminal_elbo_relative_changes",
         "training_partition_ids",
@@ -1061,9 +1661,24 @@ def _validate_candidate_state(
         or behavior["inner_equilibration_performed"] is not True
         or behavior["inner_batch_count"] != expected_batch_count
         or behavior["model_schema_version"] != SCIPLEX3_CANDIDATE_MODEL_SCHEMA_VERSION
-        or behavior["plate_context_count"] != SCIPLEX3_CANDIDATE_PLATE_COUNT
+        or behavior["plate_context_count"] != 1
         or behavior["plate_context_factorwise_mean_one"] is not True
-        or behavior["plate_context_family"] != "uniform-whole-p1-rho-row"
+        or behavior["plate_context_family"] != "neutral-unit-context"
+        or behavior["sampling_active_calibration_state_sha256"]
+        != sampling_parameters.active_calibration_state_sha256
+        or behavior["sampling_contract_sha256"] != SCIPLEX3_V5_SAMPLING_CONTRACT_SHA256
+        or behavior["sampling_envelope_combination_count"] != sampling_certificate.combination_count
+        or behavior["sampling_envelope_maximum_compound_poisson_intensity"]
+        != sampling_certificate.maximum_compound_poisson_intensity
+        or behavior["sampling_envelope_maximum_request_count"]
+        != sampling_certificate.maximum_request_count
+        or behavior["sampling_envelope_rejection_reasons"]
+        != list(sampling_certificate.rejection_reasons)
+        or behavior["sampling_envelope_request_failure_budget_log"]
+        != sampling_certificate.request_failure_budget_log
+        or behavior["sampling_envelope_supported"] is not True
+        or behavior["sampling_envelope_worst_request_tail_log_upper_bound"]
+        != sampling_certificate.worst_request_tail_log_upper_bound
         or type(iterations) is not int
         or not SCIPLEX3_CANDIDATE_MIN_OUTER_ITERATIONS
         <= iterations
@@ -1180,11 +1795,15 @@ def _validate_candidate_state(
         != SCIPLEX3_CANDIDATE_SPECIFICATION_SHA256
         or fitted_state_copy.get("initial_equilibration_sha256") != initial_sha256
         or fitted_state_copy.get("inner_equilibration_trace_sha256") != inner_trace_sha256
-        or cast(dict[str, object], tensor_sha256).get("rho") != rho_sha256
+        or cast(dict[str, object], tensor_sha256).get("rho") != training_nuisance_rho_sha256
         or cast(dict[str, object], tensor_sha256).get("factor_shape")
         != _sha256(fixed_shape.tobytes(order="C"))
     ):
         raise SciPlex3CandidateRunnerError("candidate fitted state specification drifted")
+    if sampling_parameters.model_artifact_sha256 != candidate.model_artifact_sha256:
+        raise SciPlex3CandidateRunnerError(
+            "candidate v5 sampling provenance is bound to another model artifact"
+        )
     return behavior_copy, fitted_state_copy
 
 
@@ -1228,15 +1847,23 @@ class SciPlex3CandidateTrainingObservation:
     candidate_specification_sha256: str
     output_model_schema_sha256: str
     runtime_lock_sha256: str
+    training_code_closure_sha256: str
+    training_execution_input_closure_sha256: str
     loader_code_sha256: str
     item11_runner_code_sha256: str
     candidate_runner_code_sha256: str
     candidate_factory_code_sha256: str
+    candidate_objective_code_sha256: str
+    candidate_sampling_code_sha256: str
     model_artifact_sha256: str
     model_artifact_byte_count: int
     fitted_state_sha256: str
     behavior_sha256: str
-    plate_context_rho_sha256: str
+    training_nuisance_rho_sha256: str
+    sampling_contract_sha256: str
+    sampling_active_calibration_state_sha256: str
+    sampling_parameter_fingerprint: str
+    sampling_envelope_certificate_sha256: str
     initial_equilibration_sha256: str
     inner_equilibration_trace_sha256: str
     golden_request_sha256: str
@@ -1261,11 +1888,20 @@ class SciPlex3CandidateTrainingObservation:
     mean_activation_rank_ratio: float
     minimum_factor_contribution_share: float
     terminal_elbo_relative_changes: tuple[float, ...]
+    sampling_envelope_combination_count: int
+    sampling_envelope_maximum_request_count: int
+    sampling_envelope_request_failure_budget_log: float
+    sampling_envelope_worst_request_tail_log_upper_bound: float
+    sampling_envelope_maximum_compound_poisson_intensity: float
+    sampling_envelope_rejection_reasons: tuple[str, ...]
+    sampling_envelope_worst_action_id: str
+    sampling_envelope_worst_context_id: str
+    sampling_envelope_worst_tau_hex: str
     artifact_schema: Literal["sciplex3-candidate-training-execution-observation"] = (
         "sciplex3-candidate-training-execution-observation"
     )
-    artifact_schema_version: Literal["4.0.0"] = "4.0.0"
-    candidate_model_schema_version: Literal["4.0.0"] = "4.0.0"
+    artifact_schema_version: Literal["5.0.0"] = "5.0.0"
+    candidate_model_schema_version: Literal["5.0.0"] = "5.0.0"
     fit_converged: Literal[True] = True
     all_parameters_finite: Literal[True] = True
     factor_order_stable: Literal[True] = True
@@ -1273,9 +1909,19 @@ class SciPlex3CandidateTrainingObservation:
     factor_shape_estimated: Literal[False] = False
     inner_equilibration_performed: Literal[True] = True
     inner_all_batches_converged: Literal[True] = True
-    plate_context_family: Literal["uniform-whole-p1-rho-row"] = "uniform-whole-p1-rho-row"
-    plate_context_count: Literal[8] = 8
+    plate_context_family: Literal["neutral-unit-context"] = "neutral-unit-context"
+    plate_context_id: Literal["neutral-unit-unseen-plate-context"] = (
+        "neutral-unit-unseen-plate-context"
+    )
+    plate_context_count: Literal[1] = 1
     plate_context_factorwise_mean_one: Literal[True] = True
+    sampling_conditioning: Literal["exact-positive-panel-via-zero-truncated-compound-poisson"] = (
+        "exact-positive-panel-via-zero-truncated-compound-poisson"
+    )
+    sampling_request_support: Literal["exact-CandidateSampleRequest-not-target-only"] = (
+        "exact-CandidateSampleRequest-not-target-only"
+    )
+    sampling_envelope_supported: Literal[True] = True
     model_reloaded: Literal[True] = True
     exact_class_reloaded: Literal[True] = True
     golden_reproduced: Literal[True] = True
@@ -1296,7 +1942,7 @@ class SciPlex3CandidateTrainingObservation:
             type(self.artifact_schema) is not str
             or self.artifact_schema != "sciplex3-candidate-training-execution-observation"
             or type(self.artifact_schema_version) is not str
-            or self.artifact_schema_version != "4.0.0"
+            or self.artifact_schema_version != "5.0.0"
             or type(self.candidate_model_schema_version) is not str
             or self.candidate_model_schema_version != SCIPLEX3_CANDIDATE_MODEL_SCHEMA_VERSION
         ):
@@ -1313,14 +1959,22 @@ class SciPlex3CandidateTrainingObservation:
             "candidate_specification_sha256",
             "output_model_schema_sha256",
             "runtime_lock_sha256",
+            "training_code_closure_sha256",
+            "training_execution_input_closure_sha256",
             "loader_code_sha256",
             "item11_runner_code_sha256",
             "candidate_runner_code_sha256",
             "candidate_factory_code_sha256",
+            "candidate_objective_code_sha256",
+            "candidate_sampling_code_sha256",
             "model_artifact_sha256",
             "fitted_state_sha256",
             "behavior_sha256",
-            "plate_context_rho_sha256",
+            "training_nuisance_rho_sha256",
+            "sampling_contract_sha256",
+            "sampling_active_calibration_state_sha256",
+            "sampling_parameter_fingerprint",
+            "sampling_envelope_certificate_sha256",
             "initial_equilibration_sha256",
             "inner_equilibration_trace_sha256",
             "golden_request_sha256",
@@ -1336,8 +1990,13 @@ class SciPlex3CandidateTrainingObservation:
             or self.item11_runner_code_sha256 != _item11._IMPORTED_RUNNER_CODE_SHA256
             or self.candidate_runner_code_sha256 != _IMPORTED_RUNNER_CODE_SHA256
             or self.candidate_factory_code_sha256 != _IMPORTED_CANDIDATE_CODE_SHA256
+            or self.candidate_objective_code_sha256 != _IMPORTED_CANDIDATE_V5_CODE_SHA256
+            or self.candidate_sampling_code_sha256 != _IMPORTED_SAMPLING_V5_CODE_SHA256
             or self.software_golden_model_sha256 != SCIPLEX3_CANDIDATE_GOLDEN_MODEL_SHA256
             or self.software_golden_sample_sha256 != SCIPLEX3_CANDIDATE_GOLDEN_SAMPLE_SHA256
+            or self.sampling_contract_sha256 != SCIPLEX3_V5_SAMPLING_CONTRACT_SHA256
+            or self.sampling_active_calibration_state_sha256
+            != _expected_v5_active_calibration_state_sha256()
         ):
             raise SciPlex3CandidateRunnerError("observation executable binding drifted")
         if type(self.model_artifact_byte_count) is not int or self.model_artifact_byte_count <= 0:
@@ -1461,6 +2120,7 @@ class SciPlex3CandidateTrainingObservation:
             "inner_equilibration_performed",
             "inner_all_batches_converged",
             "plate_context_factorwise_mean_one",
+            "sampling_envelope_supported",
             "model_reloaded",
             "exact_class_reloaded",
             "golden_reproduced",
@@ -1472,12 +2132,76 @@ class SciPlex3CandidateTrainingObservation:
             or self.factor_shape_mode != "fixed"
             or self.factor_shape_estimated is not False
             or type(self.plate_context_family) is not str
-            or self.plate_context_family != "uniform-whole-p1-rho-row"
+            or self.plate_context_family != "neutral-unit-context"
+            or type(self.plate_context_id) is not str
+            or self.plate_context_id != SCIPLEX3_CANDIDATE_V5_NEUTRAL_CONTEXT_ID
             or type(self.plate_context_count) is not int
-            or self.plate_context_count != SCIPLEX3_CANDIDATE_PLATE_COUNT
+            or self.plate_context_count != 1
+            or type(self.sampling_conditioning) is not str
+            or self.sampling_conditioning
+            != "exact-positive-panel-via-zero-truncated-compound-poisson"
+            or type(self.sampling_request_support) is not str
+            or self.sampling_request_support != "exact-CandidateSampleRequest-not-target-only"
         ):
             raise SciPlex3CandidateRunnerError(
-                "observation fixed-shape or empirical-plate family drifted"
+                "observation fixed-shape or neutral-context sampling family drifted"
+            )
+        if (
+            type(self.sampling_envelope_combination_count) is not int
+            or self.sampling_envelope_combination_count
+            != (SCIPLEX3_CANDIDATE_ACTION_COUNT + 1) * len(SCIPLEX3_CANDIDATE_TAU_GRID)
+            or type(self.sampling_envelope_maximum_request_count) is not int
+            or self.sampling_envelope_maximum_request_count != SCIPLEX3_V5_MAX_SAMPLE_COUNT
+            or type(self.sampling_envelope_request_failure_budget_log) is not float
+            or self.sampling_envelope_request_failure_budget_log
+            != SCIPLEX3_V5_REQUEST_FAILURE_BUDGET_LOG
+            or type(self.sampling_envelope_worst_request_tail_log_upper_bound) is not float
+            or not math.isfinite(self.sampling_envelope_worst_request_tail_log_upper_bound)
+            or self.sampling_envelope_worst_request_tail_log_upper_bound
+            > SCIPLEX3_V5_REQUEST_FAILURE_BUDGET_LOG
+            or type(self.sampling_envelope_maximum_compound_poisson_intensity) is not float
+            or not math.isfinite(self.sampling_envelope_maximum_compound_poisson_intensity)
+            or not 0.0
+            < self.sampling_envelope_maximum_compound_poisson_intensity
+            <= SCIPLEX3_V5_MAX_COMPOUND_POISSON_INTENSITY
+            or type(self.sampling_envelope_rejection_reasons) is not tuple
+            or self.sampling_envelope_rejection_reasons
+        ):
+            raise SciPlex3CandidateRunnerError(
+                "observation v5 sampling envelope certificate drifted"
+            )
+        if (
+            type(self.sampling_envelope_worst_action_id) is not str
+            or not self.sampling_envelope_worst_action_id
+            or self.sampling_envelope_worst_action_id
+            != self.sampling_envelope_worst_action_id.strip()
+            or self.sampling_envelope_worst_context_id != SCIPLEX3_CANDIDATE_V5_NEUTRAL_CONTEXT_ID
+            or self.sampling_envelope_worst_tau_hex
+            not in {tau.hex() for tau in SCIPLEX3_CANDIDATE_TAU_GRID}
+        ):
+            raise SciPlex3CandidateRunnerError(
+                "observation v5 sampling envelope witness identity drifted"
+            )
+        declared_certificate = V5SamplingEnvelopeCertificate(
+            parameter_fingerprint=self.sampling_parameter_fingerprint,
+            combination_count=self.sampling_envelope_combination_count,
+            supported=self.sampling_envelope_supported,
+            rejection_reasons=self.sampling_envelope_rejection_reasons,
+            maximum_request_count=self.sampling_envelope_maximum_request_count,
+            request_failure_budget_log=self.sampling_envelope_request_failure_budget_log,
+            worst_request_tail_log_upper_bound=(
+                self.sampling_envelope_worst_request_tail_log_upper_bound
+            ),
+            worst_action_id=self.sampling_envelope_worst_action_id,
+            worst_context_id=self.sampling_envelope_worst_context_id,
+            worst_tau_hex=self.sampling_envelope_worst_tau_hex,
+            maximum_compound_poisson_intensity=(
+                self.sampling_envelope_maximum_compound_poisson_intensity
+            ),
+        )
+        if declared_certificate.fingerprint != self.sampling_envelope_certificate_sha256:
+            raise SciPlex3CandidateRunnerError(
+                "observation v5 sampling envelope certificate digest drifted"
             )
         if type(self.training_partition_ids) is not tuple or self.training_partition_ids != (
             _P1_PARTITION_ID,
@@ -1525,6 +2249,9 @@ def _make_observation(
     initial = candidate.initial_equilibration
     trace = candidate.trace
     tensor_sha256 = cast(dict[str, object], fitted_state["tensor_sha256"])
+    sampling_sampler = candidate._v5_runtime_sampler()
+    sampling_parameters = sampling_sampler.parameters
+    sampling_certificate = sampling_sampler.envelope_certificate
     total_inner_sweep_count = sum(
         (index + 1) * count for index, count in enumerate(initial.inner_sweep_count_histogram)
     ) + sum(
@@ -1544,15 +2271,25 @@ def _make_observation(
         candidate_specification_sha256=plan.candidate_specification.sha256,
         output_model_schema_sha256=plan.output_model_schema.sha256,
         runtime_lock_sha256=plan.runtime_lock.sha256,
+        training_code_closure_sha256=plan.training_code_closure.sha256,
+        training_execution_input_closure_sha256=(plan.training_execution_input_closure.sha256),
         loader_code_sha256=_item11.SCIPLEX3_LOADER_CODE_SHA256,
         item11_runner_code_sha256=_item11._IMPORTED_RUNNER_CODE_SHA256,
         candidate_runner_code_sha256=_IMPORTED_RUNNER_CODE_SHA256,
         candidate_factory_code_sha256=_IMPORTED_CANDIDATE_CODE_SHA256,
+        candidate_objective_code_sha256=_IMPORTED_CANDIDATE_V5_CODE_SHA256,
+        candidate_sampling_code_sha256=_IMPORTED_SAMPLING_V5_CODE_SHA256,
         model_artifact_sha256=model_artifact.sha256,
         model_artifact_byte_count=model_artifact.byte_count,
         fitted_state_sha256=_sha256(_canonical_json(fitted_state)),
         behavior_sha256=_sha256(_canonical_json(behavior)),
-        plate_context_rho_sha256=cast(str, tensor_sha256["rho"]),
+        training_nuisance_rho_sha256=cast(str, tensor_sha256["rho"]),
+        sampling_contract_sha256=SCIPLEX3_V5_SAMPLING_CONTRACT_SHA256,
+        sampling_active_calibration_state_sha256=(
+            sampling_parameters.active_calibration_state_sha256
+        ),
+        sampling_parameter_fingerprint=sampling_parameters.parameter_fingerprint,
+        sampling_envelope_certificate_sha256=sampling_certificate.fingerprint,
         initial_equilibration_sha256=cast(str, fitted_state["initial_equilibration_sha256"]),
         inner_equilibration_trace_sha256=cast(
             str, fitted_state["inner_equilibration_trace_sha256"]
@@ -1583,6 +2320,21 @@ def _make_observation(
         terminal_elbo_relative_changes=tuple(
             cast(list[float], behavior["terminal_elbo_relative_changes"])
         ),
+        sampling_envelope_combination_count=sampling_certificate.combination_count,
+        sampling_envelope_maximum_request_count=sampling_certificate.maximum_request_count,
+        sampling_envelope_request_failure_budget_log=(
+            sampling_certificate.request_failure_budget_log
+        ),
+        sampling_envelope_worst_request_tail_log_upper_bound=(
+            sampling_certificate.worst_request_tail_log_upper_bound
+        ),
+        sampling_envelope_maximum_compound_poisson_intensity=(
+            sampling_certificate.maximum_compound_poisson_intensity
+        ),
+        sampling_envelope_rejection_reasons=sampling_certificate.rejection_reasons,
+        sampling_envelope_worst_action_id=sampling_certificate.worst_action_id,
+        sampling_envelope_worst_context_id=sampling_certificate.worst_context_id,
+        sampling_envelope_worst_tau_hex=sampling_certificate.worst_tau_hex,
     )
 
 

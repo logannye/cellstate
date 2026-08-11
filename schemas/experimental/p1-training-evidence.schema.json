@@ -182,6 +182,9 @@
     "assembly_receipt": {
       "$ref": "#/$defs/ContentAddressedArtifact"
     },
+    "contained_execution_observation": {
+      "$ref": "#/$defs/ContentAddressedArtifact"
+    },
     "control_well_count": {
       "exclusiveMinimum": 0,
       "title": "Control Well Count",
@@ -342,6 +345,7 @@
     "finalized_count_scan",
     "assembly_receipt",
     "p1_materialization",
+    "contained_execution_observation",
     "count_stream_sha256",
     "finalized_count_scan_fingerprint",
     "assembly_fingerprint",

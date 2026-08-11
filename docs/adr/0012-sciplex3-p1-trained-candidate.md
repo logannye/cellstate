@@ -1,6 +1,6 @@
 # ADR 0012: Define a sci-Plex3 p1-only trained-candidate boundary
 
-- **Status:** Accepted; amended 2026-08-11 to retire v4 before Item 12.1b
+- **Status:** Accepted; amended 2026-08-11 to retire v4 and complete source-free Item 12.2
 - **Date:** 2026-08-10
 - **Extends:** ADR 0009 population-response component boundary, ADR 0010 trusted admission
   verification, and ADR 0011 p1-only loader and baselines
@@ -191,37 +191,75 @@ opened no source and did not run Docker, and no Item 12.1b report exists. Once t
 inconsistency was known, another v4 source execution could not establish a candidate worth advancing
 and would spend authorization on a retired objective.
 
-### Item 12.2 — source-free v5 objective, M-step, and containment redesign
+### Item 12.2 — source-free v5 objective, M-step, sampling, publication, and containment
 
-Before any new real-`p1` authorization, v5 must define one exact full objective and a compatible
-action/context M-step. Independently computed fixed-`q` full-ELBO checks must cover feasible
-coordinates for `alpha`, constrained `log-rho` under its arithmetic-mean-one gauge, and dose effects;
-a treated-well adversarial fixture; accepted-substep and complete-block nondecrease; and Hessian
-finite differences if Newton remains. A surrogate schedule is acceptable only if it nondecreases
-the same canonical full ELBO and shares its stationary points.
+This source-free milestone is complete. V5 defines one exact fixed-`q` action/context contribution
+to the equal-well full ELBO,
 
-Sampling must be exactly positive-conditioned or the API must freeze a maximum request size and a
-request-level failure budget over every admitted action, context, and calibration `tau`. A
-target-only support check cannot bound the current 33-attempt rejection failure for unbounded sample
-counts; Poisson-rate/RNG overflow is also part of support. Multi-file publication must use immutable
-generation directories plus one atomic verified-generation pointer. A subprocess-kill test must
-prove crash recovery, stale-lock cleanup, and old-or-new reader visibility; exception-only rollback
-is insufficient.
+```text
+Q = -(94785/768) * 0.1 * sum_wk(eta_wk + t_wk * exp(-eta_wk)) - P(delta),
+```
 
-Parent-enforced process or container wall-clock and memory limits must cover the complete
-source-touching process tree from before source open through close and verification. The runtime-
-image digest and exact limit policy are frozen, and tests cover timeout, cgroup/container OOM,
-descendant cleanup, no canonical publication, and next-invocation recovery. Post-hoc elapsed and RSS
-checks may remain evidence, but they are not hard containment. This work is source-free and grants
-no authority to open `p1` or any held-out endpoint partition.
+and applies it over all 768 wells in the compatible `alpha`, arithmetic-mean-one constrained
+`log-rho`, and `delta` dose-effect M-step. A separately implemented scalar objective, feasible-
+coordinate finite differences, dose and joint arrowhead Hessian checks, a treated-well adversarial
+fixture, strict one-ULP decrease rejection, and accepted-substep and complete-block checks all
+verify nondecrease of that same canonical objective.
+
+V5 exactly conditions the whole raw-count panel to be positive through the zero-truncated
+superposition of the Gamma--Poisson model's compound-Poisson/log-series factor counts. An exact
+`CandidateSampleRequest` caps one request at 512 draws; target-only support fails. One global
+certificate covers all 753 actions (752 compound-dose actions plus no action), the one neutral unit
+unseen-plate context, and all 27 declared calibration `tau` values. For each complete request, its
+conservative conditional signed-`int64` Chernoff tail bound is at most `2^-64`; compound-Poisson
+intensity, log-series RNG support, allocation overflow, and positive-panel validation are part of
+the same fail-closed decision.
+
+Publication builds, verifies, and seals one immutable generation on the pointer filesystem before
+atomically replacing only `current.json`. Tests cover concurrent old-or-new reader visibility,
+process death at each visibility boundary, stable-lock release, orphan and temporary recovery,
+resealing, and symlink/path tampering. The pre-fit software contract binds a canonical Python code
+closure and the exact mounted code plus declared public JSON/runtime inputs. The worker and parent
+share a typed no-follow staged-output inventory, and the combined containment observation binds it
+to source pre/post authentication and parent process-tree cleanup.
+
+Three independent no-cache, provenance-disabled builds at `SOURCE_DATE_EPOCH=1786406400`—Docker
+Desktop `amd64` emulation, the separate local `tinyzkp` `docker-container` builder pinned to the
+locked BuildKit image, and native Linux `amd64` GitHub Actions—produced the same byte-for-byte OCI
+archive under frozen inputs and toolchain. Its SHA-256 is
+`37c2fa5846acfbd8357476859bd7f8f0ac6591261d79c2f6f46f0aa22fb76454`; the index is
+`sha256:e0f0afd6c66197a37d0ab7a05e7cccfe5990da1fd8497e175fdf3ab909a67812`, runnable child manifest is
+`sha256:12c2faa6019fb60cdcabaa8f38f70e99be7998997b97ddb0ca59fbe2e82f1e25`, and config is
+`sha256:80ed48f278d7a46c0ae7811285efc69181ae59872a358cc9b176079aa09f3cc8`. The Dockerfile SHA-256 is
+`a3a71c3d61c71235d9c1a99c16aa00568b398971adfc2da65388b0c7ea3987a0`. The multi-stage clean final
+copies only the curated runtime tree and excludes build-host caches, including Rosetta's
+`/root/.cache/rosetta`; the workflow and runtime lock freeze the exact Buildx/BuildKit builder
+identity.
+Native-Linux execution uses the frozen `host-effective-uid-gid` policy. The worker's numeric UID/GID
+matches the bounded mode-`0700` tmpfs UID/GID, while the sole anonymous snapshot volume initializes
+from the empty mode-`1777` image directory. The declared `0400`/`0700` host binds therefore remain
+usable without running the worker as root or weakening their permissions.
+The parent accounts its 3,600-second budget before public staging and actively bounds every Docker
+command and wait; a returned staging overrun fails before container creation. A hard in-container
+3,540-second watchdog begins before protected-source open and covers snapshot, fit, and close-
+reauthentication even if the supervisor dies. Docker's memory and total-memory-plus-swap limits are
+both 4,294,967,296 bytes, disabling additional swap. Source-free live probes cover success, timeout
+with descendants, cgroup OOM, supervisor death/watchdog recovery, anonymous-volume cleanup, no
+canonical publication, and parent re-inventory and sealing of the exact worker stage.
+
+No protected source was opened for Item 12.2, no real-`p1` fit ran, and no candidate artifact,
+training plan, observation, evidence, materialization, or lifecycle result was issued. Completing
+this software boundary grants no authority to open `p1` or any held-out endpoint partition.
 
 ### Pre-fit and post-fit evidence
 
 The pre-fit `CandidateTrainingPlan` is immutable and cannot name a future model hash. It binds the
 opaque query, benchmark, and support-envelope identities; the exact typed `p1` role; loader and
 count-stream closure; feature, action, target, design, specification, schema, trainer, factory, and
-runtime identities; and deterministic fit settings. Computing this plan does not parse protected
-held-out endpoint bytes.
+runtime identities; contained-execution policy and runtime-image lock; canonical Python code and
+exact mounted-input closures; a pre-render immutable-generation seed; and deterministic fit
+settings. Computing this plan does not parse protected held-out endpoint bytes. Item 12.2 validates
+the plan type and source-free closure construction; it did not issue a real plan artifact.
 
 After fitting, a model would have to be closed, reread, rehashed, loaded through the exact
 registered candidate class, and checked against its fitted-state and behavior manifests before any
@@ -248,7 +286,18 @@ Only a future separately authorized, successful, and audited candidate fit may d
 Artifact presence alone cannot derive even `TRAINED_CANDIDATE`. Without fresh trusted source, fit,
 byte-resolution, query-prerequisite, and loaded-interface verification, readiness remains at
 `SCAFFOLD`. The valid v4 run failed before artifact emission; no v4 model artifact exists and no
-lifecycle transition has occurred.
+lifecycle transition has occurred. The source-free v5 implementation likewise has no real fitted
+artifact or trusted verification context.
+
+### Item 12.3 — proposed separately authorized real-p1 v5 execution
+
+The next proposed milestone is one version-bound, nonissuing real-`p1` v5 execution under the exact
+Item 12.2 objective, sampler, closure, OCI, publication, and containment contracts. It requires a
+separate authorization and review. It is not authorized, has not run, cannot borrow Item 12.2's
+source-free acceptance as data authority, and grants no access to `p2`, `p3`, `p4`, outcomes,
+scoring, or lifecycle issuance. The image is currently an exact locally loaded OCI layout, not a
+remotely published artifact; durable distribution of that locked archive is a prerequisite to any
+Item 12.3 authorization.
 
 ### Held-out source data and lifecycle authority remain sealed
 
@@ -289,25 +338,37 @@ Neither this ADR nor the v4 calibration declaration authorizes those grants.
   evaluated, admitted, or publicly executable.
 - Later calibration must prove that it changes only the declared `tau` state and cannot silently
   rewrite base weights, support, or the eventual accepted plate-context rule.
+- V5 now has a source-free exact objective/M-step, neutral-context request-level sampler,
+  crash-safe publisher, exact execution/evidence closures, reproducible OCI identity, and hard
+  parent containment. None is a real-data fit or a trained-candidate lifecycle result.
 
 ## Acceptance criteria
 
-Item 12 is complete only when a final audit demonstrates that it:
+The source-free criteria assigned to Item 12.2 are complete. Item 12 as a whole remains incomplete
+and is complete only when a final audit demonstrates the full set below, revalidating the source-
+free guarantees alongside the separately authorized fit:
 
 - fits a separately authorized candidate version from the exact close-reauthenticated real `p1`
   stream under its frozen Linux/Python/NumPy/SciPy/BLAS runtime;
 - proves source-free that its action/context M-step matches the exact full ELBO through finite-
-  difference gradients for `alpha`, constrained `log-rho`, and dose effects; treated-well
-  adversarial coverage; accepted-substep and complete-block fixed-`q` nondecrease; and Hessian
-  finite differences if Newton remains;
-- exactly conditions sampling on a positive panel, or freezes request-size and request-level
-  failure budgets over every admitted action/context/calibration state, including Poisson RNG
-  overflow;
+  difference gradients for `alpha`, constrained `log-rho`, and `delta`; dose and joint Hessian
+  finite differences; treated-well adversarial coverage; strict decrease rejection; and accepted-
+  substep and complete-block fixed-`q` nondecrease;
+- exactly conditions the whole sampled panel to be positive, requires an exact request, caps it at
+  512 draws, and revalidates the global conditional signed-`int64` tail budget of at most `2^-64`
+  over all `753 * 1 * 27` action/context/calibration states, including compound-Poisson intensity,
+  RNG, allocation, and positivity overflow;
 - publishes one immutable, verified artifact generation through one atomic pointer and recovers
   after forced termination without mixed files or stale locks;
-- enforces parent-owned hard wall-clock and memory containment over the complete source-touching
-  process tree, with frozen image/limit identity and timeout, OOM, descendant-cleanup,
-  no-publication, and next-run recovery tests;
+- binds the canonical executable-code closure, exact mounted code plus declared public JSON/runtime
+  input closure, typed no-follow staged-output inventory, and worker/parent containment observations
+  without absorbing the separately authenticated protected source into public inputs;
+- enforces the parent-owned 3,600-second deadline and 4,294,967,296-byte Docker memory and total-
+  memory-plus-swap limits over the complete source-touching container; runs with host-effective
+  UID/GID plus matching tmpfs ownership and the mode-`1777` empty-image snapshot-volume
+  initialization; durably resolves the exact locked OCI archive; and revalidates the frozen OCI
+  identity, timeout, OOM, descendant-cleanup, no-publication, volume-cleanup, parent inventory/seal,
+  and next-run recovery tests;
 - passes the predeclared inner-equilibration, outer convergence, factor-order, identifiability, and
   finite-state gates without post hoc cap or tolerance changes;
 - emits no artifact for an unconverged, nonfinite, stale, substituted, or behavior-inconsistent
@@ -332,6 +393,8 @@ v4 run then failed initial inner equilibration before any outer update or ELBO t
 exact historical bytes are canonical, but the later source-code audit found v4's dose-objective scale
 inconsistency outside that local-map audit's scope. V4 and Item 12.1b are retired: there is no v4
 training plan, observation, fitted model, training evidence, materialization, or trusted lifecycle
-result. Item 12 remains in progress, and the component remains a non-runnable `SCAFFOLD`. The next
-work is the source-free v5 objective/M-step and hard-containment redesign; no further real-source run
-is authorized.
+result. Item 12.2's source-free v5 software acceptance is complete, but it opened no protected
+source, ran no real-`p1` fit, and issued no plan, model, observation, evidence, materialization, or
+lifecycle result. Item 12 remains in progress, and the component remains a non-runnable `SCAFFOLD`.
+Item 12.3 is only a proposed separately authorized, version-bound, nonissuing real-`p1` v5
+execution; no further real-source run is currently authorized.

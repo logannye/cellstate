@@ -13,7 +13,6 @@ import argparse
 import hashlib
 import importlib.util
 import json
-import os
 import sys
 from collections.abc import Callable
 from dataclasses import dataclass
@@ -35,6 +34,7 @@ from cellstate.backends.contracts import (
 from cellstate.backends.training import (
     CandidateTrainingPlan,
     P1TrainingEvidence,
+    candidate_training_plan_generation_seed_bytes,
 )
 from cellstate.data import (
     BenchmarkArtifact,
@@ -65,6 +65,15 @@ from cellstate.evaluation.sciplex3_candidate_runner import (
     SCIPLEX3_CANDIDATE_TRAINING_PLAN_ID,
     SCIPLEX3_CANDIDATE_TRAINING_PLAN_VERSION,
     SciPlex3CandidateTrainingObservation,
+    contained_training_contracts,
+)
+from cellstate.training.execution import ContainedTrainingObservation
+from cellstate.training.publication import (
+    GenerationPublicationError,
+    generation_id_for_seed_sha256,
+    generation_matches,
+    publish_generation,
+    resolve_current_generation,
 )
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[1]
@@ -74,6 +83,7 @@ COMPONENT_DIRECTORY = Path("backends/vertical-a/sciplex3-k562-24h-v1")
 SUPPORT_ENVELOPE_PATH = COMPONENT_DIRECTORY / "support-envelope.json"
 TRAINING_RUN_PATH = COMPONENT_DIRECTORY / "training-run.json"
 BUNDLE_PATH = COMPONENT_DIRECTORY / "bundle-contract.json"
+TRAINED_CANDIDATE_PUBLICATION_DIRECTORY = COMPONENT_DIRECTORY / "candidate-publication"
 
 BENCHMARK_DIRECTORY = Path("benchmarks/vertical-a/sciplex3-k562-24h-v1")
 ITEM11_DIRECTORY = BENCHMARK_DIRECTORY / "item11-p1"
@@ -86,6 +96,17 @@ CANDIDATE_OUTPUT_MODEL_SCHEMA_PATH = (
     BENCHMARK_DIRECTORY / "support/candidate-output-model-schema.json"
 )
 CANDIDATE_RUNTIME_LOCK_PATH = BENCHMARK_DIRECTORY / "support/candidate-runtime-lock.json"
+CANDIDATE_CONTAINED_EXECUTION_POLICY_PATH = (
+    BENCHMARK_DIRECTORY / "support/contained-execution-policy.json"
+)
+CANDIDATE_RUNTIME_IMAGE_LOCK_PATH = (
+    BENCHMARK_DIRECTORY / "support/candidate-runtime-image-lock.json"
+)
+CANDIDATE_TRAINING_CODE_CLOSURE_PATH = BENCHMARK_DIRECTORY / "support/training-code-closure.json"
+CANDIDATE_EXECUTION_INPUT_CLOSURE_PATH = (
+    BENCHMARK_DIRECTORY / "support/training-execution-input-closure.json"
+)
+PUBLICATION_GENERATION_SEED_PATH = ITEM12_DIRECTORY / "candidate-publication-generation-seed.json"
 ACTION_DOMAIN_PATH = BENCHMARK_DIRECTORY / "support/action-domain-mapping.json"
 TARGET_VALUE_SCHEMA_PATH = BENCHMARK_DIRECTORY / "support/target-value-schema.json"
 FEATURE_PANEL_PATH = Path("benchmarks/artifacts/sciplex3-k562-24h-v1/feature-panel.json")
@@ -108,18 +129,29 @@ OBSERVATION_FILENAME = "training-execution-observation.json"
 FINALIZED_SCAN_FILENAME = "p1-finalized-count-scan-receipt.json"
 ASSEMBLY_FILENAME = "p1-assembly-receipt.json"
 MATERIALIZATION_FILENAME = "materialization-manifest.json"
+CONTAINED_OBSERVATION_FILENAME = "contained-training-observation.json"
 SEALED_SUPPORT_FILENAMES = (
     "candidate-specification.json",
+    "contained-execution-policy.json",
     "output-model-schema.json",
     "p1-count-stream-descriptor.json",
+    "publication-generation-seed.json",
     "runtime-lock.json",
+    "runtime-image-lock.json",
+    "training-code-closure.json",
+    "training-execution-input-closure.json",
 )
 
 _SUPPORT_OUTPUT_BY_INPUT = {
     "candidate-specification.json": CANDIDATE_SPECIFICATION_PATH,
+    "contained-execution-policy.json": CANDIDATE_CONTAINED_EXECUTION_POLICY_PATH,
     "output-model-schema.json": CANDIDATE_OUTPUT_MODEL_SCHEMA_PATH,
     "p1-count-stream-descriptor.json": P1_COUNT_STREAM_DESCRIPTOR_PATH,
+    "publication-generation-seed.json": PUBLICATION_GENERATION_SEED_PATH,
     "runtime-lock.json": CANDIDATE_RUNTIME_LOCK_PATH,
+    "runtime-image-lock.json": CANDIDATE_RUNTIME_IMAGE_LOCK_PATH,
+    "training-code-closure.json": CANDIDATE_TRAINING_CODE_CLOSURE_PATH,
+    "training-execution-input-closure.json": CANDIDATE_EXECUTION_INPUT_CLOSURE_PATH,
 }
 _THREAD_ENVIRONMENT_KEYS = (
     "MKL_NUM_THREADS",
@@ -127,10 +159,6 @@ _THREAD_ENVIRONMENT_KEYS = (
     "OMP_NUM_THREADS",
     "OPENBLAS_NUM_THREADS",
     "VECLIB_MAXIMUM_THREADS",
-)
-EXPECTED_CANDIDATE_CODE_SHA256 = "f316edbc4f3204686d2d9d7a0a7fbc1d809dcac61601416f7f02323dece152b8"
-EXPECTED_CANDIDATE_RUNNER_CODE_SHA256 = (
-    "7d8ae937d1188979b461a94f39f7a9bddc3c7e793d1c4ce00134722b81a928c4"
 )
 
 
@@ -213,6 +241,10 @@ class SciPlex3TrainedCandidateBuild:
             raise SciPlex3TrainedCandidateBuildError("build output paths must be unique")
         if any(type(payload) is not bytes or not payload for _, payload in self.outputs):
             raise SciPlex3TrainedCandidateBuildError("build output payloads must be exact bytes")
+        if generation_id_for_seed_sha256(self.training_plan.publication_generation_seed.sha256) != (
+            self.training_plan.planned_generation_id
+        ):
+            raise SciPlex3TrainedCandidateBuildError("build carries a stale planned generation")
 
 
 def _sha256(payload: bytes) -> str:
@@ -243,11 +275,15 @@ def _artifact(
     payload: bytes,
     *,
     artifact_id: str,
+    generation_id: str,
     media_type: str = "application/json",
 ) -> ContentAddressedArtifact:
     return ContentAddressedArtifact(
         artifact_id=artifact_id,
-        uri=f"{RAW_BASE}/{path.as_posix()}",
+        uri=(
+            f"{RAW_BASE}/{TRAINED_CANDIDATE_PUBLICATION_DIRECTORY.as_posix()}"
+            f"/generations/{generation_id}/tree/{path.as_posix()}"
+        ),
         sha256=_sha256(payload),
         byte_count=len(payload),
         media_type=media_type,
@@ -261,12 +297,14 @@ def _require_artifact_payload(
     expected_path: Path,
     expected_artifact_id: str,
     expected_media_type: str,
+    generation_id: str,
     name: str,
 ) -> None:
     expected = _artifact(
         expected_path,
         payload,
         artifact_id=expected_artifact_id,
+        generation_id=generation_id,
         media_type=expected_media_type,
     )
     if artifact != expected:
@@ -282,11 +320,17 @@ def _reference(
     path: Path,
     payload: bytes,
     artifact_id: str,
+    generation_id: str,
 ) -> BundleContractReference:
     return BundleContractReference(
         contract_id=contract_id,
         contract_version=contract_version,
-        artifact=_artifact(path, payload, artifact_id=artifact_id),
+        artifact=_artifact(
+            path,
+            payload,
+            artifact_id=artifact_id,
+            generation_id=generation_id,
+        ),
     )
 
 
@@ -311,7 +355,7 @@ def build_trained_candidate_support_envelope(
         {
             **existing.model_dump(mode="python"),
             "bundle_kind": BundleContractKind.COMPONENT_MODEL,
-            "envelope_version": "4.0.0-trained-candidate",
+            "envelope_version": "5.0.0-trained-candidate",
             "notes": tuple(
                 sorted(
                     (
@@ -321,9 +365,9 @@ def build_trained_candidate_support_envelope(
                         "intracellular exposure remains unknown.",
                         "One exact p1-trained candidate may be declared, but calibration, model "
                         "selection, validation, and every public runtime operation remain closed.",
-                        "The incompatible v4 candidate fixes the Gamma factor shape at 0.1, uses "
-                        "one empirical whole-p1 rho row per plate, and has no q/capture or plate "
-                        "sigma latent.",
+                        "The v5 candidate fixes the Gamma factor shape at 0.1, retains "
+                        "training-only plate nuisance rows, and exposes only the frozen "
+                        "neutral-context sampler.",
                         "Static plate and assigned-action context are inputs, not a t=0 hidden-"
                         "state prior or endpoint-response lookup.",
                     )
@@ -375,6 +419,7 @@ def _load_observation(
     for field_name in (
         "initial_factor_order",
         "initial_inner_sweep_count_histogram",
+        "sampling_envelope_rejection_reasons",
         "terminal_elbo_relative_changes",
     ):
         values = raw.get(field_name)
@@ -394,6 +439,72 @@ def _load_observation(
             "candidate training observation changed on reconstruction"
         )
     return observation, payload
+
+
+def _load_contained_observation(
+    candidate_directory: Path,
+) -> tuple[ContainedTrainingObservation, bytes]:
+    payload = _read(
+        candidate_directory / CONTAINED_OBSERVATION_FILENAME,
+        name="contained training observation",
+    )
+    try:
+        observation = ContainedTrainingObservation.model_validate_json(payload)
+    except ValueError as error:
+        raise SciPlex3TrainedCandidateBuildError(
+            "contained training observation is invalid"
+        ) from error
+    if canonical_json_bytes(observation.model_dump(mode="json")) != payload:
+        raise SciPlex3TrainedCandidateBuildError("contained training observation is not canonical")
+    return observation, payload
+
+
+def _validate_contained_observation_closure(
+    observation: ContainedTrainingObservation,
+    *,
+    plan: CandidateTrainingPlan,
+    repository_root: Path,
+    scan: dict[str, object],
+    plan_artifact: ContentAddressedArtifact,
+    training_result_artifact: ContentAddressedArtifact,
+    model_artifact: ContentAddressedArtifact,
+    finalized_artifact: ContentAddressedArtifact,
+    assembly_artifact: ContentAddressedArtifact,
+) -> None:
+    policy, code_closure, input_closure, image_lock = contained_training_contracts(repository_root)
+    worker = observation.worker_observation
+    if (
+        observation.training_plan_fingerprint != plan.fingerprint
+        or observation.policy_fingerprint != policy.fingerprint
+        or observation.runtime_image_digest != image_lock.runtime_image.digest
+        or image_lock.container_user_mode != policy.container_user_mode
+        or image_lock.snapshot_volume_initialization != policy.snapshot_volume_initialization
+        or observation.execution_observation.container_user_mode != policy.container_user_mode
+        or observation.training_code_closure_sha256 != code_closure.fingerprint
+        or observation.execution_input_closure_sha256 != input_closure.fingerprint
+        or worker.expected_source_sha256 != scan.get("source_sha256")
+        or worker.expected_source_byte_count != scan.get("source_byte_count")
+    ):
+        raise SciPlex3TrainedCandidateBuildError(
+            "contained execution identities differ from the exact staged fit"
+        )
+    for role, artifact in (
+        ("training_plan", plan_artifact),
+        ("training_result", training_result_artifact),
+        ("model_artifact", model_artifact),
+        ("p1_finalized_count_scan", finalized_artifact),
+        ("p1_assembly_receipt", assembly_artifact),
+    ):
+        entries = tuple(
+            entry for entry in observation.staged_inventory.entries if entry.artifact_role == role
+        )
+        if len(entries) != 1 or (
+            entries[0].sha256,
+            entries[0].byte_count,
+        ) != (artifact.sha256, artifact.byte_count):
+            raise SciPlex3TrainedCandidateBuildError(
+                f"contained stage does not bind exact {role} bytes"
+            )
 
 
 def _load_repository_json(repository_root: Path, path: Path, *, name: str) -> dict[str, object]:
@@ -469,12 +580,32 @@ def _validate_plan_closure(
             "thread_environment": {key: "1" for key in _THREAD_ENVIRONMENT_KEYS},
         }
     )
+    policy, code_closure, input_closure, image_lock = contained_training_contracts(repository_root)
+    expected_containment_support = {
+        "contained-execution-policy.json": canonical_json_bytes(policy.model_dump(mode="json")),
+        "publication-generation-seed.json": candidate_training_plan_generation_seed_bytes(plan),
+        "runtime-image-lock.json": canonical_json_bytes(image_lock.model_dump(mode="json")),
+        "training-code-closure.json": canonical_json_bytes(code_closure.model_dump(mode="json")),
+        "training-execution-input-closure.json": canonical_json_bytes(
+            input_closure.model_dump(mode="json")
+        ),
+    }
     if sealed["candidate-specification.json"] != expected_specification:
         raise SciPlex3TrainedCandidateBuildError("candidate specification bytes are stale")
     if sealed["output-model-schema.json"] != expected_model_schema:
         raise SciPlex3TrainedCandidateBuildError("candidate model schema bytes are stale")
     if sealed["runtime-lock.json"] != expected_runtime_lock:
         raise SciPlex3TrainedCandidateBuildError("candidate runtime-lock bytes are stale")
+    if any(
+        sealed[filename] != payload for filename, payload in expected_containment_support.items()
+    ):
+        raise SciPlex3TrainedCandidateBuildError("candidate containment support bytes are stale")
+    if plan.planned_generation_id != generation_id_for_seed_sha256(
+        plan.publication_generation_seed.sha256
+    ) or plan.publication_generation_seed.sha256 != _sha256(
+        expected_containment_support["publication-generation-seed.json"]
+    ):
+        raise SciPlex3TrainedCandidateBuildError("candidate publication generation is stale")
     if (
         _sha256(expected_specification) != SCIPLEX3_CANDIDATE_SPECIFICATION_SHA256
         or _sha256(expected_model_schema) != SCIPLEX3_CANDIDATE_OUTPUT_MODEL_SCHEMA_SHA256
@@ -486,20 +617,13 @@ def _validate_plan_closure(
     loader_payload = _read(repository_root / P1_LOADER_CONTRACT_PATH, name="p1 loader contract")
     candidate_code = _read(repository_root / CANDIDATE_CODE_PATH, name="candidate code")
     runner_code = _read(repository_root / CANDIDATE_RUNNER_CODE_PATH, name="candidate runner code")
-    if _sha256(candidate_code) != EXPECTED_CANDIDATE_CODE_SHA256:
-        raise SciPlex3TrainedCandidateBuildError(
-            "candidate source differs from the independent v4 freeze"
-        )
-    if _sha256(runner_code) != EXPECTED_CANDIDATE_RUNNER_CODE_SHA256:
-        raise SciPlex3TrainedCandidateBuildError(
-            "candidate runner differs from the independent v4 freeze"
-        )
     _require_artifact_payload(
         plan.p1_loader_contract,
         loader_payload,
         expected_path=P1_LOADER_CONTRACT_PATH,
         expected_artifact_id="sciplex3-item12-p1-loader-contract",
         expected_media_type="application/json",
+        generation_id=plan.planned_generation_id,
         name="p1 loader contract",
     )
     _require_artifact_payload(
@@ -508,6 +632,7 @@ def _validate_plan_closure(
         expected_path=P1_COUNT_STREAM_DESCRIPTOR_PATH,
         expected_artifact_id="sciplex3-item12-p1-count-stream-descriptor",
         expected_media_type="application/json",
+        generation_id=plan.planned_generation_id,
         name="p1 count-stream descriptor",
     )
     _require_artifact_payload(
@@ -516,6 +641,7 @@ def _validate_plan_closure(
         expected_path=CANDIDATE_SPECIFICATION_PATH,
         expected_artifact_id="sciplex3-item12-candidate-specification",
         expected_media_type="application/json",
+        generation_id=plan.planned_generation_id,
         name="candidate specification",
     )
     _require_artifact_payload(
@@ -524,6 +650,7 @@ def _validate_plan_closure(
         expected_path=CANDIDATE_OUTPUT_MODEL_SCHEMA_PATH,
         expected_artifact_id="sciplex3-item12-output-model-schema",
         expected_media_type="application/json",
+        generation_id=plan.planned_generation_id,
         name="candidate output-model schema",
     )
     _require_artifact_payload(
@@ -532,6 +659,7 @@ def _validate_plan_closure(
         expected_path=CANDIDATE_RUNTIME_LOCK_PATH,
         expected_artifact_id="sciplex3-item12-runtime-lock",
         expected_media_type="application/json",
+        generation_id=plan.planned_generation_id,
         name="candidate runtime lock",
     )
     _require_artifact_payload(
@@ -540,6 +668,7 @@ def _validate_plan_closure(
         expected_path=CANDIDATE_RUNNER_CODE_PATH,
         expected_artifact_id="sciplex3-item12-candidate-runner-code",
         expected_media_type="text/x-python",
+        generation_id=plan.planned_generation_id,
         name="candidate runner code",
     )
     _require_artifact_payload(
@@ -548,8 +677,50 @@ def _validate_plan_closure(
         expected_path=CANDIDATE_CODE_PATH,
         expected_artifact_id="sciplex3-item12-candidate-factory-code",
         expected_media_type="text/x-python",
+        generation_id=plan.planned_generation_id,
         name="candidate factory code",
     )
+    for artifact, filename, path, artifact_id in (
+        (
+            plan.contained_execution_policy,
+            "contained-execution-policy.json",
+            CANDIDATE_CONTAINED_EXECUTION_POLICY_PATH,
+            "sciplex3-item12-contained-execution-policy",
+        ),
+        (
+            plan.runtime_image_lock,
+            "runtime-image-lock.json",
+            CANDIDATE_RUNTIME_IMAGE_LOCK_PATH,
+            "sciplex3-item12-runtime-image-lock",
+        ),
+        (
+            plan.training_code_closure,
+            "training-code-closure.json",
+            CANDIDATE_TRAINING_CODE_CLOSURE_PATH,
+            "sciplex3-item12-training-code-closure",
+        ),
+        (
+            plan.training_execution_input_closure,
+            "training-execution-input-closure.json",
+            CANDIDATE_EXECUTION_INPUT_CLOSURE_PATH,
+            "sciplex3-item12-training-execution-input-closure",
+        ),
+        (
+            plan.publication_generation_seed,
+            "publication-generation-seed.json",
+            PUBLICATION_GENERATION_SEED_PATH,
+            "sciplex3-item12-publication-generation-seed",
+        ),
+    ):
+        _require_artifact_payload(
+            artifact,
+            sealed[filename],
+            expected_path=path,
+            expected_artifact_id=artifact_id,
+            expected_media_type="application/json",
+            generation_id=plan.planned_generation_id,
+            name=filename,
+        )
     if (
         plan.plan_id != SCIPLEX3_CANDIDATE_TRAINING_PLAN_ID
         or plan.plan_version != SCIPLEX3_CANDIDATE_TRAINING_PLAN_VERSION
@@ -585,10 +756,10 @@ def _validate_plan_closure(
     scan = _json_object(scan_payload, name="Item 12 finalized count scan")
     if (
         materialization.get("artifact_schema") != "sciplex3-k562-p1-candidate-materialization"
-        or materialization.get("artifact_schema_version") != "4.0.0"
+        or materialization.get("artifact_schema_version") != "5.0.0"
     ):
         raise SciPlex3TrainedCandidateBuildError(
-            "Item 12 materialization is not from the incompatible v4 candidate family"
+            "Item 12 materialization is not from the frozen v5 candidate family"
         )
     item11_materialization = _load_repository_json(
         repository_root,
@@ -647,9 +818,10 @@ def _validate_plan_closure(
         or plan.action_binding_sha256 != exact_bindings.get("action_domain_sha256")
         or plan.target_value_schema_sha256 != exact_bindings.get("target_value_schema_sha256")
         or plan.p1_loader_contract.sha256 != exact_bindings.get("loader_contract_sha256")
-        or exact_bindings.get("candidate_code_sha256") != EXPECTED_CANDIDATE_CODE_SHA256
+        or exact_bindings.get("candidate_code_sha256")
+        != plan.candidate_factory_implementation.code_artifact.sha256
         or exact_bindings.get("candidate_runner_code_sha256")
-        != EXPECTED_CANDIDATE_RUNNER_CODE_SHA256
+        != plan.trainer_implementation.code_artifact.sha256
         or scan.get("finalized") is not True
         or scan.get("source_descriptor_reverified") is not True
         or scan.get("exact_record_coverage") is not True
@@ -755,6 +927,9 @@ def _validate_model_and_observation(
             "candidate fitted state lacks the exact empirical-rho/no-sigma closure"
         )
     initial = candidate.initial_equilibration
+    sampling_sampler = candidate._v5_runtime_sampler()
+    sampling_parameters = sampling_sampler.parameters
+    sampling_certificate = sampling_sampler.envelope_certificate
     total_inner_sweep_count = sum(
         (index + 1) * count for index, count in enumerate(initial.inner_sweep_count_histogram)
     ) + sum(
@@ -774,6 +949,8 @@ def _validate_model_and_observation(
         "candidate_specification_sha256": plan.candidate_specification.sha256,
         "output_model_schema_sha256": plan.output_model_schema.sha256,
         "runtime_lock_sha256": plan.runtime_lock.sha256,
+        "training_code_closure_sha256": plan.training_code_closure.sha256,
+        "training_execution_input_closure_sha256": (plan.training_execution_input_closure.sha256),
         "loader_code_sha256": _sha256(
             _read(repository_root / LOADER_CODE_PATH, name="sci-Plex3 loader code")
         ),
@@ -786,7 +963,29 @@ def _validate_model_and_observation(
         "model_artifact_byte_count": len(model_payload),
         "fitted_state_sha256": _sha256(canonical_json_bytes(fitted_state)),
         "behavior_sha256": _sha256(canonical_json_bytes(behavior)),
-        "plate_context_rho_sha256": tensor_sha256["rho"],
+        "training_nuisance_rho_sha256": tensor_sha256["rho"],
+        "sampling_contract_sha256": sampling_certificate.sampling_contract_sha256,
+        "sampling_active_calibration_state_sha256": (
+            sampling_parameters.active_calibration_state_sha256
+        ),
+        "sampling_parameter_fingerprint": sampling_parameters.parameter_fingerprint,
+        "sampling_envelope_certificate_sha256": sampling_certificate.fingerprint,
+        "sampling_envelope_combination_count": sampling_certificate.combination_count,
+        "sampling_envelope_maximum_request_count": sampling_certificate.maximum_request_count,
+        "sampling_envelope_request_failure_budget_log": (
+            sampling_certificate.request_failure_budget_log
+        ),
+        "sampling_envelope_worst_request_tail_log_upper_bound": (
+            sampling_certificate.worst_request_tail_log_upper_bound
+        ),
+        "sampling_envelope_maximum_compound_poisson_intensity": (
+            sampling_certificate.maximum_compound_poisson_intensity
+        ),
+        "sampling_envelope_rejection_reasons": sampling_certificate.rejection_reasons,
+        "sampling_envelope_worst_action_id": sampling_certificate.worst_action_id,
+        "sampling_envelope_worst_context_id": sampling_certificate.worst_context_id,
+        "sampling_envelope_worst_tau_hex": sampling_certificate.worst_tau_hex,
+        "sampling_envelope_supported": sampling_certificate.supported,
         "initial_equilibration_sha256": fitted_state.get("initial_equilibration_sha256"),
         "inner_equilibration_trace_sha256": fitted_state.get("inner_equilibration_trace_sha256"),
         "software_golden_model_sha256": SCIPLEX3_CANDIDATE_GOLDEN_MODEL_SHA256,
@@ -852,7 +1051,8 @@ def _validate_model_and_observation(
         or exact_bindings.get("loader_implementation_sha256") != observation.loader_code_sha256
         or p1_scan.get("assembly_fingerprint") != plan.p1_assembly_fingerprint
         or assembly.get("runner_panel_count_stream_sha256") != plan.p1_count_stream_sha256
-        or exact_bindings.get("plate_context_rho_sha256") != observation.plate_context_rho_sha256
+        or exact_bindings.get("training_nuisance_rho_sha256")
+        != observation.training_nuisance_rho_sha256
         or exact_bindings.get("initial_equilibration_sha256")
         != observation.initial_equilibration_sha256
         or exact_bindings.get("inner_equilibration_trace_sha256")
@@ -1047,6 +1247,13 @@ def build_trained_candidate(
         count_stream_descriptor_path=count_stream_descriptor_path,
     )
     observation, observation_payload = _load_observation(candidate_directory)
+    contained_observation, contained_observation_payload = _load_contained_observation(
+        candidate_directory
+    )
+    if contained_observation.training_plan_fingerprint != plan.fingerprint:
+        raise SciPlex3TrainedCandidateBuildError(
+            "contained training observation is bound to another plan"
+        )
     _, model_payload = _validate_model_and_observation(
         plan,
         observation,
@@ -1074,16 +1281,25 @@ def build_trained_candidate(
         ITEM12_DIRECTORY / FINALIZED_SCAN_FILENAME,
         finalized_payload,
         artifact_id="sciplex3-item12-p1-finalized-count-scan",
+        generation_id=plan.planned_generation_id,
     )
     assembly_artifact = _artifact(
         ITEM12_DIRECTORY / ASSEMBLY_FILENAME,
         assembly_payload,
         artifact_id="sciplex3-item12-p1-assembly-receipt",
+        generation_id=plan.planned_generation_id,
     )
     materialization_artifact = _artifact(
         ITEM12_DIRECTORY / MATERIALIZATION_FILENAME,
         materialization_payload,
         artifact_id="sciplex3-item12-p1-materialization",
+        generation_id=plan.planned_generation_id,
+    )
+    contained_observation_artifact = _artifact(
+        ITEM12_DIRECTORY / CONTAINED_OBSERVATION_FILENAME,
+        contained_observation_payload,
+        artifact_id="sciplex3-item12-contained-training-observation",
+        generation_id=plan.planned_generation_id,
     )
     p1_evidence = P1TrainingEvidence(
         evidence_id="sciplex3-k562-item12-p1-training-evidence",
@@ -1094,6 +1310,7 @@ def build_trained_candidate(
         finalized_count_scan=finalized_artifact,
         assembly_receipt=assembly_artifact,
         p1_materialization=materialization_artifact,
+        contained_execution_observation=contained_observation_artifact,
         count_stream_sha256=plan.p1_count_stream_sha256,
         finalized_count_scan_fingerprint=plan.p1_finalized_count_scan_fingerprint,
         assembly_fingerprint=plan.p1_assembly_fingerprint,
@@ -1118,11 +1335,13 @@ def build_trained_candidate(
         SOURCE_VERIFICATION_PATH,
         source_verification_payload,
         artifact_id="sciplex3-item12-source-verification",
+        generation_id=plan.planned_generation_id,
     )
     manifest_artifact = _artifact(
         DATASET_MANIFEST_PATH,
         manifest_payload,
         artifact_id="sciplex3-item12-reviewed-dataset-manifest",
+        generation_id=plan.planned_generation_id,
     )
     workflow_payload = canonical_json_bytes(
         {
@@ -1149,6 +1368,7 @@ def build_trained_candidate(
         ITEM12_DIRECTORY / "p1-source-workflow-resolution.json",
         workflow_payload,
         artifact_id="sciplex3-item12-p1-source-workflow-resolution",
+        generation_id=plan.planned_generation_id,
     )
     workflow_resolution_artifacts = tuple(
         sorted(
@@ -1161,22 +1381,37 @@ def build_trained_candidate(
         ITEM12_DIRECTORY / PLAN_FILENAME,
         plan_payload,
         artifact_id="sciplex3-item12-candidate-training-plan",
+        generation_id=plan.planned_generation_id,
     )
     evidence_artifact = _artifact(
         ITEM12_DIRECTORY / "p1-training-evidence.json",
         evidence_payload,
         artifact_id="sciplex3-item12-p1-training-evidence",
+        generation_id=plan.planned_generation_id,
     )
     training_result_artifact = _artifact(
         ITEM12_DIRECTORY / OBSERVATION_FILENAME,
         observation_payload,
         artifact_id="sciplex3-item12-candidate-training-result",
+        generation_id=plan.planned_generation_id,
     )
     model_artifact = _artifact(
         ITEM12_DIRECTORY / MODEL_FILENAME,
         model_payload,
         artifact_id="sciplex3-item12-p1-trained-candidate-model",
+        generation_id=plan.planned_generation_id,
         media_type="application/vnd.cellstate.candidate+json",
+    )
+    _validate_contained_observation_closure(
+        contained_observation,
+        plan=plan,
+        repository_root=repository_root,
+        scan=scan,
+        plan_artifact=plan_artifact,
+        training_result_artifact=training_result_artifact,
+        model_artifact=model_artifact,
+        finalized_artifact=finalized_artifact,
+        assembly_artifact=assembly_artifact,
     )
     deterministic_training_evidence = tuple(
         sorted(
@@ -1190,11 +1425,17 @@ def build_trained_candidate(
                     plan.candidate_specification,
                     plan.output_model_schema,
                     plan.runtime_lock,
+                    plan.contained_execution_policy,
+                    plan.runtime_image_lock,
+                    plan.training_code_closure,
+                    plan.training_execution_input_closure,
+                    plan.publication_generation_seed,
                     plan.trainer_implementation.code_artifact,
                     plan.candidate_factory_implementation.code_artifact,
                     finalized_artifact,
                     assembly_artifact,
                     materialization_artifact,
+                    contained_observation_artifact,
                     training_result_artifact,
                     *workflow_resolution_artifacts,
                 )
@@ -1204,7 +1445,7 @@ def build_trained_candidate(
     )
     training_run = TrainingRunBinding(
         run_id="vertical-a.sciplex3-k562-24h.p1-candidate-training-run",
-        run_version="4.0.0",
+        run_version="5.0.0",
         query_fingerprint=plan.query_fingerprint,
         benchmark_fingerprint=plan.benchmark_fingerprint,
         support_envelope_fingerprint=plan.support_envelope_fingerprint,
@@ -1219,6 +1460,7 @@ def build_trained_candidate(
         path=SUPPORT_ENVELOPE_PATH,
         payload=support_payload,
         artifact_id="sciplex3-k562-population-response-support-envelope",
+        generation_id=plan.planned_generation_id,
     )
     training_run_reference = _reference(
         contract_id=training_run.run_id,
@@ -1226,6 +1468,7 @@ def build_trained_candidate(
         path=TRAINING_RUN_PATH,
         payload=training_run_payload,
         artifact_id="sciplex3-k562-item12-training-run",
+        generation_id=plan.planned_generation_id,
     )
 
     scaffold_bundle_payload = _read(
@@ -1270,7 +1513,7 @@ def build_trained_candidate(
             ports.append(binding)
     bundle = BiologicalModelBundleContract(
         bundle_id="vertical-a.sciplex3-k562-24h.population-response",
-        bundle_version="4.0.0-trained-candidate",
+        bundle_version="5.0.0-trained-candidate",
         bundle_kind=BundleContractKind.COMPONENT_MODEL,
         description=(
             "Exact p1-trained K562 well-context and assigned-action to 24-hour recovered-nucleus "
@@ -1324,13 +1567,33 @@ def build_trained_candidate(
         CANDIDATE_SPECIFICATION_PATH: sealed["candidate-specification.json"],
         CANDIDATE_OUTPUT_MODEL_SCHEMA_PATH: sealed["output-model-schema.json"],
         CANDIDATE_RUNTIME_LOCK_PATH: sealed["runtime-lock.json"],
+        CANDIDATE_CONTAINED_EXECUTION_POLICY_PATH: sealed["contained-execution-policy.json"],
+        CANDIDATE_RUNTIME_IMAGE_LOCK_PATH: sealed["runtime-image-lock.json"],
+        CANDIDATE_TRAINING_CODE_CLOSURE_PATH: sealed["training-code-closure.json"],
+        CANDIDATE_EXECUTION_INPUT_CLOSURE_PATH: sealed["training-execution-input-closure.json"],
+        PUBLICATION_GENERATION_SEED_PATH: sealed["publication-generation-seed.json"],
         P1_COUNT_STREAM_DESCRIPTOR_PATH: sealed["p1-count-stream-descriptor.json"],
+        P1_LOADER_CONTRACT_PATH: _read(
+            repository_root / P1_LOADER_CONTRACT_PATH,
+            name="p1 loader contract",
+        ),
+        CANDIDATE_CODE_PATH: _read(
+            repository_root / CANDIDATE_CODE_PATH,
+            name="candidate factory code",
+        ),
+        CANDIDATE_RUNNER_CODE_PATH: _read(
+            repository_root / CANDIDATE_RUNNER_CODE_PATH,
+            name="candidate runner code",
+        ),
+        SOURCE_VERIFICATION_PATH: source_verification_payload,
+        DATASET_MANIFEST_PATH: manifest_payload,
         ITEM12_DIRECTORY / PLAN_FILENAME: plan_payload,
         ITEM12_DIRECTORY / MODEL_FILENAME: model_payload,
         ITEM12_DIRECTORY / OBSERVATION_FILENAME: observation_payload,
         ITEM12_DIRECTORY / FINALIZED_SCAN_FILENAME: finalized_payload,
         ITEM12_DIRECTORY / ASSEMBLY_FILENAME: assembly_payload,
         ITEM12_DIRECTORY / MATERIALIZATION_FILENAME: materialization_payload,
+        ITEM12_DIRECTORY / CONTAINED_OBSERVATION_FILENAME: contained_observation_payload,
         ITEM12_DIRECTORY / "p1-training-evidence.json": evidence_payload,
         ITEM12_DIRECTORY / "p1-source-workflow-resolution.json": workflow_payload,
     }
@@ -1353,37 +1616,38 @@ def emit_trained_candidate_build(
     repository_root: Path = REPOSITORY_ROOT,
     check: bool,
 ) -> None:
-    """Write validated outputs atomically per file, or perform a source-free currentness check."""
+    """Publish one immutable generation, or source-free check the atomic current pointer."""
 
     repository_root = Path(repository_root).resolve()
+    publication_root = repository_root / TRAINED_CANDIDATE_PUBLICATION_DIRECTORY
+    outputs = {path.as_posix(): payload for path, payload in build.outputs}
     if check:
-        for relative_path, payload in build.outputs:
-            path = repository_root / relative_path
-            if not path.exists() or path.read_bytes() != payload:
-                raise SystemExit(f"generated trained-candidate artifact is stale: {path}")
+        try:
+            snapshot = resolve_current_generation(publication_root)
+        except GenerationPublicationError as error:
+            raise SystemExit(
+                f"generated trained-candidate publication is stale: {publication_root}"
+            ) from error
+        if (
+            snapshot.pointer.generation_id != build.training_plan.planned_generation_id
+            or not generation_matches(snapshot, outputs)
+        ):
+            raise SystemExit(
+                f"generated trained-candidate publication is stale: {publication_root}"
+            )
         return
-
-    staged: list[tuple[Path, Path]] = []
-    try:
-        for relative_path, payload in build.outputs:
-            path = repository_root / relative_path
-            path.parent.mkdir(parents=True, exist_ok=True)
-            temporary = path.with_name(f".{path.name}.item12-build.tmp")
-            descriptor = os.open(temporary, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o644)
-            try:
-                with os.fdopen(descriptor, "wb") as handle:
-                    handle.write(payload)
-                    handle.flush()
-                    os.fsync(handle.fileno())
-            except BaseException:
-                temporary.unlink(missing_ok=True)
-                raise
-            staged.append((temporary, path))
-        for temporary, path in staged:
-            temporary.replace(path)
-    finally:
-        for temporary, _ in staged:
-            temporary.unlink(missing_ok=True)
+    snapshot = publish_generation(
+        publication_root,
+        outputs,
+        generation_seed=candidate_training_plan_generation_seed_bytes(build.training_plan),
+    )
+    if (
+        snapshot.pointer.generation_id != build.training_plan.planned_generation_id
+        or not generation_matches(snapshot, outputs)
+    ):
+        raise SciPlex3TrainedCandidateBuildError(
+            "published trained-candidate generation changed on exact re-read"
+        )
 
 
 def main() -> None:

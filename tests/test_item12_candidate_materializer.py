@@ -210,207 +210,32 @@ def test_canonical_output_layout_keeps_count_descriptor_outside_vertical_tree() 
     } == materializer.SUPPORT_RELATIVE_PATHS
 
 
-def test_runtime_failure_occurs_before_any_source_access_or_output(
+def test_all_direct_materialization_entrypoints_retire_before_source_or_output_access(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    root = tmp_path / "repo"
-    output = _canonical_output(root)
-    source_called = False
-
-    def runtime_failure() -> bytes:
-        raise materializer.CandidateMaterializationError("wrong exact runtime")
+    source_accessed = False
 
     def source_access(*_: object) -> None:
-        nonlocal source_called
-        source_called = True
+        nonlocal source_accessed
+        source_accessed = True
 
-    monkeypatch.setattr(materializer, "_require_reference_runtime", runtime_failure)
     monkeypatch.setattr(materializer, "_prepare_exact_p1", source_access)
-    with pytest.raises(materializer.CandidateMaterializationError, match="wrong exact runtime"):
-        materializer.materialize(
-            tmp_path / "source-that-must-not-be-touched.h5ad",
-            output,
-            repository_root=root,
-        )
-    assert source_called is False
-    assert not output.exists()
-    assert not (output.parent / ".item12-p1.materialization.lock").exists()
-    assert not (root / materializer.COUNT_DESCRIPTOR_RELATIVE_PATH).exists()
-    assert all(not (root / path).exists() for path in materializer.SUPPORT_RELATIVE_PATHS.values())
-
-
-def test_imported_module_provenance_failure_precedes_every_source_open(
-    tmp_path: Path,
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    root = tmp_path / "repo"
-    output = _canonical_output(root)
-    for relative_path in (
-        materializer._REPOSITORY_BINDING_PATHS["loader_code"],
-        materializer._REPOSITORY_BINDING_PATHS["item11_runner_code"],
-        materializer._REPOSITORY_BINDING_PATHS["candidate_code"],
-        materializer._REPOSITORY_BINDING_PATHS["candidate_runner_code"],
+    for entrypoint in (
+        materializer.materialize,
+        materializer._retired_materialize_implementation,
     ):
-        staged = root / relative_path
-        staged.parent.mkdir(parents=True, exist_ok=True)
-        staged.symlink_to(REPOSITORY_ROOT / relative_path)
-
-    bindings = materializer._repository_bindings(REPOSITORY_ROOT)
-    source_target = tmp_path / "source-target.h5ad"
-    source_target.write_bytes(b"must remain untouched")
-    source = tmp_path / "source-link.h5ad"
-    source.symlink_to(source_target)
-    source_called = False
-    source_path_operations: list[str] = []
-    original_resolve = Path.resolve
-    original_lstat = os.lstat
-    original_readlink = os.readlink
-
-    def resolve_spy(path: Path, *args: object, **kwargs: object) -> Path:
-        if path == source:
-            source_path_operations.append("resolve")
-        return original_resolve(path, *args, **kwargs)
-
-    def lstat_spy(path: object, *args: object, **kwargs: object) -> os.stat_result:
-        if Path(os.fspath(path)) == source:
-            source_path_operations.append("lstat")
-        return original_lstat(path, *args, **kwargs)
-
-    def readlink_spy(path: object, *args: object, **kwargs: object) -> str:
-        if Path(os.fspath(path)) == source:
-            source_path_operations.append("readlink")
-        return original_readlink(path, *args, **kwargs)
-
-    def source_access(*_: object) -> None:
-        nonlocal source_called
-        source_called = True
-
-    monkeypatch.setattr(materializer, "_require_reference_runtime", lambda: b"runtime-lock")
-    monkeypatch.setattr(materializer, "_repository_bindings", lambda _: bindings)
-    monkeypatch.setattr(materializer._candidate_module, "__file__", str(tmp_path / "forged.py"))
-    monkeypatch.setattr(materializer, "_prepare_exact_p1", source_access)
-    monkeypatch.setattr(Path, "resolve", resolve_spy)
-    monkeypatch.setattr(os, "lstat", lstat_spy)
-    monkeypatch.setattr(os, "readlink", readlink_spy)
-    monkeypatch.setattr(
-        materializer,
-        "_planned_support_envelope",
-        lambda *_: pytest.fail("support planning followed failed executable provenance"),
-    )
-    with pytest.raises(materializer.CandidateMaterializationError, match="candidate module path"):
-        materializer.materialize(
-            source,
-            output,
-            repository_root=root,
-        )
-    assert source_called is False
-    assert source_path_operations == []
-    assert not output.exists()
-    assert not (output.parent / ".item12-p1.materialization.lock").exists()
-
-
-def test_success_installs_declared_support_then_atomic_vertical_manifest(
-    tmp_path: Path,
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    root = tmp_path / "repo"
-    output = _canonical_output(root)
-    expected, calls = _configure_fake_transaction(monkeypatch, final_check_raises=False)
-    # A caller may legitimately invoke the command while handling an unrelated exception.  The
-    # transaction must use its own completion state, never ambient ``sys.exc_info()``.
-    try:
-        raise LookupError("ambient caller exception")
-    except LookupError:
-        observed = materializer.materialize(
-            tmp_path / "synthetic-source.h5ad",
-            output,
-            repository_root=root,
-        )
-    assert observed == expected
-    assert calls == ["prepare", "build-plan", "seal-plan", "fit"]
-    assert (output / materializer.TRAINING_PLAN).read_bytes() == b"plan"
-    assert (output / materializer.CANDIDATE_MODEL).read_bytes() == b"model"
-    assert (output / materializer.TRAINING_OBSERVATION).read_bytes() == b"observation"
-    assert (root / materializer.COUNT_DESCRIPTOR_RELATIVE_PATH).read_bytes() == b"counts"
-    assert (
-        root / materializer.SUPPORT_RELATIVE_PATHS["candidate-specification.json"]
-    ).read_bytes() == b"specification"
-    assert (
-        root / materializer.SUPPORT_RELATIVE_PATHS["output-model-schema.json"]
-    ).read_bytes() == b"schema"
-    assert (
-        root / materializer.SUPPORT_RELATIVE_PATHS["runtime-lock.json"]
-    ).read_bytes() == b"runtime-lock"
-
-
-def test_post_install_failure_rolls_back_every_created_path(
-    tmp_path: Path,
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    root = tmp_path / "repo"
-    output = _canonical_output(root)
-    _configure_fake_transaction(monkeypatch, final_check_raises=True)
-    with pytest.raises(materializer.CandidateMaterializationError, match="post-install drift"):
-        materializer.materialize(
-            tmp_path / "synthetic-source.h5ad",
-            output,
-            repository_root=root,
-        )
-    assert not output.exists()
-    assert not (root / materializer.COUNT_DESCRIPTOR_RELATIVE_PATH).exists()
-    assert all(not (root / path).exists() for path in materializer.SUPPORT_RELATIVE_PATHS.values())
-    assert not (output.parent / ".item12-p1.materialization.lock").exists()
-
-
-def test_fit_resource_failure_emits_no_canonical_artifact(
-    tmp_path: Path,
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    root = tmp_path / "repo"
-    output = _canonical_output(root)
-    _configure_fake_transaction(monkeypatch, final_check_raises=False)
-    monkeypatch.setattr(
-        materializer,
-        "_peak_rss_bytes",
-        lambda: materializer.FIT_RSS_LIMIT_BYTES + 1,
-    )
-    with pytest.raises(materializer.CandidateMaterializationError, match="4-GiB RSS"):
-        materializer.materialize(
-            tmp_path / "synthetic-source.h5ad",
-            output,
-            repository_root=root,
-        )
-    assert not output.exists()
-    assert not (root / materializer.COUNT_DESCRIPTOR_RELATIVE_PATH).exists()
-    assert all(not (root / path).exists() for path in materializer.SUPPORT_RELATIVE_PATHS.values())
-
-
-def test_existing_auxiliary_artifact_is_never_overwritten_or_followed_by_source_access(
-    tmp_path: Path,
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    root = tmp_path / "repo"
-    output = _canonical_output(root)
-    existing = root / materializer.COUNT_DESCRIPTOR_RELATIVE_PATH
-    existing.parent.mkdir(parents=True)
-    existing.write_bytes(b"preexisting")
-    source_called = False
-
-    def source_access(*_: object) -> None:
-        nonlocal source_called
-        source_called = True
-
-    monkeypatch.setattr(materializer, "_prepare_exact_p1", source_access)
-    with pytest.raises(materializer.CandidateMaterializationError, match="refusing to overwrite"):
-        materializer.materialize(
-            tmp_path / "synthetic-source.h5ad",
-            output,
-            repository_root=root,
-        )
-    assert source_called is False
-    assert existing.read_bytes() == b"preexisting"
-    assert not output.exists()
+        with pytest.raises(
+            materializer.CandidateMaterializationError,
+            match="legacy direct materialization is retired",
+        ):
+            entrypoint(
+                tmp_path / "protected-source.h5ad",
+                tmp_path / "canonical-output",
+                repository_root=tmp_path,
+            )
+    assert source_accessed is False
+    assert not (tmp_path / "canonical-output").exists()
 
 
 def test_check_path_never_calls_source_preparation(
@@ -454,7 +279,7 @@ def test_manifest_records_only_deterministic_resource_gates_and_false_authority(
         initial_equilibration_sha256="1" * 64,
         inner_equilibration_trace_sha256="2" * 64,
         model_artifact_sha256="f" * 64,
-        plate_context_rho_sha256="3" * 64,
+        training_nuisance_rho_sha256="3" * 64,
         fingerprint="0" * 64,
     )
     manifest = materializer._build_manifest(
@@ -477,32 +302,32 @@ def test_manifest_records_only_deterministic_resource_gates_and_false_authority(
             "within_limit": True,
         },
     }
-    assert manifest["artifact_schema_version"] == "4.0.0"
+    assert manifest["artifact_schema_version"] == "5.0.0"
     assert manifest["exact_bindings"]["software_golden_model_sha256"] == (
         materializer.SCIPLEX3_CANDIDATE_GOLDEN_MODEL_SHA256
     )
     assert manifest["exact_bindings"]["software_golden_sample_sha256"] == (
         materializer.SCIPLEX3_CANDIDATE_GOLDEN_SAMPLE_SHA256
     )
-    assert manifest["exact_bindings"]["candidate_model_schema_version"] == "4.0.0"
+    assert manifest["exact_bindings"]["candidate_model_schema_version"] == "5.0.0"
     assert manifest["exact_bindings"]["fixed_factor_shape"] == 0.1
     assert manifest["exact_bindings"]["initial_equilibration_sha256"] == "1" * 64
     assert manifest["exact_bindings"]["inner_equilibration_trace_sha256"] == "2" * 64
-    assert manifest["exact_bindings"]["plate_context_rho_sha256"] == "3" * 64
+    assert manifest["exact_bindings"]["training_nuisance_rho_sha256"] == "3" * 64
     assert manifest["scope"] == {
         "access_purpose": "train_parameters",
         "batch_size": 512,
-        "candidate_implementation_version": "4.0.0",
+        "candidate_implementation_version": "5.0.0",
         "candidate_model_id": materializer.SCIPLEX3_CANDIDATE_MODEL_ID,
         "candidate_model_schema": materializer.SCIPLEX3_CANDIDATE_MODEL_SCHEMA,
-        "candidate_model_schema_version": "4.0.0",
+        "candidate_model_schema_version": "5.0.0",
         "capture_latent_present": False,
         "factor_shape_mode": "fixed",
         "feature_count": 2_000,
         "fixed_factor_shape": 0.1,
         "optimization_seed": 0,
         "partition_id": "p1-train",
-        "plate_context_family": "uniform-whole-p1-rho-row",
+        "plate_context_family": "neutral-unit-context",
         "plate_sigma_present": False,
     }
     assert manifest["safety_boundary"] == materializer._SAFETY_BOUNDARY

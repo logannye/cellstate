@@ -119,8 +119,11 @@ held-out raw H5AD/UMI endpoint values or lifecycle authority, or create a circul
 its own model output. A canonical
 `CandidateTrainingPlan` exists before fitting and binds opaque query, benchmark, and support
 identities; exact p1 loader, count-stream, scan, assembly, design, feature, action, and target
-identities; candidate specification and model schema; deterministic runtime and seed policy; and
-distinct trainer and candidate-factory code. It contains no final model or bundle fingerprint.
+identities; candidate specification and model schema; deterministic runtime and seed policy;
+contained-execution policy and runtime-image lock; the complete Python executable closure; the
+exact mounted code plus declared public-control input closure; one pre-render immutable-generation
+seed; and distinct trainer and candidate-factory code. It contains no final model or bundle
+fingerprint.
 
 An HMAC-authenticated `TrainingSourceSelectionReceipt` binds that plan to the exact p1 source and
 the workflow resolution that selected it. `P1TrainingEvidence` then records the close-
@@ -135,19 +138,27 @@ The signed source and fit receipts live only in the runtime `TrainingVerificatio
 not content artifacts in `TrainingRunBinding`, so deterministic model contracts do not depend on a
 secret or issuance timestamp and persisted receipt bytes never become access authority. Stage byte
 coverage is mechanically derived and includes only top-level query/benchmark/support identities,
-the deterministic training closure, the model and run, the selected p1 source, and the candidate-
-factory interface. It does not recursively expand public benchmark p2/p3/p4 membership and cases,
-or protected outcomes and later-stage implementations.
+the deterministic training closure, the model and run, the separately selected p1 source, and the
+candidate-factory interface. `TrainingCodeClosureManifest` inventories the canonical Python
+executable closure; `ExecutionInputClosureManifest` adds every exact mounted public JSON/runtime
+input without treating the protected source as a public control file. The worker and parent share a
+typed, no-follow `StagedTrainingInventory`, excluding only their observation metadata, and a
+`ContainedTrainingObservation` joins source pre/post authentication and that stage inventory to the
+parent's image, policy, process-tree, and cleanup evidence. Stage coverage does not recursively
+expand public benchmark p2/p3/p4 membership and cases, protected outcomes, or later-stage
+implementations.
 
 The candidate port must provide a nonvacuous exact class interface containing `load_exact`,
 `model_artifact_sha256`, `supports`, `sample`, `model_bytes`, and `behavior_manifest`; the other
-support-envelope ports may honestly remain `REQUIRED`. `BundleReadiness` records training artifact,
-interface, and semantic verification separately. `TRAINED_CANDIDATE` is derived only when all three,
-the structural training binding, and exact query prerequisites verify. Calibration and model-
-selection lifecycle stages additionally require their own future semantic verifications: merely
-attaching artifacts cannot advance them. This boundary grants no protected p2 endpoint access or
-calibration authority, component execution, scientific admission, public operation, or runnable
-backend.
+support-envelope ports may honestly remain `REQUIRED`. The active v5 sampling specification makes
+`supports` request-level: only an exact `CandidateSampleRequest`, including its seed and bounded
+sample count, can pass; a target object alone cannot. `BundleReadiness` records training artifact,
+interface, and semantic verification separately. `TRAINED_CANDIDATE` is derived only when all
+three, the structural training binding, and exact query prerequisites verify. Calibration and
+model-selection lifecycle stages additionally require their own future semantic verifications:
+merely attaching artifacts cannot advance them. This boundary grants no protected p2 endpoint
+access or calibration authority, component execution, scientific admission, public operation, or
+runnable backend.
 
 ### Just-in-time execution authority
 
@@ -218,10 +229,23 @@ are endpoint comparators. Neither is a pre-cutoff observation or a prior over hi
 The component therefore registers none of the four public cell-state operations, has no biological
 `EstimatorDescriptor`, and cannot emit a current-state belief.
 
-Items 10 and 11 supply the admission machinery, immutable p1-only loader, exact training scan, and
-six mandatory fitted baseline-state identities. They do not supply prediction runs, metrics,
-performance evidence, a trained candidate, or an admitted benchmark. Candidate revisions v1 through
-v4 all failed closed without issuing a model or lifecycle result, so the checked-in sci-Plex3
-component remains `SCAFFOLD` and non-executable. The next milestone is the source-free v5 objective,
-M-step, sampler, atomic-publication, and hard-containment redesign recorded in the
-[roadmap](../roadmap.md); it grants no new real-source authority.
+Item 10 supplies the trusted admission machinery. Item 11 separately supplies the immutable p1-only
+loader, exact training scan, and six mandatory fitted baseline-state identities; it does not supply
+the trained-candidate factory/interface, a candidate model, or lifecycle evidence. Neither item
+supplies prediction runs, metrics, performance evidence, or an admitted benchmark. Candidate
+revisions v1 through v4 all failed closed without issuing a model or lifecycle result.
+
+Item 12.2 has now completed only the source-free v5 software boundary: one exact equal-well
+objective and compatible all-well M-step; independent gradient, Hessian, and nondecrease checks;
+exact-positive request-level sampling through 512 draws under a global `2^-64` conditional signed-
+`int64` tail budget; immutable-generation atomic publication and recovery; exact code, mounted-
+input, and staged-output closure; reproducible Linux `amd64` OCI identities; and parent-owned
+whole-container wall/memory and host-effective UID/GID containment. It opened no protected source,
+ran no real-`p1` fit, and issued no candidate artifact, plan, observation, evidence, or lifecycle
+result. The clean-final OCI archive is byte-identical across three independent native and emulated
+builder environments under frozen inputs and toolchain and excludes build-host caches; its builder
+identity is frozen in the workflow and runtime lock. The checked-in sci-Plex3 component therefore
+remains `SCAFFOLD` and non-executable. Item 12.3 is only a proposed, separately authorized, version-
+bound, nonissuing real-`p1` v5 execution; it has not been authorized or run. Durable distribution of
+the exact locally loaded archive is a prerequisite, and no remote image publication is claimed. See
+the [roadmap](../roadmap.md), the sole sequence and status authority.

@@ -7,7 +7,7 @@ import math
 import os
 import subprocess
 import sys
-from dataclasses import FrozenInstanceError
+from dataclasses import FrozenInstanceError, replace
 from pathlib import Path
 from types import MappingProxyType
 from typing import cast
@@ -16,6 +16,7 @@ import numpy as np
 import pytest
 
 import cellstate.evaluation.sciplex3_candidate as candidate_module
+import cellstate.evaluation.sciplex3_sampling_v5 as sampling_v5_module
 from cellstate.evaluation.sciplex3_baselines import (
     NO_ACTION,
     SCIPLEX3_FEATURE_COUNT,
@@ -35,6 +36,7 @@ from cellstate.evaluation.sciplex3_candidate import (
     SCIPLEX3_CANDIDATE_OUTPUT_MODEL_SCHEMA_SHA256,
     SCIPLEX3_CANDIDATE_SPECIFICATION_SHA256,
     SCIPLEX3_CANDIDATE_TAU_GRID,
+    SCIPLEX3_CANDIDATE_V5_NEUTRAL_CONTEXT_ID,
     CandidateRawCountSamples,
     CandidateSampleRequest,
     SciPlex3CandidateError,
@@ -51,6 +53,14 @@ from cellstate.evaluation.sciplex3_candidate import (
     load_sciplex3_candidate,
     training_data_fingerprint,
     verify_sciplex3_candidate_golden,
+)
+from cellstate.evaluation.sciplex3_candidate_v5 import (
+    SciPlex3V5Design,
+    fixed_q_full_elbo_action_context,
+)
+from cellstate.evaluation.sciplex3_sampling_v5 import (
+    SCIPLEX3_V5_MAX_SAMPLE_COUNT,
+    SCIPLEX3_V5_SAMPLING_CONTRACT_SHA256,
 )
 
 
@@ -357,11 +367,20 @@ def test_frozen_specification_and_output_schema_have_exact_identities() -> None:
     )
     specification = candidate_specification_manifest()
     assert specification["model_id"] == SCIPLEX3_CANDIDATE_MODEL_ID
-    assert specification["model_schema_version"] == "4.0.0"
+    assert specification["model_schema_version"] == "5.0.0"
     assert (
         cast(dict[str, object], specification["distribution"])["observed_target_depth_conditioning"]
         is False
     )
+    distribution = cast(dict[str, object], specification["distribution"])
+    assert distribution["positive_panel_conditioning"] == (
+        "exact-zero-truncated-compound-poisson-log-series"
+    )
+    assert distribution["positive_panel_rejection_redraws"] is False
+    support = cast(dict[str, object], specification["support"])
+    assert support["maximum_samples_per_request"] == SCIPLEX3_V5_MAX_SAMPLE_COUNT
+    assert support["sampling_contract_sha256"] == SCIPLEX3_V5_SAMPLING_CONTRACT_SHA256
+    assert support["supports_argument"] == "exact-CandidateSampleRequest-not-target-only"
     assert cast(dict[str, object], specification["fit"])["zero_panel_rows_retained"] is True
     reference_runtime = cast(dict[str, object], specification["reference_runtime"])
     assert reference_runtime["blas_name"] == "scipy-openblas"
@@ -370,10 +389,14 @@ def test_frozen_specification_and_output_schema_have_exact_identities() -> None:
     assert action_model["rho_normalization"] == (
         "arithmetic-mean-over-eight-plates-equals-one-per-factor"
     )
-    assert "log-arithmetic-mean-of-eight" in cast(str, action_model["alpha"])
+    assert action_model["alpha"] == "factorwise-logmeanexp-of-eight-fitted-plate-intercepts"
     unseen_plate = cast(dict[str, object], specification["unseen_plate"])
-    assert unseen_plate["family"] == "uniform-whole-p1-rho-row"
-    assert unseen_plate["context_count"] == 8
+    assert unseen_plate["family"] == "neutral-unit-context"
+    assert unseen_plate["context_count"] == 1
+    assert unseen_plate["context_id"] == SCIPLEX3_CANDIDATE_V5_NEUTRAL_CONTEXT_ID
+    assert unseen_plate["factor_multiplier"] == 1.0
+    assert unseen_plate["deterministic"] is True
+    assert unseen_plate["p1_rho_sampling_input"] is False
     assert unseen_plate["factor_independent_draws"] is False
     assert unseen_plate["parametric_lognormal"] is False
     fit = cast(dict[str, object], specification["fit"])
@@ -392,12 +415,12 @@ def test_frozen_specification_and_output_schema_have_exact_identities() -> None:
         "included": [
             "poisson-umi-shot-noise",
             "fixed-continuous-gamma-factor-activation-heterogeneity",
-            "uniform-whole-p1-rho-row-unseen-plate-context",
         ],
         "excluded_or_unclaimed": [
             "technical-capture-attribution-q-removed",
             "fitted-parameter-or-model-uncertainty",
             "identifiable-action-specific-between-well-variance-one-p1-well-per-action",
+            "unseen-plate-context-variation-neutralized",
             "intervention-realization",
             "viability-or-survival",
             "mechanism-pathway-or-cell-state-interpretation",
@@ -425,11 +448,13 @@ def test_frozen_specification_and_output_schema_have_exact_identities() -> None:
     calibration = cast(dict[str, object], specification["calibration_declaration_only"])
     assert calibration["tau_grid"] == list(SCIPLEX3_CANDIDATE_TAU_GRID)
     assert calibration["tau_grid_exponents"] == list(range(-20, 7))
+    assert calibration["active_training_candidate_tau"] == 1.0
+    assert calibration["unseen_plate_context_transform"] == "unit-context-invariant-under-tau"
     assert 0.1 / SCIPLEX3_CANDIDATE_TAU_GRID[-1] ** 2 > 0.05
 
 
-def test_v4_family_has_fixed_shape_inner_witnesses_and_empirical_plate_context() -> None:
-    candidate = _candidate()
+def test_active_family_has_fixed_shape_inner_witnesses_and_v5_sampling_support() -> None:
+    candidate = build_sciplex3_synthetic_golden_candidate()
     payload = json.loads(candidate.canonical_model_bytes())
     tensors = cast(dict[str, object], payload["tensors"])
     behavior = candidate.behavior_manifest()
@@ -437,7 +462,7 @@ def test_v4_family_has_fixed_shape_inner_witnesses_and_empirical_plate_context()
 
     assert type(candidate.initial_equilibration) is SciPlex3CandidateInitialEquilibration
     assert all(type(item) is SciPlex3CandidateTraceEntry for item in candidate.trace)
-    assert candidate.implementation_version == "4.0.0"
+    assert candidate.implementation_version == "5.0.0"
     assert candidate.factor_shape.hex() == "0x1.999999999999ap-4"
     assert set(tensors) == {
         "action_well_indices",
@@ -487,6 +512,15 @@ def test_v4_family_has_fixed_shape_inner_witnesses_and_empirical_plate_context()
         "plate_context_count",
         "plate_context_factorwise_mean_one",
         "plate_context_family",
+        "sampling_active_calibration_state_sha256",
+        "sampling_contract_sha256",
+        "sampling_envelope_combination_count",
+        "sampling_envelope_maximum_compound_poisson_intensity",
+        "sampling_envelope_maximum_request_count",
+        "sampling_envelope_rejection_reasons",
+        "sampling_envelope_request_failure_budget_log",
+        "sampling_envelope_supported",
+        "sampling_envelope_worst_request_tail_log_upper_bound",
         "scientifically_admissible",
         "terminal_elbo_relative_changes",
         "training_partition_ids",
@@ -502,16 +536,23 @@ def test_v4_family_has_fixed_shape_inner_witnesses_and_empirical_plate_context()
     assert behavior["factor_order_stable"] is True
     assert behavior["inner_equilibration_performed"] is True
     assert behavior["inner_all_batches_converged"] is True
-    assert behavior["plate_context_family"] == "uniform-whole-p1-rho-row"
-    assert behavior["plate_context_count"] == 8
+    assert behavior["plate_context_family"] == "neutral-unit-context"
+    assert behavior["plate_context_count"] == 1
     assert behavior["plate_context_factorwise_mean_one"] is True
+    assert behavior["sampling_contract_sha256"] == SCIPLEX3_V5_SAMPLING_CONTRACT_SHA256
+    assert behavior["sampling_envelope_combination_count"] == 753 * 1 * 27
+    assert behavior["sampling_envelope_maximum_request_count"] == 512
+    assert behavior["sampling_envelope_rejection_reasons"] == []
+    assert behavior["sampling_envelope_supported"] is True
+    assert cast(float, behavior["sampling_envelope_worst_request_tail_log_upper_bound"]) < 0.0
+    assert len(cast(str, behavior["sampling_active_calibration_state_sha256"])) == 64
     assert behavior["model_schema_version"] == SCIPLEX3_CANDIDATE_MODEL_SCHEMA_VERSION
     shares = cast(list[float], behavior["factor_contribution_shares"])
     assert math.fsum(shares) == pytest.approx(1.0, rel=0.0, abs=2e-16)
     assert behavior["minimum_factor_contribution_share"] == min(shares)
     assert distribution["capture_multiplier"] == "fixed-one-no-random-variable"
     assert distribution["factor_shape"] == "fixed-r_theta-0.1-not-estimated"
-    assert candidate.fitted_state_manifest()["model_schema_version"] == "4.0.0"
+    assert candidate.fitted_state_manifest()["model_schema_version"] == "5.0.0"
     assert set(payload["initial_equilibration"]) == {
         "elbo",
         "factor_order",
@@ -522,11 +563,12 @@ def test_v4_family_has_fixed_shape_inner_witnesses_and_empirical_plate_context()
     }
 
 
-def test_loader_rejects_stale_v1_through_v3_identities_and_removed_tensors() -> None:
+def test_loader_rejects_stale_v1_through_v4_identities_and_removed_tensors() -> None:
     for stale_identity in (
         "sciplex3-gamma-poisson-candidate-model-v1",
         "sciplex3-gamma-poisson-pooled-factor-candidate-model-v2",
         "sciplex3-gamma-poisson-fixed-factor-candidate-model-v3",
+        "sciplex3-gamma-poisson-fixed-r0p1-empirical-plate-candidate-model-v4",
     ):
         stale_schema = json.loads(candidate_golden_model_bytes())
         stale_schema["model_schema"] = stale_identity
@@ -544,14 +586,14 @@ def test_loader_rejects_stale_v1_through_v3_identities_and_removed_tensors() -> 
     with pytest.raises(SciPlex3CandidateError, match="keys differ"):
         SciPlex3GammaPoissonCandidate.from_canonical_model_bytes(_canonical_bytes(missing_version))
 
-    for wrong_version in ("3.0.0", 4, True):
+    for wrong_version in ("3.0.0", "4.0.0", 5, True):
         wrong = json.loads(candidate_golden_model_bytes())
         wrong["model_schema_version"] = wrong_version
         with pytest.raises(SciPlex3CandidateError, match="identity or scientific specification"):
             SciPlex3GammaPoissonCandidate.from_canonical_model_bytes(_canonical_bytes(wrong))
 
     schema = candidate_model_schema_manifest()
-    assert schema["model_schema_version"] == "4.0.0"
+    assert schema["model_schema_version"] == "5.0.0"
     assert "model_schema_version" in cast(list[str], schema["required_model_keys"])
 
 
@@ -744,7 +786,7 @@ def test_loader_reconstructs_closed_world_topology_and_mean_activation_exactly()
         SciPlex3GammaPoissonCandidate.from_canonical_model_bytes(_canonical_bytes(reordered_ids))
 
 
-def test_rho_remains_a_positive_normalized_empirical_context_tensor() -> None:
+def test_rho_remains_a_positive_normalized_training_nuisance_tensor() -> None:
     stale_context = json.loads(candidate_golden_model_bytes())
     rho = _tensor_array(stale_context, "rho", "<f8").copy()
     rho[0, 0] += 1e-6
@@ -766,12 +808,6 @@ def test_rho_remains_a_positive_normalized_empirical_context_tensor() -> None:
     _set_tensor(exact_bound, "rho", rho, "<f8")
     with pytest.raises(SciPlex3CandidateError, match="strictly less than eight"):
         SciPlex3GammaPoissonCandidate.from_canonical_model_bytes(_canonical_bytes(exact_bound))
-
-    just_below = np.ones((8, 16), dtype=np.float64)
-    just_below[0, 0] = np.nextafter(8.0, -np.inf)
-    just_below[1:, 0] = (8.0 - just_below[0, 0]) / 7.0
-    accepted = candidate_module._power_normalized_plate_contexts(just_below, 1.0)
-    assert np.array_equal(accepted, just_below)
 
 
 def test_audit_matrix_contributions_and_rank_ratios_are_portably_canonical() -> None:
@@ -877,7 +913,7 @@ def test_canonical_factor_ties_use_loading_digest_and_duplicate_keys_fail() -> N
 
 
 def test_sampling_is_deterministic_positive_raw_int64_and_generates_future_total() -> None:
-    candidate = _candidate()
+    candidate = build_sciplex3_synthetic_golden_candidate()
     request = _request()
     first = cast(CandidateRawCountSamples, candidate.sample(request))
     second = cast(CandidateRawCountSamples, candidate.sample(request))
@@ -885,75 +921,116 @@ def test_sampling_is_deterministic_positive_raw_int64_and_generates_future_total
     assert first.candidate_id == SCIPLEX3_CANDIDATE_MODEL_ID
     assert first.samples.dtype == np.dtype("int64")
     assert np.array_equal(first.samples, second.samples)
-    totals = np.sum(first.samples, axis=1, dtype=np.int64)
+    totals = np.asarray([sum(int(value) for value in row) for row in first.samples])
     assert bool(np.all(totals > 0))
     assert np.unique(totals).size > 1
     assert not first.samples.flags.writeable
+    assert first.model_artifact_sha256 == candidate.model_artifact_sha256
+    assert first.sampling_contract_sha256 == SCIPLEX3_V5_SAMPLING_CONTRACT_SHA256
+    assert first.target_fingerprint == candidate_module._v5_target_fingerprint(request.target)
+    assert first.context_id == SCIPLEX3_CANDIDATE_V5_NEUTRAL_CONTEXT_ID
+    assert len(first.calibration_state_sha256) == 64
 
 
-def test_count_substreams_are_case_local_while_whole_plate_context_is_shared() -> None:
-    candidate = _candidate()
+def test_sampling_envelope_is_built_once_then_reused_by_support_and_sample(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    construction_count = 0
+    original_builder = sampling_v5_module.build_sampling_envelope_certificate
+
+    def counted_builder(
+        parameters: sampling_v5_module.V5SamplingParameters,
+    ) -> sampling_v5_module.V5SamplingEnvelopeCertificate:
+        nonlocal construction_count
+        construction_count += 1
+        return original_builder(parameters)
+
+    monkeypatch.setattr(
+        sampling_v5_module,
+        "build_sampling_envelope_certificate",
+        counted_builder,
+    )
+    candidate = build_sciplex3_synthetic_golden_candidate()
+    sampler = candidate._v5_runtime_sampler()
+    request = _request()
+
+    assert construction_count == 1
+    assert sampler is candidate._v5_runtime_sampler()
+    assert sampler.parameters is candidate._v5_sampling_parameters_cache
+    assert sampler.envelope_certificate is candidate._v5_sampling_envelope_certificate_cache
+    assert sampler.parameters.model_artifact_sha256 == candidate.model_artifact_sha256
+    assert candidate.supports(request)
+    candidate.sample(request)
+    candidate.behavior_manifest()
+    assert construction_count == 1
+
+
+def test_candidate_construction_rejects_an_unsafe_global_sampling_envelope() -> None:
+    candidate = build_sciplex3_synthetic_golden_candidate()
+    shifted_alpha = candidate._alpha + 46.0
+    shifted_activation = candidate_module._canonical_audit_matrix(
+        candidate_module._reconstruct_mean_activation(
+            shifted_alpha,
+            candidate._rho,
+            candidate._delta,
+            candidate._training_well_plate_indices,
+            candidate._action_well_indices,
+            candidate._vehicle_well_indices,
+        )
+    )
+
+    with pytest.raises(SciPlex3CandidateError, match="complete v5 sampling envelope"):
+        replace(
+            candidate,
+            _alpha=shifted_alpha,
+            _mean_activation=shifted_activation,
+            _factor_contributions=candidate_module._factor_contributions(shifted_activation),
+        )
+
+
+def test_count_substreams_are_case_local_and_prefix_stable() -> None:
+    candidate = build_sciplex3_synthetic_golden_candidate()
     first_request = _request(case_id="case-a", target_well_id="well-a")
     second_request = _request(case_id="case-b", target_well_id="well-b")
     first = cast(CandidateRawCountSamples, candidate.sample(first_request))
     second = cast(CandidateRawCountSamples, candidate.sample(second_request))
+    longer = cast(
+        CandidateRawCountSamples,
+        candidate.sample(
+            CandidateSampleRequest(
+                target=first_request.target,
+                sample_count=first_request.sample_count + 11,
+                seed=first_request.seed,
+            )
+        ),
+    )
 
-    assert np.array_equal(
-        candidate._plate_context_row(first_request.target, first_request.seed),
-        candidate._plate_context_row(second_request.target, second_request.seed),
-    )
-    assert candidate._plate_context_index(
-        first_request.target, first_request.seed
-    ) == candidate._plate_context_index(second_request.target, second_request.seed)
-    other_action = _request(
-        compound="golden-compound-001",
-        dose_nm=100,
-        case_id="case-c",
-        target_well_id="well-c",
-    )
-    assert np.array_equal(
-        candidate._plate_context_row(first_request.target, first_request.seed),
-        candidate._plate_context_row(other_action.target, other_action.seed),
-    )
+    assert np.array_equal(first.samples, longer.samples[: first_request.sample_count])
     assert not np.array_equal(first.samples, second.samples)
+    assert first.context_id == second.context_id == SCIPLEX3_CANDIDATE_V5_NEUTRAL_CONTEXT_ID
 
 
-def test_empirical_plate_context_rows_are_reachable_mean_one_bounded_and_not_normal() -> None:
-    candidate = _candidate()
-    assert np.allclose(np.mean(candidate._rho, axis=0), 1.0, rtol=0.0, atol=5e-13)
-    assert bool(np.all(candidate._rho > 0.0))
-    assert bool(np.all(candidate._rho < 8.0))
-    target = _target(plate_id="future-plate-reachability")
-    reached = {candidate._plate_context_index(target, seed) for seed in range(10_000)}
-    assert reached == set(range(8))
-    for seed in range(64):
-        index = candidate._plate_context_index(target, seed)
-        assert np.array_equal(candidate._plate_context_row(target, seed), candidate._rho[index])
-    mutated_payload = json.loads(candidate.canonical_model_bytes())
-    mutated_payload["training"]["training_data_sha256"] = "0" * 64
-    mutated = SciPlex3GammaPoissonCandidate.from_canonical_model_bytes(
-        _canonical_bytes(mutated_payload)
-    )
-    assert any(
-        candidate._plate_context_index(target, seed) != mutated._plate_context_index(target, seed)
-        for seed in range(64)
-    )
+def test_unseen_plate_context_is_one_neutral_row_for_every_tau_and_never_uses_rho() -> None:
+    candidate = build_sciplex3_synthetic_golden_candidate()
+    parameters = candidate._v5_sampling_parameters(model_artifact_sha256="0" * 64)
+
+    assert parameters.context_ids == (SCIPLEX3_CANDIDATE_V5_NEUTRAL_CONTEXT_ID,)
+    assert parameters.context_multipliers.shape == (27, 1, 16)
+    assert np.array_equal(parameters.context_multipliers, np.ones((27, 1, 16)))
+    assert not np.shares_memory(parameters.context_multipliers, candidate._rho)
     assert ".normal(" not in Path(candidate_module.__file__).read_text()
 
 
-def test_declared_tau_power_transform_is_mean_preserving_and_guarded() -> None:
-    candidate = _candidate()
-    tau_one = candidate_module._power_normalized_plate_contexts(candidate._rho, 1.0)
-    assert np.array_equal(tau_one, candidate._rho)
-    for tau in SCIPLEX3_CANDIDATE_TAU_GRID:
-        contexts = candidate_module._power_normalized_plate_contexts(candidate._rho, tau)
-        assert bool(np.all(contexts > 0.0))
-        assert bool(np.all(contexts < 8.0))
-        for factor_index in range(16):
-            assert math.fsum(float(value) for value in contexts[:, factor_index]) / 8.0 == (
-                pytest.approx(1.0, rel=0.0, abs=5e-13)
-            )
-        assert candidate_module._factor_shape_for_tau(tau) > 0.05
+def test_declared_tau_states_change_only_shape_under_neutral_sampling_context() -> None:
+    candidate = build_sciplex3_synthetic_golden_candidate()
+    parameters = candidate._v5_sampling_parameters(model_artifact_sha256="0" * 64)
+
+    assert parameters.calibration_taus == SCIPLEX3_CANDIDATE_TAU_GRID
+    assert parameters.active_tau == 1.0
+    for index, tau in enumerate(SCIPLEX3_CANDIDATE_TAU_GRID):
+        assert parameters.factor_shapes[index] == candidate_module._factor_shape_for_tau(tau)
+        assert np.array_equal(parameters.context_multipliers[index], np.ones((1, 16)))
+        assert parameters.factor_shapes[index] > 0.05
     with pytest.raises(SciPlex3CandidateError, match="exact declared"):
         candidate_module._factor_shape_for_tau(math.exp(7.0 / 20.0))
 
@@ -967,44 +1044,77 @@ def test_declared_tau_power_transform_is_mean_preserving_and_guarded() -> None:
     ],
 )
 def test_unsupported_action_dose_or_context_fails_closed(target: PredictionTarget) -> None:
-    candidate = _candidate()
+    candidate = build_sciplex3_synthetic_golden_candidate()
     assert not candidate.supports(target)
+    request = CandidateSampleRequest(target, 2, 0)
+    assert not candidate.supports(request)
     with pytest.raises(SciPlex3CandidateError, match="unsupported"):
-        candidate.sample(CandidateSampleRequest(target, 2, 0))
+        candidate.sample(request)
 
 
 def test_no_action_is_supported_but_only_in_declared_target_context() -> None:
-    candidate = _candidate()
+    candidate = build_sciplex3_synthetic_golden_candidate()
     target = PredictionTarget(
         "case", "well", "future-plate", "p3-model-selection-validation", NO_ACTION
     )
-    assert candidate.supports(target)
-    result = cast(CandidateRawCountSamples, candidate.sample(CandidateSampleRequest(target, 3, 2)))
+    request = CandidateSampleRequest(target, 3, 2)
+    assert not candidate.supports(target)
+    assert candidate.supports(request)
+    result = cast(CandidateRawCountSamples, candidate.sample(request))
     assert result.samples.shape == (3, SCIPLEX3_FEATURE_COUNT)
 
 
+def test_sample_count_512_is_supported_and_513_fails_before_sampling() -> None:
+    candidate = build_sciplex3_synthetic_golden_candidate()
+    target = _target()
+
+    assert candidate.supports(CandidateSampleRequest(target, 512, 0))
+    oversized = CandidateSampleRequest(target, 513, 0)
+    assert not candidate.supports(oversized)
+    with pytest.raises(SciPlex3CandidateError, match="count"):
+        candidate.sample(oversized)
+
+
 def test_wrong_request_and_result_provenance_are_rejected() -> None:
-    candidate = _candidate()
+    candidate = build_sciplex3_synthetic_golden_candidate()
     with pytest.raises(SciPlex3CandidateError, match="exact CandidateSampleRequest"):
         candidate.sample(object())
     valid = cast(CandidateRawCountSamples, candidate.sample(_request()))
     with pytest.raises(SciPlex3CandidateError, match="model ID"):
         CandidateRawCountSamples(
-            "baseline-like-id",
-            valid.target,
-            valid.ordered_feature_keys,
-            valid.seed,
-            valid.samples,
+            candidate_id="baseline-like-id",
+            target=valid.target,
+            ordered_feature_keys=valid.ordered_feature_keys,
+            model_artifact_sha256=valid.model_artifact_sha256,
+            calibration_state_sha256=valid.calibration_state_sha256,
+            sampling_contract_sha256=valid.sampling_contract_sha256,
+            target_fingerprint=valid.target_fingerprint,
+            context_id=valid.context_id,
+            seed=valid.seed,
+            samples=valid.samples,
+        )
+    with pytest.raises(SciPlex3CandidateError, match="contract provenance"):
+        CandidateRawCountSamples(
+            candidate_id=valid.candidate_id,
+            target=valid.target,
+            ordered_feature_keys=valid.ordered_feature_keys,
+            model_artifact_sha256=valid.model_artifact_sha256,
+            calibration_state_sha256=valid.calibration_state_sha256,
+            sampling_contract_sha256="f" * 64,
+            target_fingerprint=valid.target_fingerprint,
+            context_id=valid.context_id,
+            seed=valid.seed,
+            samples=valid.samples,
         )
 
 
 def test_golden_fixture_has_fixed_model_and_sample_identities() -> None:
     candidate = build_sciplex3_synthetic_golden_candidate()
     assert SCIPLEX3_CANDIDATE_GOLDEN_MODEL_SHA256 == (
-        "d3a5cb630ad4344bda04945a865682531860508ccb8473fa57fb2397c8297be1"
+        "e5f81e28b8f4efbf5cffd64afa326d380b4c071450fd02339b4a46102a2e70a2"
     )
     assert SCIPLEX3_CANDIDATE_GOLDEN_SAMPLE_SHA256 == (
-        "6e01b44440c04ccc0ae1540de57d26c3723ff0b12f7e8033d4c980818776fa9f"
+        "9c364005b01142bcfe74a8400ab4b9209ed635b74a703167969aa5e8d80b9e2c"
     )
     assert candidate.model_artifact_sha256 == SCIPLEX3_CANDIDATE_GOLDEN_MODEL_SHA256
     assert hashlib.sha256(candidate.golden_sample().samples.tobytes()).hexdigest() == (
@@ -1061,82 +1171,49 @@ def test_training_fingerprint_retains_zero_rows_and_is_order_independent_by_well
         training_data_fingerprint(cast(P1TrainingData, object()))
 
 
-def test_frozen_dose_newton_is_deterministic_and_shape_estimation_paths_are_absent() -> None:
-    baseline = np.log(np.asarray([1.0, 1.1, 0.9, 1.2], dtype=np.float64))
-    means = np.asarray([1.2, 1.4, 1.1, 1.8], dtype=np.float64)
-    initial = np.log(means) - baseline
-    first = candidate_module._fit_dose_block(
-        baseline, means, SCIPLEX3_CANDIDATE_FIXED_FACTOR_SHAPE, initial
+def test_active_action_context_m_step_is_deterministic_all_well_and_v5_scaled() -> None:
+    validated = _mini_full_topology()
+    scores = np.ones((768, 16), dtype=np.float64)
+    plate_effect = np.linspace(-0.3, 0.3, 8, dtype=np.float64)
+    dose_effect = np.asarray((-0.15, -0.05, 0.08, 0.22), dtype=np.float64)
+    for compound_index in range(188):
+        for dose_index in range(4):
+            well_index = int(validated.action_well_indices[compound_index, dose_index])
+            plate_index = int(validated.training_well_plate_indices[well_index])
+            scores[well_index] = math.exp(
+                float(plate_effect[plate_index] + dose_effect[dose_index])
+            )
+
+    first = candidate_module._update_action_block(scores, validated)
+    repeated = candidate_module._update_action_block(scores, validated)
+    second = candidate_module._update_action_block(
+        scores,
+        validated,
+        initial=(first[0], first[1], first[2]),
     )
-    second = candidate_module._fit_dose_block(
-        baseline, means, SCIPLEX3_CANDIDATE_FIXED_FACTOR_SHAPE, initial
+
+    for first_tensor, repeated_tensor, second_tensor in zip(first, repeated, second, strict=True):
+        assert np.array_equal(first_tensor, repeated_tensor)
+        assert np.allclose(first_tensor, second_tensor, rtol=0.0, atol=1e-8)
+    assert np.max(np.abs(np.log(first[1]))) > 0.1
+    assert np.allclose(np.mean(first[1], axis=0), 1.0, rtol=0.0, atol=5e-13)
+    action_spec = cast(dict[str, object], candidate_specification_manifest()["action_model"])
+    assert action_spec["canonical_objective_version"] == "5.0.0"
+    assert action_spec["equal_well_scale"] == 94_785 / 768
+    assert action_spec["plate_intercept_fit"] == (
+        "all-768-wells-including-treated-and-vehicle-wells"
     )
-    assert np.array_equal(first, second)
-    assert np.all(np.isfinite(first))
+    assert action_spec["terminal_gradient_tolerance"] == 3e-4
+    assert not hasattr(candidate_module, "_fit_dose_block")
+    assert not hasattr(candidate_module, "_dose_objective")
     assert not hasattr(candidate_module, "_solve_gamma_shape")
     assert not hasattr(candidate_module, "_shape_statistics")
 
 
-def test_action_block_receives_only_the_bit_exact_fixed_shape(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
+def test_active_action_context_m_step_rejects_nonpositive_posterior_means() -> None:
     validated = _mini_full_topology()
-    scores = np.tile(np.linspace(2.0, 0.5, 16), (768, 1))
-    observed_shapes: list[float] = []
-
-    def dose_block(
-        _baseline: np.ndarray,
-        _means: np.ndarray,
-        shape: float,
-        initial: np.ndarray,
-    ) -> np.ndarray:
-        observed_shapes.append(shape)
-        return initial
-
-    monkeypatch.setattr(candidate_module, "_fit_dose_block", dose_block)
-    candidate_module._update_action_block(scores, validated)
-    assert len(observed_shapes) == 188 * 16
-    assert {value.hex() for value in observed_shapes} == {"0x1.999999999999ap-4"}
-
-
-def test_dose_newton_numerical_stationarity_is_exactly_bounded() -> None:
-    objective = 100.0
-    threshold = (
-        candidate_module.SCIPLEX3_CANDIDATE_BLOCK_DECREMENT_EPS_MULTIPLIER
-        * np.finfo(np.float64).eps
-        * objective
-    )
-    assert candidate_module._dose_numerically_stationary(threshold, objective)
-    assert not candidate_module._dose_numerically_stationary(
-        np.nextafter(threshold, np.inf), objective
-    )
-    assert not candidate_module._dose_numerically_stationary(-1.0, objective)
-    assert not candidate_module._dose_numerically_stationary(np.inf, objective)
-    action_spec = cast(dict[str, object], candidate_specification_manifest()["action_model"])
-    stationary = cast(dict[str, object], action_spec["newton_numerical_stationarity"])
-    assert stationary["decrement_epsilon_multiplier"] == 64.0
-
-
-def test_real_preflight_dose_block_accepts_only_frozen_numerical_stationarity_route() -> None:
-    baseline = np.asarray(
-        [-0.22813592586453113, -0.22813592586453113, -16.226261752433263, -16.226261752433263]
-    )
-    means = np.asarray(
-        [8.78793098505065e-08, 1.1874999948046873e-07, 9.708333290859374e-08, 2.5035882787842283]
-    )
-    initial = np.asarray(
-        [-16.019165516913258, -15.718109472542128, 0.07856562732365191, 17.143986766746117]
-    )
-    fitted = candidate_module._fit_dose_block(baseline, means, 1.0, initial)
-    assert np.allclose(
-        fitted,
-        [-8.57759897, -1.9922019, 5.73818128, 15.25658825],
-        rtol=0.0,
-        atol=5e-9,
-    )
-    assert candidate_module._dose_objective(fitted, baseline, means, 1.0) == pytest.approx(
-        29.28071187699736, rel=0.0, abs=1e-13
-    )
+    with pytest.raises(SciPlex3CandidateError, match="v5 action/context"):
+        candidate_module._update_action_block(np.zeros((768, 16)), validated)
 
 
 def test_nndsvd_relative_score_floor_is_positive_mass_preserving_and_does_not_floor_b() -> None:
@@ -1227,14 +1304,69 @@ def test_compact_full_topology_executes_sparse_cavi_elbo_and_factor_canonicaliza
         state,
         sufficient,
         updated_loading,
-        next_means,
-        next_delta,
+        candidate_module._v5_action_parameters(next_alpha, next_rho, next_delta),
     )
     assert np.isfinite(elbo)
     basis = updated_loading / np.sum(updated_loading, axis=1, keepdims=True)
     contributions = candidate_module._factor_contributions(next_means)
     order = candidate_module._canonical_factor_order(basis, contributions)
     assert sorted(order.tolist()) == list(range(16))
+
+
+def test_tracked_elbo_parameter_difference_is_v5_q_under_unequal_well_row_counts() -> None:
+    validated = _mini_full_topology()
+    row_counts = tuple(well.counts.row_count for well in validated.wells)
+    assert set(row_counts) == {1, 2}
+    assert sum(row_counts) == validated.record_count == 769
+
+    row = np.arange(validated.record_count, dtype=np.float64)[:, None]
+    factor = np.arange(16, dtype=np.float64)[None, :]
+    state = candidate_module._LocalVariationalState(
+        theta_shape=0.2 + 0.01 * ((row + 2.0 * factor) % 17.0),
+        theta_rate=0.7 + 0.02 * ((3.0 * row + factor) % 13.0),
+    )
+    posterior = np.empty((768, 16), dtype=np.float64)
+    offset = 0
+    for well_index, row_count in enumerate(row_counts):
+        stop = offset + row_count
+        posterior[well_index] = np.mean(
+            state.theta_shape[offset:stop] / state.theta_rate[offset:stop], axis=0
+        )
+        offset = stop
+
+    loading = np.full((16, SCIPLEX3_FEATURE_COUNT), 0.3, dtype=np.float64)
+    sufficient = candidate_module._PassSufficientStatistics(
+        loading_counts=np.zeros_like(loading),
+        well_theta_means=posterior,
+        allocation_entropy=0.0,
+        poisson_factorial=0.0,
+        theta_count_elog=0.0,
+        maximum_inner_sweeps=2,
+        maximum_terminal_shape_residual=0.0,
+        maximum_terminal_elog_residual=0.0,
+        inner_sweep_count_histogram=(0, 768, *([0] * 48)),
+    )
+    alpha_a = np.linspace(-0.2, 0.2, 16, dtype=np.float64)
+    rho_a = np.ones((8, 16), dtype=np.float64)
+    delta_a = np.zeros((188, 4, 16), dtype=np.float64)
+    raw_rho_b = np.exp(0.12 * np.sin(np.arange(8 * 16, dtype=np.float64).reshape(8, 16) / 11.0))
+    rho_b = raw_rho_b / np.mean(raw_rho_b, axis=0, keepdims=True)
+    alpha_b = alpha_a + np.linspace(-0.04, 0.05, 16, dtype=np.float64)
+    delta_b = 0.025 * np.sin(np.arange(188 * 4 * 16, dtype=np.float64).reshape(188, 4, 16) / 29.0)
+    parameters_a = candidate_module._v5_action_parameters(alpha_a, rho_a, delta_a)
+    parameters_b = candidate_module._v5_action_parameters(alpha_b, rho_b, delta_b)
+
+    elbo_a = candidate_module._elbo(validated, state, sufficient, loading, parameters_a)
+    elbo_b = candidate_module._elbo(validated, state, sufficient, loading, parameters_b)
+    objective_design = SciPlex3V5Design(
+        validated.training_well_plate_indices,
+        validated.action_well_indices,
+        validated.vehicle_well_indices,
+    )
+    q_a = fixed_q_full_elbo_action_context(posterior, parameters_a, objective_design)
+    q_b = fixed_q_full_elbo_action_context(posterior, parameters_b, objective_design)
+
+    assert elbo_b - elbo_a == pytest.approx(q_b - q_a, rel=0.0, abs=2e-10)
 
 
 def test_inner_equilibration_preserves_zero_rows_and_requires_two_passing_sweeps() -> None:
@@ -1311,10 +1443,8 @@ def test_internal_numeric_helpers_reject_degenerate_inputs() -> None:
         candidate_module._regularize_nndsvd_initialization(
             np.zeros((1, 16)), np.zeros((16, 2_000)), np.ones(1)
         )
-    with pytest.raises(SciPlex3CandidateError, match="dose block inputs"):
-        candidate_module._fit_dose_block(np.zeros(4), np.zeros(4), 1.0, np.zeros(4))
     with pytest.raises(SciPlex3CandidateError, match="exact declared"):
-        candidate_module._power_normalized_plate_contexts(np.ones((8, 16)), np.nan)
+        candidate_module._factor_shape_for_tau(np.nan)
 
 
 def test_exact_sparse_topology_validation_succeeds_and_retains_seven_zero_rows(
@@ -1384,7 +1514,9 @@ def test_fitter_orchestration_converges_seals_real_summary_and_reloads(
     histogram = (0, 768, *([0] * 48))
     call_order: list[str] = []
 
-    def action_block(*_: object) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+    def action_block(
+        *_: object, **__: object
+    ) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
         call_order.append("M")
         return alpha.copy(), rho.copy(), delta.copy(), well_means.copy()
 
