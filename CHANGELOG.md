@@ -244,6 +244,17 @@ describes the state of that work when it was written, not the current plan.
   documents, and the guides so that each states the object the project computes and defers to the
   roadmap for status; mark the retired and suspended work historical wherever it was written in the
   present tense.
+- Repair the Phase 1 completion condition
+  ([ADR 0014](docs/adr/0014-phase-1-completion-condition.md)). As written by ADR 0013, queue item
+  `Q1` and the first bullet of the Phase 1 graduation gate quantified over metric suites frozen under
+  the current roadmap, of which there are none and will be none before `Q5`; both were satisfied by
+  construction with no metric implementation written. Bind the condition instead to the frozen
+  sci-Plex3 metric-suite specification, to be enforced by a conformance test that resolves every
+  declared `metric_id`. Move the multiway clustered bootstrap the suite declares into `Q1`, where
+  both faithfulness harnesses can take their intervals from one estimator. Leave the frozen benchmark
+  artifact unchanged and defer the decision to re-version it with executable bindings to `Q3`, the
+  first item that would run the implementations against the frozen partitions. Correct the count of
+  the frozen suite: three `family` values across ten metrics, not "five metric families."
 
 ## 0.1.0 - Unreleased
 

@@ -68,7 +68,8 @@ These apply to every phase.
    by `tests/test_roadmap_queue_contract.py`.
 4. **Order changes require an ADR.** Any change to phase order, to the ledger, or to a graduation
    gate is a decision record, contemporaneous with the change. Rule 4 is satisfied for this
-   reordering by [ADR 0013](adr/0013-state-first-roadmap-reordering.md).
+   reordering by [ADR 0013](adr/0013-state-first-roadmap-reordering.md), and for the Phase 1
+   completion condition by [ADR 0014](adr/0014-phase-1-completion-condition.md).
 5. **Every model declares its scope.** Query family, system boundary, assays, interventions,
    environments, horizons, and out-of-support and abstention behavior, in a registered model card
    alongside its data card.
@@ -144,16 +145,22 @@ numbers; the only prior measurements are failed-fit diagnostics from a retired c
 
 Deliverables:
 
-- Executable metric implementations replacing every specification-only entry: sample CRPS, energy
-  score, interval coverage and width, and treatment-minus-matched-control effect error. Each with a
-  golden fixture and a validated numerical reference.
+- Executable metric implementations resolving every `metric_id` declared by the frozen sci-Plex3
+  metric-suite specification: sample CRPS, energy score, marginal coverage error, marginal interval
+  width, vehicle-relative pseudobulk effect error, and the equal-compound four-dose profile
+  diagnostic. Each with a golden fixture and an independently derived numerical reference.
+- The multiway clustered bootstrap those metrics declare, at the configuration the frozen suite
+  specifies: resampling over the compound and plate dependence units jointly, 2,000 resamples, a
+  0.95 interval. Every metric in that suite binds this estimator, and the sufficiency and calibration
+  harnesses take their intervals from it rather than reimplementing it.
 - At least one differential-expression-weighted metric and one rank-based metric in every metric
   suite frozen from this phase onward. Marginal error and all-gene correlation are maximized by
   predicting no change and must not stand alone. The sci-Plex3 suite frozen by
-  [ADR 0008](adr/0008-sciplex3-k562-component-benchmark.md) is not retrofitted: its five metric
-  families stay as frozen, and it serves only as the implementation proving ground.
-- A predictive-sufficiency harness: paired `M1`/`M2` predictors with declared equal capacity, a
-  multiway bootstrap grouped at the declared split unit, a confidence interval on the history
+  [ADR 0008](adr/0008-sciplex3-k562-component-benchmark.md) is not retrofitted: its ten metrics
+  across three families stay as frozen, and it serves only as the implementation proving ground and
+  as the specification the implementations are conformance-tested against.
+- A predictive-sufficiency harness: paired `M1`/`M2` predictors with declared equal capacity, the
+  multiway bootstrap above grouped at the declared split unit, a confidence interval on the history
   information gain, and null calibration on a case where the true answer is known.
 - A calibration harness reporting absolute coverage error with an upper confidence bound.
 - The serialized-contract changes these require: a grouped-bootstrap interval on `SufficiencyReport`
@@ -162,7 +169,11 @@ Deliverables:
 
 Graduation gate:
 
-- No metric suite frozen under this roadmap contains a specification-only entry.
+- Every `metric_id` declared by the frozen sci-Plex3 metric-suite specification, and the uncertainty
+  method they bind, resolves to an executable implementation with a golden fixture. A conformance
+  test reads that specification and fails on any entry that does not resolve. Separately, no metric
+  suite frozen under this roadmap contains a specification-only entry — a constraint that first binds
+  at `Q5`, since no such suite exists yet.
 - The sufficiency harness returns the correct verdict, with an interval, on two synthetic designs:
   one where the state is sufficient by construction and one where it is not.
 - A scoreboard exists in which every baseline applicable to the proving-ground query has been scored
@@ -451,16 +462,26 @@ Each item names the ledger capabilities it advances. Items are worked in order. 
 content-addressed manifests and must not be reused. The queue extends through Phase 4; Phases 5–8 are
 not yet decomposed into items and must not be started from prose.
 
-1. **`Q1` — implement the metric suite.** [S6, S9] Sample CRPS, energy score, interval coverage and
-   width, and matched-control effect error, each with a golden fixture and a numerical reference. Add
-   a differential-expression-weighted metric and a rank-based metric for suites frozen from here on.
-   *Files:* new `src/cellstate/evaluation/metrics.py`; port kinds at
-   `src/cellstate/backends/contracts.py`; suite gate at `src/cellstate/data/benchmarks.py`.
-   *Done when:* no suite frozen under this roadmap resolves any entry to
-   `PortImplementationKind.SPECIFICATION_ONLY`, and `make check` is green.
+1. **`Q1` — implement the metric suite and its interval estimator.** [S6, S9] Sample CRPS, energy
+   score, marginal coverage error, marginal interval width, vehicle-relative pseudobulk effect error,
+   and the equal-compound four-dose profile diagnostic — the six distinct computations behind the ten
+   `metric_id` entries the frozen sci-Plex3 suite declares — plus the multiway clustered bootstrap
+   every one of them binds. Each with a golden fixture and an independently derived numerical
+   reference; the bootstrap's reference is a design whose interval is known analytically, never a
+   recorded output of the implementation under test. Add a differential-expression-weighted metric and
+   a rank-based metric for suites frozen from here on.
+   *Files:* new `src/cellstate/evaluation/metrics.py` and
+   `src/cellstate/evaluation/bootstrap.py`; port kinds at `src/cellstate/backends/contracts.py`;
+   suite gate at `src/cellstate/data/benchmarks.py`.
+   *Done when:* a conformance test reads
+   `benchmarks/vertical-a/sciplex3-k562-24h-v1/support/metric-suite-spec.json` and resolves every
+   `metric_id` it declares, and the uncertainty method they bind, to an executable implementation —
+   failing on any entry that does not resolve — and `make check` is green. The frozen benchmark
+   artifact's own bindings stay `specification_only`; re-versioning it is `Q3`'s decision, per
+   [ADR 0014](adr/0014-phase-1-completion-condition.md).
 2. **`Q2` — implement the sufficiency and calibration harnesses.** [S7, S6] Paired `M1`/`M2`
-   predictors with declared equal capacity, multiway bootstrap grouped at the split unit, a confidence
-   interval on the history information gain, and null calibration. This requires adding a
+   predictors with declared equal capacity, `Q1`'s multiway bootstrap grouped at the split unit, a
+   confidence interval on the history information gain, and null calibration. This requires adding a
    grouped-bootstrap interval to `SufficiencyReport` and a coverage-error upper bound to the
    calibration report; both are serialized-contract changes needing a schema-version decision,
    regenerated JSON Schemas, and round-trip tests before any harness is written.
@@ -475,7 +496,9 @@ not yet decomposed into items and must not be started from prose.
    baseline-versus-baseline scoring with no candidate model in the loop, or moves the floor
    measurement onto the Phase 2 estimand. Until that ADR lands, `Q3` is blocked and `Q4` and `Q5`
    proceed first. Persistence and temporal state-space are inapplicable to this query and
-   unimplemented; any scoreboard produced here must say so on its face.
+   unimplemented; any scoreboard produced here must say so on its face. This is also the item that
+   decides whether to publish `benchmark_version` `1.1.0` of the frozen artifact with executable
+   metric bindings, since it is the first that would run them against the frozen partitions.
 4. **`Q4` — review and manifest the state-bearing source.** [S1, S3] Produce the reviewed manifest and
    representability assessment for `GSE274113`, including exact byte identity, license and use terms,
    library structure, and per-claim eligibility. Record the number of independent parent cultures, the
