@@ -6,7 +6,7 @@ from .bootstrap import (
     small_cluster_scale,
     weighted_mean,
 )
-from .calibration import empirical_interval_coverage
+from .calibration import empirical_interval_coverage, evaluate_marginal_calibration
 from .metrics import (
     METRIC_IMPLEMENTATIONS,
     MetricImplementation,
@@ -21,12 +21,18 @@ from .metrics import (
     profile_rmse,
     sample_crps,
 )
-from .sufficiency import evaluate_history_information_gain
+from .sufficiency import (
+    PredictorCapacity,
+    evaluate_history_information_gain,
+    evaluate_predictive_sufficiency,
+    fit_paired_ridge_losses,
+)
 
 __all__ = [
     "METRIC_IMPLEMENTATIONS",
     "BootstrapInterval",
     "MetricImplementation",
+    "PredictorCapacity",
     "central_interval",
     "differential_expression_weighted_rmse",
     "effect_rank_agreement",
@@ -34,6 +40,9 @@ __all__ = [
     "energy_score",
     "equal_group_mean",
     "evaluate_history_information_gain",
+    "evaluate_marginal_calibration",
+    "evaluate_predictive_sufficiency",
+    "fit_paired_ridge_losses",
     "marginal_coverage_error",
     "marginal_interval_coverage",
     "marginal_interval_width",

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import pytest
+from conftest import bootstrap_interval_factory
 
 from cellstate.domain import CriterionOutcome, EvaluationStatus
 from cellstate.evaluation import empirical_interval_coverage, evaluate_history_information_gain
@@ -13,6 +14,7 @@ def test_history_information_gain_reports_incomplete_state() -> None:
         state_plus_history_loss=0.5,
         tolerance=0.1,
         metric="negative_log_likelihood",
+        interval=bootstrap_interval_factory(0.5),
     )
     assert report.evaluation_status is EvaluationStatus.EVALUATED
     assert report.outcome is CriterionOutcome.FAILED

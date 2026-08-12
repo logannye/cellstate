@@ -42,4 +42,5 @@ nav:
       - sci-Plex3 p1-trained candidate: adr/0012-sciplex3-p1-trained-candidate.md
       - State-first roadmap reordering: adr/0013-state-first-roadmap-reordering.md
       - Phase 1 completion condition: adr/0014-phase-1-completion-condition.md
+      - Reports carry their sampling distribution: adr/0015-faithfulness-reports-carry-their-sampling-distribution.md
 strict: true

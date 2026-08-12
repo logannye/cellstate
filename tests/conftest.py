@@ -17,6 +17,7 @@ from cellstate import (
     SystemBoundary,
     Timescale,
 )
+from cellstate.domain.common import BootstrapInterval
 from cellstate.domain.events import (
     ActualPerturbation,
     AssayMetadata,
@@ -69,6 +70,41 @@ from cellstate.domain.subjects import (
 from cellstate.reference import LinearGaussianReference, minimal_reference_config
 
 SYNTHETIC_TEST_OPTIONS = InferenceOptions()
+
+
+def bootstrap_interval_factory(
+    point_estimate: float = 0.0,
+    *,
+    half_width: float = 1.0,
+    cluster_counts: tuple[int, ...] = (12, 6),
+) -> BootstrapInterval:
+    """A structurally valid interval for contract tests.
+
+    Its numbers are not a measurement.  Tests that care about the interval's statistical behavior
+    use the estimator itself; this exists so contract tests can construct an evaluated report
+    without reimplementing the bootstrap.
+    """
+
+    return BootstrapInterval(
+        point_estimate=point_estimate,
+        lower=point_estimate - half_width,
+        upper=point_estimate + half_width,
+        percentile_lower=point_estimate - half_width / 2,
+        percentile_upper=point_estimate + half_width / 2,
+        small_cluster_scale=2.0,
+        standard_error=half_width / 2,
+        confidence_level=0.95,
+        resample_count=2000,
+        evaluation_unit_count=48,
+        resampling_scheme="multiway_clustered",
+        interval_method="equal_tailed_percentile_small_cluster_scaled",
+        dependence_dimension_ids=("compound", "plate"),
+        cluster_counts=cluster_counts,
+        degenerate_resample_count=0,
+        seed=0,
+        rng_algorithm="numpy-pcg64dxsm-v1",
+        implementation_version="1.0.0",
+    )
 
 
 def subject_factory(

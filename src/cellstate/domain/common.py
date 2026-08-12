@@ -410,3 +410,53 @@ class ProvenanceRecord(SchemaModel):
         """Evidence IDs available to scientific support, causal, and transport claims."""
 
         return frozenset((*self.source_event_ids, *self.validation_evidence_ids))
+
+
+class BootstrapInterval(SchemaModel):
+    """The sampling distribution of one statistic under a declared dependence structure.
+
+    Produced by :func:`cellstate.evaluation.bootstrap.multiway_clustered_bootstrap` and carried by
+    the reports that state a verdict.  It lives here rather than beside the estimator because it is
+    a serialized boundary object, and ``domain`` may not depend on ``evaluation``.
+    """
+
+    point_estimate: float
+    lower: float
+    upper: float
+    percentile_lower: float
+    percentile_upper: float
+    small_cluster_scale: float
+    standard_error: float
+    confidence_level: float
+    resample_count: int
+    evaluation_unit_count: int
+    resampling_scheme: Literal["multiway_clustered"]
+    interval_method: Literal["equal_tailed_percentile_small_cluster_scaled"]
+    dependence_dimension_ids: tuple[str, ...]
+    cluster_counts: tuple[int, ...]
+    degenerate_resample_count: int
+    seed: int
+    rng_algorithm: str
+    implementation_version: str
+
+    @property
+    def excludes_zero(self) -> bool:
+        """Whether the interval separates the statistic from zero in either direction.
+
+        This is the predicate a superiority claim rests on.  It is a property rather than a
+        stored field so that it is recomputed from the reported endpoints and cannot be asserted
+        independently of them.
+        """
+
+        return self.lower > 0.0 or self.upper < 0.0
+
+    @property
+    def width(self) -> float:
+        return self.upper - self.lower
+
+    @property
+    def minimum_cluster_count(self) -> int:
+        """The smallest cluster count across dimensions, which governs how much this interval
+        can be trusted.  An interval built on a handful of clusters is wide for a reason."""
+
+        return min(self.cluster_counts)

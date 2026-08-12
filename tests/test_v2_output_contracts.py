@@ -3,7 +3,7 @@ from __future__ import annotations
 from uuid import uuid4
 
 import pytest
-from conftest import intervention_spec_factory
+from conftest import bootstrap_interval_factory, intervention_spec_factory
 from pydantic import ValidationError
 
 from cellstate.domain.belief import (
@@ -298,6 +298,7 @@ def _passing_diagnostics(dimensions: tuple[str, ...]) -> BeliefDiagnostics:
             state_only_loss=1.0,
             state_plus_history_loss=0.95,
             history_information_gain=0.05,
+            history_information_gain_interval=bootstrap_interval_factory(0.05),
             markov_sufficiency_score=0.95,
             maximum_history_information_gain=0.1,
             metric="negative_log_likelihood",
@@ -326,6 +327,7 @@ def _passing_diagnostics(dimensions: tuple[str, ...]) -> BeliefDiagnostics:
             empirical_coverage=0.9,
             minimum_coverage=0.8,
             calibration_error=0.05,
+            calibration_error_upper_bound=0.05,
             maximum_calibration_error=0.1,
         ),
         causal_support=CausalSupportReport(
@@ -1117,6 +1119,7 @@ def test_sufficiency_reports_bind_loss_improvement_to_the_declared_threshold() -
         state_only_loss=1.0,
         state_plus_history_loss=0.7,
         history_information_gain=0.3,
+        history_information_gain_interval=bootstrap_interval_factory(0.3),
         markov_sufficiency_score=0.4,
         maximum_history_information_gain=0.1,
     )
@@ -1129,6 +1132,7 @@ def test_sufficiency_reports_bind_loss_improvement_to_the_declared_threshold() -
             state_only_loss=1.0,
             state_plus_history_loss=0.95,
             history_information_gain=0.01,
+            history_information_gain_interval=bootstrap_interval_factory(0.01),
             markov_sufficiency_score=0.9,
             maximum_history_information_gain=0.1,
         )
@@ -1183,6 +1187,7 @@ def test_diagnostic_scores_cannot_disagree_with_scientific_outcomes() -> None:
             empirical_coverage=0.7,
             minimum_coverage=0.8,
             calibration_error=0.05,
+            calibration_error_upper_bound=0.05,
             maximum_calibration_error=0.1,
         )
     with pytest.raises(ValidationError, match="must be disjoint"):

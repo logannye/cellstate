@@ -12,6 +12,7 @@ from pydantic import Field, JsonValue, field_validator, model_validator
 
 from .common import (
     SCHEMA_VERSION,
+    BootstrapInterval,
     CausalStatus,
     CriterionOutcome,
     EvidenceStatus,
@@ -257,6 +258,7 @@ class SufficiencyReport(SchemaModel):
     history_information_gain: float | None = None
     markov_sufficiency_score: float | None = Field(default=None, ge=0, le=1)
     maximum_history_information_gain: float = Field(ge=0)
+    history_information_gain_interval: BootstrapInterval | None = None
     metric: str | None = None
     residual_predictive_history_features: tuple[str, ...] = ()
     suspected_missing_state_variables: tuple[str, ...] = ()
@@ -281,7 +283,19 @@ class SufficiencyReport(SchemaModel):
             value is not None for value in values
         ):
             raise ValueError("an unevaluated sufficiency report must not contain numeric sentinels")
+        if (
+            self.evaluation_status is not EvaluationStatus.EVALUATED
+            and self.history_information_gain_interval is not None
+        ):
+            raise ValueError("an unevaluated sufficiency report cannot carry an interval")
         if self.evaluation_status is EvaluationStatus.EVALUATED:
+            # A gain without a sampling distribution grouped at the independent experimental unit
+            # is a number, not a verdict.  See ADR 0015.
+            if self.history_information_gain_interval is None:
+                raise ValueError(
+                    "an evaluated sufficiency report requires a grouped bootstrap interval on the "
+                    "history information gain"
+                )
             state_only = require_finite(cast(float, self.state_only_loss), name="state-only loss")
             state_plus_history = require_finite(
                 cast(float, self.state_plus_history_loss), name="state-plus-history loss"
@@ -296,6 +310,11 @@ class SufficiencyReport(SchemaModel):
                 raise ValueError(
                     "history information gain must equal state-only loss minus "
                     "state-plus-history loss"
+                )
+            interval = self.history_information_gain_interval
+            if not math.isclose(interval.point_estimate, gain, rel_tol=1e-9, abs_tol=1e-12):
+                raise ValueError(
+                    "the interval must be the sampling distribution of the reported gain"
                 )
             expected = CriterionOutcome.PASSED if gain <= threshold else CriterionOutcome.FAILED
             if self.outcome is not expected:
@@ -482,7 +501,9 @@ class CalibrationReport(SchemaModel):
     empirical_coverage: float | None = Field(default=None, ge=0, le=1)
     minimum_coverage: float = Field(ge=0, le=1)
     calibration_error: float | None = Field(default=None, ge=0)
+    calibration_error_upper_bound: float | None = Field(default=None, ge=0)
     maximum_calibration_error: float = Field(ge=0)
+    coverage_interval: BootstrapInterval | None = None
     metric: str | None = None
     notes: tuple[str, ...] = ()
 
@@ -492,21 +513,39 @@ class CalibrationReport(SchemaModel):
         values = (
             self.empirical_coverage,
             self.calibration_error,
+            self.calibration_error_upper_bound,
         )
         if self.evaluation_status is EvaluationStatus.EVALUATED and any(
             value is None for value in values
         ):
-            raise ValueError("evaluated calibration requires coverage and its threshold")
+            raise ValueError(
+                "evaluated calibration requires coverage, its error, and an upper confidence "
+                "bound on that error"
+            )
         if self.evaluation_status is not EvaluationStatus.EVALUATED and any(
             value is not None for value in values
         ):
             raise ValueError("unevaluated calibration cannot use numeric sentinels")
+        if (
+            self.evaluation_status is not EvaluationStatus.EVALUATED
+            and self.coverage_interval is not None
+        ):
+            raise ValueError("an unevaluated calibration report cannot carry an interval")
         if self.evaluation_status is EvaluationStatus.EVALUATED:
+            error = require_finite(cast(float, self.calibration_error), name="calibration error")
+            bound = require_finite(
+                cast(float, self.calibration_error_upper_bound),
+                name="calibration error upper bound",
+            )
+            if bound < error:
+                raise ValueError("an upper confidence bound cannot lie below the error it bounds")
+            # S6 asks whether the coverage error is within threshold as an upper bound.  A point
+            # estimate inside the threshold with a bound outside it is not a pass.  See ADR 0015.
             expected = (
                 CriterionOutcome.PASSED
                 if (
                     cast(float, self.empirical_coverage) >= self.minimum_coverage
-                    and cast(float, self.calibration_error) <= self.maximum_calibration_error
+                    and bound <= self.maximum_calibration_error
                 )
                 else CriterionOutcome.FAILED
             )

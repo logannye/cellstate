@@ -58,7 +58,7 @@ import numpy as np
 from numpy.typing import NDArray
 from scipy import stats
 
-from cellstate.domain.common import SchemaModel
+from cellstate.domain.common import BootstrapInterval
 
 BOOTSTRAP_IMPLEMENTATION_VERSION: Final = "1.0.0"
 RNG_ALGORITHM: Final[Literal["numpy-pcg64dxsm-v1"]] = "numpy-pcg64dxsm-v1"
@@ -82,6 +82,20 @@ FROZEN_SCIPLEX3_DEPENDENCE_DIMENSIONS: Final = ("compound", "plate")
 
 Statistic = Callable[[NDArray[np.float64], NDArray[np.float64]], float]
 
+__all__ = [
+    "BOOTSTRAP_IMPLEMENTATION_VERSION",
+    "FROZEN_SCIPLEX3_CONFIDENCE_LEVEL",
+    "FROZEN_SCIPLEX3_DEPENDENCE_DIMENSIONS",
+    "FROZEN_SCIPLEX3_RESAMPLE_COUNT",
+    "INTERVAL_METHOD",
+    "RESAMPLING_SCHEME",
+    "RNG_ALGORITHM",
+    "BootstrapInterval",
+    "multiway_clustered_bootstrap",
+    "small_cluster_scale",
+    "weighted_mean",
+]
+
 
 def small_cluster_scale(*, minimum_cluster_count: int, confidence_level: float) -> float:
     """The factor by which each endpoint's distance from the point estimate is inflated.
@@ -99,51 +113,6 @@ def small_cluster_scale(*, minimum_cluster_count: int, confidence_level: float) 
     if not math.isfinite(student_quantile) or normal_quantile <= 0.0:
         raise ValueError("the small-cluster scale is undefined at this confidence level")
     return student_quantile / normal_quantile
-
-
-class BootstrapInterval(SchemaModel):
-    """The sampling distribution of one statistic under a declared dependence structure."""
-
-    point_estimate: float
-    lower: float
-    upper: float
-    percentile_lower: float
-    percentile_upper: float
-    small_cluster_scale: float
-    standard_error: float
-    confidence_level: float
-    resample_count: int
-    evaluation_unit_count: int
-    resampling_scheme: Literal["multiway_clustered"]
-    interval_method: Literal["equal_tailed_percentile_small_cluster_scaled"]
-    dependence_dimension_ids: tuple[str, ...]
-    cluster_counts: tuple[int, ...]
-    degenerate_resample_count: int
-    seed: int
-    rng_algorithm: str
-    implementation_version: str
-
-    @property
-    def excludes_zero(self) -> bool:
-        """Whether the interval separates the statistic from zero in either direction.
-
-        This is the predicate a superiority claim rests on.  It is a property rather than a
-        stored field so that it is recomputed from the reported endpoints and cannot be asserted
-        independently of them.
-        """
-
-        return self.lower > 0.0 or self.upper < 0.0
-
-    @property
-    def width(self) -> float:
-        return self.upper - self.lower
-
-    @property
-    def minimum_cluster_count(self) -> int:
-        """The smallest cluster count across dimensions, which governs how much this interval
-        can be trusted.  An interval built on a handful of clusters is wide for a reason."""
-
-        return min(self.cluster_counts)
 
 
 def weighted_mean(values: NDArray[np.float64], weights: NDArray[np.float64]) -> float:

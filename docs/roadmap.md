@@ -14,9 +14,9 @@ one, is not on this roadmap.
 evaluation design, including the formal estimand and the belief-subject semantics. This file defines
 implementation order and graduation gates, and is the sole authority for both.
 
-**If you are starting work:** the active phase is Phase 1 and the next action is item `Q2` of the
-[implementation queue](#implementation-queue); `Q1` is delivered. Everything before the phase list is
-the standard that work is held to, not work.
+**If you are starting work:** the active phase is Phase 1 and the next action is item `Q4` of the
+[implementation queue](#implementation-queue); `Q1` and `Q2` are delivered and `Q3` is blocked.
+Everything before the phase list is the standard that work is held to, not work.
 
 ## What "faithful" means here
 
@@ -69,7 +69,9 @@ These apply to every phase.
 4. **Order changes require an ADR.** Any change to phase order, to the ledger, or to a graduation
    gate is a decision record, contemporaneous with the change. Rule 4 is satisfied for this
    reordering by [ADR 0013](adr/0013-state-first-roadmap-reordering.md), and for the Phase 1
-   completion condition by [ADR 0014](adr/0014-phase-1-completion-condition.md).
+   completion condition by [ADR 0014](adr/0014-phase-1-completion-condition.md). The serialized
+   contracts the faithfulness tests report through are decided by
+   [ADR 0015](adr/0015-faithfulness-reports-carry-their-sampling-distribution.md).
 5. **Every model declares its scope.** Query family, system boundary, assays, interventions,
    environments, horizons, and out-of-support and abstention behavior, in a registered model card
    alongside its data card.
@@ -415,11 +417,13 @@ required before any operational biological claim.
 ## Current status
 
 - **Phase 0:** complete.
-- **Phase 1:** active. `Q1` is delivered: every `metric_id` the frozen sci-Plex3 suite declares
-  resolves to an implementation, and the multiway clustered bootstrap those metrics bind is
-  implemented and its coverage measured. The sufficiency and calibration functions still have no
-  caller outside tests and still return no interval; no baseline has been scored against any other;
-  the observational floor is unmeasured.
+- **Phase 1:** active. `Q1` and `Q2` are delivered. Every `metric_id` the frozen sci-Plex3 suite
+  declares resolves to an implementation; the multiway clustered bootstrap those metrics bind is
+  implemented and its coverage measured; and both faithfulness tests now execute, return an
+  interval, and are enforced by their serialized contracts. **The project can recognize a faithful
+  representation, which it could not before.** What it has not done is apply the tests to biology:
+  no baseline has been scored against any other, the observational floor is unmeasured, and no
+  belief has been emitted by a biological model.
 
   Two results from `Q1` bear on later items. First, the frozen benchmark's untouched-test partition
   contains **four plates** and 95 compounds across 384 wells, computed from its membership arrays.
