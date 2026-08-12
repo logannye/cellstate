@@ -1,6 +1,10 @@
 # ADR 0008: freeze the first Vertical A component benchmark
 
-- **Status:** Accepted
+- **Status:** Accepted; the frozen benchmark definition stands as written. Its component was
+  reclassified off the state path by [ADR 0013](0013-state-first-roadmap-reordering.md), which
+  retains the partitions, split discipline, leakage review, and golden fixtures as infrastructure
+  and as the Phase 1 metric proving ground. The remaining admission work described under
+  "Admission boundary" below is no longer scheduled
 - **Date:** 2026-08-09
 - **Decision owners:** cellstate maintainers
 - **Scope:** Vertical A query and benchmark semantics

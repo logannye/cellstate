@@ -2,13 +2,21 @@
 
 ## Mission
 
-`cellstate` estimates a query-conditioned probability distribution over hidden, causally relevant
-cellular state. It is a belief-state and forecasting system, not a cell-labeler, embedding service,
-or claim that one universal minimal cellular state exists.
+This project builds one thing: a system that computes a faithful and accurate representation of
+hidden cellular state. `cellstate` estimates a query-conditioned probability distribution over
+hidden, causally relevant cellular state and forecasts its future under declared interventions. It
+is not a cell-labeler, an embedding service, or a claim that one universal minimal cellular state
+exists.
 
-The repository currently contains backend-neutral contracts and a deliberately narrow
-linear-Gaussian reference backend. That backend is for software and contract validation only. It is
-not a biologically or clinically validated cell model.
+Everything else here — contracts, schemas, manifests, admission machinery, benchmark tooling,
+containment, runtime infrastructure — is instrumental. None of it is an end, and work that advances
+no state capability is not scheduled. A change that presents instrumental work as the project's
+substance is misaligned regardless of how well it is engineered.
+
+The repository currently contains backend-neutral contracts, dataset and benchmark admission
+machinery, and a deliberately narrow linear-Gaussian reference backend. That backend is for
+software and contract validation only. It is not a biologically or clinically validated cell
+model.
 
 ## Architectural invariants
 
@@ -55,11 +63,16 @@ not a biologically or clinically validated cell model.
 - Maintain frozen tests for held-out future times, doses, interventions/mechanisms, combinations,
   donors/cell lines, environments, lineages, modalities, and entire external studies.
 - Evaluate future-target proper scores, calibration, intervention effects, predictive sufficiency,
-  OOD risk/coverage, and decision regret. UMAP or cluster appearance is not core validation.
-- Compare against persistence, matched-control, perturbation-mean, nearest-condition, simple linear
-  or hierarchical models, and other query-appropriate baselines.
+  out-of-support risk-coverage, and decision regret. UMAP or cluster appearance is not core
+  validation.
+- Beat the observational floor: persistence, matched control, condition mean, nearest condition,
+  pseudobulk GLM, and simple hierarchical and low-rank baselines, each individually, with an
+  interval that excludes zero. The mandatory set is ledger entry `S9` in `docs/roadmap.md`; do not
+  restate a shorter list here.
 - Test predictive sufficiency by comparing equally capable predictors using belief-only versus
-  belief-plus-raw-history inputs. Narrow the query or expand the state when history still helps.
+  belief-plus-raw-history inputs. The gain must carry a bootstrap interval grouped at the declared
+  independent experimental unit; a gain reported without an interval is not a verdict. Narrow the
+  query or expand the state when history still helps.
 - Report causal status explicitly: associative, identified population effect, transported under
   stated assumptions, mechanistic extrapolation, or unsupported.
 
@@ -109,5 +122,14 @@ model.
   before changing subject or sampling semantics.
 - Preserve user changes in a dirty worktree. Keep changes focused and add acceptance tests in
   proportion to scientific and software risk.
+- Name the ledger capabilities a change advances. A change that advances none is not scheduled.
+  A commit that amends the roadmap may not also implement the work it authorizes. A change to phase
+  order, to the ledger, or to a graduation gate requires a contemporaneous ADR.
+- Cite artifacts and ADRs, never roadmap queue IDs, in any document other than `docs/roadmap.md`.
+  Queue IDs are ordinals in the current queue and are not stable identifiers; the historical
+  Item 1-12 numbering is bound into content-addressed manifests and must never be reused.
+- Treat `audits/`, `benchmarks/`, `data_manifests/`, and `containers/` as frozen evidence, and
+  accepted ADRs and `CHANGELOG.md` entries as historical records. Amend an ADR's Status line;
+  never rewrite its body or its decision.
 - Prefer manifest-driven, reproducible workflows. Record assumptions and support limits in model
   and dataset cards rather than leaving them implicit in notebooks.

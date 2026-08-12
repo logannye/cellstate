@@ -1,5 +1,11 @@
 # Biological model bundles and support ports
 
+This machinery exists for one reason: a representation of cellular state must not be able to claim
+support it has not earned. It is a gate, not a result. Nothing in this repository has passed it — no
+biological backend is registered, no bundle has advanced past `SCAFFOLD`, and no benchmark is
+scientifically admitted. What follows describes what a future state backend would have to satisfy
+before any consumer may depend on it.
+
 Biological execution is authorized by an exact collection of artifacts and runtime observations,
 never by a model name, a caller-set `validated` flag, or a serialized receipt alone. The
 experimental contracts in `cellstate.backends` bind a query, benchmark, support envelope, training
@@ -7,8 +13,8 @@ run, model artifact, validation evidence, every internal stage port, and every p
 implementation by content hash. The trusted admission boundary then rebinds those declarations to
 the bytes and objects actually observed.
 
-An incomplete artifact is valid to serialize. It remains non-runnable. This is how the first
-sci-Plex3 implementation can exist honestly as a scaffold without creating a biological
+An incomplete artifact is valid to serialize. It remains non-runnable. This is how the sci-Plex3
+implementation can exist honestly as a scaffold without creating a biological
 `EstimatorDescriptor` or returning a `CellStateBelief`.
 
 ## Port map
@@ -112,7 +118,13 @@ reasons, the required-port union, missing or extra envelope ports, unavailable d
 scope issues. Admission recompiles the report from source objects and requires structural
 satisfaction; a stale or caller-edited report fails.
 
-### P1-only trained-candidate boundary
+### P1-only trained-candidate boundary (historical)
+
+This subsection describes machinery built for the rank-16 continuous admixture candidate family. No
+candidate ever reached `TRAINED_CANDIDATE`, and
+[ADR 0013](../adr/0013-state-first-roadmap-reordering.md) retires that family for the state path. The
+contracts are retained and described here because they still constrain what any future trained
+candidate may claim; no work against them is scheduled.
 
 Training uses a smaller trust surface than full admission so fitting cannot resolve protected
 held-out expression/raw-count values or endpoints or acquire lifecycle authority, or create a
@@ -149,7 +161,8 @@ expand public benchmark p2/p3/p4 membership and cases, protected outcomes, or la
 implementations.
 
 Those semantic and artifact flags do not imply that the physical H5AD can be partition-isolated.
-The Item 12.3 source contract requires the monolithic asset to be transferred and snapshotted whole
+The suspended protected-execution source contract requires the monolithic asset to be transferred
+and snapshotted whole
 and the complete source-axis selector metadata, including held-out selectors, to be decoded so the
 exact `p1-train` rows can be resolved. Expression/raw-count decoding remains restricted to `p1`;
 held-out expression/count values, endpoints, outcomes, scoring, and lifecycle authority remain
@@ -223,7 +236,13 @@ requested public operation to be declared, implemented, evidenced, and admitted 
 `build_admitted_estimator_descriptor` can bridge only a full bundle admitted specifically for
 `estimate_cell_state`.
 
-## First component boundary
+## The sci-Plex3 population-response component boundary
+
+[ADR 0013](../adr/0013-state-first-roadmap-reordering.md) reclassifies this component off the state
+path: its estimand has no admissible pre-cutoff observation and one horizon, so it cannot carry a
+sufficiency verdict and advances no state capability. It is retained as data, split, and
+metric-proving infrastructure, and its benchmark remains `COMPONENT_BENCHMARK`, not admitted. The
+boundary below is what keeps it from claiming more than it measured.
 
 The sci-Plex3 K562 24-hour task is a direct population assay-response component:
 
@@ -236,27 +255,29 @@ are endpoint comparators. Neither is a pre-cutoff observation or a prior over hi
 The component therefore registers none of the four public cell-state operations, has no biological
 `EstimatorDescriptor`, and cannot emit a current-state belief.
 
-Item 10 supplies the trusted admission machinery. Item 11 separately supplies the immutable p1-only
-loader, exact training scan, and six mandatory fitted baseline-state identities; it does not supply
-the trained-candidate factory/interface, a candidate model, or lifecycle evidence. Neither item
-supplies prediction runs, metrics, performance evidence, or an admitted benchmark. Candidate
-revisions v1 through v4 all failed closed without issuing a model or lifecycle result.
+[ADR 0010](../adr/0010-trusted-admission-verification.md) records the trusted admission machinery.
+[ADR 0011](../adr/0011-sciplex3-p1-loader-and-baselines.md) records the immutable p1-only loader, the
+exact training scan, and six fitted baseline-state identities; it supplies no trained-candidate
+factory or interface, no candidate model, and no lifecycle evidence. Neither supplies prediction
+runs, metrics, performance evidence, or an admitted benchmark, and the six fitted baselines have
+never been scored against one another. Candidate revisions v1 through v4 all failed closed without
+issuing a model or lifecycle result.
 
-Item 12.2 has completed the source-free v5 software boundary: one exact equal-well
-objective and compatible all-well M-step; independent gradient, Hessian, and nondecrease checks;
-exact-positive request-level sampling through 512 draws under a global `2^-64` conditional signed-
-`int64` tail budget; immutable-generation atomic publication and recovery; exact code, mounted-
-input, and staged-output closure; reproducible Linux `amd64` OCI identities; and parent-owned
-whole-container wall/memory and host-effective UID/GID containment. It opened no protected source,
-ran no real-`p1` fit, and issued no candidate artifact, plan, observation, evidence, or lifecycle
-result. The clean-final OCI archive is byte-identical across three independent native and emulated
-builder environments under frozen inputs and toolchain and excludes build-host caches; its builder
-identity is frozen in the workflow and runtime lock. The checked-in sci-Plex3 component therefore
-remains `SCAFFOLD` and non-executable. **Suspended.** Item 12.3's source-free proposal-construction, one-use
-authorization, runtime-preparation, fixed-source, terminal-evidence, and nonissuance controls were
-assembled and then suspended by [ADR 0013](../adr/0013-state-first-roadmap-reordering.md); they are
+**Historical and suspended.** The source-free v5 software boundary was completed: one exact
+equal-well objective and compatible all-well M-step; independent gradient, Hessian, and nondecrease
+checks; exact-positive request-level sampling under a bounded conditional tail budget;
+immutable-generation atomic publication and recovery; exact code, mounted-input, and staged-output
+closure; a reproducible Linux `amd64` OCI runtime; and parent-owned whole-container wall, memory,
+and filesystem containment. It opened no protected source, ran no real-`p1` fit, and issued no
+candidate artifact, plan, observation, evidence, or lifecycle result. The runtime and its build and
+containment detail are documented in
+[`containers/sciplex3-v5-runtime/README.md`](https://github.com/logannye/cellstate/tree/main/containers/sciplex3-v5-runtime),
+which is the owner of that description.
+
+The protected-execution control plane built on top of it — proposal construction, one-use
+authorization, runtime preparation, fixed-source acquisition, terminal evidence, and nonissuance —
+was assembled and then suspended by [ADR 0013](../adr/0013-state-first-roadmap-reordering.md). It is
 not to be dispatched, and the workflow fails closed. No canonical pending proposal exists, no exact
-digest has been approved, and no protected run has occurred. The exact archive's durable-
-distribution prerequisite is complete through a separate immutable, attested GitHub Release, but
-that release grants no source access or execution authority. See the [roadmap](../roadmap.md), the
-sole sequence and status authority.
+digest has been approved, and no protected run has occurred. The checked-in sci-Plex3 component
+remains `SCAFFOLD` and non-executable. See the [roadmap](../roadmap.md), the sole sequence and
+status authority.

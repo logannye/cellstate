@@ -85,6 +85,10 @@ source artifacts and reject the call.
 - The next implementation step is a trusted artifact/interface/result verification boundary,
   followed by an executable provenance-bound training and evaluation path for the frozen component,
   beginning with mandatory baselines. It is not registration of a public cell-state runtime.
+  [Historical. The verification boundary landed as [ADR 0010](0010-trusted-admission-verification.md)
+  and the p1 loader and baselines as [ADR 0011](0011-sciplex3-p1-loader-and-baselines.md). The
+  component's training and evaluation path is no longer scheduled; see
+  [ADR 0013](0013-state-first-roadmap-reordering.md).]
 - A later state-space backend needs pre-cutoff biological observations or an independently
   validated prior, posterior inference, dynamics, sufficiency, identifiability, calibration, and
   operation-specific admission evidence.

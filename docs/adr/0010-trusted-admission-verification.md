@@ -142,7 +142,10 @@ replacement.
   immutable executable loader, completed baseline runs, locked performance evidence, or admitted
   benchmark.
 - The next engineering milestone is the immutable sci-Plex3 loader and mandatory baseline suite
-  recorded in the [roadmap](../roadmap.md).
+  recorded in the [roadmap](../roadmap.md). [Historical. That milestone was delivered by
+  [ADR 0011](0011-sciplex3-p1-loader-and-baselines.md). The roadmap linked here has since been
+  reordered and no longer contains that item; the current next action is set by
+  [ADR 0013](0013-state-first-roadmap-reordering.md).]
 
 ## Acceptance criteria
 

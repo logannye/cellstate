@@ -1,5 +1,10 @@
 # Inference pipeline
 
+These stages describe how a backend would get from evidence to a belief about hidden state, and from
+that belief to a verdict on whether it is faithful. No backend implements them; this is a design
+target, not a description of working software. [`../roadmap.md`](../roadmap.md) is the sole authority
+for which stages are scheduled when.
+
 A full backend should implement these conceptual stages, jointly where probability semantics demand
 it:
 
@@ -14,7 +19,11 @@ it:
 9. Apply mechanistic knowledge as weighted, auditable, overridable constraints.
 10. Characterize continuous dynamics and discrete event hazards/jumps.
 11. Decompose uncertainty, observability, identifiability, and OOD support.
-12. Evaluate predictive sufficiency when held-out future evidence actually permits it.
+12. Return the faithfulness verdict — predictive sufficiency and calibration on held-out future
+    evidence — each as a number with an interval grouped at the declared independent experimental
+    unit. This stage is what makes the belief a state rather than a compressed assay vector. A query
+    with no admissible pre-cutoff evidence or a single horizon cannot carry it, and a belief that has
+    not passed it is not established as faithful.
 13. Return a self-auditing belief with model/data/code provenance.
 14. In the separate measurement-decision operation, evaluate candidate assays only through a
     calibrated assay-outcome model, hypothetical update, counterfactual replanning, and declared

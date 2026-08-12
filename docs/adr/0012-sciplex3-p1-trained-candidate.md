@@ -3,7 +3,7 @@
 - **Status:** Accepted, superseded in part by [ADR 0013](0013-state-first-roadmap-reordering.md) —
   the rank-16 candidate family is retired for the state path and the Item 12.3 execution-control
   plane is suspended. Retained as the historical record of why. Previously amended 2026-08-11 to
-  retire v4, complete source-free Item 12.2, and assemble the source-free Item 12.3 design
+  retire v4, complete source-free Item 12.2, and assemble the source-free Item 12.3 design.
 - **Date:** 2026-08-10
 - **Extends:** ADR 0009 population-response component boundary, ADR 0010 trusted admission
   verification, and ADR 0011 p1-only loader and baselines
@@ -443,6 +443,8 @@ training plan, observation, fitted model, training evidence, materialization, or
 result. Item 12.2's source-free v5 software acceptance is complete, but it opened no protected
 source, ran no real-`p1` fit, and issued no plan, model, observation, evidence, materialization, or
 lifecycle result. Item 12 remains in progress, and the component remains a non-runnable `SCAFFOLD`.
+[Historical as of ADR 0013: Item 12 is suspended, not in progress. No proposal is to be approved and
+no protected execution dispatched.]
 Item 12.3's source-free execution-control design is assembled, including exact C/D proposal topology,
 one-use consumption, immutable runtime reauthentication, fixed source acquisition, contained
 terminal evidence, and nonissuance. The canonical pending proposal file is absent, no proposal digest
