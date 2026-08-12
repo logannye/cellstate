@@ -545,7 +545,7 @@ def _contained_execution_policy(
             "VECLIB_MAXIMUM_THREADS": "1",
         },
         worker_command=(
-            "--signal=KILL",
+            "--signal=TERM",
             "--kill-after=5s",
             "3540",
             "/opt/runtime/bin/python",

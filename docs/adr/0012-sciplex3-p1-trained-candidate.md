@@ -244,10 +244,12 @@ from the empty mode-`1777` image directory. The declared `0400`/`0700` host bind
 usable without running the worker as root or weakening their permissions.
 The parent accounts its 3,600-second budget before public staging and actively bounds every Docker
 command and wait; a returned staging overrun fails before container creation. A hard in-container
-3,540-second watchdog begins before protected-source open and covers snapshot, fit, and close-
-reauthentication even if the supervisor dies. Docker's memory and total-memory-plus-swap limits are
-both 4,294,967,296 bytes, disabling additional swap. Source-free live probes cover success, timeout
-with descendants, cgroup OOM, supervisor death/watchdog recovery, anonymous-volume cleanup, no
+3,540-second TERM-first watchdog begins before protected-source open and covers snapshot, fit, and
+close-reauthentication even if the supervisor dies. Exact status `124` identifies that watchdog;
+status `137` without positive Docker OOM evidence fails closed as worker failure. Docker's memory
+and total-memory-plus-swap limits are both 4,294,967,296 bytes, disabling additional swap.
+Source-free live probes cover success, timeout with descendants, positive cgroup OOM evidence,
+ambiguous-`137` rejection, supervisor death/watchdog recovery, anonymous-volume cleanup, no
 canonical publication, and parent re-inventory and sealing of the exact worker stage.
 
 No protected source was opened for Item 12.2, no real-`p1` fit ran, and no candidate artifact,

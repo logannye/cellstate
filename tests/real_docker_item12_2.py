@@ -107,7 +107,7 @@ def _contracts(
         workdir="/workspace",
         environment={"PYTHONDONTWRITEBYTECODE": "1", "TMPDIR": "/run/cellstate/tmp"},
         worker_command=(
-            "--signal=KILL",
+            "--signal=TERM",
             "--kill-after=1s",
             str(watchdog_seconds),
             "/opt/runtime/bin/python",
@@ -158,7 +158,6 @@ def _exact_image_is_loaded() -> None:
     (
         ("success", 10, ("success", 0, False)),
         ("sleep-tree", 1, ("timeout", 137, False)),
-        ("oom", 20, ("oom_killed", 137, True)),
     ),
 )
 def test_real_docker_outcomes_remove_tree_and_anonymous_volume(
@@ -206,12 +205,45 @@ def test_real_docker_outcomes_remove_tree_and_anonymous_volume(
     assert not (tmp_path / "canonical").exists()
 
 
-def test_real_docker_worker_watchdog_exit_is_typed_separately_from_parent_timeout(
+@pytest.mark.parametrize("attempt", range(3))
+def test_real_docker_oom_is_positive_or_fails_closed_without_inventing_timeout(
     tmp_path: Path,
+    attempt: int,
 ) -> None:
     executor, source, code, _, _ = _executor(
         tmp_path,
-        owner_id="item12-real-worker-watchdog",
+        owner_id=f"item12-real-oom-{attempt}",
+        mode="oom",
+        wall_seconds=20,
+    )
+    observation = executor.run(
+        execution_id="probe",
+        source_path=source,
+        code_path=code,
+        output_path=executor.output_stage_path("probe"),
+    )
+    assert observation.exit_code == 137
+    assert not observation.timed_out
+    assert not observation.worker_watchdog_timed_out
+    if observation.oom_killed:
+        assert observation.outcome == "oom_killed"
+    else:
+        assert observation.outcome == "worker_failure"
+    assert observation.container_removed
+    assert observation.snapshot_volume_removed
+    assert observation.process_tree_cleaned
+    assert not observation.canonical_publication_performed
+    assert not (tmp_path / "canonical").exists()
+
+
+@pytest.mark.parametrize("attempt", range(3))
+def test_real_docker_worker_watchdog_exit_is_typed_separately_from_parent_timeout(
+    tmp_path: Path,
+    attempt: int,
+) -> None:
+    executor, source, code, _, _ = _executor(
+        tmp_path,
+        owner_id=f"item12-real-worker-watchdog-{attempt}",
         mode="sleep-tree",
         wall_seconds=10,
     )
@@ -222,7 +254,7 @@ def test_real_docker_worker_watchdog_exit_is_typed_separately_from_parent_timeou
         output_path=executor.output_stage_path("probe"),
     )
     assert observation.outcome == "timeout"
-    assert observation.exit_code == 137
+    assert observation.exit_code == 124
     assert not observation.timed_out
     assert observation.worker_watchdog_timed_out
     assert not observation.oom_killed

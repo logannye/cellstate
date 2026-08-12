@@ -108,11 +108,13 @@ image directory. That policy lets the contained non-root worker use the declared
 binds without broadening their permissions.
 The parent accounts its 3,600-second budget before public staging and actively bounds Docker
 commands and waits; a returned staging overrun fails before container creation. A separate 3,540-
-second in-container watchdog begins before protected-source open and covers the whole process tree
-through close-reauthentication even if the supervisor dies. Docker's memory and total-memory-plus-
-swap limits are both 4 GiB, disabling additional swap. Source-free live probes pass for success,
-timeout with descendants, cgroup OOM, supervisor death/watchdog recovery, anonymous-volume cleanup,
-no canonical publication, and parent re-inventory and sealing of the exact worker stage.
+second TERM-first in-container watchdog begins before protected-source open and covers the whole
+process tree through close-reauthentication even if the supervisor dies. Exact status `124` identifies
+that watchdog; status `137` without positive Docker OOM evidence fails closed as worker failure.
+Docker's memory and total-memory-plus-swap limits are both 4 GiB, disabling additional swap.
+Source-free live probes pass for success, timeout with descendants, positive cgroup OOM evidence,
+ambiguous-`137` rejection, supervisor death/watchdog recovery, anonymous-volume cleanup, no canonical
+publication, and parent re-inventory and sealing of the exact worker stage.
 
 These are software contracts and source-free acceptance evidence only. No protected source was
 opened for Item 12.2, no real-`p1` fit was attempted, and no plan, fitted model, observation,
@@ -378,8 +380,8 @@ nondecrease coverage; exact-positive 512-draw request-level sampling with a glob
 conditional signed-`int64` tail budget over `753 * 1 * 27` combinations; immutable-generation
 atomic publication and forced-termination recovery; exact code/input/stage evidence closure; a
 reproducible Linux `amd64` OCI identity; and parent-owned 3,600-second/4-GiB whole-container
-containment with success, timeout, OOM, descendant, supervisor-death, volume-cleanup, no-publication,
-and recovery probes.
+containment with success, timeout, positive OOM evidence, fail-closed ambiguous-`137`, descendant,
+supervisor-death, volume-cleanup, no-publication, and recovery probes.
 
 Completion is strictly source-free. It did not open protected data or `p1`, run a real fit, issue a
 candidate artifact/plan/observation/evidence/materialization/lifecycle result, calibrate, score, or

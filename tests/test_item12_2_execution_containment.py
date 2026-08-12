@@ -124,6 +124,7 @@ class _FakeDockerCLI:
         volume_query_succeeds: bool = True,
         container_user_matches: bool = True,
         mount_shape_matches: bool = True,
+        delayed_oom_state_inspects: int = 0,
     ) -> None:
         self.outcome = outcome
         self.orphan = orphan
@@ -137,6 +138,7 @@ class _FakeDockerCLI:
         self.volume_query_succeeds = volume_query_succeeds
         self.container_user_matches = container_user_matches
         self.mount_shape_matches = mount_shape_matches
+        self.delayed_oom_state_inspects = delayed_oom_state_inspects
         self.commands: list[tuple[tuple[str, ...], float | None]] = []
         self.states: dict[str, dict[str, object]] = {}
         self.labels: dict[str, dict[str, str]] = {}
@@ -250,9 +252,10 @@ class _FakeDockerCLI:
             if state["Running"] is True:
                 state["Running"] = False
                 if container_id == CONTAINER_ID and self.outcome == "oom":
-                    state["OOMKilled"] = True
                     state["ExitCode"] = 137
                 elif container_id == CONTAINER_ID and self.outcome == "watchdog":
+                    state["ExitCode"] = 124
+                elif container_id == CONTAINER_ID and self.outcome == "ambiguous-137":
                     state["ExitCode"] = 137
                 elif container_id == CONTAINER_ID and self.outcome == "failure":
                     state["ExitCode"] = 2
@@ -311,6 +314,16 @@ class _FakeDockerCLI:
                         ]
                     ),
                 )
+            if (
+                container_id == CONTAINER_ID
+                and self.outcome == "oom"
+                and self.states[container_id]["ExitCode"] == 137
+                and self.states[container_id]["OOMKilled"] is False
+            ):
+                if self.delayed_oom_state_inspects > 0:
+                    self.delayed_oom_state_inspects -= 1
+                else:
+                    self.states[container_id]["OOMKilled"] = True
             return ContainerCommandResult(0, json.dumps(self.states[container_id]))
         if args[0] == "rm":
             container_id = args[-1]
@@ -419,6 +432,48 @@ def test_policy_requires_canonical_digest_limits_isolation_and_bytes() -> None:
             oom_killed=False,
             parent_wall_clock_elapsed_seconds=3_600.0,
         )
+    with pytest.raises(ValidationError, match="contradicts"):
+        ContainedExecutionObservation(
+            execution_id="run-0001",
+            policy_fingerprint=policy.fingerprint,
+            runtime_image_digest=DIGEST,
+            container_user_mode="host-effective-uid-gid",
+            observed_container_uid=os.geteuid(),
+            observed_container_gid=os.getegid(),
+            outcome="timeout",
+            exit_code=137,
+            timed_out=False,
+            worker_watchdog_timed_out=True,
+            oom_killed=False,
+            parent_wall_clock_elapsed_seconds=20.0,
+        )
+
+
+def test_execution_observation_v1_2_round_trip_rejects_ambiguous_v1_1_watchdog() -> None:
+    policy = _policy()
+    observation = ContainedExecutionObservation(
+        execution_id="run-0001",
+        policy_fingerprint=policy.fingerprint,
+        runtime_image_digest=DIGEST,
+        container_user_mode="host-effective-uid-gid",
+        observed_container_uid=os.geteuid(),
+        observed_container_gid=os.getegid(),
+        outcome="timeout",
+        exit_code=124,
+        timed_out=False,
+        worker_watchdog_timed_out=True,
+        oom_killed=False,
+        parent_wall_clock_elapsed_seconds=20.0,
+    )
+    payload = canonical_json_bytes(observation.model_dump(mode="json"))
+    assert observation.artifact_schema_version == "1.2.0"
+    assert ContainedExecutionObservation.model_validate_json(payload) == observation
+
+    old_payload = observation.model_dump(mode="json")
+    old_payload["artifact_schema_version"] = "1.1.0"
+    old_payload["exit_code"] = 137
+    with pytest.raises(ValidationError):
+        ContainedExecutionObservation.model_validate(old_payload)
 
 
 def test_subprocess_cli_translates_success_timeout_and_unavailable_binary(
@@ -902,7 +957,7 @@ def test_worker_watchdog_exit_is_typed_as_timeout_without_inventing_parent_timeo
 ) -> None:
     observation = _run(_FakeDockerCLI("watchdog"), tmp_path)
     assert observation.outcome == "timeout"
-    assert observation.exit_code == 137
+    assert observation.exit_code == 124
     assert not observation.timed_out
     assert observation.worker_watchdog_timed_out
     assert not observation.oom_killed
@@ -919,6 +974,42 @@ def test_cgroup_oom_and_worker_failure_never_publish_and_are_distinguished(tmp_p
     )
     assert not (tmp_path / "oom/stage/current.json").exists()
     assert not (tmp_path / "failure/stage/current.json").exists()
+
+
+def test_late_positive_oom_state_is_boundedly_stabilized_before_removal(tmp_path: Path) -> None:
+    clock = _AdvancingClock()
+    fake = _FakeDockerCLI("oom", delayed_oom_state_inspects=2)
+    observation = _run(
+        fake,
+        tmp_path,
+        monotonic=clock.monotonic,
+        sleep=clock.sleep,
+    )
+    assert (observation.outcome, observation.exit_code, observation.oom_killed) == (
+        "oom_killed",
+        137,
+        True,
+    )
+    assert not observation.worker_watchdog_timed_out
+    assert clock.value == pytest.approx(0.2)
+
+
+def test_unresolved_exit_137_is_fail_closed_not_invented_as_watchdog(tmp_path: Path) -> None:
+    clock = _AdvancingClock()
+    observation = _run(
+        _FakeDockerCLI("ambiguous-137"),
+        tmp_path,
+        monotonic=clock.monotonic,
+        sleep=clock.sleep,
+    )
+    assert (observation.outcome, observation.exit_code, observation.oom_killed) == (
+        "worker_failure",
+        137,
+        False,
+    )
+    assert not observation.timed_out
+    assert not observation.worker_watchdog_timed_out
+    assert clock.value == pytest.approx(0.5)
 
 
 def test_execution_id_replay_preserves_prior_terminal_evidence_without_docker(

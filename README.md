@@ -399,10 +399,12 @@ the declared `0400`/`0700` host binds without weakening their permissions.
 The parent accounts its 3,600-second budget before public staging and actively bounds Docker
 commands and waits; any returned staging overrun fails before container creation. An independent
 3,540-second in-container watchdog begins before protected-source open and covers snapshot, fit,
-and close-reauthentication. Docker's memory and total-memory-plus-swap limits are both 4 GiB,
-disabling additional swap. Tests prove timeout, OOM, descendant/container and anonymous-volume
-cleanup, no canonical publication, and next-run recovery behavior; the successful live path also
-proves parent no-follow re-inventory and sealing of the exact worker stage. These are source-free
+and close-reauthentication; its TERM-first expiry has the unambiguous GNU `timeout` status `124`.
+Docker's memory and total-memory-plus-swap limits are both 4 GiB, disabling additional swap. Tests
+prove parent timeout, positive OOM evidence, fail-closed ambiguous status `137`, descendant/container
+and anonymous-volume cleanup, no canonical publication, and next-run recovery behavior; the
+successful live path also proves parent no-follow re-inventory and sealing of the exact worker
+stage. These are source-free
 software results. No protected source was opened, no real-`p1` fit ran, and no candidate artifact,
 plan, observation, evidence, materialization, or lifecycle result was issued. The component remains
 `SCAFFOLD`. **Item 12.3** now supplies source-free proposal construction, one-use consumption, runtime
