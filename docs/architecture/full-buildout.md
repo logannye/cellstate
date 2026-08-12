@@ -300,10 +300,12 @@ No row in this portfolio is the whole system. The goal is complementary constrai
 | Metabolism/proteomics | SpaceM; SCoPE2; CCLE metabolomics; decryptM | Metabolic/protein observation and target-engagement anchors | Often baseline or population level |
 | Population priors | CELLxGENE Census; DepMap | Cell-type/context priors and stable cell-line features | Observational/bulk; no dynamic cell belief |
 
-The initial high-value acquisition order is maintained in the
-[`roadmap`](../roadmap.md#phase-1-reproducible-public-real-data-foundation). Full Tahoe and JUMP
-image downloads are intentionally deferred; stream or download bounded subsets aligned to the first
-query family.
+Acquisition order is maintained in the [`roadmap`](../roadmap.md#implementation-queue) and is driven
+by the requirements of the next state-bearing estimand, not by dataset size or availability. A source
+is acquired when it supplies an admissible pre-cutoff observation, at least two horizons, an
+identified intervention with matched controls, and enough independent experimental units to
+bootstrap. Full Tahoe and JUMP image downloads are intentionally deferred; stream or download
+bounded subsets aligned to the current query family.
 
 ### Local-data conclusion
 

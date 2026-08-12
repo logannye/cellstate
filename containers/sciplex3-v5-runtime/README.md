@@ -1,7 +1,8 @@
 # sci-Plex3 v5 contained runtime
 
-This image was built and validated source-free in roadmap Item 12.2. It is the source-touching worker
-runtime for a future explicitly authorized Item 12.3 attempt only. The base image and every Python
+**Suspended.** This image was built and validated source-free in historical Item 12.2. It was the
+source-touching worker runtime for a suspended Item 12.3 attempt; it is retained as frozen evidence,
+not as a runtime to be invoked. The base image and every Python
 wheel are content pinned. The authorized host wrapper and supervisor must invoke the built image by
 the exact digest recorded in `runtime-image-lock.json`; tags are never execution authority.
 

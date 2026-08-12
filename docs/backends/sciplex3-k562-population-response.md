@@ -39,10 +39,11 @@ and the planned Item 12.1b real-`p1` characterization was retired before executi
 now completed the replacement source-free v5 objective/M-step, sampler, publication, byte-closure,
 OCI, and hard-containment software boundary. It opened no protected source, ran no real-`p1` fit,
 and issued no candidate artifact, plan, observation, evidence, materialization, or lifecycle result.
-Item 12.3's source-free proposal-construction, one-use authorization, runtime-preparation, fixed-source,
-terminal-evidence, and nonissuance controls are now assembled for a possible version-bound
-real-`p1` v5 execution. The canonical pending proposal is absent, no exact proposal digest has been
-approved or consumed, and no protected run has occurred.
+**Suspended.** Item 12.3's source-free proposal-construction, one-use authorization,
+runtime-preparation, fixed-source, terminal-evidence, and nonissuance controls were assembled and
+then suspended by [ADR 0013](../adr/0013-state-first-roadmap-reordering.md); they are not to be
+dispatched, and the workflow fails closed. The canonical pending proposal is absent, no exact
+proposal digest has been approved or consumed, and no protected run has occurred.
 
 Its only eventual computation is:
 

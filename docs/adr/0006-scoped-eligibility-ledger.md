@@ -53,7 +53,7 @@ dataset-wide capability.
 - Loss assessments are training-only. A held-out-modality loss masks each exact scoped modality in
   turn; composing horizons or scopes requires resolving every exact assessment reference.
 - Repeated outputs, horizons, and overlapping scopes can coexist without being merged.
-- Metric IDs remain local role names until roadmap item 8 freezes content-addressed metric
+- Metric IDs remain local role names until the frozen `sciplex3-k562-24h-v1` benchmark contract (historical Item 8) freezes content-addressed metric
   definitions. Metric families requiring event/censoring, OOD axes, paired-history tasks, exact
   candidate sets, or decision utility remain ineligible until those semantics exist.
 - Dataset manifests still describe source evidence. They do not claim that a trained model passed a

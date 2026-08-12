@@ -1,7 +1,9 @@
 # ADR 0012: Define a sci-Plex3 p1-only trained-candidate boundary
 
-- **Status:** Accepted; amended 2026-08-11 to retire v4, complete source-free Item 12.2,
-  and assemble the source-free Item 12.3 execution-control design
+- **Status:** Accepted, superseded in part by [ADR 0013](0013-state-first-roadmap-reordering.md) —
+  the rank-16 candidate family is retired for the state path and the Item 12.3 execution-control
+  plane is suspended. Retained as the historical record of why. Previously amended 2026-08-11 to
+  retire v4, complete source-free Item 12.2, and assemble the source-free Item 12.3 design
 - **Date:** 2026-08-10
 - **Extends:** ADR 0009 population-response component boundary, ADR 0010 trusted admission
   verification, and ADR 0011 p1-only loader and baselines

@@ -147,7 +147,7 @@ The manifest makes the following negative boundaries explicit:
 
 Every loss and metric role remains `NOT_ASSESSED`. In particular, the conditional scientific claim
 does not authorize a functional-outcome training loss, cell-level validation split, calibration
-claim, or held-out test result. Roadmap item 8 must freeze benchmark membership, a defensible split,
+claim, or held-out test result. A frozen benchmark contract must establish benchmark membership, a defensible split,
 target formula, and metric semantics first; this 17-cell cohort alone is not a credible performance
 benchmark.
 

@@ -3,7 +3,7 @@
 - **Status:** Draft; deliberately unfrozen
 - **Draft version:** `0.1-draft`
 - **Last reviewed:** 2026-08-09
-- **Owning roadmap gate:** Phase 0, contract alignment
+- **Owning roadmap gate:** Phase 2, freeze a state-bearing estimand
 
 This document defines the scientific question that the first cultured-cell population backend is
 intended to answer. It is complete enough to drive schema design and dataset representability
@@ -23,8 +23,11 @@ For a declared cultured-cell population at an inference cutoff, given only admis
 before that cutoff, estimate the query-relevant population belief and use it to predict calibrated
 future molecular or functional distributions under a bounded intervention and environment.
 
-The first candidate slice is a K562 population-response task. A549 and additional modalities are
-transport or expansion tasks until separately admitted. The system must not reduce the task to a
+The first candidate slice was a K562 population-response task, which has no admissible pre-cutoff
+evidence and one horizon and therefore cannot carry the sufficiency test. Roadmap Phase 2 supersedes
+it with a state-bearing estimand; that slice's cell system, vertical assignment, and admission are
+settled by roadmap queue item `Q4`, not here. A549 and additional modalities are transport or
+expansion tasks until separately admitted. The system must not reduce the task to a
 lookup of `endpoint ~ intervention + cell line`: the inferred belief must condition on a declared
 pre-cutoff evidence history, propagate uncertainty, and pass the state-only versus
 state-plus-history sufficiency test.
