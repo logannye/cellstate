@@ -1,8 +1,9 @@
 # sci-Plex3 v5 contained runtime
 
-This image is the source-touching worker runtime for roadmap Item 12.2. The base image and every
-Python wheel are content pinned. The host supervisor must invoke the built image by the exact digest
-recorded in `runtime-image-lock.json`; tags are never execution authority.
+This image was built and validated source-free in roadmap Item 12.2. It is the source-touching worker
+runtime for a future explicitly authorized Item 12.3 attempt only. The base image and every Python
+wheel are content pinned. The authorized host wrapper and supervisor must invoke the built image by
+the exact digest recorded in `runtime-image-lock.json`; tags are never execution authority.
 
 The image itself supplies no data authority. The host supervisor accounts its 3,600-second budget
 before public code/input staging and actively bounds every Docker command and wait; a returned
@@ -55,7 +56,11 @@ Load the exact OCI output through Docker's containerd image store before executi
 graphdriver image store does not import OCI-layout archives. CI enables the documented
 `containerd-snapshotter` feature only after the two archives pass exact verification, then verifies
 the isolated Docker 29.7.2 daemon before loading the archive and running the live probes. The image
-is not claimed to be published or remotely pullable, and durable distribution of the locked archive
-is a prerequisite to any proposed Item 12.3 authorization. This source-free runtime evidence opened
-no protected source, ran no real-`p1` fit, and issued no candidate artifact, training record, or
-lifecycle result.
+is durably distributed as the sole asset of the immutable, attested
+[`sciplex3-v5-runtime-20260811-locked`](https://github.com/logannye/cellstate/releases/tag/sciplex3-v5-runtime-20260811-locked)
+GitHub Release. Consumers must verify that release, asset, archive, complete image closure, and exact
+Docker 29.7.2 native-Linux runtime after one-use attempt consumption and before protected-source
+work. This asset-bearing runtime release is distinct from the immutable, asset-free attempt release
+that would consume one exact approved proposal. Neither publication grants source authority by
+itself. No canonical pending Item 12.3 proposal exists, no protected execution has run, and this
+source-free runtime work issued no candidate artifact, training record, or lifecycle result.

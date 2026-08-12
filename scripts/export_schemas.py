@@ -45,6 +45,12 @@ from cellstate.domain import (
     StateQuery,
     SubjectSpecification,
 )
+from cellstate.training.item12_3_authorization import (
+    Item123DurableFallbackTerminalReport,
+    Item123ExecutionProposal,
+    Item123TerminalReport,
+    VerifiedItem123ExecutionCapability,
+)
 
 OUTPUT_ROOT = Path(__file__).resolve().parents[1] / "schemas"
 MODELS: dict[Path, type[BaseModel]] = {
@@ -59,6 +65,14 @@ MODELS: dict[Path, type[BaseModel]] = {
     Path("experimental/dataset-manifest.schema.json"): DatasetManifest,
     Path("experimental/execution-source-selection-receipt.schema.json"): (
         ExecutionSourceSelectionReceipt
+    ),
+    Path("experimental/item12-3-durable-fallback-terminal.schema.json"): (
+        Item123DurableFallbackTerminalReport
+    ),
+    Path("experimental/item12-3-execution-proposal.schema.json"): Item123ExecutionProposal,
+    Path("experimental/item12-3-terminal-report.schema.json"): Item123TerminalReport,
+    Path("experimental/item12-3-verified-capability.schema.json"): (
+        VerifiedItem123ExecutionCapability
     ),
     Path("experimental/loaded-interface-receipt.schema.json"): LoadedInterfaceReceipt,
     Path("experimental/population-assay-response-preflight.schema.json"): (

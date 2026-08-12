@@ -10,9 +10,10 @@ calibration evidence, model-selection freeze, locked evaluation, or admitted ben
 performance.
 
 Item 11 adds a separate, non-public software path for this frozen scope. Its immutable H5AD loader
-can open only `p1-train`, authenticates the exact source and `p1` closure, and yields sparse raw-count
-batches on the ordered 2,000-feature panel. The loader refuses `p2`, `p3`, and `p4` before protected
-raw-endpoint access; future access requires grants bound to the preceding lifecycle state. Six
+exposes only a `p1-train` semantic session, authenticates the exact source and `p1` closure, and
+yields sparse raw-count batches on the ordered 2,000-feature panel. The loader refuses `p2`, `p3`,
+and `p4` before protected raw-value access; future access requires grants bound to the preceding
+lifecycle state. Six
 probabilistic
 baseline algorithms fit from `p1` only. The exact source scan and all six fitted-state identities
 are recorded, but no predictions, metrics, baseline comparisons, or performance results exist; the
@@ -38,8 +39,10 @@ and the planned Item 12.1b real-`p1` characterization was retired before executi
 now completed the replacement source-free v5 objective/M-step, sampler, publication, byte-closure,
 OCI, and hard-containment software boundary. It opened no protected source, ran no real-`p1` fit,
 and issued no candidate artifact, plan, observation, evidence, materialization, or lifecycle result.
-Item 12.3 is only a proposed, separately authorized, version-bound, nonissuing real-`p1` v5
-execution; it is not authorized or run.
+Item 12.3's source-free proposal-construction, one-use authorization, runtime-preparation, fixed-source,
+terminal-evidence, and nonissuance controls are now assembled for a possible version-bound
+real-`p1` v5 execution. The canonical pending proposal is absent, no exact proposal digest has been
+approved or consumed, and no protected run has occurred.
 
 Its only eventual computation is:
 
@@ -115,8 +118,11 @@ These are software contracts and source-free acceptance evidence only. No protec
 opened for Item 12.2, no real-`p1` fit was attempted, and no plan, fitted model, observation,
 training evidence, materialization, or lifecycle result was issued. The component remains
 `SCAFFOLD`; no candidate response is exposed through the component or any public cell-state
-operation. The image still requires loading from the exact local OCI layout and is not claimed to
-be remotely published; durable distribution of the locked archive is an Item 12.3 prerequisite.
+operation. The exact OCI layout is now durably distributed as the sole asset of the immutable,
+attested `sciplex3-v5-runtime-20260811-locked` GitHub Release. It must still be reauthenticated and
+loaded under the exact native runtime after one-use authorization; distribution itself is not
+source access. That asset-bearing runtime release is distinct from the future immutable, asset-free
+attempt release that would consume one exact approved proposal.
 
 ## Historical Item 12 v4 trained-candidate boundary
 
@@ -145,7 +151,7 @@ is not a validated unseen-plate model; v4 makes no parametric-tail or held-out t
 The specification also predeclares a future p2-only calibration grid
 `tau_j=exp(j/20)`, `j=-20,...,6`. It would map shape to `0.1/tau_j^2` and map each context to
 factorwise-renormalized `rho^tau_j` while retaining whole-row selection. This declaration has not
-opened `p2`, selected `tau`, or produced calibration evidence.
+read or decoded `p2` calibration values, selected `tau`, or produced calibration evidence.
 
 The reference fit is bound to single-thread Linux `x86_64`, CPython 3.11.15, NumPy 2.4.6, SciPy
 1.17.1, and `scipy-openblas` 0.3.31.188.0. A conforming immutable pre-fit plan names only the exact
@@ -244,16 +250,23 @@ Partition identity and access purpose are one-to-one:
 | `MODEL_SELECTION` | `p3-model-selection-validation` | Select and freeze a candidate |
 | `UNTOUCHED_EVALUATION` | `p4-untouched-test` | Evaluate the already frozen component only |
 
-Opening `p2`, `p3`, or `p4` for parameter training fails. In particular, `p4` cannot tune weights,
-calibration, thresholds, feature order, baselines, or hyperparameters.
+Requesting `p2`, `p3`, or `p4` semantic value access for parameter training fails. In particular,
+`p4` cannot tune weights, calibration, thresholds, feature order, baselines, or hyperparameters.
 
-The Item 11 loader is narrower still: its current session type opens `p1-train` only. `p2` requires
+The Item 11 loader is narrower still: its current session type exposes only the `p1-train` role.
+`p2` requires
 a future trusted grant bound to an exact `TRAINED_CANDIDATE`; `p3` requires one bound to an exact
 `CALIBRATED_CANDIDATE`; and `p4` raw endpoint outcomes and scoring require a locked-evaluation grant
 bound to an exact `MODEL_SELECTED_FROZEN` candidate. The `p1` session does not parse held-out source
 outcomes or the public held-out membership ledgers. Item 12 retains the same source seal: candidate
 planning, fitting, model reload, and training verification do not resolve protected `p2`, `p3`, or
-`p4` raw H5AD/UMI endpoint values, outcome/scoring results, or lifecycle evidence.
+`p4` expression/raw-count values, endpoints, outcome/scoring results, or lifecycle evidence.
+
+That partition seal is semantic, not a claim that the physical H5AD can be split before access. The
+Item 12.3 source contract requires transfer and snapshot of the entire opaque asset and full-axis
+selector-metadata decode, including held-out selectors, to resolve exact `p1` rows. Only `p1-train`
+expression/raw-count values may be read or decoded; held-out expression/count values, endpoints,
+outcomes, scoring, and lifecycle authority remain unavailable.
 
 The checked-in benchmark intentionally exposes public frozen design metadata: exact split-membership
 arrays, record/well/plate identities, well-level cases, action assignments, matched-control
@@ -324,8 +337,9 @@ query-prerequisite verifier boundary. Item 11 supplies the `p1`-only loader and 
 algorithms, plus content-addressed streaming-run scaffolding. Its exact scan of source SHA-256
 `603ed16c5e25401c8a7f5bb0b2b045179701017d65dcfc6aeea71722a66cd10a` covered 94,785 `p1` records
 across 768 wells, retained seven zero-panel records, and emitted six fitted-state identities without
-opening a held-out partition. The later sequence remains a candidate distribution model, p2
-calibration, p3 freeze, and one locked p4 evaluation. V1 and v2 failed their real fits; the v3
+reading or decoding held-out expression/count values or endpoints. The later sequence remains a
+candidate distribution model, p2 calibration, p3 freeze, and one locked p4 evaluation. V1 and v2
+failed their real fits; the v3
 counterfactual and characterization were deliberately nonissuing. V4's audited exact p1 execution
 also failed closed, and `TRAINED_CANDIDATE` cannot be derived. The later objective-scale finding
 retires v4 independently of that execution failure.
@@ -371,15 +385,32 @@ Completion is strictly source-free. It did not open protected data or `p1`, run 
 candidate artifact/plan/observation/evidence/materialization/lifecycle result, calibrate, score, or
 advance the component beyond `SCAFFOLD`.
 
-### Item 12.3 — proposed version-bound nonissuing real-p1 v5 execution
+### Item 12.3 — source-free execution control assembled; protected execution pending
 
-This is the next proposed milestone, not an authorization. One exact v5 version could be considered
-for a separately reviewed, nonissuing real-`p1` execution only after explicit authorization. No such
-authorization exists and no Item 12.3 run has occurred. It cannot open `p2`, `p3`, or protected `p4`
-raw endpoints, inspect outcomes, score predictions, issue lifecycle evidence, or convert public
-frozen design metadata into source access. The exact archive must first have durable distribution;
-its present local-load-only status and absence of remote publication do not satisfy that
-prerequisite.
+The checked-in code can construct one exact, nonauthoritative pending proposal binding candidate v5,
+clean execution commit `C`, source scope, runtime and limits, paths, stage allowlist, stop policy, and
+nonissuance. Proposal-only commit `D` must be the one-parent child of `C` and may add only those
+canonical proposal bytes. The authorized actor dispatches the trusted workflow from
+`refs/heads/main` at exact `C`, supplying both the exact proposal SHA-256 and exact `D` commit. The
+workflow authenticates `D` only as inert Git object data before repository execution; it never checks
+out or executes `D`. Creation and verification of one immutable, asset-free attempt release targeting
+`D` is the required one-use consumption path. Execution remains on `C`; failure at any consumed step
+is terminal and cannot retry or resume.
+
+The source-free control plane is assembled, but no canonical proposal file exists, no digest has
+been approved or consumed, and no Item 12.3 run or terminal report has occurred. The separate
+asset-bearing `sciplex3-v5-runtime-20260811-locked` release satisfies durable distribution only. It,
+its sole OCI asset, complete archive/image closure, and exact native daemon must be reauthenticated
+after attempt consumption and before source acquisition.
+
+An authorized run would transfer and snapshot the monolithic source whole and decode full-axis
+selector metadata, while restricting expression/raw-count decode to `p1-train`. It cannot decode
+held-out values, inspect outcomes, score predictions, issue lifecycle evidence, or convert public
+frozen design metadata into access authority. It cannot publish a canonical candidate or export its
+stage/model. Only a sanitized terminal report may leave the runner: the immutable attempt release
+holds a generic fallback, while the actual terminal uses 90-day Actions artifact retention followed
+by exact, separately reviewed repository persistence. Neither form grants scientific or lifecycle
+authority.
 
 Passing a later complete component lifecycle could authorize only this direct component surface;
 it would not authorize a hidden-state estimator.

@@ -106,14 +106,22 @@ container wall/memory containment with host-effective UID/GID filesystem isolati
 The final image excludes build-host caches, and its exact Buildx/BuildKit authority is frozen by the
 runtime lock and workflow. It opened no protected source, ran no real-`p1` fit, and issued no
 candidate artifact, plan, observation, evidence, or lifecycle result. The component therefore
-remains `SCAFFOLD`. The next proposed milestone, Item 12.3, is a separately authorized, version-
-bound, nonissuing real-`p1` v5 execution; it is not authorized and has not run. Durable distribution
-of the exact locally loaded OCI archive is a
-prerequisite to any such authorization; the image is not claimed to be remotely published.
-Protected `p2`, `p3`, and `p4` raw UMI count-matrix/endpoint bytes, outcomes, and lifecycle scoring
-authority remain sealed; their frozen split membership and benchmark-design metadata are public and
-are not an access grant. No biological runtime or validated belief may be registered
-before its separate operation-specific admission and scientific gates pass.
+remains `SCAFFOLD`. Item 12.3's source-free authorization, runtime-preparation, containment, and
+terminal-evidence control plane is now assembled for a separately authorized, version-bound,
+nonissuing real-`p1` v5 execution. It grants no authority: the canonical pending proposal is absent,
+no exact proposal digest has been approved or consumed, and no Item 12.3 source run has occurred.
+Durable runtime distribution is complete through the separate immutable, release-and-asset-attested
+`sciplex3-v5-runtime-20260811-locked` GitHub Release. A future approved attempt must dispatch the
+trusted workflow from `refs/heads/main` at exact execution commit `C`, supplying both the exact
+proposal SHA-256 and its proposal-only child commit `D`. The workflow treats `D` only as inert object
+data and the asset-free attempt-release target, never checks it out or executes it, remains on `C`,
+and reauthenticates the runtime before source acquisition. The monolithic source
+must be transferred and snapshotted whole and its full selector axes decoded to resolve `p1`; only
+`p1-train` expression/raw-count values may be decoded. Held-out expression/count values, endpoints,
+outcomes, scoring, and lifecycle authority remain sealed; public split and design metadata are not
+an access grant. Only bounded sanitized terminal evidence may leave the ephemeral runner, and it
+grants no lifecycle or scientific authority. No biological runtime or validated belief may be
+registered before its separate operation-specific admission and scientific gates pass.
 
 `docs/roadmap.md` is the sole authority for sequence and status. The full target architecture lives
 in `docs/architecture/full-buildout.md`; accepted rationale lives in ADRs. The sanitized local audit

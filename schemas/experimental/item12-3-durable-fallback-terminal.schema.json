@@ -1,0 +1,205 @@
+{
+  "additionalProperties": false,
+  "description": "Pre-rendered bounded evidence used only if post-release primary terminalization fails.",
+  "properties": {
+    "artifact_schema": {
+      "const": "cellstate-item12-3-durable-fallback-terminal-report",
+      "default": "cellstate-item12-3-durable-fallback-terminal-report",
+      "title": "Artifact Schema",
+      "type": "string"
+    },
+    "artifact_schema_version": {
+      "const": "1.1.0",
+      "default": "1.1.0",
+      "title": "Artifact Schema Version",
+      "type": "string"
+    },
+    "attempt_tag": {
+      "title": "Attempt Tag",
+      "type": "string"
+    },
+    "canonical_publication_performed": {
+      "const": false,
+      "title": "Canonical Publication Performed",
+      "type": "boolean"
+    },
+    "container_cleanup_disposition": {
+      "enum": [
+        "not_started",
+        "unknown"
+      ],
+      "title": "Container Cleanup Disposition",
+      "type": "string"
+    },
+    "dispatch_actor": {
+      "const": "logannye",
+      "title": "Dispatch Actor",
+      "type": "string"
+    },
+    "durable_consumption_disposition": {
+      "const": "creation-attempted-no-retry",
+      "title": "Durable Consumption Disposition",
+      "type": "string"
+    },
+    "execution_repository_commit": {
+      "pattern": "^[0-9a-f]{40}$",
+      "title": "Execution Repository Commit",
+      "type": "string"
+    },
+    "github_run_attempt": {
+      "const": 1,
+      "title": "Github Run Attempt",
+      "type": "integer"
+    },
+    "github_run_id": {
+      "exclusiveMinimum": 0,
+      "title": "Github Run Id",
+      "type": "integer"
+    },
+    "host_source_cleanup_disposition": {
+      "enum": [
+        "not_applicable",
+        "removed",
+        "unknown"
+      ],
+      "title": "Host Source Cleanup Disposition",
+      "type": "string"
+    },
+    "nonterminal_artifact_uploaded": {
+      "const": false,
+      "title": "Nonterminal Artifact Uploaded",
+      "type": "boolean"
+    },
+    "outcome": {
+      "const": "runtime_failure",
+      "title": "Outcome",
+      "type": "string"
+    },
+    "proposal_repository_commit": {
+      "pattern": "^[0-9a-f]{40}$",
+      "title": "Proposal Repository Commit",
+      "type": "string"
+    },
+    "proposal_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Proposal Sha256",
+      "type": "string"
+    },
+    "protected_source_acquired": {
+      "anyOf": [
+        {
+          "type": "boolean"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "Protected Source Acquired"
+    },
+    "protected_source_acquisition": {
+      "enum": [
+        "unknown_after_global_consumption",
+        "not_started",
+        "started_incomplete",
+        "completed"
+      ],
+      "title": "Protected Source Acquisition",
+      "type": "string"
+    },
+    "protected_source_cleanup_disposition": {
+      "enum": [
+        "not_applicable",
+        "unknown"
+      ],
+      "title": "Protected Source Cleanup Disposition",
+      "type": "string"
+    },
+    "reason": {
+      "const": "terminal_evidence_failed",
+      "title": "Reason",
+      "type": "string"
+    },
+    "retry_permitted": {
+      "const": false,
+      "title": "Retry Permitted",
+      "type": "boolean"
+    },
+    "runtime_preparation_disposition": {
+      "const": "unavailable",
+      "title": "Runtime Preparation Disposition",
+      "type": "string"
+    },
+    "snapshot_volume_cleanup_disposition": {
+      "enum": [
+        "not_started",
+        "unknown"
+      ],
+      "title": "Snapshot Volume Cleanup Disposition",
+      "type": "string"
+    },
+    "source_match_disposition": {
+      "enum": [
+        "unknown",
+        "not_acquired",
+        "acquired_unverified"
+      ],
+      "title": "Source Match Disposition",
+      "type": "string"
+    },
+    "terminal_report_upload_permitted": {
+      "const": true,
+      "title": "Terminal Report Upload Permitted",
+      "type": "boolean"
+    },
+    "triggering_actor": {
+      "const": "logannye",
+      "title": "Triggering Actor",
+      "type": "string"
+    },
+    "uploaded_payload_scope": {
+      "const": "terminal-report-only",
+      "title": "Uploaded Payload Scope",
+      "type": "string"
+    },
+    "workflow_dispatch_ref": {
+      "const": "refs/heads/main",
+      "title": "Workflow Dispatch Ref",
+      "type": "string"
+    },
+    "workflow_repository_commit": {
+      "pattern": "^[0-9a-f]{40}$",
+      "title": "Workflow Repository Commit",
+      "type": "string"
+    }
+  },
+  "required": [
+    "proposal_sha256",
+    "execution_repository_commit",
+    "workflow_repository_commit",
+    "proposal_repository_commit",
+    "workflow_dispatch_ref",
+    "attempt_tag",
+    "dispatch_actor",
+    "triggering_actor",
+    "github_run_id",
+    "github_run_attempt",
+    "outcome",
+    "reason",
+    "durable_consumption_disposition",
+    "runtime_preparation_disposition",
+    "protected_source_acquired",
+    "protected_source_acquisition",
+    "protected_source_cleanup_disposition",
+    "host_source_cleanup_disposition",
+    "container_cleanup_disposition",
+    "snapshot_volume_cleanup_disposition",
+    "source_match_disposition",
+    "canonical_publication_performed",
+    "nonterminal_artifact_uploaded",
+    "terminal_report_upload_permitted",
+    "uploaded_payload_scope",
+    "retry_permitted"
+  ],
+  "title": "Item123DurableFallbackTerminalReport",
+  "type": "object"
+}

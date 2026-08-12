@@ -99,7 +99,8 @@
   Gamma--Poisson model without `q`/capture, with fixed `r_theta=0.1`, deterministic row-local inner
   equilibration, and proposed unseen-plate context formed by uniformly selecting one complete
   observed `p1` `rho` row. Predeclare the future p2 calibration grid
-  `tau_j=exp(j/20)`, `j=-20,...,6`, without opening p2 or selecting a value. The exact reference
+  `tau_j=exp(j/20)`, `j=-20,...,6`, without reading p2 calibration values or selecting a value. The
+  exact reference
   runtime remains single-thread Linux `x86_64`, CPython 3.11.15, NumPy 2.4.6, SciPy 1.17.1, and
   `scipy-openblas` 0.3.31.188.0.
 - Record the audited v4 executions without issuing an artifact. The first report,
@@ -187,10 +188,29 @@
   canonical publication, and parent re-inventory and sealing of the exact worker stage.
 - Keep this completion strictly software-only. Item 12.2 opened no protected source, ran no real-
   `p1` fit, and issued no candidate artifact, plan, observation, evidence, materialization, or
-  lifecycle result; sci-Plex3 remains `SCAFFOLD`. A separately authorized, version-bound,
-  nonissuing real-`p1` v5 execution is proposed as Item 12.3 but is not authorized or run. The exact
-  OCI layout must still be loaded locally and is not claimed to be remotely published; durable
-  distribution of the locked archive is an Item 12.3 prerequisite.
+  lifecycle result; sci-Plex3 remains `SCAFFOLD`. The version-bound, nonissuing Item 12.3 protected
+  execution remains unauthorized and unrun. Its exact OCI layout is durably published as the
+  immutable, attested
+  `sciplex3-v5-runtime-20260811-locked` GitHub Release; reauthenticating that release under an exact
+  one-use authorization remains a pre-source execution gate.
+- Assemble the source-free **Item 12.3 authorization and execution-control plane** without creating
+  an authorization. Canonical proposal bytes bind a clean execution commit `C`; proposal-only child
+  `D` may add only those bytes. Manual dispatch from trusted `refs/heads/main` at exact `C` supplies
+  both the proposal SHA-256 and `D` commit. The workflow authenticates `D` only as inert object data
+  and the immutable asset-free attempt-release target, never checks it out or executes it, and remains
+  on `C`. A private one-use ledger and execution-start receipt, exact runtime preparation, a fixed
+  protected-source path, and no-retry/no-resume stop policy fail closed before source execution.
+- Record the complete source scope honestly. The 2,526,631,614-byte monolithic H5AD must transfer and
+  snapshot whole, and full-axis selector metadata including held-out selectors must be decoded to
+  resolve `p1`. Expression/raw-count decoding remains `p1-train`-only; held-out values, endpoints,
+  outcomes, scoring, emission, and lifecycle authority remain unavailable.
+- Separate three evidence roles: the asset-bearing immutable runtime release is provenance and
+  distribution only; the future immutable asset-free attempt release would globally consume one
+  proposal and permanently retain only a generic fallback; and the actual at-most-4,096-byte
+  sanitized terminal uses 90-day Actions artifact transport followed by exact reviewed repository
+  persistence. Source, stage, model, and canonical publication remain runner-confined and
+  nonissuing. No canonical pending proposal, approved digest, protected Item 12.3 run, or terminal
+  report currently exists.
 
 ## 0.1.0 - Unreleased
 

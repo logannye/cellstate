@@ -795,15 +795,22 @@ def _build_manifest(
         },
         "repository_bindings": dict(repository_bindings),
         "resource_gates": {
-            "fit_peak_rss": {
+            "aggregate_container_memory": {
+                "enforced_by": (
+                    "Docker cgroup memory.max and memory.swap.max over the complete "
+                    "container process tree"
+                ),
                 "limit_bytes": FIT_RSS_LIMIT_BYTES,
-                "measurement": "resource.getrusage(RUSAGE_SELF).ru_maxrss Linux KiB",
-                "within_limit": True,
+                "terminal_result_artifact": "contained-training-observation.json",
+                "terminal_result_recorded_here": False,
             },
-            "fit_wall_clock": {
+            "aggregate_container_wall_clock": {
+                "enforced_by": (
+                    "parent Docker deadline plus the in-container source-to-posthash watchdog"
+                ),
                 "limit_seconds": FIT_WALL_LIMIT_SECONDS,
-                "measurement": "time.monotonic around fit_and_write_sciplex3_candidate",
-                "within_limit": True,
+                "terminal_result_artifact": "contained-training-observation.json",
+                "terminal_result_recorded_here": False,
             },
         },
         "safety_boundary": dict(_SAFETY_BOUNDARY),
@@ -916,15 +923,22 @@ def _check_manifest(
     if not _json_values_are_exact(
         dict(resources),
         {
-            "fit_peak_rss": {
+            "aggregate_container_memory": {
+                "enforced_by": (
+                    "Docker cgroup memory.max and memory.swap.max over the complete "
+                    "container process tree"
+                ),
                 "limit_bytes": FIT_RSS_LIMIT_BYTES,
-                "measurement": "resource.getrusage(RUSAGE_SELF).ru_maxrss Linux KiB",
-                "within_limit": True,
+                "terminal_result_artifact": "contained-training-observation.json",
+                "terminal_result_recorded_here": False,
             },
-            "fit_wall_clock": {
+            "aggregate_container_wall_clock": {
+                "enforced_by": (
+                    "parent Docker deadline plus the in-container source-to-posthash watchdog"
+                ),
                 "limit_seconds": FIT_WALL_LIMIT_SECONDS,
-                "measurement": "time.monotonic around fit_and_write_sciplex3_candidate",
-                "within_limit": True,
+                "terminal_result_artifact": "contained-training-observation.json",
+                "terminal_result_recorded_here": False,
             },
         },
     ):

@@ -1,0 +1,344 @@
+{
+  "additionalProperties": false,
+  "description": "Bounded terminal report; it cannot carry paths, logs, source, model, or stage bytes.",
+  "properties": {
+    "aggregate_container_limits_enforced": {
+      "title": "Aggregate Container Limits Enforced",
+      "type": "boolean"
+    },
+    "artifact_schema": {
+      "const": "cellstate-item12-3-terminal-report",
+      "default": "cellstate-item12-3-terminal-report",
+      "title": "Artifact Schema",
+      "type": "string"
+    },
+    "artifact_schema_version": {
+      "const": "1.1.0",
+      "default": "1.1.0",
+      "title": "Artifact Schema Version",
+      "type": "string"
+    },
+    "attempt_consumption_fingerprint": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Attempt Consumption Fingerprint",
+      "type": "string"
+    },
+    "attempt_key": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Attempt Key",
+      "type": "string"
+    },
+    "canonical_publication_performed": {
+      "const": false,
+      "title": "Canonical Publication Performed",
+      "type": "boolean"
+    },
+    "canonical_publication_unchanged": {
+      "anyOf": [
+        {
+          "type": "boolean"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Canonical Publication Unchanged"
+    },
+    "contained_failure_code": {
+      "enum": [
+        "not_applicable",
+        "none",
+        "worker_timed_out",
+        "worker_oom_killed",
+        "worker_exited_nonzero",
+        "worker_report_missing",
+        "worker_report_invalid",
+        "worker_report_contradiction",
+        "stage_inventory_invalid",
+        "stage_semantic_verification_failed",
+        "canonical_publication_changed",
+        "canonical_publication_identity_invalid",
+        "contained_executor_failed"
+      ],
+      "title": "Contained Failure Code",
+      "type": "string"
+    },
+    "contained_terminal_status": {
+      "enum": [
+        "not_started",
+        "success",
+        "timeout",
+        "oom_killed",
+        "worker_failure",
+        "stage_rejected",
+        "supervisor_failure"
+      ],
+      "title": "Contained Terminal Status",
+      "type": "string"
+    },
+    "container_cleanup_disposition": {
+      "enum": [
+        "not_started",
+        "proved_removed",
+        "unproved"
+      ],
+      "title": "Container Cleanup Disposition",
+      "type": "string"
+    },
+    "execution_id": {
+      "const": "sciplex3-k562-v5-fit",
+      "title": "Execution Id",
+      "type": "string"
+    },
+    "execution_outcome": {
+      "enum": [
+        "not_started",
+        "unavailable",
+        "success",
+        "timeout",
+        "oom_killed",
+        "worker_failure"
+      ],
+      "title": "Execution Outcome",
+      "type": "string"
+    },
+    "host_source_cleanup_disposition": {
+      "enum": [
+        "not_applicable",
+        "removed",
+        "failed"
+      ],
+      "title": "Host Source Cleanup Disposition",
+      "type": "string"
+    },
+    "nonterminal_artifact_uploaded": {
+      "const": false,
+      "title": "Nonterminal Artifact Uploaded",
+      "type": "boolean"
+    },
+    "outcome": {
+      "enum": [
+        "success",
+        "pre_source_failure",
+        "runtime_failure"
+      ],
+      "title": "Outcome",
+      "type": "string"
+    },
+    "parent_terminal_observation_sha256": {
+      "anyOf": [
+        {
+          "pattern": "^[0-9a-f]{64}$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Parent Terminal Observation Sha256"
+    },
+    "parent_wall_clock_elapsed_seconds": {
+      "anyOf": [
+        {
+          "minimum": 0.0,
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Parent Wall Clock Elapsed Seconds"
+    },
+    "proposal_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Proposal Sha256",
+      "type": "string"
+    },
+    "protected_source_acquired": {
+      "title": "Protected Source Acquired",
+      "type": "boolean"
+    },
+    "protected_source_acquisition": {
+      "enum": [
+        "not_started",
+        "started_incomplete",
+        "completed"
+      ],
+      "title": "Protected Source Acquisition",
+      "type": "string"
+    },
+    "protected_source_cleanup_disposition": {
+      "enum": [
+        "not_applicable",
+        "removed",
+        "failed",
+        "unknown"
+      ],
+      "title": "Protected Source Cleanup Disposition",
+      "type": "string"
+    },
+    "reason": {
+      "enum": [
+        "stage_sealed",
+        "authorization_boundary_incomplete",
+        "native_runtime_preflight_failed",
+        "runtime_distribution_failed",
+        "protected_source_acquisition_failed",
+        "protected_source_cleanup_failed",
+        "contained_execution_failed",
+        "terminal_evidence_failed"
+      ],
+      "title": "Reason",
+      "type": "string"
+    },
+    "retry_permitted": {
+      "const": false,
+      "title": "Retry Permitted",
+      "type": "boolean"
+    },
+    "runtime_preparation_observation_sha256": {
+      "anyOf": [
+        {
+          "pattern": "^[0-9a-f]{64}$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Runtime Preparation Observation Sha256"
+    },
+    "snapshot_volume_cleanup_disposition": {
+      "enum": [
+        "not_started",
+        "proved_removed",
+        "unproved"
+      ],
+      "title": "Snapshot Volume Cleanup Disposition",
+      "type": "string"
+    },
+    "source_match_disposition": {
+      "enum": [
+        "not_acquired",
+        "acquired_unverified",
+        "pre_and_post_match",
+        "pre_match_post_failed",
+        "mismatch"
+      ],
+      "title": "Source Match Disposition",
+      "type": "string"
+    },
+    "stage_disposition": {
+      "enum": [
+        "unknown",
+        "not_created",
+        "sealed",
+        "quarantined"
+      ],
+      "title": "Stage Disposition",
+      "type": "string"
+    },
+    "stage_preserved_on_runner": {
+      "anyOf": [
+        {
+          "type": "boolean"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "Stage Preserved On Runner"
+    },
+    "stage_semantic_verification": {
+      "enum": [
+        "unknown",
+        "not_attempted",
+        "verified",
+        "failed"
+      ],
+      "title": "Stage Semantic Verification",
+      "type": "string"
+    },
+    "staged_success_observation_sha256": {
+      "anyOf": [
+        {
+          "pattern": "^[0-9a-f]{64}$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Staged Success Observation Sha256"
+    },
+    "staged_tree_sha256": {
+      "anyOf": [
+        {
+          "pattern": "^[0-9a-f]{64}$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Staged Tree Sha256"
+    },
+    "terminal_report_upload_permitted": {
+      "const": true,
+      "title": "Terminal Report Upload Permitted",
+      "type": "boolean"
+    },
+    "uploaded_payload_scope": {
+      "const": "terminal-report-only",
+      "title": "Uploaded Payload Scope",
+      "type": "string"
+    },
+    "worker_report_status": {
+      "enum": [
+        "unknown",
+        "not_started",
+        "verified",
+        "missing",
+        "invalid"
+      ],
+      "title": "Worker Report Status",
+      "type": "string"
+    }
+  },
+  "required": [
+    "attempt_key",
+    "attempt_consumption_fingerprint",
+    "proposal_sha256",
+    "execution_id",
+    "outcome",
+    "reason",
+    "contained_terminal_status",
+    "contained_failure_code",
+    "execution_outcome",
+    "aggregate_container_limits_enforced",
+    "protected_source_acquired",
+    "protected_source_acquisition",
+    "protected_source_cleanup_disposition",
+    "host_source_cleanup_disposition",
+    "container_cleanup_disposition",
+    "snapshot_volume_cleanup_disposition",
+    "source_match_disposition",
+    "worker_report_status",
+    "stage_disposition",
+    "stage_semantic_verification",
+    "stage_preserved_on_runner",
+    "canonical_publication_performed",
+    "nonterminal_artifact_uploaded",
+    "terminal_report_upload_permitted",
+    "uploaded_payload_scope",
+    "retry_permitted"
+  ],
+  "title": "Item123TerminalReport",
+  "type": "object"
+}

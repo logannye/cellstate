@@ -498,6 +498,7 @@ def _write_synthetic_runner_closure(
         exit_code=0,
         timed_out=False,
         oom_killed=False,
+        parent_wall_clock_elapsed_seconds=1_234.0,
     )
     contained_observation = ContainedTrainingObservation(
         training_plan_fingerprint=plan.fingerprint,
@@ -509,6 +510,9 @@ def _write_synthetic_runner_closure(
         staged_tree_sha256=staged_inventory.fingerprint,
         worker_observation=worker_observation,
         execution_observation=parent_observation,
+        wall_clock_limit_seconds=policy.wall_clock_seconds,
+        memory_max_bytes=policy.memory_max_bytes,
+        memory_swap_max_bytes=policy.memory_swap_max_bytes,
     )
     (candidate_directory / builder.CONTAINED_OBSERVATION_FILENAME).write_bytes(
         canonical_json_bytes(contained_observation.model_dump(mode="json"))
@@ -904,7 +908,7 @@ def test_builder_rejects_nonexact_v4_materialization_manifests(
     elif mutation == "artifact_reference_authority":
         manifest["artifacts"]["candidate_model"]["can_mint_lifecycle_evidence"] = False
     elif mutation == "failed_resource_gate":
-        manifest["resource_gates"]["fit_peak_rss"]["within_limit"] = False
+        manifest["resource_gates"]["aggregate_container_memory"]["limit_bytes"] -= 1
     elif mutation == "heldout_safety_flag":
         manifest["safety_boundary"]["heldout_memberships_read"] = True
     elif mutation == "numeric_false_safety_flag":

@@ -28,6 +28,7 @@ EXPECTED_BUILDX_VERSION = SCRIPT_MODULE.EXPECTED_BUILDX_VERSION
 EXPECTED_DOCKERFILE_FRONTEND_DIGEST = SCRIPT_MODULE.EXPECTED_DOCKERFILE_FRONTEND_DIGEST
 EXPECTED_IMAGE_TAG = SCRIPT_MODULE.EXPECTED_IMAGE_TAG
 _verify_loaded_image_payload = SCRIPT_MODULE._verify_loaded_image_payload
+main = SCRIPT_MODULE.main
 verify_archive = SCRIPT_MODULE.verify_archive
 verify_archives = SCRIPT_MODULE.verify_archives
 verify_builder = SCRIPT_MODULE.verify_builder
@@ -185,6 +186,33 @@ def test_two_independent_oci_archives_match_the_complete_locked_identity(tmp_pat
     assert len(identity.layer_digests) == 1
 
 
+def test_single_distributed_archive_cli_verifies_the_complete_locked_identity(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    files, lock = _fixture_payloads()
+    lock_path = tmp_path / "runtime-image-lock.json"
+    archive_path = tmp_path / "runtime.oci.tar"
+    _write_archive(archive_path, files)
+    _bind_archive(lock, archive_path)
+    _write_lock(lock_path, lock)
+
+    assert (
+        main(
+            [
+                "--lock",
+                str(lock_path),
+                "verify-archive",
+                "--archive",
+                str(archive_path),
+            ]
+        )
+        == 0
+    )
+    output = json.loads(capsys.readouterr().out)
+    assert output["archive_sha256"] == lock["archive_sha256"]
+    assert output["image_digest"] == lock["image_digest"]
+
+
 def test_oci_verifier_rejects_blob_content_that_does_not_match_its_digest(tmp_path: Path) -> None:
     files, lock = _fixture_payloads()
     layer_path = next(name for name in files if files[name].startswith(b"source-free"))
@@ -226,6 +254,20 @@ def test_oci_verifier_rejects_nonregular_archive_members(tmp_path: Path) -> None
 
     with pytest.raises(VerificationError, match="non-regular OCI archive member"):
         verify_archive(lock_path, archive_path)
+
+
+def test_oci_verifier_never_follows_an_archive_path_symlink(tmp_path: Path) -> None:
+    files, lock = _fixture_payloads()
+    lock_path = tmp_path / "runtime-image-lock.json"
+    archive_path = tmp_path / "runtime.oci.tar"
+    linked_path = tmp_path / "linked.oci.tar"
+    _write_archive(archive_path, files)
+    _bind_archive(lock, archive_path)
+    _write_lock(lock_path, lock)
+    linked_path.symlink_to(archive_path)
+
+    with pytest.raises(VerificationError, match="securely open OCI archive"):
+        verify_archive(lock_path, linked_path)
 
 
 def test_build_input_verifier_binds_hashes_platform_and_epoch(tmp_path: Path) -> None:

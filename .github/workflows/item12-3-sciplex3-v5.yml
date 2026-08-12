@@ -1,0 +1,643 @@
+name: Item 12.3 one-use sci-Plex3 v5 stage
+
+on:
+  workflow_dispatch:
+    inputs:
+      approved_proposal_sha256:
+        description: Exact SHA-256 of the checked-in pending Item 12.3 proposal
+        required: true
+        type: string
+      proposal_commit:
+        description: Exact 40-hex proposal-only commit D whose sole parent is workflow commit C
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+concurrency:
+  group: item12-3-sciplex3-v5-one-use
+  cancel-in-progress: false
+
+jobs:
+  authorized-stage:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 150
+    steps:
+      - name: Reject the wrong trusted workflow identity, actor, rerun, or input shape
+        env:
+          APPROVED_PROPOSAL_SHA256: ${{ inputs.approved_proposal_sha256 }}
+          EVENT_NAME: ${{ github.event_name }}
+          EVENT_REPOSITORY: ${{ github.repository }}
+          EVENT_REF: ${{ github.ref }}
+          EVENT_SHA: ${{ github.sha }}
+          EVENT_WORKFLOW_REF: ${{ github.workflow_ref }}
+          EVENT_WORKFLOW_SHA: ${{ github.workflow_sha }}
+          EVENT_ACTOR: ${{ github.actor }}
+          EVENT_TRIGGERING_ACTOR: ${{ github.triggering_actor }}
+          PROPOSAL_COMMIT: ${{ inputs.proposal_commit }}
+          RUN_ATTEMPT: ${{ github.run_attempt }}
+        run: |
+          set -euo pipefail
+          test "${EVENT_NAME}" = "workflow_dispatch"
+          test "${EVENT_REPOSITORY}" = "logannye/cellstate"
+          test "${EVENT_REF}" = "refs/heads/main"
+          test "${EVENT_WORKFLOW_REF}" = \
+            "logannye/cellstate/.github/workflows/item12-3-sciplex3-v5.yml@refs/heads/main"
+          test "${EVENT_ACTOR}" = "logannye"
+          test "${EVENT_TRIGGERING_ACTOR}" = "logannye"
+          test "${RUN_ATTEMPT}" = "1"
+          [[ "${EVENT_SHA}" =~ ^[0-9a-f]{40}$ ]]
+          test "${EVENT_WORKFLOW_SHA}" = "${EVENT_SHA}"
+          [[ "${PROPOSAL_COMMIT}" =~ ^[0-9a-f]{40}$ ]]
+          test "${PROPOSAL_COMMIT}" != "${EVENT_SHA}"
+          [[ "${APPROVED_PROPOSAL_SHA256}" =~ ^[0-9a-f]{64}$ ]]
+
+      - name: Check out trusted workflow and execution commit C without retaining credentials
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+          fetch-depth: 0
+          lfs: false
+          submodules: false
+
+      - name: Authenticate proposal commit D as inert data before repository execution
+        env:
+          APPROVED_PROPOSAL_SHA256: ${{ inputs.approved_proposal_sha256 }}
+          PROPOSAL_COMMIT: ${{ inputs.proposal_commit }}
+          WORKFLOW_COMMIT: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          export GIT_CONFIG_GLOBAL=/dev/null
+          export GIT_CONFIG_NOSYSTEM=1
+          export GIT_NO_REPLACE_OBJECTS=1
+          export GIT_OPTIONAL_LOCKS=0
+          proposal="audits/item12_3/sciplex3-k562-v5-pending-proposal.json"
+          git_safe=(/usr/bin/git -c core.hooksPath=/dev/null -c core.fsmonitor=false -C .)
+          test "$("${git_safe[@]}" rev-parse --verify HEAD)" = "${WORKFLOW_COMMIT}"
+          test -z "$("${git_safe[@]}" status --porcelain=v1 --untracked-files=all \
+            --ignore-submodules=none)"
+          test "$("${git_safe[@]}" rev-list --parents -n 1 "${PROPOSAL_COMMIT}")" = \
+            "${PROPOSAL_COMMIT} ${WORKFLOW_COMMIT}"
+          test "$("${git_safe[@]}" diff-tree --no-renames --no-commit-id --name-status -r \
+            "${WORKFLOW_COMMIT}" "${PROPOSAL_COMMIT}")" = "$(printf 'A\t%s' "${proposal}")"
+          if "${git_safe[@]}" cat-file -e "${WORKFLOW_COMMIT}:${proposal}" 2>/dev/null; then
+            echo "proposal unexpectedly exists in trusted workflow/execution commit C" >&2
+            exit 1
+          fi
+          tree_entry="$("${git_safe[@]}" ls-tree "${PROPOSAL_COMMIT}" -- "${proposal}")"
+          tree_prefix="100644 blob "
+          tree_suffix=$'\t'"${proposal}"
+          [[ "${tree_entry}" == "${tree_prefix}"*"${tree_suffix}" ]]
+          tree_object="${tree_entry#"${tree_prefix}"}"
+          tree_object="${tree_object%"${tree_suffix}"}"
+          [[ "${tree_object}" =~ ^[0-9a-f]{40}$ ]]
+          object_spec="${PROPOSAL_COMMIT}:${proposal}"
+          test "$("${git_safe[@]}" cat-file -t "${object_spec}")" = "blob"
+          blob_size="$("${git_safe[@]}" cat-file -s "${object_spec}")"
+          [[ "${blob_size}" =~ ^[0-9]+$ ]]
+          test "${blob_size}" -ge 2
+          test "${blob_size}" -le 262144
+          proposal_root="${RUNNER_TEMP}/item12-3-approved-proposal"
+          proposal_copy="${proposal_root}/proposal.json"
+          /usr/bin/install -d -m 0700 "${proposal_root}"
+          test ! -e "${proposal_copy}"
+          set -o noclobber
+          "${git_safe[@]}" cat-file blob "${object_spec}" > "${proposal_copy}"
+          set +o noclobber
+          /bin/chmod 0400 "${proposal_copy}"
+          test "$(/usr/bin/stat -c '%a:%h:%s' "${proposal_copy}")" = "400:1:${blob_size}"
+          read -r observed_sha256 _ < <(/usr/bin/sha256sum "${proposal_copy}")
+          test "${observed_sha256}" = "${APPROVED_PROPOSAL_SHA256}"
+          {
+            echo "EXECUTION_COMMIT=${WORKFLOW_COMMIT}"
+            echo "PROPOSAL_COMMIT=${PROPOSAL_COMMIT}"
+            echo "PROPOSAL_COPY=${proposal_copy}"
+          } >> "${GITHUB_ENV}"
+
+      - name: Set up exact public verification runtime
+        uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0
+        with:
+          version: 0.12.3
+          python-version: "3.11"
+          enable-cache: false
+
+      - name: Install locked source-free verifier dependencies
+        run: uv sync --frozen --no-editable
+
+      - name: Reverify proposal topology and bindings with trusted C tooling
+        id: proposal
+        env:
+          APPROVED_PROPOSAL_SHA256: ${{ inputs.approved_proposal_sha256 }}
+          PROPOSAL_COMMIT_INPUT: ${{ inputs.proposal_commit }}
+          WORKFLOW_COMMIT: ${{ github.sha }}
+          EVENT_ACTOR: ${{ github.actor }}
+          EVENT_TRIGGERING_ACTOR: ${{ github.triggering_actor }}
+          EVENT_REF: ${{ github.ref }}
+          RUN_ID: ${{ github.run_id }}
+          RUN_ATTEMPT: ${{ github.run_attempt }}
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "${WORKFLOW_COMMIT}"
+          test "${PROPOSAL_COMMIT}" = "${PROPOSAL_COMMIT_INPUT}"
+          verification_json="$(uv run --offline --frozen --no-editable python \
+            scripts/verify_item12_3_authorization.py verify-proposal \
+            --proposal "${PROPOSAL_COPY}" \
+            --approved-proposal-sha256 "${APPROVED_PROPOSAL_SHA256}" \
+            --repository-root . \
+            --dispatch-actor "${EVENT_ACTOR}" \
+            --triggering-actor "${EVENT_TRIGGERING_ACTOR}" \
+            --github-run-id "${RUN_ID}" \
+            --github-run-attempt "${RUN_ATTEMPT}" \
+            --workflow-dispatch-ref "${EVENT_REF}" \
+            --workflow-repository-commit "${WORKFLOW_COMMIT}" \
+            --proposal-repository-commit "${PROPOSAL_COMMIT}")"
+          verification_path="${RUNNER_TEMP}/item12-3-proposal-verification.json"
+          test ! -e "${verification_path}"
+          printf '%s' "${verification_json}" > "${verification_path}"
+          chmod 0400 "${verification_path}"
+          execution_commit="$(uv run --offline --frozen --no-editable python -c \
+            'import json,sys; print(json.load(open(sys.argv[1], encoding="utf-8"))["execution_repository_commit"])' \
+            "${verification_path}")"
+          tag_name="$(uv run --offline --frozen --no-editable python -c \
+            'import json,sys; print(json.load(open(sys.argv[1], encoding="utf-8"))["durable_attempt_tag"])' \
+            "${verification_path}")"
+          [[ "${execution_commit}" =~ ^[0-9a-f]{40}$ ]]
+          test "${execution_commit}" = "${WORKFLOW_COMMIT}"
+          test -z "$(git status --porcelain=v1 --untracked-files=all)"
+          {
+            echo "ATTEMPT_TAG=${tag_name}"
+          } >> "${GITHUB_ENV}"
+
+      - name: Render exact immutable attempt-release body
+        env:
+          APPROVED_PROPOSAL_SHA256: ${{ inputs.approved_proposal_sha256 }}
+          EVENT_ACTOR: ${{ github.actor }}
+          EVENT_TRIGGERING_ACTOR: ${{ github.triggering_actor }}
+          EVENT_REF: ${{ github.ref }}
+          RUN_ID: ${{ github.run_id }}
+          RUN_ATTEMPT: ${{ github.run_attempt }}
+          WORKFLOW_COMMIT: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          body="${RUNNER_TEMP}/item12-3-attempt-release-body.json"
+          test ! -e "${body}"
+          observed_tag="$(uv run --offline --frozen --no-editable python \
+            scripts/verify_item12_3_authorization.py render-release-body \
+            --proposal "${PROPOSAL_COPY}" \
+            --approved-proposal-sha256 "${APPROVED_PROPOSAL_SHA256}" \
+            --repository-root . \
+            --dispatch-actor "${EVENT_ACTOR}" \
+            --triggering-actor "${EVENT_TRIGGERING_ACTOR}" \
+            --github-run-id "${RUN_ID}" \
+            --github-run-attempt "${RUN_ATTEMPT}" \
+            --workflow-dispatch-ref "${EVENT_REF}" \
+            --workflow-repository-commit "${WORKFLOW_COMMIT}" \
+            --proposal-repository-commit "${PROPOSAL_COMMIT}" \
+            --output "${body}")"
+          test "${observed_tag}" = "${ATTEMPT_TAG}"
+          echo "RELEASE_BODY=${body}" >> "${GITHUB_ENV}"
+
+      - name: Pre-render bounded post-consumption fallback evidence
+        env:
+          APPROVED_PROPOSAL_SHA256: ${{ inputs.approved_proposal_sha256 }}
+          EVENT_ACTOR: ${{ github.actor }}
+          EVENT_TRIGGERING_ACTOR: ${{ github.triggering_actor }}
+          EVENT_REF: ${{ github.ref }}
+          RUN_ID: ${{ github.run_id }}
+          RUN_ATTEMPT: ${{ github.run_attempt }}
+          WORKFLOW_COMMIT: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          render_fallback() {
+            local acquisition="$1"
+            local cleanup="$2"
+            local output="$3"
+            test ! -e "${output}"
+            uv run --offline --frozen --no-editable python \
+              scripts/verify_item12_3_authorization.py render-fallback-terminal \
+              --proposal "${PROPOSAL_COPY}" \
+              --approved-proposal-sha256 "${APPROVED_PROPOSAL_SHA256}" \
+              --repository-root . \
+              --dispatch-actor "${EVENT_ACTOR}" \
+              --triggering-actor "${EVENT_TRIGGERING_ACTOR}" \
+              --github-run-id "${RUN_ID}" \
+              --github-run-attempt "${RUN_ATTEMPT}" \
+              --workflow-dispatch-ref "${EVENT_REF}" \
+              --workflow-repository-commit "${WORKFLOW_COMMIT}" \
+              --proposal-repository-commit "${PROPOSAL_COMMIT}" \
+              --protected-source-acquisition "${acquisition}" \
+              --host-source-cleanup-disposition "${cleanup}" \
+              --output "${output}" >/dev/null
+          }
+          fallback_pre="${RUNNER_TEMP}/item12-3-fallback-pre-source.json"
+          fallback_started="${RUNNER_TEMP}/item12-3-fallback-source-started.json"
+          fallback_started_removed="${RUNNER_TEMP}/item12-3-fallback-source-started-removed.json"
+          fallback_completed="${RUNNER_TEMP}/item12-3-fallback-source-completed.json"
+          fallback_completed_removed="${RUNNER_TEMP}/item12-3-fallback-source-completed-removed.json"
+          terminal_upload="${RUNNER_TEMP}/item12-3-terminal-report.json"
+          render_fallback unknown_after_global_consumption unknown "${terminal_upload}"
+          render_fallback not_started not_applicable "${fallback_pre}"
+          render_fallback started_incomplete unknown "${fallback_started}"
+          render_fallback started_incomplete removed "${fallback_started_removed}"
+          render_fallback completed unknown "${fallback_completed}"
+          render_fallback completed removed "${fallback_completed_removed}"
+          {
+            echo "FALLBACK_PRE=${fallback_pre}"
+            echo "FALLBACK_STARTED=${fallback_started}"
+            echo "FALLBACK_STARTED_REMOVED=${fallback_started_removed}"
+            echo "FALLBACK_COMPLETED=${fallback_completed}"
+            echo "FALLBACK_COMPLETED_REMOVED=${fallback_completed_removed}"
+            echo "TERMINAL_REPORT=${terminal_upload}"
+          } >> "${GITHUB_ENV}"
+
+      - name: Atomically consume the one-use attempt as an immutable asset-free release
+        id: durable_consumption
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PROPOSAL_COMMIT_INPUT: ${{ inputs.proposal_commit }}
+        run: |
+          set -euo pipefail
+          api="${GITHUB_API_URL}/repos/${GITHUB_REPOSITORY}"
+          accept="Accept: application/vnd.github+json"
+          auth="Authorization: Bearer ${GH_TOKEN}"
+          version="X-GitHub-Api-Version: 2022-11-28"
+          release_probe="${RUNNER_TEMP}/item12-3-release-probe.json"
+          tag_probe="${RUNNER_TEMP}/item12-3-tag-probe.json"
+          release_status="$(curl --silent --show-error --connect-timeout 10 --max-time 30 \
+            --output "${release_probe}" --write-out '%{http_code}' \
+            --header "${accept}" --header "${auth}" --header "${version}" \
+            "${api}/releases/tags/${ATTEMPT_TAG}")"
+          tag_status="$(curl --silent --show-error --connect-timeout 10 --max-time 30 \
+            --output "${tag_probe}" --write-out '%{http_code}' \
+            --header "${accept}" --header "${auth}" --header "${version}" \
+            "${api}/git/ref/tags/${ATTEMPT_TAG}")"
+          test "${release_status}" = "404"
+          test "${tag_status}" = "404"
+          create_request="${RUNNER_TEMP}/item12-3-release-create-request.json"
+          uv run --offline --frozen --no-editable python - \
+            "${ATTEMPT_TAG}" "${PROPOSAL_COMMIT_INPUT}" "${RELEASE_BODY}" \
+            "${create_request}" <<'PY'
+          import json
+          import pathlib
+          import sys
+
+          tag, commit, body_path, output_path = sys.argv[1:]
+          body = pathlib.Path(body_path).read_text(encoding="utf-8")
+          payload = {
+              "body": body,
+              "draft": False,
+              "make_latest": "false",
+              "name": tag,
+              "prerelease": False,
+              "tag_name": tag,
+              "target_commitish": commit,
+          }
+          pathlib.Path(output_path).write_text(
+              json.dumps(payload, sort_keys=True, separators=(",", ":")), encoding="utf-8"
+          )
+          PY
+          create_response="${RUNNER_TEMP}/item12-3-release-create-response.json"
+          post_started="${RUNNER_TEMP}/item12-3-release-post-started"
+          test ! -e "${post_started}"
+          printf '%s' 'creation-attempted-no-retry' > "${post_started}"
+          chmod 0400 "${post_started}"
+          create_status="$(curl --silent --show-error --connect-timeout 10 --max-time 30 \
+            --request POST --output "${create_response}" --write-out '%{http_code}' \
+            --header "${accept}" --header "${auth}" --header "${version}" \
+            --header 'Content-Type: application/json' \
+            --data-binary "@${create_request}" "${api}/releases")"
+          # Any non-201 result is terminal with no retry for this run. An ambiguous server-side
+          # creation is durably blocked by the proposal-derived tag; no rerun attempt is accepted.
+          test "${create_status}" = "201"
+          gh release verify "${ATTEMPT_TAG}" --repo "${GITHUB_REPOSITORY}" >/dev/null
+          release_readback="${RUNNER_TEMP}/item12-3-release-readback.json"
+          tag_readback="${RUNNER_TEMP}/item12-3-tag-readback.json"
+          test "$(curl --silent --show-error --connect-timeout 10 --max-time 30 \
+            --output "${release_readback}" --write-out '%{http_code}' \
+            --header "${accept}" --header "${auth}" --header "${version}" \
+            "${api}/releases/tags/${ATTEMPT_TAG}")" = "200"
+          test "$(curl --silent --show-error --connect-timeout 10 --max-time 30 \
+            --output "${tag_readback}" --write-out '%{http_code}' \
+            --header "${accept}" --header "${auth}" --header "${version}" \
+            "${api}/git/ref/tags/${ATTEMPT_TAG}")" = "200"
+          {
+            echo "RELEASE_READBACK=${release_readback}"
+            echo "TAG_READBACK=${tag_readback}"
+          } >> "${GITHUB_ENV}"
+
+      - name: Verify durable readback and seal runner-local consumption
+        id: local_consumption
+        env:
+          APPROVED_PROPOSAL_SHA256: ${{ inputs.approved_proposal_sha256 }}
+          EVENT_ACTOR: ${{ github.actor }}
+          EVENT_TRIGGERING_ACTOR: ${{ github.triggering_actor }}
+          EVENT_REF: ${{ github.ref }}
+          RUN_ID: ${{ github.run_id }}
+          RUN_ATTEMPT: ${{ github.run_attempt }}
+          WORKFLOW_COMMIT: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          sudo install -d -o "$(id -u)" -g "$(id -g)" -m 0700 \
+            /var/lib/cellstate/item12-3 \
+            /var/lib/cellstate/item12-3/attempt-ledger
+          durable_observation="${RUNNER_TEMP}/item12-3-durable-consumption.json"
+          test ! -e "${durable_observation}"
+          consumption_json="$(uv run --offline --frozen --no-editable python \
+            scripts/verify_item12_3_authorization.py verify-release-and-consume \
+            --proposal "${PROPOSAL_COPY}" \
+            --approved-proposal-sha256 "${APPROVED_PROPOSAL_SHA256}" \
+            --repository-root . \
+            --dispatch-actor "${EVENT_ACTOR}" \
+            --triggering-actor "${EVENT_TRIGGERING_ACTOR}" \
+            --github-run-id "${RUN_ID}" \
+            --github-run-attempt "${RUN_ATTEMPT}" \
+            --workflow-dispatch-ref "${EVENT_REF}" \
+            --workflow-repository-commit "${WORKFLOW_COMMIT}" \
+            --proposal-repository-commit "${PROPOSAL_COMMIT}" \
+            --release-json "${RELEASE_READBACK}" \
+            --tag-ref-json "${TAG_READBACK}" \
+            --gh-release-verified \
+            --release-created-in-this-run \
+            --durable-observation-output "${durable_observation}")"
+          consumption_json_path="${RUNNER_TEMP}/item12-3-local-consumption.json"
+          printf '%s' "${consumption_json}" > "${consumption_json_path}"
+          chmod 0400 "${consumption_json_path}"
+          consumption_path="$(uv run --offline --frozen --no-editable python -c \
+            'import json,sys; print(json.load(open(sys.argv[1], encoding="utf-8"))["consumption_path"])' \
+            "${consumption_json_path}")"
+          {
+            echo "CONSUMPTION_PATH=${consumption_path}"
+            echo "DURABLE_OBSERVATION=${durable_observation}"
+          } >> "${GITHUB_ENV}"
+
+      - name: Set up exact post-consumption native Docker daemon
+        id: docker_setup
+        continue-on-error: true
+        uses: docker/setup-docker-action@77e84dbf09b47d1e29270283c22f16145aa85ca1 # v5.4.0
+        with:
+          version: v29.7.2
+          set-host: false
+          daemon-config: |
+            {
+              "features": {
+                "containerd-snapshotter": true
+              }
+            }
+
+      - name: Download, authenticate, load, and reauthenticate exact runtime archive
+        id: runtime_prepare
+        if: steps.local_consumption.outcome == 'success' && steps.docker_setup.outcome == 'success'
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          umask 077
+          runtime_root="/var/lib/cellstate/item12-3/runtime"
+          sudo install -d -o "$(id -u)" -g "$(id -g)" -m 0700 "${runtime_root}"
+          archive="${runtime_root}/sciplex3-v5-runtime-linux-amd64-37c2fa5846acfbd8357476859bd7f8f0ac6591261d79c2f6f46f0aa22fb76454.oci.tar"
+          release_tag="sciplex3-v5-runtime-20260811-locked"
+          release_json="${RUNNER_TEMP}/item12-3-runtime-release.json"
+          api="${GITHUB_API_URL}/repos/${GITHUB_REPOSITORY}"
+          accept_json="Accept: application/vnd.github+json"
+          accept_asset="Accept: application/octet-stream"
+          auth="Authorization: Bearer ${GH_TOKEN}"
+          version="X-GitHub-Api-Version: 2022-11-28"
+          test ! -e "${archive}"
+          test "$(/usr/bin/curl --disable --fail --silent --show-error \
+            --proto '=https' --connect-timeout 10 --max-time 30 --retry 0 \
+            --output "${release_json}" --write-out '%{http_code}' \
+            --header "${accept_json}" --header "${auth}" --header "${version}" \
+            "${api}/releases/tags/${release_tag}")" = "200"
+          asset_api_url="$(uv run --offline --frozen --no-editable python - \
+            "${release_json}" "${release_tag}" "$(basename "${archive}")" <<'PY'
+          import json
+          import pathlib
+          import sys
+
+          release_path, expected_tag, expected_name = sys.argv[1:]
+          release = json.loads(pathlib.Path(release_path).read_bytes())
+          assets = release.get("assets") if type(release) is dict else None
+          if (
+              release.get("tag_name") != expected_tag
+              or release.get("target_commitish") != "d254d7c128e7025f19d2c84cdb3eb9901c5e69cb"
+              or release.get("draft") is not False
+              or release.get("prerelease") is not False
+              or release.get("immutable") is not True
+              or type(assets) is not list
+              or len(assets) != 1
+          ):
+              raise SystemExit("runtime release metadata is not exact")
+          asset = assets[0]
+          asset_id = asset.get("id") if type(asset) is dict else None
+          expected_url = (
+              "https://api.github.com/repos/logannye/cellstate/releases/assets/"
+              f"{asset_id}"
+          )
+          if (
+              type(asset_id) is not int
+              or isinstance(asset_id, bool)
+              or asset_id <= 0
+              or asset.get("name") != expected_name
+              or asset.get("size") != 115_639_808
+              or asset.get("url") != expected_url
+          ):
+              raise SystemExit("runtime release asset metadata is not exact")
+          print(expected_url)
+          PY
+          )"
+          redirect_headers="${RUNNER_TEMP}/item12-3-runtime-asset-redirect.headers"
+          test ! -e "${redirect_headers}"
+          redirect_status="$(/usr/bin/curl --disable --silent --show-error \
+            --proto '=https' --connect-timeout 10 --max-time 30 --retry 0 \
+            --dump-header "${redirect_headers}" --output /dev/null --write-out '%{http_code}' \
+            --header "${accept_asset}" --header "${auth}" --header "${version}" \
+            "${asset_api_url}")"
+          test "${redirect_status}" = "302"
+          signed_asset_url="$(uv run --offline --frozen --no-editable python - \
+            "${redirect_headers}" <<'PY'
+          import pathlib
+          import sys
+          import urllib.parse
+
+          payload = pathlib.Path(sys.argv[1]).read_bytes()
+          if not payload or len(payload) > 65_536:
+              raise SystemExit("runtime asset redirect headers violate their bound")
+          locations = []
+          for line in payload.splitlines():
+              name, separator, value = line.partition(b":")
+              if separator and name.strip().lower() == b"location":
+                  locations.append(value.strip())
+          if len(locations) != 1:
+              raise SystemExit("runtime asset redirect does not have one location")
+          try:
+              location = locations[0].decode("ascii", errors="strict")
+          except UnicodeDecodeError as error:
+              raise SystemExit("runtime asset redirect is not ASCII") from error
+          parsed = urllib.parse.urlsplit(location)
+          if (
+              any(ord(character) < 33 or ord(character) > 126 for character in location)
+              or parsed.scheme != "https"
+              or parsed.hostname != "release-assets.githubusercontent.com"
+              or parsed.username is not None
+              or parsed.password is not None
+              or parsed.port not in (None, 443)
+              or not parsed.path.startswith("/github-production-release-asset/")
+              or not parsed.query
+              or parsed.fragment
+          ):
+              raise SystemExit("runtime asset redirect target is not exact")
+          print(location)
+          PY
+          )"
+          download_status="$(/usr/bin/curl --disable --silent --show-error \
+            --proto '=https' --connect-timeout 10 --max-time 300 --retry 0 \
+            --netrc-file /dev/null --output "${archive}" --write-out '%{http_code}' \
+            "${signed_asset_url}")"
+          test "${download_status}" = "200"
+          chmod 0400 "${archive}"
+          runtime_json="$(uv run --offline --frozen --no-editable python \
+            scripts/verify_sciplex3_v5_runtime_distribution.py \
+            --distribution-lock containers/sciplex3-v5-runtime/runtime-distribution-lock.json \
+            --runtime-image-lock containers/sciplex3-v5-runtime/runtime-image-lock.json \
+            prepare-runtime --archive "${archive}")"
+          runtime_observation="${RUNNER_TEMP}/item12-3-runtime-preparation.json"
+          test ! -e "${runtime_observation}"
+          printf '%s' "${runtime_json}" > "${runtime_observation}"
+          chmod 0400 "${runtime_observation}"
+          sync -f "${runtime_observation}"
+          echo "RUNTIME_OBSERVATION=${runtime_observation}" >> "${GITHUB_ENV}"
+
+      - name: Issue exact consumed runtime-bound capability
+        id: capability
+        if: steps.runtime_prepare.outcome == 'success'
+        continue-on-error: true
+        env:
+          APPROVED_PROPOSAL_SHA256: ${{ inputs.approved_proposal_sha256 }}
+          EVENT_ACTOR: ${{ github.actor }}
+          EVENT_TRIGGERING_ACTOR: ${{ github.triggering_actor }}
+          EVENT_REF: ${{ github.ref }}
+          RUN_ID: ${{ github.run_id }}
+          RUN_ATTEMPT: ${{ github.run_attempt }}
+          WORKFLOW_COMMIT: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          capability="${RUNNER_TEMP}/item12-3-verified-execution-capability.json"
+          test ! -e "${capability}"
+          uv run --offline --frozen --no-editable python \
+            scripts/verify_item12_3_authorization.py issue-capability \
+            --proposal "${PROPOSAL_COPY}" \
+            --approved-proposal-sha256 "${APPROVED_PROPOSAL_SHA256}" \
+            --repository-root . \
+            --dispatch-actor "${EVENT_ACTOR}" \
+            --triggering-actor "${EVENT_TRIGGERING_ACTOR}" \
+            --github-run-id "${RUN_ID}" \
+            --github-run-attempt "${RUN_ATTEMPT}" \
+            --workflow-dispatch-ref "${EVENT_REF}" \
+            --workflow-repository-commit "${WORKFLOW_COMMIT}" \
+            --proposal-repository-commit "${PROPOSAL_COMMIT}" \
+            --durable-observation "${DURABLE_OBSERVATION}" \
+            --consumption "${CONSUMPTION_PATH}" \
+            --runtime-preparation-observation "${RUNTIME_OBSERVATION}" \
+            --capability-output "${capability}" >/dev/null
+          echo "VERIFIED_CAPABILITY=${capability}" >> "${GITHUB_ENV}"
+
+      - name: Reauthenticate unchanged execution commit C and verify capability
+        id: execution_checkout
+        if: steps.capability.outcome == 'success'
+        continue-on-error: true
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "${EXECUTION_COMMIT}"
+          test -z "$(git status --porcelain=v1 --untracked-files=all)"
+          uv run --offline --frozen --no-editable python \
+            scripts/verify_item12_3_authorization.py verify-capability \
+            --capability "${VERIFIED_CAPABILITY}" \
+            --repository-root .
+
+      - name: Record a bounded native-preflight denial
+        if: >-
+          steps.docker_setup.outcome != 'success' ||
+          steps.runtime_prepare.outcome != 'success'
+        run: >-
+          uv run --offline --frozen --no-editable python
+          scripts/verify_item12_3_authorization.py record-pre-source-terminal
+          --consumption "${CONSUMPTION_PATH}"
+          --reason native_runtime_preflight_failed
+
+      - name: Invoke the frozen authorized execution seam
+        id: execution
+        if: >-
+          steps.docker_setup.outcome == 'success' &&
+          steps.runtime_prepare.outcome == 'success' &&
+          steps.capability.outcome == 'success' &&
+          steps.execution_checkout.outcome == 'success'
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: >-
+          uv run --offline --frozen --no-editable python
+          scripts/run_item12_3_authorized_execution.py
+          --verified-capability "${VERIFIED_CAPABILITY}"
+          --repository-root .
+
+      - name: Finalize exactly one bounded sanitized terminal report
+        id: terminal
+        if: always()
+        timeout-minutes: 1
+        run: |
+          set -euo pipefail
+          test -f "${RUNNER_TEMP}/item12-3-release-post-started"
+          selected="${FALLBACK_PRE}"
+          if test -f /var/lib/cellstate/item12-3/source-acquisition-started.json; then
+            selected="${FALLBACK_STARTED}"
+            if test -f /var/lib/cellstate/item12-3/host-source-removed.json; then
+              selected="${FALLBACK_STARTED_REMOVED}"
+            fi
+          fi
+          if test -f /var/lib/cellstate/item12-3/source-acquisition-completed.json; then
+            selected="${FALLBACK_COMPLETED}"
+            if test -f /var/lib/cellstate/item12-3/host-source-removed.json; then
+              selected="${FALLBACK_COMPLETED_REMOVED}"
+            fi
+          fi
+          if test -n "${CONSUMPTION_PATH:-}"; then
+            primary="${CONSUMPTION_PATH%.consumed.json}.terminal.json"
+            if test "${primary}" != "${CONSUMPTION_PATH}" && test -f "${primary}" && \
+              uv run --offline --frozen --no-editable python \
+                scripts/verify_item12_3_authorization.py verify-terminal \
+                --terminal "${primary}" >/dev/null; then
+              selected="${primary}"
+            fi
+          fi
+          replacement="${RUNNER_TEMP}/item12-3-terminal-replacement.json"
+          test ! -e "${replacement}"
+          install -m 0400 "${selected}" "${replacement}"
+          uv run --offline --frozen --no-editable python \
+            scripts/verify_item12_3_authorization.py verify-terminal \
+            --terminal "${replacement}" >/dev/null
+          mv -f "${replacement}" "${TERMINAL_REPORT}"
+          chmod 0400 "${TERMINAL_REPORT}"
+          test "$(stat -c '%s' "${TERMINAL_REPORT}")" -le 4096
+
+      - name: Upload only sanitized terminal evidence
+        if: always() && steps.terminal.outcome == 'success'
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: item12-3-terminal-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/item12-3-terminal-report.json
+          if-no-files-found: error
+          include-hidden-files: false
+          compression-level: 0
+          retention-days: 90
+
+      - name: Enforce terminal stop and no retry
+        if: always() && steps.terminal.outcome == 'success'
+        run: |
+          set -euo pipefail
+          outcome="$(uv run --offline --frozen --no-editable python -c \
+            'import json,sys; print(json.load(open(sys.argv[1], encoding="utf-8"))["outcome"])' \
+            "${TERMINAL_REPORT}")"
+          test "${outcome}" = "success"
