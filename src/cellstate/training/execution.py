@@ -38,6 +38,9 @@ _POLICY_LABEL_KEY = "org.cellstate.contained-execution.policy-sha256"
 _EXECUTION_LABEL_KEY = "org.cellstate.contained-execution.id"
 WORKER_TERMINAL_REPORT_MAX_BYTES = 64 * 1024
 PARENT_TERMINAL_REPORT_MAX_BYTES = 64 * 1024
+_OOM_STATE_STABILIZATION_ATTEMPTS = 5
+_OOM_STATE_INSPECT_TIMEOUT_SECONDS = 1.0
+_OOM_STATE_POLL_SECONDS = 0.1
 
 
 class ContainedExecutionError(RuntimeError):
@@ -840,7 +843,7 @@ class ContainedExecutionObservation(SchemaModel):
     artifact_schema: Literal["cellstate-contained-execution-observation"] = (
         "cellstate-contained-execution-observation"
     )
-    artifact_schema_version: Literal["1.1.0"] = "1.1.0"
+    artifact_schema_version: Literal["1.2.0"] = "1.2.0"
     execution_id: str = Field(min_length=1)
     policy_fingerprint: str = Field(pattern=r"^[0-9a-f]{64}$")
     runtime_image_digest: str = Field(pattern=r"^sha256:[0-9a-f]{64}$")
@@ -901,7 +904,7 @@ class ContainedExecutionObservation(SchemaModel):
             self.outcome != expected
             or (self.timed_out and self.worker_watchdog_timed_out)
             or ((self.timed_out or self.worker_watchdog_timed_out) and self.oom_killed)
-            or (self.worker_watchdog_timed_out and self.exit_code not in {124, 137})
+            or (self.worker_watchdog_timed_out and self.exit_code != 124)
         ):
             raise ValueError("execution outcome contradicts timeout, OOM, or exit status")
         return self
@@ -1136,7 +1139,7 @@ class ContainedTrainingObservation(SchemaModel):
     artifact_schema: Literal["cellstate-contained-training-observation"] = (
         "cellstate-contained-training-observation"
     )
-    artifact_schema_version: Literal["1.1.0"] = "1.1.0"
+    artifact_schema_version: Literal["1.2.0"] = "1.2.0"
     training_plan_fingerprint: str = Field(pattern=r"^[0-9a-f]{64}$")
     policy_fingerprint: str = Field(pattern=r"^[0-9a-f]{64}$")
     runtime_image_digest: str = Field(pattern=r"^sha256:[0-9a-f]{64}$")
@@ -1220,7 +1223,7 @@ class ContainedTrainingTerminalObservation(SchemaModel):
     artifact_schema: Literal["cellstate-contained-training-terminal-observation"] = (
         "cellstate-contained-training-terminal-observation"
     )
-    artifact_schema_version: Literal["1.1.0"] = "1.1.0"
+    artifact_schema_version: Literal["1.2.0"] = "1.2.0"
     execution_id: str = Field(min_length=1)
     terminal_status: Literal[
         "success",
@@ -2034,14 +2037,26 @@ class DockerExecutor:
             )
         return self._effective_uid, self._effective_gid
 
-    def _inspect_state(self, container_id: str) -> _ContainerState:
+    def _inspect_state(
+        self,
+        container_id: str,
+        *,
+        timeout_seconds: float | None = None,
+    ) -> _ContainerState:
+        command_timeout = (
+            float(self.policy.cleanup_timeout_seconds)
+            if timeout_seconds is None
+            else timeout_seconds
+        )
+        if not math.isfinite(command_timeout) or command_timeout <= 0.0:
+            raise ContainedExecutionError("Docker state-inspection timeout is invalid")
         value = _docker_json(
             self._run(
                 "inspect",
                 "--format",
                 "{{json .State}}",
                 container_id,
-                timeout_seconds=float(self.policy.cleanup_timeout_seconds),
+                timeout_seconds=command_timeout,
             ),
             name="container state",
         )
@@ -2053,6 +2068,39 @@ class DockerExecutor:
         if type(running) is not bool or type(oom_killed) is not bool or type(exit_code) is not int:
             raise ContainedExecutionError("Docker container state has malformed primitive fields")
         return _ContainerState(running, oom_killed, exit_code)
+
+    def _stabilize_terminal_oom_state(
+        self,
+        container_id: str,
+        state: _ContainerState,
+    ) -> _ContainerState:
+        """Boundedly recover a late positive OOM flag without trusting a negative one.
+
+        Docker wait and the daemon's cgroup OOM monitor are asynchronous.  In particular, wait
+        can expose exit 137 before ``State.OOMKilled`` becomes true.  Poll only that ambiguous
+        terminal shape for a short, fixed interval.  A positive flag is authoritative; a flag
+        that remains false is returned as ambiguous and is classified fail-closed by the caller.
+        """
+
+        if state.running or state.exit_code != 137 or state.oom_killed:
+            return state
+        inspect_timeout = min(
+            _OOM_STATE_INSPECT_TIMEOUT_SECONDS,
+            float(self.policy.cleanup_timeout_seconds),
+        )
+        for _ in range(_OOM_STATE_STABILIZATION_ATTEMPTS):
+            self._sleep(_OOM_STATE_POLL_SECONDS)
+            state = self._inspect_state(
+                container_id,
+                timeout_seconds=inspect_timeout,
+            )
+            if state.running or state.exit_code != 137:
+                raise ContainedExecutionError(
+                    "Docker terminal state changed during OOM evidence stabilization"
+                )
+            if state.oom_killed:
+                return state
+        return state
 
     def _inspect_labels(
         self,
@@ -2209,7 +2257,13 @@ class DockerExecutor:
             raise ContainedExecutionError("contained snapshot volume identity is malformed")
         return name
 
-    def _remove_and_verify(self, container_id: str, *, kill: bool) -> _ContainerState:
+    def _remove_and_verify(
+        self,
+        container_id: str,
+        *,
+        kill: bool,
+        stabilize_terminal_oom: bool = False,
+    ) -> _ContainerState:
         snapshot_volume_id = self._inspect_snapshot_volume(container_id)
         state = self._inspect_state(container_id)
         # A create request can finish just before its CLI deadline while start never happens.  A
@@ -2236,6 +2290,8 @@ class DockerExecutor:
             if waited.returncode != 0:
                 raise ContainedExecutionError("Docker could not reap the contained process tree")
             state = self._inspect_state(container_id)
+        if stabilize_terminal_oom:
+            state = self._stabilize_terminal_oom_state(container_id, state)
         if state.running:
             raise ContainedExecutionError("container process tree remained alive after execution")
         removed = self._run(
@@ -2454,7 +2510,11 @@ class DockerExecutor:
             except ContainerCommandTimeout:
                 timed_out = True
             terminal_observed_at = float(self._monotonic())
-            state = self._remove_and_verify(container_id, kill=timed_out)
+            state = self._remove_and_verify(
+                container_id,
+                kill=timed_out,
+                stabilize_terminal_oom=not timed_out,
+            )
         except BaseException:
             if state is None:
                 try:
@@ -2477,9 +2537,7 @@ class DockerExecutor:
                 "parent monotonic clock moved backwards or became invalid"
             )
         oom_killed = state.oom_killed and not timed_out
-        worker_watchdog_timed_out = (
-            not timed_out and not oom_killed and state.exit_code in {124, 137}
-        )
+        worker_watchdog_timed_out = not timed_out and not oom_killed and state.exit_code == 124
         outcome: Literal["success", "timeout", "oom_killed", "worker_failure"] = (
             "timeout"
             if timed_out or worker_watchdog_timed_out

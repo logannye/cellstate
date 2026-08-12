@@ -52,6 +52,10 @@ from cellstate.domain import (
     SupportReport,
     TargetPrediction,
 )
+from cellstate.training.execution import (
+    ContainedTrainingObservation,
+    ContainedTrainingTerminalObservation,
+)
 from cellstate.training.item12_3_authorization import (
     Item123DurableFallbackTerminalReport,
     Item123ExecutionProposal,
@@ -170,6 +174,10 @@ def test_checked_in_experimental_schemas_are_current_and_warn_consumers() -> Non
         "bundle-readiness.schema.json": BundleReadiness,
         "candidate-fit-receipt.schema.json": CandidateFitReceipt,
         "candidate-training-plan.schema.json": CandidateTrainingPlan,
+        "contained-training-observation.schema.json": ContainedTrainingObservation,
+        "contained-training-terminal-observation.schema.json": (
+            ContainedTrainingTerminalObservation
+        ),
         "dataset-manifest.schema.json": DatasetManifest,
         "execution-source-selection-receipt.schema.json": ExecutionSourceSelectionReceipt,
         "item12-3-durable-fallback-terminal.schema.json": (Item123DurableFallbackTerminalReport),

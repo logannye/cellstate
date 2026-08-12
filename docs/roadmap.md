@@ -530,11 +530,14 @@ permissions.
 The parent accounts its 3,600-second budget before public code/input staging and actively bounds
 every Docker command and wait; a returned staging overrun fails before container creation. The in-
 container hard timeout begins before protected-source open and is 3,540 seconds with a five-second
-kill-after bound, covering snapshot, fit, and close-reauthentication. The aggregate cgroup
-policy passes both `--memory` and `--memory-swap` as 4,294,967,296 bytes, disabling additional swap.
-Source-free live probes passed for success, timeout with descendants, cgroup OOM, supervisor
-death/watchdog and next-run recovery, anonymous snapshot-volume cleanup, no canonical publication,
-and parent no-follow re-inventory and sealing of the exact worker stage.
+kill-after bound, covering snapshot, fit, and close-reauthentication. Its TERM-first expiry is
+identified only by GNU `timeout` status `124`; status `137` without positive Docker OOM evidence is
+a fail-closed worker failure, never an invented timeout or OOM. The aggregate cgroup policy passes
+both `--memory` and `--memory-swap` as 4,294,967,296 bytes, disabling additional swap. Source-free
+live probes passed for success, timeout with descendants, positive cgroup OOM evidence, ambiguous-
+`137` rejection, supervisor death/watchdog and next-run recovery, anonymous snapshot-volume
+cleanup, no canonical publication, and parent no-follow re-inventory and sealing of the exact
+worker stage.
 
 Item 12.2 completed only this source-free software acceptance. It did not open protected source or
 `p1`, run a real fit, issue a candidate artifact, plan, observation, evidence, materialization, or

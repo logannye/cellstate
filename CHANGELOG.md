@@ -181,11 +181,18 @@
   `0400`/`0700` host binds without broadening their permissions.
   The parent accounts its 3,600-second budget before public staging and actively bounds every
   Docker command and wait; any returned staging overrun fails before container creation. An
-  independent 3,540-second in-container watchdog begins before protected-source open and covers
-  snapshot, fit, and close-reauthentication. Docker's memory and total-memory-plus-swap limits are
-  both 4 GiB, disabling additional swap. Source-free live probes pass for success, timeout with
-  descendants, cgroup OOM, supervisor death/watchdog recovery, anonymous-volume cleanup, no
-  canonical publication, and parent re-inventory and sealing of the exact worker stage.
+  independent 3,540-second TERM-first in-container watchdog begins before protected-source open and
+  covers snapshot, fit, and close-reauthentication. Exact status `124` identifies that watchdog.
+  Docker's memory and total-memory-plus-swap limits are both 4 GiB, disabling additional swap.
+  Source-free live probes pass for success, timeout with descendants, positive cgroup OOM evidence,
+  fail-closed ambiguous status `137`, supervisor death/watchdog recovery, anonymous-volume cleanup,
+  no canonical publication, and parent re-inventory and sealing of the exact worker stage.
+- Advance the contained execution, contained-training success, and contained-training terminal
+  observation schemas from `1.1.0` to `1.2.0`: Docker wait and cgroup OOM reporting can race, so the
+  parent boundedly accepts a late positive OOM flag but never treats a negative flag as proof.
+  Unresolved exit `137` is a worker failure, while the TERM-first watchdog is exactly exit `124`.
+  No migration is defined because no canonical `1.1.0` protected-run observation was issued and no
+  Item 12.3 execution was authorized or run.
 - Keep this completion strictly software-only. Item 12.2 opened no protected source, ran no real-
   `p1` fit, and issued no candidate artifact, plan, observation, evidence, materialization, or
   lifecycle result; sci-Plex3 remains `SCAFFOLD`. The version-bound, nonissuing Item 12.3 protected

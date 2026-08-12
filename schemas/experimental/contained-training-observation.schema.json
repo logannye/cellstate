@@ -1,0 +1,443 @@
+{
+  "$defs": {
+    "ContainedExecutionObservation": {
+      "additionalProperties": false,
+      "description": "Sanitized parent observation; it grants no publication or lifecycle authority.",
+      "properties": {
+        "artifact_schema": {
+          "const": "cellstate-contained-execution-observation",
+          "default": "cellstate-contained-execution-observation",
+          "title": "Artifact Schema",
+          "type": "string"
+        },
+        "artifact_schema_version": {
+          "const": "1.2.0",
+          "default": "1.2.0",
+          "title": "Artifact Schema Version",
+          "type": "string"
+        },
+        "canonical_publication_performed": {
+          "const": false,
+          "default": false,
+          "title": "Canonical Publication Performed",
+          "type": "boolean"
+        },
+        "container_removed": {
+          "const": true,
+          "default": true,
+          "title": "Container Removed",
+          "type": "boolean"
+        },
+        "container_user_mode": {
+          "const": "host-effective-uid-gid",
+          "title": "Container User Mode",
+          "type": "string"
+        },
+        "execution_id": {
+          "minLength": 1,
+          "title": "Execution Id",
+          "type": "string"
+        },
+        "exit_code": {
+          "title": "Exit Code",
+          "type": "integer"
+        },
+        "observed_container_gid": {
+          "minimum": 0,
+          "title": "Observed Container Gid",
+          "type": "integer"
+        },
+        "observed_container_uid": {
+          "minimum": 0,
+          "title": "Observed Container Uid",
+          "type": "integer"
+        },
+        "oom_killed": {
+          "title": "Oom Killed",
+          "type": "boolean"
+        },
+        "outcome": {
+          "enum": [
+            "success",
+            "timeout",
+            "oom_killed",
+            "worker_failure"
+          ],
+          "title": "Outcome",
+          "type": "string"
+        },
+        "parent_wall_clock_elapsed_seconds": {
+          "minimum": 0.0,
+          "title": "Parent Wall Clock Elapsed Seconds",
+          "type": "number"
+        },
+        "policy_fingerprint": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Policy Fingerprint",
+          "type": "string"
+        },
+        "process_tree_cleaned": {
+          "const": true,
+          "default": true,
+          "title": "Process Tree Cleaned",
+          "type": "boolean"
+        },
+        "runtime_image_digest": {
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "title": "Runtime Image Digest",
+          "type": "string"
+        },
+        "snapshot_volume_removed": {
+          "const": true,
+          "default": true,
+          "title": "Snapshot Volume Removed",
+          "type": "boolean"
+        },
+        "timed_out": {
+          "title": "Timed Out",
+          "type": "boolean"
+        },
+        "worker_watchdog_timed_out": {
+          "default": false,
+          "title": "Worker Watchdog Timed Out",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "execution_id",
+        "policy_fingerprint",
+        "runtime_image_digest",
+        "container_user_mode",
+        "observed_container_uid",
+        "observed_container_gid",
+        "outcome",
+        "exit_code",
+        "timed_out",
+        "oom_killed",
+        "parent_wall_clock_elapsed_seconds"
+      ],
+      "title": "ContainedExecutionObservation",
+      "type": "object"
+    },
+    "ContainedTrainingWorkerObservation": {
+      "additionalProperties": false,
+      "description": "Worker-side proof over the Docker-pinned source bind and staged fit closure.",
+      "properties": {
+        "artifact_schema": {
+          "const": "cellstate-contained-training-worker-observation",
+          "default": "cellstate-contained-training-worker-observation",
+          "title": "Artifact Schema",
+          "type": "string"
+        },
+        "artifact_schema_version": {
+          "const": "1.0.0",
+          "default": "1.0.0",
+          "title": "Artifact Schema Version",
+          "type": "string"
+        },
+        "canonical_publication_performed": {
+          "const": false,
+          "default": false,
+          "title": "Canonical Publication Performed",
+          "type": "boolean"
+        },
+        "execution_id": {
+          "minLength": 1,
+          "title": "Execution Id",
+          "type": "string"
+        },
+        "execution_input_closure_sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Execution Input Closure Sha256",
+          "type": "string"
+        },
+        "expected_source_byte_count": {
+          "exclusiveMinimum": 0,
+          "title": "Expected Source Byte Count",
+          "type": "integer"
+        },
+        "expected_source_sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Expected Source Sha256",
+          "type": "string"
+        },
+        "policy_fingerprint": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Policy Fingerprint",
+          "type": "string"
+        },
+        "runtime_image_digest": {
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "title": "Runtime Image Digest",
+          "type": "string"
+        },
+        "source_closed_after_post_verification": {
+          "const": true,
+          "default": true,
+          "title": "Source Closed After Post Verification",
+          "type": "boolean"
+        },
+        "source_post_byte_count": {
+          "exclusiveMinimum": 0,
+          "title": "Source Post Byte Count",
+          "type": "integer"
+        },
+        "source_post_sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Source Post Sha256",
+          "type": "string"
+        },
+        "source_pre_byte_count": {
+          "exclusiveMinimum": 0,
+          "title": "Source Pre Byte Count",
+          "type": "integer"
+        },
+        "source_pre_sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Source Pre Sha256",
+          "type": "string"
+        },
+        "source_verified_after_training": {
+          "const": true,
+          "default": true,
+          "title": "Source Verified After Training",
+          "type": "boolean"
+        },
+        "source_verified_before_training": {
+          "const": true,
+          "default": true,
+          "title": "Source Verified Before Training",
+          "type": "boolean"
+        },
+        "staged_file_count": {
+          "exclusiveMinimum": 0,
+          "title": "Staged File Count",
+          "type": "integer"
+        },
+        "staged_inventory": {
+          "$ref": "#/$defs/StagedTrainingInventory"
+        },
+        "staged_tree_sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Staged Tree Sha256",
+          "type": "string"
+        },
+        "training_code_closure_sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Training Code Closure Sha256",
+          "type": "string"
+        },
+        "training_plan_fingerprint": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Training Plan Fingerprint",
+          "type": "string"
+        },
+        "training_succeeded": {
+          "const": true,
+          "default": true,
+          "title": "Training Succeeded",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "execution_id",
+        "training_plan_fingerprint",
+        "policy_fingerprint",
+        "runtime_image_digest",
+        "training_code_closure_sha256",
+        "execution_input_closure_sha256",
+        "expected_source_sha256",
+        "source_pre_sha256",
+        "source_post_sha256",
+        "expected_source_byte_count",
+        "source_pre_byte_count",
+        "source_post_byte_count",
+        "staged_inventory",
+        "staged_tree_sha256",
+        "staged_file_count"
+      ],
+      "title": "ContainedTrainingWorkerObservation",
+      "type": "object"
+    },
+    "StagedTrainingEntry": {
+      "additionalProperties": false,
+      "description": "One exact regular file emitted by the worker before observation metadata.",
+      "properties": {
+        "artifact_role": {
+          "minLength": 1,
+          "title": "Artifact Role",
+          "type": "string"
+        },
+        "byte_count": {
+          "minimum": 0,
+          "title": "Byte Count",
+          "type": "integer"
+        },
+        "relative_path": {
+          "minLength": 1,
+          "title": "Relative Path",
+          "type": "string"
+        },
+        "sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        }
+      },
+      "required": [
+        "relative_path",
+        "artifact_role",
+        "sha256",
+        "byte_count"
+      ],
+      "title": "StagedTrainingEntry",
+      "type": "object"
+    },
+    "StagedTrainingInventory": {
+      "additionalProperties": false,
+      "description": "Canonical worker/parent-shared inventory with a frozen metadata exclusion rule.",
+      "properties": {
+        "artifact_schema": {
+          "const": "cellstate-contained-staged-training-tree",
+          "default": "cellstate-contained-staged-training-tree",
+          "title": "Artifact Schema",
+          "type": "string"
+        },
+        "artifact_schema_version": {
+          "const": "1.0.0",
+          "default": "1.0.0",
+          "title": "Artifact Schema Version",
+          "type": "string"
+        },
+        "entries": {
+          "items": {
+            "$ref": "#/$defs/StagedTrainingEntry"
+          },
+          "title": "Entries",
+          "type": "array"
+        },
+        "excluded_observation_paths": {
+          "default": [
+            "contained-training-observation.json",
+            "contained-worker-observation.json"
+          ],
+          "maxItems": 2,
+          "minItems": 2,
+          "prefixItems": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "string"
+            }
+          ],
+          "title": "Excluded Observation Paths",
+          "type": "array"
+        }
+      },
+      "required": [
+        "entries"
+      ],
+      "title": "StagedTrainingInventory",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Typed success proof joining worker byte evidence to parent process-tree containment.",
+  "properties": {
+    "aggregate_container_limits_enforced": {
+      "const": true,
+      "default": true,
+      "title": "Aggregate Container Limits Enforced",
+      "type": "boolean"
+    },
+    "artifact_schema": {
+      "const": "cellstate-contained-training-observation",
+      "default": "cellstate-contained-training-observation",
+      "title": "Artifact Schema",
+      "type": "string"
+    },
+    "artifact_schema_version": {
+      "const": "1.2.0",
+      "default": "1.2.0",
+      "title": "Artifact Schema Version",
+      "type": "string"
+    },
+    "canonical_publication_performed": {
+      "const": false,
+      "default": false,
+      "title": "Canonical Publication Performed",
+      "type": "boolean"
+    },
+    "execution_input_closure_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Execution Input Closure Sha256",
+      "type": "string"
+    },
+    "execution_observation": {
+      "$ref": "#/$defs/ContainedExecutionObservation"
+    },
+    "memory_max_bytes": {
+      "exclusiveMinimum": 0,
+      "title": "Memory Max Bytes",
+      "type": "integer"
+    },
+    "memory_swap_max_bytes": {
+      "exclusiveMinimum": 0,
+      "title": "Memory Swap Max Bytes",
+      "type": "integer"
+    },
+    "policy_fingerprint": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Policy Fingerprint",
+      "type": "string"
+    },
+    "runtime_image_digest": {
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "title": "Runtime Image Digest",
+      "type": "string"
+    },
+    "staged_inventory": {
+      "$ref": "#/$defs/StagedTrainingInventory"
+    },
+    "staged_tree_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Staged Tree Sha256",
+      "type": "string"
+    },
+    "training_code_closure_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Training Code Closure Sha256",
+      "type": "string"
+    },
+    "training_plan_fingerprint": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Training Plan Fingerprint",
+      "type": "string"
+    },
+    "wall_clock_limit_seconds": {
+      "exclusiveMinimum": 0,
+      "title": "Wall Clock Limit Seconds",
+      "type": "integer"
+    },
+    "worker_observation": {
+      "$ref": "#/$defs/ContainedTrainingWorkerObservation"
+    }
+  },
+  "required": [
+    "training_plan_fingerprint",
+    "policy_fingerprint",
+    "runtime_image_digest",
+    "training_code_closure_sha256",
+    "execution_input_closure_sha256",
+    "staged_inventory",
+    "staged_tree_sha256",
+    "worker_observation",
+    "execution_observation",
+    "wall_clock_limit_seconds",
+    "memory_max_bytes",
+    "memory_swap_max_bytes"
+  ],
+  "title": "ContainedTrainingObservation",
+  "type": "object"
+}

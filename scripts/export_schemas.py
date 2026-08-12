@@ -45,6 +45,10 @@ from cellstate.domain import (
     StateQuery,
     SubjectSpecification,
 )
+from cellstate.training.execution import (
+    ContainedTrainingObservation,
+    ContainedTrainingTerminalObservation,
+)
 from cellstate.training.item12_3_authorization import (
     Item123DurableFallbackTerminalReport,
     Item123ExecutionProposal,
@@ -62,6 +66,10 @@ MODELS: dict[Path, type[BaseModel]] = {
     Path("experimental/bundle-readiness.schema.json"): BundleReadiness,
     Path("experimental/candidate-fit-receipt.schema.json"): CandidateFitReceipt,
     Path("experimental/candidate-training-plan.schema.json"): CandidateTrainingPlan,
+    Path("experimental/contained-training-observation.schema.json"): (ContainedTrainingObservation),
+    Path("experimental/contained-training-terminal-observation.schema.json"): (
+        ContainedTrainingTerminalObservation
+    ),
     Path("experimental/dataset-manifest.schema.json"): DatasetManifest,
     Path("experimental/execution-source-selection-receipt.schema.json"): (
         ExecutionSourceSelectionReceipt
