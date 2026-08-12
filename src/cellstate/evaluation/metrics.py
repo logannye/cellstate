@@ -43,6 +43,13 @@ METRICS_IMPLEMENTATION_VERSION: Final = "1.0.0"
 QUANTILE_METHOD: Final = "linear"
 PAIRWISE_TERM: Final = "unbiased_m_times_m_minus_one"
 
+#: Block size for the energy score's pairwise sum.  The energy score is irreducibly quadratic in
+#: the sample count, but its *memory* need not be: summing in blocks bounds the largest allocation
+#: at ``_PAIRWISE_BLOCK ** 2`` float64 entries instead of ``m ** 2 / 2``.  At ten thousand samples
+#: the unblocked form asks for 400 MB and at a hundred thousand it asks for 37 GB, which is a
+#: crash rather than a slow answer.  Blocking changes only the summation order.
+_PAIRWISE_BLOCK: Final = 2_048
+
 MetricDirection = Literal["minimize", "maximize"]
 
 
@@ -81,6 +88,27 @@ def _sorted_pairwise_absolute_sums(samples: NDArray[np.float64]) -> NDArray[np.f
     return np.asarray(coefficients @ ordered, dtype=np.float64)
 
 
+def _blocked_pairwise_euclidean_sum(samples: NDArray[np.float64]) -> float:
+    """``sum_{i<j} ||x_i - x_j||_2``, accumulated in blocks so memory stays bounded.
+
+    Diagonal blocks contribute their own upper triangle through ``pdist``; off-diagonal blocks
+    contribute every pair exactly once through ``cdist``.  The largest allocation is one block
+    against one block, never the full pairwise array.
+    """
+
+    count = samples.shape[0]
+    total = 0.0
+    for row_start in range(0, count, _PAIRWISE_BLOCK):
+        row_stop = min(row_start + _PAIRWISE_BLOCK, count)
+        rows = samples[row_start:row_stop]
+        if row_stop - row_start > 1:
+            total += float(pdist(rows, metric="euclidean").sum())
+        for column_start in range(row_stop, count, _PAIRWISE_BLOCK):
+            column_stop = min(column_start + _PAIRWISE_BLOCK, count)
+            total += float(cdist(rows, samples[column_start:column_stop], metric="euclidean").sum())
+    return total
+
+
 def sample_crps(observations: Any, samples: Any) -> float:
     """Continuous ranked probability score, averaged over observations and features.
 
@@ -111,6 +139,11 @@ def energy_score(observations: Any, samples: Any) -> float:
 
     The joint counterpart of the CRPS: it is sensitive to dependence between features, which the
     marginal score is not.  Negatively oriented.
+
+    Cost is quadratic in the sample count and cannot be otherwise — the pairwise term is a sum
+    over every pair, with no order-statistic shortcut once the norm is multivariate.  Memory is
+    bounded by blocking (see :data:`_PAIRWISE_BLOCK`), so a large sample count buys a slow answer
+    rather than an allocation failure, but the caller still chooses the sample count knowingly.
     """
 
     observed = _as_observation_matrix(observations, name="energy-score observations")
@@ -120,7 +153,7 @@ def energy_score(observations: Any, samples: Any) -> float:
     sample_count = drawn.shape[0]
 
     distance_to_observations = float(cdist(drawn, observed, metric="euclidean").mean())
-    pairwise_total = float(pdist(drawn, metric="euclidean").sum())
+    pairwise_total = _blocked_pairwise_euclidean_sum(drawn)
     spread = 2.0 * pairwise_total / (sample_count * (sample_count - 1))
     return float(distance_to_observations - 0.5 * spread)
 

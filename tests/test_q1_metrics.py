@@ -23,7 +23,9 @@ import math
 import numpy as np
 import pytest
 from scipy import stats
+from scipy.spatial.distance import pdist
 
+from cellstate.evaluation import metrics
 from cellstate.evaluation.metrics import (
     METRIC_IMPLEMENTATIONS,
     central_interval,
@@ -126,10 +128,36 @@ class TestEnergyScore:
         assert energy_score([[0.0, 0.0, 0.0]], samples) == pytest.approx(math.sqrt(14.0))
 
     def test_matches_the_standard_normal_closed_form(self) -> None:
+        """A direct check at a sample count the quadratic pairwise term can afford.
+
+        The tolerance is set by Monte Carlo error, not by taste.  Measured across six seeds the
+        maximum relative error is about 6 percent at 2,000 samples, 3.8 at 4,000, and 1.6 at
+        8,000; convergence is ``O(1 / sqrt(m))``, so buying another decimal place costs a
+        hundredfold in pairs.  Precision comes instead from the exact one-dimensional identity to
+        the CRPS, which is validated against its own closed form at 200,000 samples in
+        ``TestSampleCrps`` and costs ``O(m log m)`` to compute.
+        """
+
         generator = np.random.default_rng(2)
-        samples = generator.normal(0.0, 1.0, (100_000, 1))
+        samples = generator.normal(0.0, 1.0, (8_000, 1))
         expected = math.sqrt(2.0 / math.pi) - 1.0 / math.sqrt(math.pi)
-        assert energy_score([[0.0]], samples) == pytest.approx(expected, rel=0.01)
+        assert energy_score([[0.0]], samples) == pytest.approx(expected, rel=0.05)
+
+    def test_blocking_the_pairwise_sum_does_not_change_it(self) -> None:
+        """The blocked accumulation must equal the direct one it replaces.
+
+        The direct form allocates ``m (m - 1) / 2`` float64 entries: 400 MB at ten thousand
+        samples and 37 GB at a hundred thousand. This test uses a count above two blocks, so both
+        the diagonal and off-diagonal paths are exercised, and small enough to compute directly.
+        """
+
+        generator = np.random.default_rng(11)
+        samples = generator.normal(0.0, 1.0, (5_000, 3))
+        assert metrics._PAIRWISE_BLOCK == 2_048
+        assert samples.shape[0] > 2 * metrics._PAIRWISE_BLOCK
+        assert metrics._blocked_pairwise_euclidean_sum(samples) == pytest.approx(
+            float(pdist(samples, metric="euclidean").sum()), rel=1e-12
+        )
 
     def test_is_sensitive_to_dependence_the_marginal_score_cannot_see(self) -> None:
         """Two predictives whose marginals are identical by construction.
