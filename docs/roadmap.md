@@ -289,7 +289,7 @@ or pass a scientific gate. Item 11 has now completed the first frozen-data softw
 immutable, single-purpose `p1-train` loader close-reauthenticated the exact 2,526,631,614-byte
 source, scanned all 94,785 training records across 768 wells, and froze content-addressed fitted-
 state identities for all six probabilistic baselines. The loader does not parse held-out outcomes
-and refuses `p2`, `p3`, and `p4` before protected raw-endpoint access unless future
+and refuses `p2`, `p3`, and `p4` expression/raw-count or endpoint-value access unless future
 lifecycle-bound grants exist.
 These are software provenance artifacts, not benchmark results: no prediction campaign, metric,
 comparison, or performance gate has run. Item 12 now defines the separate p1-only training and
@@ -312,9 +312,10 @@ immutable atomic publication, exact code/input/stage closure, reproducible OCI i
 parent-owned whole-container containment. It opened no protected source, ran no real-`p1` fit, and
 issued no candidate artifact, plan, observation, evidence, or lifecycle result. The sci-Plex3
 component therefore remains a non-executable `SCAFFOLD` and must not present source-free design
-fixtures, provisional state, or unrun performance as a validated biological belief. Item 12.3 is
-only a proposed, separately authorized, version-bound, nonissuing real-`p1` v5 execution; it is not
-authorized and has not run.
+fixtures, provisional state, or unrun performance as a validated biological belief. Item 12.3's
+source-free authorization, runtime-preparation, containment, and terminal-evidence control plane is
+now assembled. That implementation is not an authorization: no canonical pending proposal has been
+checked in or approved, and no Item 12.3 protected-source execution has run.
 
 The next development work proceeds in this order:
 
@@ -394,7 +395,8 @@ The next development work proceeds in this order:
     wells were scanned; seven genuine zero-panel rows were retained; and six fitted-state identities
     were materialized with no held-out access or lifecycle authority. None of this is baseline
     performance, scientific admission, or a public cell-state runtime.
-12. **In progress; source-free Item 12.2 completed 2026-08-11:** establish the first honest
+12. **In progress; source-free Item 12.2 and Item 12.3 execution-control preparation completed
+    2026-08-11:** establish the first honest
     p1-trained candidate boundary. The immutable pre-fit plan contract, not an issued plan, binds
     the exact typed `p1` role, count stream, scan, assembly, design, feature, action, target,
     candidate specification, trainer/factory code and its executable closure, exact mounted code
@@ -538,15 +540,54 @@ Item 12.2 completed only this source-free software acceptance. It did not open p
 `p1`, run a real fit, issue a candidate artifact, plan, observation, evidence, materialization, or
 lifecycle result, calibrate, score, or change the component from `SCAFFOLD`.
 
-**Item 12.3 — proposed separately authorized, version-bound, nonissuing real-p1 v5 execution.** This
-is the next proposed milestone, not an authorization. Its exact candidate version, source scope,
-runtime/limit identities, permitted nonissuing outputs, and stop conditions require separate review
-and explicit authorization. The current image must be loaded from its exact local OCI layout and is
-not claimed to be remotely published; durable distribution of that locked archive is an additional
-prerequisite. No Item 12.3 run has occurred. It cannot borrow Item 12.2's source-free
-acceptance as data authority, open `p2`, `p3`, or protected `p4` raw endpoints, inspect held-out
-outcomes, score predictions, issue lifecycle evidence, or reinterpret public frozen split/case
-metadata as permission to resolve protected source bytes.
+**Item 12.3 — source-free authorization and nonissuing execution control assembled; protected
+real-p1 v5 execution pending.** The checked-in implementation now fixes the v5 candidate, exact
+source descriptor and purpose, native runtime and resource limits, fixed execution paths, complete
+stage allowlist, stop policy, nonissuance rules, and bounded terminal-evidence path. This is
+execution-control preparation, not execution authority. No canonical pending proposal exists at
+`audits/item12_3/sciplex3-k562-v5-pending-proposal.json`; no proposal digest has been explicitly
+approved; no one-use attempt has been consumed; and no protected source, fit, or Item 12.3 terminal
+report exists.
+
+An eventual authorization has an exact two-commit topology. Execution commit `C` is a clean frozen
+repository commit in which the proposal path is absent. Proposal-only commit `D` must be the
+one-parent child of `C` and add only the canonical pending proposal at that path. The proposal binds
+`C`, is valid for at most 24 hours, states `grants_execution_authority=false`, and cannot encode a
+caller-supplied source path. The authorized actor must manually dispatch the trusted workflow from
+`refs/heads/main` at exact `C`, supplying both the exact proposal SHA-256 and the exact 40-hex `D`
+commit. Before any repository code runs, the workflow checks out `C` and authenticates `D` only as
+inert Git object data; `D` is never checked out or executed. Only the winner that creates and
+reauthenticates the immutable, asset-free attempt release targeting `D`, seals the local one-use
+ledger, and claims the execution start may continue. A release-creation failure that leaves no remote
+release is terminal and nonretryable for that workflow run but is not itself durable consumption;
+Actions reruns are rejected. Once the immutable attempt release exists, every subsequent outcome
+consumes the sole attempt, with no retry or resume. Source-free verification and protected execution
+remain on exact `C` throughout.
+
+The asset-bearing runtime release is a different object. The exact OCI layout is the sole asset of
+the immutable, release-and-asset-attested `sciplex3-v5-runtime-20260811-locked` GitHub Release. Its
+target commit records runtime-dependency provenance and is not required to equal execution commit
+`C`. After one-use consumption and before source acquisition, the workflow must reauthenticate that
+release, its qualified asset, the complete OCI closure, the held archive descriptor, and the exact
+native Linux `x86_64` Docker 29.7.2/cgroup-v2 boundary. The runtime release itself grants neither
+source access nor execution authority.
+
+The protected source is one 2,526,631,614-byte physical H5AD containing all four partitions. An
+authorized run must transfer and snapshot that opaque asset whole and decode the complete source-axis
+selector metadata, including held-out selector metadata, to resolve the exact `p1-train` rows. That
+physical and metadata access is not permission to decode held-out expression or raw-count values.
+Only `p1-train` expression/raw-count decoding is permitted; held-out expression/count values remain
+unread and undecoded, held-out endpoints and outcomes remain unresolved, and no held-out row may be
+selected for training, scored, or emitted.
+
+The run is nonissuing even if its contained stage succeeds. Source, staged output, model bytes, and
+canonical publication cannot leave the ephemeral runner; only one sanitized terminal report of at
+most 4,096 bytes may be uploaded. The immutable attempt-release body permanently preserves only a
+generic unknown-state fallback, not the actual outcome. The actual sanitized terminal is transported
+as a GitHub Actions artifact retained for 90 days and then requires exact, separately reviewed
+repository persistence at `audits/item12_3/sciplex3-k562-v5-terminal.json`. Hard runner death may
+leave only the generic fallback. Neither fallback nor terminal persistence grants lifecycle,
+scientific, evaluation, calibration, or publication authority.
 
 Only a future successful trusted verification may move the component to `TRAINED_CANDIDATE`. A
 future one-use grant may open `p2` for calibration only after that exact state; a separate grant may

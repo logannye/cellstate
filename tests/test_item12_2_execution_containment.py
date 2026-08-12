@@ -252,6 +252,8 @@ class _FakeDockerCLI:
                 if container_id == CONTAINER_ID and self.outcome == "oom":
                     state["OOMKilled"] = True
                     state["ExitCode"] = 137
+                elif container_id == CONTAINER_ID and self.outcome == "watchdog":
+                    state["ExitCode"] = 137
                 elif container_id == CONTAINER_ID and self.outcome == "failure":
                     state["ExitCode"] = 2
             return ContainerCommandResult(0, f"{state['ExitCode']}\n")
@@ -415,6 +417,7 @@ def test_policy_requires_canonical_digest_limits_isolation_and_bytes() -> None:
             exit_code=137,
             timed_out=True,
             oom_killed=False,
+            parent_wall_clock_elapsed_seconds=3_600.0,
         )
 
 
@@ -600,6 +603,7 @@ def test_contract_models_reject_ambiguous_paths_limits_and_typed_evidence() -> N
         exit_code=0,
         timed_out=False,
         oom_killed=False,
+        parent_wall_clock_elapsed_seconds=10.0,
     )
     training_fields: dict[str, object] = {
         "training_plan_fingerprint": "1" * 64,
@@ -611,6 +615,9 @@ def test_contract_models_reject_ambiguous_paths_limits_and_typed_evidence() -> N
         "staged_tree_sha256": inventory.fingerprint,
         "worker_observation": worker,
         "execution_observation": success,
+        "wall_clock_limit_seconds": 3_600,
+        "memory_max_bytes": 4 * 1024**3,
+        "memory_swap_max_bytes": 4 * 1024**3,
     }
     training = ContainedTrainingObservation.model_validate(training_fields)
     assert len(training.fingerprint) == 64
@@ -839,7 +846,7 @@ def test_recovery_removes_created_but_never_started_container_without_waiting(
 def test_parent_deadline_starts_before_container_create_and_covers_start_and_wait(
     tmp_path: Path,
 ) -> None:
-    moments = iter((100.0, 100.0, 100.0, 100.0, 100.0, 101.0, 102.0, 103.0))
+    moments = iter((100.0, 100.0, 100.0, 100.0, 100.0, 101.0, 102.0, 103.0, 104.0))
     fake = _FakeDockerCLI()
     source = tmp_path / "source.h5ad"
     source.write_bytes(b"deadline-fixture")
@@ -869,8 +876,9 @@ def test_parent_deadline_starts_before_container_create_and_covers_start_and_wai
     }
     create_timeout = next(timeout for command, timeout in fake.commands if command[1] == "create")
     assert create_timeout == 3_600.0
-    assert timed["start"] == 3_598.0
-    assert timed["wait"] == 3_597.0
+    assert timed["start"] == 3_599.0
+    assert timed["wait"] == 3_598.0
+    assert observation.parent_wall_clock_elapsed_seconds == 3.0
     assert (tmp_path / "locks/cellstate-item12-2.lock").is_file()
 
 
@@ -889,6 +897,17 @@ def test_parent_timeout_kills_waits_and_removes_descendant_container_tree(tmp_pa
     assert not (tmp_path / "staging/cellstate-item12-2/run-0001/current.json").exists()
 
 
+def test_worker_watchdog_exit_is_typed_as_timeout_without_inventing_parent_timeout(
+    tmp_path: Path,
+) -> None:
+    observation = _run(_FakeDockerCLI("watchdog"), tmp_path)
+    assert observation.outcome == "timeout"
+    assert observation.exit_code == 137
+    assert not observation.timed_out
+    assert observation.worker_watchdog_timed_out
+    assert not observation.oom_killed
+
+
 def test_cgroup_oom_and_worker_failure_never_publish_and_are_distinguished(tmp_path: Path) -> None:
     oom = _run(_FakeDockerCLI("oom"), tmp_path / "oom")
     failed = _run(_FakeDockerCLI("failure"), tmp_path / "failure")
@@ -900,6 +919,61 @@ def test_cgroup_oom_and_worker_failure_never_publish_and_are_distinguished(tmp_p
     )
     assert not (tmp_path / "oom/stage/current.json").exists()
     assert not (tmp_path / "failure/stage/current.json").exists()
+
+
+def test_execution_id_replay_preserves_prior_terminal_evidence_without_docker(
+    tmp_path: Path,
+) -> None:
+    _run(_FakeDockerCLI(), tmp_path)
+    execution_root = tmp_path / "staging/cellstate-item12-2/run-0001"
+    terminal = execution_root / "contained-training-terminal-observation.json"
+    terminal.write_bytes(b"prior-terminal-evidence")
+    source = tmp_path / "source.h5ad"
+    code = tmp_path / "code"
+    replay_cli = _FakeDockerCLI()
+    replay = DockerExecutor(
+        _policy(),
+        cli=replay_cli,
+        lock_root=tmp_path / "locks",
+        staging_root=tmp_path / "staging",
+        canonical_publication_root=tmp_path / "canonical-publication",
+        execution_input_closure=_input_closure(),
+    )
+    with pytest.raises(ContainedExecutionError, match="already been consumed"):
+        replay.run(
+            execution_id="run-0001",
+            source_path=source,
+            code_path=code,
+            output_path=replay.output_stage_path("run-0001"),
+        )
+    assert terminal.read_bytes() == b"prior-terminal-evidence"
+    assert replay_cli.commands == []
+
+
+def test_output_stage_is_preclaimed_before_owner_lock_failure_for_terminal_quarantine(
+    tmp_path: Path,
+) -> None:
+    lock_root = tmp_path / "lock-root"
+    lock_root.write_bytes(b"synthetic-lock-root-failure")
+    executor = DockerExecutor(
+        _policy(),
+        cli=_FakeDockerCLI(),
+        lock_root=lock_root,
+        staging_root=tmp_path / "staging",
+        canonical_publication_root=tmp_path / "canonical-publication",
+        execution_input_closure=_input_closure(),
+    )
+    output = executor.output_stage_path("lock-failure")
+    with pytest.raises(ContainedExecutionError, match="stable execution-owner lock"):
+        executor.run(
+            execution_id="lock-failure",
+            source_path=tmp_path / "source-that-must-not-be-inspected.h5ad",
+            code_path=tmp_path / "code-that-must-not-be-inspected",
+            output_path=output,
+        )
+    assert output.is_dir()
+    assert tuple(output.iterdir()) == ()
+    assert (output.parent / ".cellstate-execution-owner.json").is_file()
 
 
 def test_output_stage_is_executor_owned_and_cannot_alias_canonical_publication(

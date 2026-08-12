@@ -1,6 +1,7 @@
 # ADR 0012: Define a sci-Plex3 p1-only trained-candidate boundary
 
-- **Status:** Accepted; amended 2026-08-11 to retire v4 and complete source-free Item 12.2
+- **Status:** Accepted; amended 2026-08-11 to retire v4, complete source-free Item 12.2,
+  and assemble the source-free Item 12.3 execution-control design
 - **Date:** 2026-08-10
 - **Extends:** ADR 0009 population-response component boundary, ADR 0010 trusted admission
   verification, and ADR 0011 p1-only loader and baselines
@@ -8,9 +9,9 @@
 ## Context
 
 Item 11 established an exact, close-reauthenticated `p1-train` count surface and fitted all six
-mandatory baseline algorithms without opening protected `p2`, `p3`, or `p4` raw endpoint bytes or
-scoring authority. Public frozen split membership and outcome-free case design were already checked
-in. The next lifecycle transition
+mandatory baseline algorithms without reading or decoding protected `p2`, `p3`, or `p4`
+expression/raw-count values or endpoints and without scoring authority. Public frozen split
+membership and outcome-free case design were already checked in. The next lifecycle transition
 needs one nonvacuous population-response candidate trained from those same `p1` bytes. A model file
 cannot mint that transition by declaring itself trained: the training plan, selected source, count
 stream, code, runtime, fitted behavior, sealed model bytes, and loaded candidate interface all need
@@ -125,7 +126,8 @@ For a future authorized calibration only, the declaration maps the factor shape 
 `0.1 / tau_j^2` and maps each plate context to
 `rho[p,k]^tau_j / mean_q(rho[q,k]^tau_j)`, preserving whole-row selection and all other means,
 weights, and support. The `tau=1` branch preserves the original `rho` bytes. This declaration does
-not open or read `p2`, select a value, calibrate uncertainty, or grant authority.
+not read or decode `p2` calibration values, select a value, calibrate uncertainty, or grant
+authority.
 
 ### Exact training runtime
 
@@ -159,8 +161,9 @@ tolerance. The provisional loading-rank ratio `0.101239623839`, activation-rank 
 they are not evidence that rescues the failed fit.
 
 The execution issued no model, plan, observation, training evidence, or materialization and derived
-no lifecycle state. It did not open protected `p2`, `p3`, or `p4` raw endpoint values, inspect
-held-out outcomes, run a metric, or create biological or performance evidence.
+no lifecycle state. It did not read or decode protected `p2`, `p3`, or `p4` expression/raw-count
+values or endpoints, inspect held-out outcomes, run a metric, or create biological or performance
+evidence.
 
 Before any separately authorized real-source replay, the software milestone is now complete:
 
@@ -258,7 +261,7 @@ opaque query, benchmark, and support-envelope identities; the exact typed `p1` r
 count-stream closure; feature, action, target, design, specification, schema, trainer, factory, and
 runtime identities; contained-execution policy and runtime-image lock; canonical Python code and
 exact mounted-input closures; a pre-render immutable-generation seed; and deterministic fit
-settings. Computing this plan does not parse protected held-out endpoint bytes. Item 12.2 validates
+settings. Computing this plan does not parse protected held-out endpoint values. Item 12.2 validates
 the plan type and source-free closure construction; it did not issue a real plan artifact.
 
 After fitting, a model would have to be closed, reread, rehashed, loaded through the exact
@@ -289,28 +292,66 @@ byte-resolution, query-prerequisite, and loaded-interface verification, readines
 lifecycle transition has occurred. The source-free v5 implementation likewise has no real fitted
 artifact or trusted verification context.
 
-### Item 12.3 — proposed separately authorized real-p1 v5 execution
+### Item 12.3 — source-free execution-control design assembled; protected execution pending
 
-The next proposed milestone is one version-bound, nonissuing real-`p1` v5 execution under the exact
-Item 12.2 objective, sampler, closure, OCI, publication, and containment contracts. It requires a
-separate authorization and review. It is not authorized, has not run, cannot borrow Item 12.2's
-source-free acceptance as data authority, and grants no access to `p2`, `p3`, `p4`, outcomes,
-scoring, or lifecycle issuance. The image is currently an exact locally loaded OCI layout, not a
-remotely published artifact; durable distribution of that locked archive is a prerequisite to any
-Item 12.3 authorization.
+The source-free authorization, runtime-preparation, containment, and terminal-evidence design for one
+version-bound, nonissuing real-`p1` v5 execution is now implemented. It binds the exact Item 12.2
+candidate and closures, one native runtime, fixed limits and paths, an exact stage allowlist, and
+fail-closed stop and nonissuance policies. Those checked-in bytes grant no execution authority. No
+canonical pending proposal is checked in, no exact proposal digest has been approved, no one-use
+attempt has been consumed, and no Item 12.3 protected-source run or terminal report exists.
+
+Authorization separates execution code from the reviewed proposal. A clean execution commit `C`
+must not contain the proposal. Its one-parent child `D` may add only the canonical proposal at
+`audits/item12_3/sciplex3-k562-v5-pending-proposal.json`. That proposal binds `C`, has a validity
+interval of at most 24 hours, declares itself pending and nonauthoritative, and fixes the public
+source locator and the acquired source path rather than accepting a caller path. The authorized
+actor dispatches the trusted workflow from `refs/heads/main` at exact `C`, supplying both the exact
+proposal SHA-256 and exact `D` commit. The workflow checks out only `C`, authenticates `D` as inert
+Git object data before any repository execution, and never checks out or executes `D`. The immutable,
+asset-free attempt release targets `D` and globally consumes that proposal digest; a private local
+ledger and a reauthenticated execution-start receipt close local replay and concurrency. Execution
+remains on exact `C` before and during the source-touching wrapper. Failure at any post-consumption
+step is terminal and permits no retry or resume.
+
+The existing `sciplex3-v5-runtime-20260811-locked` release is a separate, asset-bearing runtime
+dependency. Its target commit records immutable runtime provenance and is intentionally not required
+to equal `C`. Only after attempt consumption, and still before source acquisition, may the workflow
+download and reauthenticate the immutable release, its sole attested OCI asset, complete archive and
+image closure, held archive descriptor, and exact native Linux `x86_64` Docker 29.7.2/cgroup-v2
+boundary. Runtime distribution is not source or execution authority.
+
+The source disclosure distinguishes physical access from semantic decode. The H5AD is one opaque
+2,526,631,614-byte asset containing all partitions, so it must be transferred and snapshotted whole.
+Resolving `p1-train` also requires decoding the complete source-axis selector metadata, including
+held-out selector metadata. Only `p1-train` expression/raw-count values may be read or decoded;
+held-out expression/count values, endpoints, and outcomes remain unread or unresolved, and held-out
+rows cannot be selected for training, scored, or emitted.
+
+The execution remains nonissuing even on contained success. The source, stage, and model are
+destroyed with the ephemeral runner, canonical publication is forbidden, and only a sanitized
+terminal report of at most 4,096 bytes may leave. The immutable attempt release carries only a
+generic unknown-state fallback for a post-consumption terminalization failure; it is not the actual
+run outcome. The actual terminal report is retained as a GitHub Actions artifact for 90 days and
+then requires exact, separately reviewed persistence at
+`audits/item12_3/sciplex3-k562-v5-terminal.json`. Terminal persistence grants no lifecycle,
+scientific, calibration, evaluation, or publication authority.
 
 ### Held-out source data and lifecycle authority remain sealed
 
 The repository intentionally publishes frozen benchmark-design metadata: exact split-membership
 arrays, record/well/plate identities, well-level cases, action assignments, matched-control
 identities, and the outcome-free prediction schedule. Reading that metadata is not permission to
-resolve protected raw H5AD/UMI endpoint values, inspect an outcome, score a prediction, or issue
-lifecycle evidence.
+resolve protected expression/raw-count values or endpoints, inspect an outcome, score a prediction,
+or issue lifecycle evidence.
 
-Item 12 planning and fitting open only `p1-train` source bytes. They do not resolve protected `p2`,
-`p3`, or `p4` raw H5AD/UMI endpoint values, outcome/scoring results, or lifecycle evidence. The
-training session also does not read the public held-out membership files, but their checked-in
-existence is not itself a protected boundary.
+Item 12 parameter fitting semantically decodes expression/raw-count values only for `p1-train`.
+Because the physical H5AD is monolithic, Item 12.3 must nevertheless transfer and snapshot the whole
+asset and decode full-axis selector metadata, including held-out selector metadata, to resolve the
+training rows. It does not read or decode held-out expression/raw-count values, resolve protected
+`p2`, `p3`, or `p4` endpoint values or outcomes, score results, or acquire lifecycle authority. The
+training session also does not read the public held-out membership files; their checked-in existence
+is not itself a protected boundary.
 
 - `p2-calibration` requires a future one-use calibration grant freshly bound to the exact verified
   `TRAINED_CANDIDATE`.
@@ -376,8 +417,10 @@ free guarantees alongside the separately authorized fit:
 - closes, rereads, rehashes, and exactly reloads the model and reproduces its frozen golden sample;
 - binds the exact source, scan, assembly, design, feature, action, target, code, runtime, plan,
   training observation, and model identities;
-- proves no protected `p2`, `p3`, or `p4` raw endpoint, outcome, scoring, or lifecycle artifact was
-  opened and all later authority flags remain false;
+- proves the unavoidable whole-asset transfer, snapshot, and full-axis selector-metadata decode did
+  not read or decode protected `p2`, `p3`, or `p4` expression/raw-count values, resolve held-out
+  endpoints or outcomes, score a row, or acquire lifecycle authority, and that all later authority
+  flags remain false;
 - rejects every incompatible earlier candidate artifact at the active candidate boundary;
 - derives `TRAINED_CANDIDATE` only with fresh external trust and exact candidate-factory interface
   verification; and
@@ -396,5 +439,7 @@ training plan, observation, fitted model, training evidence, materialization, or
 result. Item 12.2's source-free v5 software acceptance is complete, but it opened no protected
 source, ran no real-`p1` fit, and issued no plan, model, observation, evidence, materialization, or
 lifecycle result. Item 12 remains in progress, and the component remains a non-runnable `SCAFFOLD`.
-Item 12.3 is only a proposed separately authorized, version-bound, nonissuing real-`p1` v5
-execution; no further real-source run is currently authorized.
+Item 12.3's source-free execution-control design is assembled, including exact C/D proposal topology,
+one-use consumption, immutable runtime reauthentication, fixed source acquisition, contained
+terminal evidence, and nonissuance. The canonical pending proposal file is absent, no proposal digest
+has been approved, and no Item 12.3 protected-source run is currently authorized or has occurred.

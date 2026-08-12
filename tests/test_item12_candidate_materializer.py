@@ -291,15 +291,22 @@ def test_manifest_records_only_deterministic_resource_gates_and_false_authority(
         support_envelope_fingerprint="d" * 64,
     )
     assert manifest["resource_gates"] == {
-        "fit_peak_rss": {
+        "aggregate_container_memory": {
+            "enforced_by": (
+                "Docker cgroup memory.max and memory.swap.max over the complete "
+                "container process tree"
+            ),
             "limit_bytes": 4 * 1024**3,
-            "measurement": "resource.getrusage(RUSAGE_SELF).ru_maxrss Linux KiB",
-            "within_limit": True,
+            "terminal_result_artifact": "contained-training-observation.json",
+            "terminal_result_recorded_here": False,
         },
-        "fit_wall_clock": {
+        "aggregate_container_wall_clock": {
+            "enforced_by": (
+                "parent Docker deadline plus the in-container source-to-posthash watchdog"
+            ),
             "limit_seconds": 3_600,
-            "measurement": "time.monotonic around fit_and_write_sciplex3_candidate",
-            "within_limit": True,
+            "terminal_result_artifact": "contained-training-observation.json",
+            "terminal_result_recorded_here": False,
         },
     }
     assert manifest["artifact_schema_version"] == "5.0.0"
@@ -339,6 +346,7 @@ def test_manifest_records_only_deterministic_resource_gates_and_false_authority(
     serialized = canonical_json_bytes(manifest)
     assert b"elapsed" not in serialized
     assert b"observed_rss" not in serialized
+    assert b"within_limit" not in serialized
     assert b"attestation" not in serialized
 
 

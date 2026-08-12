@@ -115,8 +115,8 @@ satisfaction; a stale or caller-edited report fails.
 ### P1-only trained-candidate boundary
 
 Training uses a smaller trust surface than full admission so fitting cannot resolve protected
-held-out raw H5AD/UMI endpoint values or lifecycle authority, or create a circular dependency on
-its own model output. A canonical
+held-out expression/raw-count values or endpoints or acquire lifecycle authority, or create a
+circular dependency on its own model output. A canonical
 `CandidateTrainingPlan` exists before fitting and binds opaque query, benchmark, and support
 identities; exact p1 loader, count-stream, scan, assembly, design, feature, action, and target
 identities; candidate specification and model schema; deterministic runtime and seed policy;
@@ -147,6 +147,13 @@ typed, no-follow `StagedTrainingInventory`, excluding only their observation met
 parent's image, policy, process-tree, and cleanup evidence. Stage coverage does not recursively
 expand public benchmark p2/p3/p4 membership and cases, protected outcomes, or later-stage
 implementations.
+
+Those semantic and artifact flags do not imply that the physical H5AD can be partition-isolated.
+The Item 12.3 source contract requires the monolithic asset to be transferred and snapshotted whole
+and the complete source-axis selector metadata, including held-out selectors, to be decoded so the
+exact `p1-train` rows can be resolved. Expression/raw-count decoding remains restricted to `p1`;
+held-out expression/count values, endpoints, outcomes, scoring, and lifecycle authority remain
+unavailable.
 
 The candidate port must provide a nonvacuous exact class interface containing `load_exact`,
 `model_artifact_sha256`, `supports`, `sample`, `model_bytes`, and `behavior_manifest`; the other
@@ -235,7 +242,7 @@ the trained-candidate factory/interface, a candidate model, or lifecycle evidenc
 supplies prediction runs, metrics, performance evidence, or an admitted benchmark. Candidate
 revisions v1 through v4 all failed closed without issuing a model or lifecycle result.
 
-Item 12.2 has now completed only the source-free v5 software boundary: one exact equal-well
+Item 12.2 has completed the source-free v5 software boundary: one exact equal-well
 objective and compatible all-well M-step; independent gradient, Hessian, and nondecrease checks;
 exact-positive request-level sampling through 512 draws under a global `2^-64` conditional signed-
 `int64` tail budget; immutable-generation atomic publication and recovery; exact code, mounted-
@@ -245,7 +252,10 @@ ran no real-`p1` fit, and issued no candidate artifact, plan, observation, evide
 result. The clean-final OCI archive is byte-identical across three independent native and emulated
 builder environments under frozen inputs and toolchain and excludes build-host caches; its builder
 identity is frozen in the workflow and runtime lock. The checked-in sci-Plex3 component therefore
-remains `SCAFFOLD` and non-executable. Item 12.3 is only a proposed, separately authorized, version-
-bound, nonissuing real-`p1` v5 execution; it has not been authorized or run. Durable distribution of
-the exact locally loaded archive is a prerequisite, and no remote image publication is claimed. See
-the [roadmap](../roadmap.md), the sole sequence and status authority.
+remains `SCAFFOLD` and non-executable. Item 12.3's source-free proposal-construction, one-use authorization,
+runtime-preparation, fixed-source, terminal-evidence, and nonissuance controls are now assembled for
+a possible version-bound real-`p1` v5 execution. No canonical pending proposal exists, no exact
+digest has been approved, and no protected run has occurred. The exact archive's durable-
+distribution prerequisite is complete through a separate immutable, attested GitHub Release, but
+that release grants no source access or execution authority. See the [roadmap](../roadmap.md), the
+sole sequence and status authority.

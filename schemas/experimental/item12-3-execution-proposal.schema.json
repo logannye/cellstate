@@ -1,0 +1,1201 @@
+{
+  "$defs": {
+    "Item123CandidateBinding": {
+      "additionalProperties": false,
+      "description": "Exact source-free scientific candidate selected for the one protected fit.",
+      "properties": {
+        "action_count": {
+          "const": 752,
+          "title": "Action Count",
+          "type": "integer"
+        },
+        "batch_size": {
+          "const": 512,
+          "title": "Batch Size",
+          "type": "integer"
+        },
+        "candidate_id": {
+          "title": "Candidate Id",
+          "type": "string"
+        },
+        "factor_count": {
+          "const": 16,
+          "title": "Factor Count",
+          "type": "integer"
+        },
+        "fixed_factor_shape_hex": {
+          "const": "0x1.999999999999ap-4",
+          "title": "Fixed Factor Shape Hex",
+          "type": "string"
+        },
+        "implementation_version": {
+          "const": "5.0.0",
+          "title": "Implementation Version",
+          "type": "string"
+        },
+        "maximum_outer_iterations": {
+          "const": 50,
+          "title": "Maximum Outer Iterations",
+          "type": "integer"
+        },
+        "minimum_outer_iterations": {
+          "const": 10,
+          "title": "Minimum Outer Iterations",
+          "type": "integer"
+        },
+        "model_schema": {
+          "title": "Model Schema",
+          "type": "string"
+        },
+        "model_schema_version": {
+          "const": "5.0.0",
+          "title": "Model Schema Version",
+          "type": "string"
+        },
+        "optimization_seed": {
+          "const": 0,
+          "title": "Optimization Seed",
+          "type": "integer"
+        },
+        "output_model_schema_sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Output Model Schema Sha256",
+          "type": "string"
+        },
+        "plate_count": {
+          "const": 8,
+          "title": "Plate Count",
+          "type": "integer"
+        },
+        "specification_sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Specification Sha256",
+          "type": "string"
+        },
+        "training_record_count": {
+          "const": 94785,
+          "title": "Training Record Count",
+          "type": "integer"
+        },
+        "training_well_count": {
+          "const": 768,
+          "title": "Training Well Count",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "candidate_id",
+        "implementation_version",
+        "model_schema",
+        "model_schema_version",
+        "specification_sha256",
+        "output_model_schema_sha256",
+        "factor_count",
+        "action_count",
+        "plate_count",
+        "training_record_count",
+        "training_well_count",
+        "batch_size",
+        "optimization_seed",
+        "fixed_factor_shape_hex",
+        "minimum_outer_iterations",
+        "maximum_outer_iterations"
+      ],
+      "title": "Item123CandidateBinding",
+      "type": "object"
+    },
+    "Item123ContainedExecutionBinding": {
+      "additionalProperties": false,
+      "description": "Fingerprints and immutable image identity for the complete contained fit.",
+      "properties": {
+        "execution_input_closure_sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Execution Input Closure Sha256",
+          "type": "string"
+        },
+        "policy_fingerprint": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Policy Fingerprint",
+          "type": "string"
+        },
+        "runtime_archive_sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Runtime Archive Sha256",
+          "type": "string"
+        },
+        "runtime_config_digest": {
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "title": "Runtime Config Digest",
+          "type": "string"
+        },
+        "runtime_image_digest": {
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "title": "Runtime Image Digest",
+          "type": "string"
+        },
+        "runtime_image_lock_file_sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Runtime Image Lock File Sha256",
+          "type": "string"
+        },
+        "runtime_image_lock_fingerprint": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Runtime Image Lock Fingerprint",
+          "type": "string"
+        },
+        "runtime_image_reference": {
+          "title": "Runtime Image Reference",
+          "type": "string"
+        },
+        "runtime_layers": {
+          "items": {
+            "$ref": "#/$defs/Item123RuntimeLayerBinding"
+          },
+          "minItems": 1,
+          "title": "Runtime Layers",
+          "type": "array"
+        },
+        "runtime_oci_index_digest": {
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "title": "Runtime Oci Index Digest",
+          "type": "string"
+        },
+        "training_code_closure_sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Training Code Closure Sha256",
+          "type": "string"
+        },
+        "worker_command": {
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Worker Command",
+          "type": "array"
+        }
+      },
+      "required": [
+        "policy_fingerprint",
+        "training_code_closure_sha256",
+        "execution_input_closure_sha256",
+        "runtime_image_lock_fingerprint",
+        "runtime_image_lock_file_sha256",
+        "runtime_image_reference",
+        "runtime_image_digest",
+        "runtime_archive_sha256",
+        "runtime_oci_index_digest",
+        "runtime_config_digest",
+        "runtime_layers",
+        "worker_command"
+      ],
+      "title": "Item123ContainedExecutionBinding",
+      "type": "object"
+    },
+    "Item123ExecutionPaths": {
+      "additionalProperties": false,
+      "description": "Fixed host roots and the exact stage-only output allowlist.",
+      "properties": {
+        "actual_terminal_outcome_durability": {
+          "const": "actions-artifact-90-days-then-exact-reviewed-repository-commit",
+          "title": "Actual Terminal Outcome Durability",
+          "type": "string"
+        },
+        "attempt_ledger_root": {
+          "const": "/var/lib/cellstate/item12-3/attempt-ledger",
+          "title": "Attempt Ledger Root",
+          "type": "string"
+        },
+        "authorized_post_run_terminal_repository_path": {
+          "const": "audits/item12_3/sciplex3-k562-v5-terminal.json",
+          "title": "Authorized Post Run Terminal Repository Path",
+          "type": "string"
+        },
+        "canonical_publication_root": {
+          "const": "backends/vertical-a/sciplex3-k562-24h-v1/candidate-publication",
+          "title": "Canonical Publication Root",
+          "type": "string"
+        },
+        "durable_terminal_scope": {
+          "const": "generic-unknown-state-fallback-in-immutable-attempt-release",
+          "title": "Durable Terminal Scope",
+          "type": "string"
+        },
+        "execution_id": {
+          "const": "sciplex3-k562-v5-fit",
+          "title": "Execution Id",
+          "type": "string"
+        },
+        "execution_root": {
+          "const": "/var/lib/cellstate/item12-3",
+          "title": "Execution Root",
+          "type": "string"
+        },
+        "host_source_removed_marker": {
+          "const": "/var/lib/cellstate/item12-3/host-source-removed.json",
+          "title": "Host Source Removed Marker",
+          "type": "string"
+        },
+        "parent_terminal_report_max_bytes": {
+          "const": 65536,
+          "title": "Parent Terminal Report Max Bytes",
+          "type": "integer"
+        },
+        "parent_terminal_report_relative_path": {
+          "const": "contained-training-terminal-observation.json",
+          "title": "Parent Terminal Report Relative Path",
+          "type": "string"
+        },
+        "permitted_stage_relative_paths": {
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Permitted Stage Relative Paths",
+          "type": "array"
+        },
+        "protected_source_path": {
+          "const": "/var/lib/cellstate/item12-3/protected-source/SrivatsanTrapnell2020_sciplex3.h5ad",
+          "title": "Protected Source Path",
+          "type": "string"
+        },
+        "runtime_archive_path": {
+          "const": "/var/lib/cellstate/item12-3/runtime/sciplex3-v5-runtime-linux-amd64-37c2fa5846acfbd8357476859bd7f8f0ac6591261d79c2f6f46f0aa22fb76454.oci.tar",
+          "title": "Runtime Archive Path",
+          "type": "string"
+        },
+        "sanitized_terminal_artifact_retention_days": {
+          "const": 90,
+          "title": "Sanitized Terminal Artifact Retention Days",
+          "type": "integer"
+        },
+        "sanitized_terminal_report_filename": {
+          "const": "item12-3-terminal-report.json",
+          "title": "Sanitized Terminal Report Filename",
+          "type": "string"
+        },
+        "sanitized_terminal_report_max_bytes": {
+          "const": 4096,
+          "title": "Sanitized Terminal Report Max Bytes",
+          "type": "integer"
+        },
+        "source_acquisition_completed_marker": {
+          "const": "/var/lib/cellstate/item12-3/source-acquisition-completed.json",
+          "title": "Source Acquisition Completed Marker",
+          "type": "string"
+        },
+        "source_acquisition_started_marker": {
+          "const": "/var/lib/cellstate/item12-3/source-acquisition-started.json",
+          "title": "Source Acquisition Started Marker",
+          "type": "string"
+        },
+        "staging_root": {
+          "const": "/var/lib/cellstate/item12-3/staging",
+          "title": "Staging Root",
+          "type": "string"
+        }
+      },
+      "required": [
+        "execution_id",
+        "execution_root",
+        "staging_root",
+        "attempt_ledger_root",
+        "runtime_archive_path",
+        "protected_source_path",
+        "canonical_publication_root",
+        "permitted_stage_relative_paths",
+        "parent_terminal_report_relative_path",
+        "parent_terminal_report_max_bytes",
+        "sanitized_terminal_report_filename",
+        "sanitized_terminal_report_max_bytes",
+        "sanitized_terminal_artifact_retention_days",
+        "durable_terminal_scope",
+        "actual_terminal_outcome_durability",
+        "authorized_post_run_terminal_repository_path",
+        "source_acquisition_started_marker",
+        "source_acquisition_completed_marker",
+        "host_source_removed_marker"
+      ],
+      "title": "Item123ExecutionPaths",
+      "type": "object"
+    },
+    "Item123NativeRuntimeBinding": {
+      "additionalProperties": false,
+      "description": "Exact native host boundary; emulation and remote daemons are not authorized.",
+      "properties": {
+        "cgroup_version": {
+          "const": "2",
+          "title": "Cgroup Version",
+          "type": "string"
+        },
+        "docker_architecture": {
+          "const": "x86_64",
+          "title": "Docker Architecture",
+          "type": "string"
+        },
+        "docker_operating_system": {
+          "const": "linux",
+          "title": "Docker Operating System",
+          "type": "string"
+        },
+        "docker_server_version": {
+          "const": "29.7.2",
+          "title": "Docker Server Version",
+          "type": "string"
+        },
+        "emulation_permitted": {
+          "const": false,
+          "title": "Emulation Permitted",
+          "type": "boolean"
+        },
+        "host_architecture": {
+          "const": "x86_64",
+          "title": "Host Architecture",
+          "type": "string"
+        },
+        "host_operating_system": {
+          "const": "linux",
+          "title": "Host Operating System",
+          "type": "string"
+        },
+        "image_store_status": {
+          "maxItems": 2,
+          "minItems": 2,
+          "prefixItems": [
+            {
+              "const": "driver-type",
+              "type": "string"
+            },
+            {
+              "const": "io.containerd.snapshotter.v1",
+              "type": "string"
+            }
+          ],
+          "title": "Image Store Status",
+          "type": "array"
+        },
+        "local_unix_socket_required": {
+          "const": true,
+          "title": "Local Unix Socket Required",
+          "type": "boolean"
+        },
+        "memory_limit_supported": {
+          "const": true,
+          "title": "Memory Limit Supported",
+          "type": "boolean"
+        },
+        "memory_swap_limit_supported": {
+          "const": true,
+          "title": "Memory Swap Limit Supported",
+          "type": "boolean"
+        },
+        "pids_limit_supported": {
+          "const": true,
+          "title": "Pids Limit Supported",
+          "type": "boolean"
+        },
+        "runner_architecture": {
+          "const": "x86_64",
+          "title": "Runner Architecture",
+          "type": "string"
+        },
+        "runner_operating_system": {
+          "const": "linux",
+          "title": "Runner Operating System",
+          "type": "string"
+        }
+      },
+      "required": [
+        "runner_operating_system",
+        "runner_architecture",
+        "host_operating_system",
+        "host_architecture",
+        "docker_server_version",
+        "docker_operating_system",
+        "docker_architecture",
+        "image_store_status",
+        "cgroup_version",
+        "memory_limit_supported",
+        "memory_swap_limit_supported",
+        "pids_limit_supported",
+        "local_unix_socket_required",
+        "emulation_permitted"
+      ],
+      "title": "Item123NativeRuntimeBinding",
+      "type": "object"
+    },
+    "Item123Prohibitions": {
+      "additionalProperties": false,
+      "description": "Negative authority that survives both successful and failed fitting.",
+      "properties": {
+        "canonical_publication_permitted": {
+          "const": false,
+          "title": "Canonical Publication Permitted",
+          "type": "boolean"
+        },
+        "evaluation_or_calibration_permitted": {
+          "const": false,
+          "title": "Evaluation Or Calibration Permitted",
+          "type": "boolean"
+        },
+        "exact_sanitized_terminal_repository_persistence_permitted": {
+          "const": true,
+          "title": "Exact Sanitized Terminal Repository Persistence Permitted",
+          "type": "boolean"
+        },
+        "lifecycle_evidence_permitted": {
+          "const": false,
+          "title": "Lifecycle Evidence Permitted",
+          "type": "boolean"
+        },
+        "model_upload_permitted": {
+          "const": false,
+          "title": "Model Upload Permitted",
+          "type": "boolean"
+        },
+        "only_sanitized_terminal_report_may_leave_runner": {
+          "const": true,
+          "title": "Only Sanitized Terminal Report May Leave Runner",
+          "type": "boolean"
+        },
+        "p2_p3_p4_access_permitted": {
+          "const": false,
+          "title": "P2 P3 P4 Access Permitted",
+          "type": "boolean"
+        },
+        "resume_permitted": {
+          "const": false,
+          "title": "Resume Permitted",
+          "type": "boolean"
+        },
+        "retry_permitted": {
+          "const": false,
+          "title": "Retry Permitted",
+          "type": "boolean"
+        },
+        "runtime_builder_permitted": {
+          "const": false,
+          "title": "Runtime Builder Permitted",
+          "type": "boolean"
+        },
+        "scientific_admission_permitted": {
+          "const": false,
+          "title": "Scientific Admission Permitted",
+          "type": "boolean"
+        },
+        "source_persistence_permitted": {
+          "const": false,
+          "title": "Source Persistence Permitted",
+          "type": "boolean"
+        },
+        "source_upload_permitted": {
+          "const": false,
+          "title": "Source Upload Permitted",
+          "type": "boolean"
+        },
+        "stage_and_model_destroyed_with_ephemeral_runner_after_terminalization": {
+          "const": true,
+          "title": "Stage And Model Destroyed With Ephemeral Runner After Terminalization",
+          "type": "boolean"
+        },
+        "staged_output_upload_permitted": {
+          "const": false,
+          "title": "Staged Output Upload Permitted",
+          "type": "boolean"
+        },
+        "terminal_persistence_grants_lifecycle_or_scientific_authority": {
+          "const": false,
+          "title": "Terminal Persistence Grants Lifecycle Or Scientific Authority",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "source_persistence_permitted",
+        "source_upload_permitted",
+        "staged_output_upload_permitted",
+        "model_upload_permitted",
+        "canonical_publication_permitted",
+        "runtime_builder_permitted",
+        "p2_p3_p4_access_permitted",
+        "evaluation_or_calibration_permitted",
+        "lifecycle_evidence_permitted",
+        "scientific_admission_permitted",
+        "retry_permitted",
+        "resume_permitted",
+        "only_sanitized_terminal_report_may_leave_runner",
+        "stage_and_model_destroyed_with_ephemeral_runner_after_terminalization",
+        "exact_sanitized_terminal_repository_persistence_permitted",
+        "terminal_persistence_grants_lifecycle_or_scientific_authority"
+      ],
+      "title": "Item123Prohibitions",
+      "type": "object"
+    },
+    "Item123ProtectedSourceBinding": {
+      "additionalProperties": false,
+      "description": "Exact public locator and p1 scope; no caller-supplied local path is representable.",
+      "properties": {
+        "access_purpose": {
+          "const": "train_parameters",
+          "title": "Access Purpose",
+          "type": "string"
+        },
+        "accession": {
+          "const": "10.5281/zenodo.13350497",
+          "title": "Accession",
+          "type": "string"
+        },
+        "byte_count": {
+          "exclusiveMinimum": 0,
+          "title": "Byte Count",
+          "type": "integer"
+        },
+        "dataset_id": {
+          "const": "sciplex3-k562-24h",
+          "title": "Dataset Id",
+          "type": "string"
+        },
+        "entire_opaque_asset_transfer_and_snapshot_required": {
+          "const": true,
+          "title": "Entire Opaque Asset Transfer And Snapshot Required",
+          "type": "boolean"
+        },
+        "filename": {
+          "title": "Filename",
+          "type": "string"
+        },
+        "full_axis_selector_metadata_decode_required": {
+          "const": true,
+          "title": "Full Axis Selector Metadata Decode Required",
+          "type": "boolean"
+        },
+        "heldout_endpoints_or_outcomes_resolved": {
+          "const": false,
+          "title": "Heldout Endpoints Or Outcomes Resolved",
+          "type": "boolean"
+        },
+        "heldout_expression_or_raw_count_values_decoded": {
+          "const": false,
+          "title": "Heldout Expression Or Raw Count Values Decoded",
+          "type": "boolean"
+        },
+        "heldout_expression_or_raw_count_values_read": {
+          "const": false,
+          "title": "Heldout Expression Or Raw Count Values Read",
+          "type": "boolean"
+        },
+        "heldout_rows_emitted": {
+          "const": false,
+          "title": "Heldout Rows Emitted",
+          "type": "boolean"
+        },
+        "heldout_rows_scored": {
+          "const": false,
+          "title": "Heldout Rows Scored",
+          "type": "boolean"
+        },
+        "heldout_rows_selected_for_training": {
+          "const": false,
+          "title": "Heldout Rows Selected For Training",
+          "type": "boolean"
+        },
+        "heldout_selector_metadata_resolved_and_decoded": {
+          "const": true,
+          "title": "Heldout Selector Metadata Resolved And Decoded",
+          "type": "boolean"
+        },
+        "local_path_included": {
+          "const": false,
+          "title": "Local Path Included",
+          "type": "boolean"
+        },
+        "locator_included": {
+          "const": true,
+          "title": "Locator Included",
+          "type": "boolean"
+        },
+        "md5": {
+          "pattern": "^[0-9a-f]{32}$",
+          "title": "Md5",
+          "type": "string"
+        },
+        "partition_id": {
+          "const": "p1-train",
+          "title": "Partition Id",
+          "type": "string"
+        },
+        "partition_role": {
+          "const": "train",
+          "title": "Partition Role",
+          "type": "string"
+        },
+        "permitted_expression_or_raw_count_decode_scope": {
+          "const": "p1-train-rows-only",
+          "title": "Permitted Expression Or Raw Count Decode Scope",
+          "type": "string"
+        },
+        "permitted_partitions": {
+          "items": {
+            "const": "p1-train",
+            "type": "string"
+          },
+          "title": "Permitted Partitions",
+          "type": "array"
+        },
+        "physical_asset_contains_all_partitions": {
+          "const": true,
+          "title": "Physical Asset Contains All Partitions",
+          "type": "boolean"
+        },
+        "prohibited_partitions": {
+          "items": {
+            "enum": [
+              "p2-calibration",
+              "p3-model-selection-validation",
+              "p4-untouched-test"
+            ],
+            "type": "string"
+          },
+          "title": "Prohibited Partitions",
+          "type": "array"
+        },
+        "public_locator_uri": {
+          "title": "Public Locator Uri",
+          "type": "string"
+        },
+        "sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        },
+        "source_path_caller_supplied": {
+          "const": false,
+          "title": "Source Path Caller Supplied",
+          "type": "boolean"
+        },
+        "source_verification_relative_path": {
+          "const": "benchmarks/artifacts/sciplex3-k562-24h-v1/source-verification.json",
+          "title": "Source Verification Relative Path",
+          "type": "string"
+        },
+        "source_verification_sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Source Verification Sha256",
+          "type": "string"
+        }
+      },
+      "required": [
+        "dataset_id",
+        "filename",
+        "public_locator_uri",
+        "accession",
+        "sha256",
+        "md5",
+        "byte_count",
+        "source_verification_relative_path",
+        "source_verification_sha256",
+        "access_purpose",
+        "partition_id",
+        "partition_role",
+        "permitted_partitions",
+        "prohibited_partitions",
+        "locator_included",
+        "local_path_included",
+        "source_path_caller_supplied",
+        "physical_asset_contains_all_partitions",
+        "entire_opaque_asset_transfer_and_snapshot_required",
+        "permitted_expression_or_raw_count_decode_scope",
+        "full_axis_selector_metadata_decode_required",
+        "heldout_selector_metadata_resolved_and_decoded",
+        "heldout_expression_or_raw_count_values_read",
+        "heldout_expression_or_raw_count_values_decoded",
+        "heldout_endpoints_or_outcomes_resolved",
+        "heldout_rows_selected_for_training",
+        "heldout_rows_scored",
+        "heldout_rows_emitted"
+      ],
+      "title": "Item123ProtectedSourceBinding",
+      "type": "object"
+    },
+    "Item123ResourceLimits": {
+      "additionalProperties": false,
+      "description": "Exact aggregate resource gates inherited from the contained policy.",
+      "properties": {
+        "cleanup_timeout_seconds": {
+          "exclusiveMinimum": 0,
+          "title": "Cleanup Timeout Seconds",
+          "type": "integer"
+        },
+        "memory_max_bytes": {
+          "exclusiveMinimum": 0,
+          "title": "Memory Max Bytes",
+          "type": "integer"
+        },
+        "memory_swap_max_bytes": {
+          "exclusiveMinimum": 0,
+          "title": "Memory Swap Max Bytes",
+          "type": "integer"
+        },
+        "parent_wall_clock_seconds": {
+          "exclusiveMinimum": 0,
+          "title": "Parent Wall Clock Seconds",
+          "type": "integer"
+        },
+        "pids_limit": {
+          "exclusiveMinimum": 1,
+          "title": "Pids Limit",
+          "type": "integer"
+        },
+        "protected_source_cleanup_bounded_by_workflow_timeout": {
+          "const": true,
+          "title": "Protected Source Cleanup Bounded By Workflow Timeout",
+          "type": "boolean"
+        },
+        "protected_source_watchdog_seconds": {
+          "exclusiveMinimum": 0,
+          "title": "Protected Source Watchdog Seconds",
+          "type": "integer"
+        },
+        "runtime_asset_connect_timeout_seconds": {
+          "const": 10,
+          "title": "Runtime Asset Connect Timeout Seconds",
+          "type": "integer"
+        },
+        "runtime_asset_retry_count": {
+          "const": 0,
+          "title": "Runtime Asset Retry Count",
+          "type": "integer"
+        },
+        "runtime_asset_total_timeout_seconds": {
+          "const": 300,
+          "title": "Runtime Asset Total Timeout Seconds",
+          "type": "integer"
+        },
+        "snapshot_max_bytes": {
+          "exclusiveMinimum": 0,
+          "title": "Snapshot Max Bytes",
+          "type": "integer"
+        },
+        "source_download_connect_timeout_seconds": {
+          "const": 30,
+          "title": "Source Download Connect Timeout Seconds",
+          "type": "integer"
+        },
+        "source_download_retry_count": {
+          "const": 0,
+          "title": "Source Download Retry Count",
+          "type": "integer"
+        },
+        "source_download_total_timeout_seconds": {
+          "const": 1800,
+          "title": "Source Download Total Timeout Seconds",
+          "type": "integer"
+        },
+        "temporary_max_bytes": {
+          "exclusiveMinimum": 0,
+          "title": "Temporary Max Bytes",
+          "type": "integer"
+        },
+        "terminal_fallback_timeout_seconds": {
+          "const": 60,
+          "title": "Terminal Fallback Timeout Seconds",
+          "type": "integer"
+        },
+        "workflow_timeout_minutes": {
+          "const": 150,
+          "title": "Workflow Timeout Minutes",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "parent_wall_clock_seconds",
+        "protected_source_watchdog_seconds",
+        "cleanup_timeout_seconds",
+        "memory_max_bytes",
+        "memory_swap_max_bytes",
+        "pids_limit",
+        "temporary_max_bytes",
+        "snapshot_max_bytes",
+        "workflow_timeout_minutes",
+        "runtime_asset_connect_timeout_seconds",
+        "runtime_asset_total_timeout_seconds",
+        "runtime_asset_retry_count",
+        "source_download_connect_timeout_seconds",
+        "source_download_total_timeout_seconds",
+        "source_download_retry_count",
+        "protected_source_cleanup_bounded_by_workflow_timeout",
+        "terminal_fallback_timeout_seconds"
+      ],
+      "title": "Item123ResourceLimits",
+      "type": "object"
+    },
+    "Item123RuntimeDistributionBinding": {
+      "additionalProperties": false,
+      "description": "Exact immutable distribution and native-daemon identity verified before source.",
+      "properties": {
+        "asset_attestation_required": {
+          "const": true,
+          "title": "Asset Attestation Required",
+          "type": "boolean"
+        },
+        "asset_byte_count": {
+          "exclusiveMinimum": 0,
+          "title": "Asset Byte Count",
+          "type": "integer"
+        },
+        "asset_name": {
+          "title": "Asset Name",
+          "type": "string"
+        },
+        "asset_sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Asset Sha256",
+          "type": "string"
+        },
+        "attestation_predicate_type": {
+          "const": "https://in-toto.io/attestation/release/v0.2",
+          "title": "Attestation Predicate Type",
+          "type": "string"
+        },
+        "config_digest": {
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "title": "Config Digest",
+          "type": "string"
+        },
+        "distribution_lock_sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Distribution Lock Sha256",
+          "type": "string"
+        },
+        "image_digest": {
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "title": "Image Digest",
+          "type": "string"
+        },
+        "immutable_release_required": {
+          "const": true,
+          "title": "Immutable Release Required",
+          "type": "boolean"
+        },
+        "oci_index_digest": {
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "title": "Oci Index Digest",
+          "type": "string"
+        },
+        "provider": {
+          "const": "github-release-asset",
+          "title": "Provider",
+          "type": "string"
+        },
+        "qualified_asset_url": {
+          "title": "Qualified Asset Url",
+          "type": "string"
+        },
+        "release_attestation_required": {
+          "const": true,
+          "title": "Release Attestation Required",
+          "type": "boolean"
+        },
+        "release_tag": {
+          "title": "Release Tag",
+          "type": "string"
+        },
+        "release_target_commit": {
+          "pattern": "^[0-9a-f]{40}$",
+          "title": "Release Target Commit",
+          "type": "string"
+        },
+        "release_target_equals_execution_commit_required": {
+          "const": false,
+          "title": "Release Target Equals Execution Commit Required",
+          "type": "boolean"
+        },
+        "release_target_role": {
+          "const": "immutable-runtime-dependency-provenance-not-execution-code",
+          "title": "Release Target Role",
+          "type": "string"
+        },
+        "repository": {
+          "const": "logannye/cellstate",
+          "title": "Repository",
+          "type": "string"
+        },
+        "runtime_image_lock_sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Runtime Image Lock Sha256",
+          "type": "string"
+        }
+      },
+      "required": [
+        "distribution_lock_sha256",
+        "repository",
+        "release_tag",
+        "release_target_commit",
+        "release_target_role",
+        "release_target_equals_execution_commit_required",
+        "asset_name",
+        "asset_sha256",
+        "asset_byte_count",
+        "qualified_asset_url",
+        "attestation_predicate_type",
+        "oci_index_digest",
+        "image_digest",
+        "config_digest",
+        "runtime_image_lock_sha256",
+        "provider",
+        "immutable_release_required",
+        "release_attestation_required",
+        "asset_attestation_required"
+      ],
+      "title": "Item123RuntimeDistributionBinding",
+      "type": "object"
+    },
+    "Item123RuntimeLayerBinding": {
+      "additionalProperties": false,
+      "description": "One ordered compressed layer in the authorized OCI child manifest.",
+      "properties": {
+        "byte_count": {
+          "exclusiveMinimum": 0,
+          "title": "Byte Count",
+          "type": "integer"
+        },
+        "digest": {
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "title": "Digest",
+          "type": "string"
+        },
+        "media_type": {
+          "const": "application/vnd.oci.image.layer.v1.tar+gzip",
+          "title": "Media Type",
+          "type": "string"
+        }
+      },
+      "required": [
+        "media_type",
+        "digest",
+        "byte_count"
+      ],
+      "title": "Item123RuntimeLayerBinding",
+      "type": "object"
+    },
+    "Item123StopPolicy": {
+      "additionalProperties": false,
+      "description": "A dispatch is terminal after one consumption, regardless of outcome.",
+      "properties": {
+        "consume_before_protected_source_acquisition": {
+          "const": true,
+          "title": "Consume Before Protected Source Acquisition",
+          "type": "boolean"
+        },
+        "hard_runner_death_may_leave_only_immutable_generic_fallback": {
+          "const": true,
+          "title": "Hard Runner Death May Leave Only Immutable Generic Fallback",
+          "type": "boolean"
+        },
+        "maximum_attempt_count": {
+          "const": 1,
+          "title": "Maximum Attempt Count",
+          "type": "integer"
+        },
+        "no_automatic_retry": {
+          "const": true,
+          "title": "No Automatic Retry",
+          "type": "boolean"
+        },
+        "no_manual_reuse": {
+          "const": true,
+          "title": "No Manual Reuse",
+          "type": "boolean"
+        },
+        "stop_after_authorization_failure": {
+          "const": true,
+          "title": "Stop After Authorization Failure",
+          "type": "boolean"
+        },
+        "stop_after_preflight_failure": {
+          "const": true,
+          "title": "Stop After Preflight Failure",
+          "type": "boolean"
+        },
+        "stop_after_runtime_failure": {
+          "const": true,
+          "title": "Stop After Runtime Failure",
+          "type": "boolean"
+        },
+        "stop_after_successful_stage": {
+          "const": true,
+          "title": "Stop After Successful Stage",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "maximum_attempt_count",
+        "consume_before_protected_source_acquisition",
+        "stop_after_authorization_failure",
+        "stop_after_preflight_failure",
+        "stop_after_runtime_failure",
+        "stop_after_successful_stage",
+        "no_automatic_retry",
+        "no_manual_reuse",
+        "hard_runner_death_may_leave_only_immutable_generic_fallback"
+      ],
+      "title": "Item123StopPolicy",
+      "type": "object"
+    },
+    "Item123ToolBinding": {
+      "additionalProperties": false,
+      "description": "One exact event-ref tool that cannot drift in the proposal-only commit.",
+      "properties": {
+        "relative_path": {
+          "minLength": 1,
+          "title": "Relative Path",
+          "type": "string"
+        },
+        "sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        }
+      },
+      "required": [
+        "relative_path",
+        "sha256"
+      ],
+      "title": "Item123ToolBinding",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Canonical pending proposal; these bytes explicitly grant no authority on their own.",
+  "properties": {
+    "approval_mechanism": {
+      "const": "workflow-dispatch-exact-proposal-sha256-plus-immutable-one-use-release",
+      "title": "Approval Mechanism",
+      "type": "string"
+    },
+    "artifact_schema": {
+      "const": "cellstate-item12-3-execution-proposal",
+      "default": "cellstate-item12-3-execution-proposal",
+      "title": "Artifact Schema",
+      "type": "string"
+    },
+    "artifact_schema_version": {
+      "const": "1.1.0",
+      "default": "1.1.0",
+      "title": "Artifact Schema Version",
+      "type": "string"
+    },
+    "authorization_tools": {
+      "items": {
+        "$ref": "#/$defs/Item123ToolBinding"
+      },
+      "minItems": 6,
+      "title": "Authorization Tools",
+      "type": "array"
+    },
+    "authorized_dispatch_actor": {
+      "const": "logannye",
+      "title": "Authorized Dispatch Actor",
+      "type": "string"
+    },
+    "authorized_entrypoint": {
+      "const": "scripts/run_item12_3_authorized_execution.py",
+      "title": "Authorized Entrypoint",
+      "type": "string"
+    },
+    "candidate": {
+      "$ref": "#/$defs/Item123CandidateBinding"
+    },
+    "contained_execution": {
+      "$ref": "#/$defs/Item123ContainedExecutionBinding"
+    },
+    "execution_paths": {
+      "$ref": "#/$defs/Item123ExecutionPaths"
+    },
+    "execution_repository_commit": {
+      "pattern": "^[0-9a-f]{40}$",
+      "title": "Execution Repository Commit",
+      "type": "string"
+    },
+    "expires_at_utc": {
+      "title": "Expires At Utc",
+      "type": "string"
+    },
+    "grants_execution_authority": {
+      "const": false,
+      "title": "Grants Execution Authority",
+      "type": "boolean"
+    },
+    "native_runtime": {
+      "$ref": "#/$defs/Item123NativeRuntimeBinding"
+    },
+    "not_before_utc": {
+      "title": "Not Before Utc",
+      "type": "string"
+    },
+    "prohibitions": {
+      "$ref": "#/$defs/Item123Prohibitions"
+    },
+    "proposal_only_commit_required": {
+      "const": true,
+      "title": "Proposal Only Commit Required",
+      "type": "boolean"
+    },
+    "protected_source": {
+      "$ref": "#/$defs/Item123ProtectedSourceBinding"
+    },
+    "repository": {
+      "const": "logannye/cellstate",
+      "title": "Repository",
+      "type": "string"
+    },
+    "repository_owner": {
+      "const": "logannye",
+      "title": "Repository Owner",
+      "type": "string"
+    },
+    "resource_limits": {
+      "$ref": "#/$defs/Item123ResourceLimits"
+    },
+    "runtime_distribution": {
+      "$ref": "#/$defs/Item123RuntimeDistributionBinding"
+    },
+    "status": {
+      "const": "pending-explicit-user-approval",
+      "title": "Status",
+      "type": "string"
+    },
+    "stop_policy": {
+      "$ref": "#/$defs/Item123StopPolicy"
+    },
+    "workflow_dispatch_ref": {
+      "const": "refs/heads/main",
+      "title": "Workflow Dispatch Ref",
+      "type": "string"
+    }
+  },
+  "required": [
+    "status",
+    "grants_execution_authority",
+    "approval_mechanism",
+    "repository",
+    "repository_owner",
+    "authorized_dispatch_actor",
+    "workflow_dispatch_ref",
+    "execution_repository_commit",
+    "not_before_utc",
+    "expires_at_utc",
+    "proposal_only_commit_required",
+    "candidate",
+    "protected_source",
+    "contained_execution",
+    "runtime_distribution",
+    "native_runtime",
+    "resource_limits",
+    "execution_paths",
+    "prohibitions",
+    "stop_policy",
+    "authorization_tools",
+    "authorized_entrypoint"
+  ],
+  "title": "Item123ExecutionProposal",
+  "type": "object"
+}

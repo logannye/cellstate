@@ -59,11 +59,12 @@ utility. Posterior covariance reduction alone is not EVSI.
 > gates. Its Item 11 software path is now intentionally limited to an immutable `p1-train` loader,
 > six `p1`-fit probabilistic baseline algorithms, and content-addressed streaming-run scaffolding.
 > The exact 2.526 GB source has now been close-reauthenticated, all 94,785 `p1` rows scanned, and six
-> non-admissible fitted-state identities frozen. Protected `p2`, `p3`, and `p4` raw UMI
-> count-matrix/endpoint bytes, outcomes, and lifecycle scoring authority remain hard sealed; their
-> public frozen split membership and design metadata are not an access grant. No prediction
-> campaign, metric, performance comparison, or scientific
-> admission has run.
+> non-admissible fitted-state identities frozen. Held-out `p2`, `p3`, and `p4` expression/raw-count
+> values, endpoints, outcomes, and lifecycle scoring authority remain hard sealed; their public
+> frozen split membership and design metadata are not an access grant. Because the physical H5AD is
+> monolithic, an authorized Item 12.3 run would still have to transfer and snapshot the whole asset
+> and decode full-axis selector metadata to resolve `p1`; that necessity grants no held-out value
+> access. No prediction campaign, metric, performance comparison, or scientific admission has run.
 > Item 12 adds a separate trusted-training boundary for a first `p1`-only candidate. Its original
 > rank-16 Gamma--Poisson design, with a separate `q`/capture term and 16 free factor shapes, failed
 > closed before model emission. V2 removed `q`/capture, but its free pooled shape drifted toward the
@@ -91,10 +92,18 @@ utility. Posterior covariance reduction alone is not EVSI.
 > across three independent native and emulated builder environments under frozen inputs and
 > toolchain and excludes build-host caches. This work opened no protected source, ran no
 > real-`p1` fit, and issued no candidate artifact, plan, observation, evidence, or lifecycle result.
-> The component remains `SCAFFOLD`. The next proposed milestone is a separately authorized,
-> version-bound, nonissuing real-`p1` v5 execution under **Item 12.3**; it is not authorized and has
-> not run. Durable distribution of the exact locally loaded OCI archive is a prerequisite; no remote
-> image publication is claimed.
+> The component remains `SCAFFOLD`. **Item 12.3** now has an assembled source-free authorization,
+> runtime-preparation, containment, and terminal-evidence control plane for one version-bound,
+> nonissuing real-`p1` v5 execution. The protected execution remains unapproved and unrun: no
+> canonical pending proposal exists and no exact proposal digest has been approved or consumed. Its
+> durable-runtime prerequisite is satisfied by the separate
+> [immutable, attested GitHub Release](https://github.com/logannye/cellstate/releases/tag/sciplex3-v5-runtime-20260811-locked)
+> containing the sole exact OCI archive; that publication is runtime distribution, not source or
+> execution authority. A future approved attempt must dispatch the trusted workflow from
+> `refs/heads/main` at exact execution commit `C`, supplying both the exact proposal SHA-256 and its
+> proposal-only child commit `D`. The workflow treats `D` only as inert object data and the asset-free
+> attempt-release target, never checks it out or executes it, and remains on `C`; only bounded
+> sanitized terminal evidence may leave the ephemeral runner.
 
 ## Scientific thesis
 
@@ -289,9 +298,9 @@ verifies typed result semantics separately from result pass/fail, and recompiles
 prerequisites. Execution guards then reload and reverify the exact object immediately before use.
 This infrastructure does not graduate the component: sci-Plex3 remains a non-executable
 `SCAFFOLD`. Item 11 adds a single-purpose immutable `p1-train` loader and six `p1`-only
-probabilistic baselines while keeping protected `p2`, `p3`, and `p4` raw UMI
-count-matrix/endpoint bytes, outcomes, and lifecycle scoring authority hard sealed behind future
-grants. Frozen split membership and benchmark-design metadata are public and supply outcome-free
+probabilistic baselines while keeping protected `p2`, `p3`, and `p4` expression/raw-count values,
+endpoints, outcomes, and lifecycle scoring authority hard sealed behind future grants. Frozen split
+membership and benchmark-design metadata are public and supply outcome-free
 prediction schedules, but grant no endpoint or scoring access. Each
 baseline supports the no-action condition; the alternate-dose baseline excludes the
 requested dose. Frozen execution uses 512 samples per case and seed for seeds 0 through 4 with
@@ -320,7 +329,7 @@ The audited incompatible v4 software design retains 16 continuous Gamma--Poisson
 proposes unseen-plate context by uniformly selecting one complete observed `p1` `rho` row rather
 than drawing factorwise lognormal scales. Its future p2 declaration precommits to
 `tau_j=exp(j/20)` for integer `j=-20,...,6`, with shape `0.1/tau_j^2` and factorwise-renormalized
-`rho^tau_j`; no p2 data have been opened and no `tau` has been selected.
+`rho^tau_j`; no p2 calibration values have been read or decoded and no `tau` has been selected.
 
 The first v4 launch was infrastructure-invalid: its audit hook rejected h5py's nonpersistent
 `/dev/null` probe before fitting. Report
@@ -340,8 +349,8 @@ approximately `1.0000011118`. This is a candidate-family risk, not a fitted-mode
 the empirical whole-row unseen-plate proposal must be reexamined.
 
 No v4 model, plan, observation, training evidence, materialization, or lifecycle result was issued.
-V4 is `NO-GO`, `TRAINED_CANDIDATE` cannot be derived, and protected `p2`, `p3`, and `p4` raw endpoint
-and scoring access remains sealed; every later scientific and runtime gate remains false. **Item
+V4 is `NO-GO`, `TRAINED_CANDIDATE` cannot be derived, and protected `p2`, `p3`, and `p4` endpoint-
+value and scoring access remains sealed; every later scientific and runtime gate remains false. **Item
 12.1a** is complete and reproducible from
 the exact historical harness (`f4e6b768...`), tests (`8989618e...`), parent driver (`795c5929...`),
 and reports under [`audits/item12_1a`](audits/item12_1a/). Its 26 focused tests and independent audit
@@ -396,11 +405,17 @@ cleanup, no canonical publication, and next-run recovery behavior; the successfu
 proves parent no-follow re-inventory and sealing of the exact worker stage. These are source-free
 software results. No protected source was opened, no real-`p1` fit ran, and no candidate artifact,
 plan, observation, evidence, materialization, or lifecycle result was issued. The component remains
-`SCAFFOLD`. A separately authorized, version-bound, nonissuing real-`p1` v5 execution is merely
-proposed as **Item 12.3**; it is neither authorized nor run and grants no held-out access or
-biological/performance claim. The image still requires loading from the exact local OCI layout and
-is not claimed to be remotely published. Durable distribution of that exact archive is a
-prerequisite to any Item 12.3 authorization.
+`SCAFFOLD`. **Item 12.3** now supplies source-free proposal construction, one-use consumption, runtime
+preparation, fixed-source acquisition, contained terminal, and nonissuance machinery for a possible
+version-bound real-`p1` v5 execution. It supplies no authority: the canonical proposal artifact is
+absent, no exact digest has been approved, and no protected execution has run. The exact OCI layout
+is durably distributed through the separate immutable, attested
+`sciplex3-v5-runtime-20260811-locked` GitHub Release, which must be reauthenticated after one-use
+consumption and before source acquisition. The monolithic H5AD must then be transferred and
+snapshotted whole and its full selector axes decoded, but expression/raw-count decode remains
+`p1-train`-only and held-out endpoints/outcomes remain unresolved. No canonical publication is
+permitted. The immutable attempt release preserves only a generic fallback; the actual sanitized
+terminal uses 90-day artifact transport followed by separately reviewed repository persistence.
 
 The [project roadmap](docs/roadmap.md) is the sole authority for implementation order and graduation
 status. The [full buildout architecture](docs/architecture/full-buildout.md) defines the target
@@ -461,8 +476,9 @@ evidence.
   reproduced byte-for-byte across three independent native and emulated builder environments under
   frozen inputs and toolchain;
   and parent-owned whole-container containment. It is software scaffolding only: no real `p1` fit
-  or issued candidate/lifecycle artifact exists, and Item 12.3 remains an unauthorized proposal
-  whose prerequisites include durable distribution of the exact locally loaded archive.
+  or issued candidate/lifecycle artifact exists. Item 12.3's source-free execution-control machinery
+  is assembled and its durable-runtime prerequisite is complete, but no canonical pending proposal,
+  exact digest approval, protected execution, or terminal report exists.
 - An experimental biological-bundle and support-envelope contract with an exhaustive stage-port
   map, operation-specific prerequisites, content-addressed training/calibration/validation
   bindings, and a derived component lifecycle. The first sci-Plex3 population assay-response

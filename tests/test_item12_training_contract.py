@@ -546,6 +546,7 @@ def _training_fixture(
         exit_code=0,
         timed_out=False,
         oom_killed=False,
+        parent_wall_clock_elapsed_seconds=10.0,
     )
     worker_execution = ContainedTrainingWorkerObservation(
         execution_id="item12-fit",
@@ -574,6 +575,9 @@ def _training_fixture(
         staged_tree_sha256=staged_inventory.fingerprint,
         worker_observation=worker_execution,
         execution_observation=parent_execution,
+        wall_clock_limit_seconds=policy.wall_clock_seconds,
+        memory_max_bytes=policy.memory_max_bytes,
+        memory_swap_max_bytes=policy.memory_swap_max_bytes,
     )
     contained_execution_artifact = _contract_artifact(
         "item12-contained-execution-observation",

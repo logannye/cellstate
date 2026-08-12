@@ -206,6 +206,109 @@ def test_real_docker_outcomes_remove_tree_and_anonymous_volume(
     assert not (tmp_path / "canonical").exists()
 
 
+def test_real_docker_worker_watchdog_exit_is_typed_separately_from_parent_timeout(
+    tmp_path: Path,
+) -> None:
+    executor, source, code, _, _ = _executor(
+        tmp_path,
+        owner_id="item12-real-worker-watchdog",
+        mode="sleep-tree",
+        wall_seconds=10,
+    )
+    observation = executor.run(
+        execution_id="probe",
+        source_path=source,
+        code_path=code,
+        output_path=executor.output_stage_path("probe"),
+    )
+    assert observation.outcome == "timeout"
+    assert observation.exit_code == 137
+    assert not observation.timed_out
+    assert observation.worker_watchdog_timed_out
+    assert not observation.oom_killed
+    assert observation.container_removed
+    assert observation.snapshot_volume_removed
+
+
+def test_real_docker_worker_accepts_only_the_frozen_contained_topology(tmp_path: Path) -> None:
+    source = tmp_path / "source-free-topology-probe.h5ad"
+    source.write_bytes(b"topology-only; worker must not open this fixture\n")
+    output = tmp_path / "output"
+    output.mkdir()
+    probe = """
+from pathlib import Path
+from scripts.sciplex3_k562_v5_worker import _require_exact_contained_invocation
+from cellstate.backends.sciplex3_loader import SCIPLEX3_SOURCE_BYTE_COUNT, SCIPLEX3_SOURCE_SHA256
+_require_exact_contained_invocation(
+    source_path=Path('/run/cellstate/source/source.h5ad'),
+    output_path=Path('/run/cellstate/output'),
+    repository_root=Path('/workspace'),
+    execution_id='sciplex3-k562-v5-fit',
+    expected_source_sha256=SCIPLEX3_SOURCE_SHA256,
+    expected_source_byte_count=SCIPLEX3_SOURCE_BYTE_COUNT,
+    snapshot_directory=Path('/run/cellstate/snapshot'),
+    snapshot_max_bytes=3 * 1024**3,
+)
+print('contained-topology-verified')
+"""
+    completed = subprocess.run(
+        (
+            "docker",
+            "run",
+            "--rm",
+            "--platform",
+            "linux/amd64",
+            "--pull",
+            "never",
+            "--memory",
+            str(4 * 1024**3),
+            "--memory-swap",
+            str(4 * 1024**3),
+            "--pids-limit",
+            "256",
+            "--user",
+            f"{os.geteuid()}:{os.getegid()}",
+            "--network",
+            "none",
+            "--read-only",
+            "--cap-drop",
+            "ALL",
+            "--security-opt",
+            "no-new-privileges",
+            "--init",
+            "--tmpfs",
+            (
+                "/run/cellstate/tmp:rw,noexec,nosuid,nodev,size=268435456,mode=0700,"
+                f"uid={os.geteuid()},gid={os.getegid()}"
+            ),
+            "--mount",
+            f"type=bind,source={source},target=/run/cellstate/source/source.h5ad,readonly",
+            "--mount",
+            f"type=bind,source={REPOSITORY_ROOT},target=/workspace,readonly",
+            "--mount",
+            f"type=bind,source={output},target=/run/cellstate/output",
+            "--mount",
+            "type=volume,target=/run/cellstate/snapshot",
+            "--workdir",
+            "/workspace",
+            "--env",
+            "PYTHONPATH=/workspace/src:/workspace",
+            "--entrypoint",
+            "/opt/runtime/bin/python",
+            IMAGE_REFERENCE,
+            "-c",
+            probe,
+        ),
+        check=False,
+        capture_output=True,
+        text=True,
+        timeout=30,
+    )
+    assert completed.returncode == 0, completed.stderr
+    assert completed.stdout.strip() == "contained-topology-verified"
+    assert source.read_bytes() == b"topology-only; worker must not open this fixture\n"
+
+
 _CHILD = r"""
 import sys
 from pathlib import Path

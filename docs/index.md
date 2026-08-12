@@ -47,11 +47,14 @@ native Linux. The clean-final archive is byte-identical across three independent
 emulated builder environments under frozen inputs and toolchain, excludes build-host caches, and
 freezes its builder identity in the workflow and runtime lock. No protected source was opened, no
 real-`p1` fit ran, and no candidate artifact, plan, observation, evidence, or lifecycle result was
-issued. The component remains `SCAFFOLD`. Item 12.3 is only a proposed, separately authorized,
-version-bound, nonissuing real-`p1` v5 execution; it is not authorized or run. The exact image is
-not remotely published, and durable
-distribution of its locally loaded OCI archive is a prerequisite to that authorization. The
-scaffold is not a current-state estimator and exposes none of the four public cell-state operations.
-Protected `p2`, `p3`, and `p4` raw UMI count-matrix/endpoint bytes, outcomes, and lifecycle scoring
-authority remain sealed; public frozen split membership and benchmark-design metadata are not an
-access grant.
+issued. The component remains `SCAFFOLD`. Item 12.3's source-free authorization,
+runtime-preparation, containment, terminal-evidence, and nonissuance control plane is assembled for
+one possible version-bound real-`p1` v5 execution. It grants no authority: the canonical pending
+proposal is absent, no exact proposal digest has been approved or consumed, and no protected run has
+occurred. The exact image is durably distributed through a separate immutable, attested GitHub
+Release, but that publication is not source access or execution authority. An authorized run would
+have to transfer and snapshot the monolithic H5AD whole and decode full-axis selector metadata to
+resolve `p1`; only `p1-train` expression/raw-count values may be decoded. Held-out expression/count
+values, endpoints, outcomes, scoring, and lifecycle authority remain sealed, and public frozen
+split/design metadata are not an access grant. The scaffold is not a current-state estimator and
+exposes none of the four public cell-state operations.
