@@ -217,9 +217,10 @@ controls, assays, intervention timing, replicates, outcomes, linkage structure, 
 confounding. A split manifest makes benchmark membership reproducible, and each
 benchmark's scoring transform is content-addressed so normalization is reproducible. Public availability is not permission for every use.
 
-A dataset can carry a state estimand only if it provides an admissible observation before the
-inference cutoff, at least two horizons after it, an identified intervention with matched controls,
-and enough independent experimental units to bootstrap. A single-timepoint destructive screen does
+A dataset can carry a state estimand only if it provides an admissible observation in the target
+modality before the inference cutoff **on a unit that is also observed after it**, at least two
+horizons after the cutoff, an identified intervention with matched controls, and enough independent
+experimental units to bootstrap. A single-timepoint destructive screen does
 not: with an empty pre-cutoff history the sufficiency test is inapplicable, because there is no
 hidden state to infer and no history for it to be sufficient against.
 
@@ -239,11 +240,14 @@ Evaluation is specified over proper predictive scores, intervention-effect error
 distances, hazard and fate scores, coverage, risk-coverage curves, predictive sufficiency, and planner regret. Marginal
 error and all-gene correlation are maximized by predicting no change and never stand alone; a
 differential-expression-weighted and a rank-based metric accompany them. Every backend must beat
-persistence, matched control, condition mean, nearest condition, and simple linear, hierarchical,
-low-rank, and temporal state-space baselines appropriate to its query, each individually.
+persistence, matched control, condition mean, nearest condition, pseudobulk GLM, and simple
+hierarchical, low-rank, and temporal state-space baselines appropriate to its query, each
+individually. The best of them is the observational floor. The mandatory set is ledger entry `S9`
+in [`docs/roadmap.md`](docs/roadmap.md); that list, not this sentence, is authoritative.
 
-A backend graduates per query and per version, in this order — distinct from the repository phases
-in [`docs/roadmap.md`](docs/roadmap.md), which are the sole authority for what is built when:
+A backend graduates per query and per version, in this order. Each rung is a state-capability
+ledger entry in [`docs/roadmap.md`](docs/roadmap.md), which is the sole authority for what is built
+when and for whether a rung is satisfied; the repository phases are a separate ordering:
 
 - contract and provenance correctness;
 - deterministic ingestion and leakage-safe splits;

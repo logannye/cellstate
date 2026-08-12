@@ -1,5 +1,9 @@
 # Data contracts
 
+These contracts exist so that a claim about hidden cellular state cannot travel without the evidence
+that supports it. They are instrumental: they constrain what may be asserted about a state and by
+whom, and they do not themselves produce a state estimate.
+
 All biological time is experiment-relative seconds. Wall-clock timestamps are provenance only.
 Histories are canonicalized by `(time_seconds, event_id)` and reject duplicate IDs, mixed subjects,
 and evidence after the request time.
@@ -151,8 +155,13 @@ Loss assessments authorize training objectives only. A held-out-modality assessm
 scoped modality as the masked target in turn; it does not authorize a broader modality set. Metric
 IDs are local role identifiers under a typed metric family, not frozen formula definitions. Event
 or survival scoring, OOD/selective-risk, predictive-sufficiency, intervention-ranking, and
-decision-utility families remain fail-closed until the frozen `sciplex3-k562-24h-v1` benchmark contract (historical Item 8) binds
-their missing target, held-out-domain, paired-history, candidate-set, and utility semantics.
+decision-utility families remain fail-closed until a benchmark contract binds their missing target,
+held-out-domain, paired-history, candidate-set, and utility semantics. The frozen
+`sciplex3-k562-24h-v1` contract accepted by
+[ADR 0008](../adr/0008-sciplex3-k562-component-benchmark.md) cannot bind the paired-history
+semantics: its estimand has no admissible pre-cutoff observation, so the predictive-sufficiency
+family stays fail-closed there by construction. Unblocking it requires the state-bearing benchmark
+of Phase 2.
 
 Use policies cover every source and explicitly assess research training, commercial training,
 benchmark evaluation, source redistribution, derived-model distribution, and publication. A policy
@@ -174,7 +183,7 @@ once. Split plans materialize record and protected experimental-unit membership;
 evaluation cases bind every subject, static context, action or control, target, horizon, and
 matching stratum.
 
-Metric definitions bind an exact output schema, evaluation partitions, independent evaluation
+Metric definitions bind an exact output schema, evaluation partitions, independent experimental
 unit, weighting, missingness, dependence blocks, and either a specification-only or executable
 implementation. Specification-only metrics, uncertainty methods, and baselines may freeze a
 component design but can never satisfy scientific admission. Baseline-relative gates consume
@@ -185,7 +194,10 @@ metric must be reported on every declared evaluation partition before admission.
 Verification exposes assessment-and-permission, performance, and admission-ready states
 separately. A structurally verified `COMPONENT_BENCHMARK` may pass exact source and permission
 resolution while remaining non-admitted because implementations, leakage checks, baselines, or
-performance thresholds have not passed. `verified` never means biologically validated.
+performance thresholds have not passed. `verified` never means biologically validated. The single
+benchmark in this repository is in exactly that state: `sciplex3-k562-24h-v1` is verified and not
+admitted, every metric entry in every frozen suite resolves to a specification-only implementation,
+and no baseline has been scored against another.
 
 The generated schemas capture structural JSON constraints. Several scientific invariants—including
 cross-field status/value rules, fingerprint binding, interval coverage, selection order, and EVSI

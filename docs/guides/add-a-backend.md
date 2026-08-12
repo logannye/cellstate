@@ -1,5 +1,18 @@
 # Add a model backend
 
+A backend exists to compute a faithful representation of hidden cellular state for a declared query.
+Everything below about contracts, admission, provenance, and verification is instrumental to that. A
+backend that satisfies every contract in this guide and cannot be shown faithful has delivered
+nothing.
+
+Read [the roadmap](../roadmap.md) first. Its state-capability ledger `S1`-`S10` is the sole measure
+of progress, and the query your backend serves must be able to satisfy `S1` — an admissible
+pre-cutoff observation in the target modality, on a unit also observed after the cutoff — and `S3` —
+at least two horizons after the cutoff — before any of the rest is worth building. Under a query
+that satisfies neither, the predictive-sufficiency test is not merely unrun; it is inapplicable,
+because the belief-only and belief-plus-history predictors receive the same inputs. Confirm this
+before you write code, not after.
+
 Before implementing any runtime protocol, decide whether the task actually estimates hidden state.
 An endpoint-only mapping from static experimental context and assignment to a future destructive
 assay distribution is a `PopulationAssayResponseModel` component, not a `CellStateEstimator` or
@@ -17,7 +30,9 @@ an admission path.
 
 ## Prepare trusted admission
 
-Keep verifier authority outside the submitted bundle and every serialized artifact. Provision
+This section is machinery, not science. It establishes that the bytes you executed are the bytes you
+declared, and nothing more; clearing all of it proves nothing about cellular state. Keep verifier
+authority outside the submitted bundle and every serialized artifact. Provision
 capability-scoped `TrustedAdmissionVerifier` objects with external HMAC keys, and provision
 `TrustedRuntimeInterface` entries from an application-owned interface registry. Never put those
 secrets beside code being loaded, copy them into receipts, or accept the report submitter's live
@@ -49,6 +64,8 @@ object. The guard seals and verifies that stream once, then gives that exact imm
 the registry-owned `TrustedJITLoader` bound to the authenticated loader identity and key. Invoke
 only the object carried by the returned `VerifiedRuntimeHandle`; never treat the persisted receipt
 or a previously imported object as authority.
+
+## Implement the estimator
 
 Implement `QueryCompiler` and `CellStateEstimator` together. Compilation must turn the exact
 `StateQuery` into an auditable `CompiledStateSpecification`: activate only factors required by the
@@ -131,9 +148,42 @@ subject, compiler, model, support, seed, event-content, and provenance identity.
 posteriors use the public sample-axis convention. Matching dimension labels alone never establish
 posterior compatibility.
 
-Before calling a biological backend usable, publish its model card, content-addressed training and
-calibration support, query-specific support envelope, external validation evidence, OOD behavior,
-and state-versus-history sufficiency results. A measurement-capable backend additionally publishes
+## What the backend must be shown to do
+
+Contract conformance is not evidence about biology. Before a biological backend may be called
+usable, each of the following must be measured, not declared.
+
+- **Splits at the independent experimental unit.** Well, plate, library, donor, animal, clone, cell
+  line, or study — never randomly sampled cells — and frozen before model selection. A random
+  cell-level split reports memorization as generalization and is prohibited for scientific claims.
+- **Every mandatory baseline beaten individually.** The mandatory set is ledger entry `S9` in
+  [the roadmap](../roadmap.md), plus the temporal state-space baseline where the query permits it —
+  each on its own, on the frozen proper scores, with a bootstrap interval grouped at the split unit
+  that excludes zero. Beating a pooled or averaged floor is not the test. Marginal error and
+  all-gene correlation are maximized by predicting no change and never stand alone; a
+  differential-expression-weighted and a rank-based metric accompany them.
+- **Calibration.** Absolute marginal coverage error within the query's predeclared threshold at
+  every declared level, reported as an upper confidence bound grouped at the split unit.
+- **A predictive-sufficiency verdict.** The history-information gain between a predictor given the
+  belief alone and one given the belief plus the raw history, with a bootstrap interval grouped at
+  the split unit, on genuinely held-out future evidence. A gain reported without an interval is not
+  a verdict. A verdict of insufficiency, reported with its interval, is a result; suppressing it is
+  not.
+- **Abstention that works.** On a deliberately out-of-support partition the abstention rate exceeds
+  the in-support rate, and discarding the lowest-confidence decile does not increase held-out risk.
+
+Two design constraints follow from a candidate family already retired here, recorded in
+[ADR 0013](../adr/0013-state-first-roadmap-reordering.md). Actions must enter through features, not
+through a free parameter per observed action: a per-action free parameter cannot generalize to an
+unseen action in principle and forecloses external replication. And equal weighting of experimental
+units is a property of the objective, not of the reporting — every term of the objective and of
+every derivative carries the same unit normalization. A context parameter must be accompanied by a
+measured effective-context diagnostic; a context dimension whose effective count collapses toward
+one is unidentified, and that diagnostic belongs in the model's own gates.
+
+Publish, alongside those results, the model card, content-addressed training and calibration
+support, query-specific support envelope, external validation evidence, OOD behavior, and
+state-versus-history sufficiency results. A measurement-capable backend additionally publishes
 assay-outcome calibration, hypothetical-update validation, replanning validation, and utility/regret
 evaluation for the supported decision scope. `ModelArtifactKind.CONTRACT_REFERENCE` artifacts may
 exercise software contracts but cannot carry biological support evidence.

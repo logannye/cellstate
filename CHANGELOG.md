@@ -1,5 +1,11 @@
 # Changelog
 
+This file records what happened, in the order it happened. Entries are never rewritten or removed.
+Some of the work recorded below was later reclassified, suspended, or retired by
+[ADR 0013](docs/adr/0013-state-first-roadmap-reordering.md); an entry that reads as in progress
+describes the state of that work when it was written, not the current plan.
+[`docs/roadmap.md`](docs/roadmap.md) is the sole authority for what is active.
+
 ## 0.2.0 - Unreleased
 
 - Move the active public runtime to schema v2 while preserving immutable v1 JSON Schemas and
@@ -218,6 +224,26 @@
   persistence. Source, stage, model, and canonical publication remain runner-confined and
   nonissuing. No canonical pending proposal, approved digest, protected Item 12.3 run, or terminal
   report currently exists.
+
+- Reorder the project around cell state as the primary object
+  ([ADR 0013](docs/adr/0013-state-first-roadmap-reordering.md)). Adopt a state-capability ledger
+  `S1`-`S10` as the sole measure of progress; a purpose test requiring every queue item to name the
+  capabilities it advances; a rule that authorization lands as its own merged change before the work
+  it authorizes; and a single `Q`-prefixed ordered queue that does not reuse the historical Item
+  1-12 numbering, which is bound into content-addressed manifests. Make Phase 1 the implementation
+  of the faithfulness tests and the measurement of the observational floor, add Phase 2 to freeze a
+  state-bearing estimand, and renumber the remaining phases. Reclassify the sci-Plex3 K562 24-hour
+  component off the state path to data, split, and metric-proving infrastructure: its estimand has
+  no admissible pre-cutoff observation and one horizon, so it cannot carry a sufficiency verdict.
+  Suspend the protected-execution control plane, enforced by a fail-closed first step in its
+  dispatch workflow. Retire the rank-16 continuous admixture candidate family for the state path,
+  carrying its corrected objective mathematics, equal-unit normalization constant, and
+  effective-context diagnostic into the Phase 4 model guidance. Enforce program rules 1 and 3 with
+  `tests/test_roadmap_queue_contract.py`; rules 2 and 4 remain conventions with no mechanical check.
+- Rewrite the README, the concept and validation documents, the architecture and component
+  documents, and the guides so that each states the object the project computes and defers to the
+  roadmap for status; mark the retired and suspended work historical wherever it was written in the
+  present tense.
 
 ## 0.1.0 - Unreleased
 

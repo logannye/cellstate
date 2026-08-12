@@ -245,8 +245,13 @@ Graduation gate:
 - The frozen query's support envelope declares the runtime operation that derives
   `sufficiency_evaluator` into `required_ports`; `derive_query_prerequisite_report` returns it with
   no entry in `invalid_dispositions`; and the bundle binds it `provided`. The disposition is derived
-  and then satisfied, never typed into the bundle by hand. Deriving it requires adding
-  `sufficiency_evaluator` to `_derive_runtime_target_prerequisites`; today no code path produces it.
+  and then satisfied, never typed into the bundle by hand. No bundle in this repository derives it
+  today, because the only registered bundle is a component scaffold whose prerequisites come from the
+  fixed component-prerequisite map. A runtime bundle whose support envelope declares
+  `estimate_cell_state` does derive the port: `OPERATION_REQUIRED_PORTS[ESTIMATE_CELL_STATE]` contains
+  it, and `_derive_runtime_target_prerequisites` emits every entry of that map as an
+  operation-contract floor. Satisfying the gate therefore requires registering a runtime support
+  envelope and bundle, not amending the derivation.
 - The leakage audit reports computed overlap counts at the library level.
 
 ## Phase 3 — observation models and posterior inference

@@ -1,5 +1,13 @@
 # Migrate schema v1 inputs to v2
 
+**Hypothetical.** No v1 artifact has ever been produced by this repository. Version 0.1.0 was never
+released, no biological backend is registered, and no belief has been emitted by a biological model.
+This guide exists because `schemas/v1/` is checked in as an immutable record and
+`cellstate.schema.inspect_v1_payload` is a live, tested code path. It describes what a migration
+would require if a v1 payload were ever presented; it is not work anyone currently has. The
+authority for the v2 contract itself is
+[`docs/architecture/data-contracts.md`](../architecture/data-contracts.md).
+
 Schema v2 is a breaking scientific-contract migration. It adds typed belief subjects, explicit
 source-to-target evidence, collection effects, bounded action and environment domains,
 query-compiled state, perturbation-realization and nuisance beliefs, and scientific readiness and
@@ -9,9 +17,9 @@ The migration is intentionally not a field-renaming exercise.
 
 ## What remains stable
 
-Checked-in files under `schemas/v1/` are an immutable record of the former wire format. They may be
-used to validate or inventory legacy artifacts. A v1 payload is never accepted by the v2 public API
-through coercion or a changed default.
+Checked-in files under `schemas/v1/` are an immutable record of the former wire format. No artifact
+in this repository conforms to them. A v1 payload is never accepted by the v2 public API through
+coercion or a changed default.
 
 ## Inputs require explicit reconstruction
 

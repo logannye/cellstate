@@ -4,6 +4,7 @@ theme:
   name: readthedocs
 nav:
   - Home: index.md
+  - Roadmap: roadmap.md
   - Concepts:
       - Belief state: concepts/belief-state.md
       - Predictive sufficiency: concepts/predictive-sufficiency.md
@@ -13,8 +14,8 @@ nav:
       - Data contracts: architecture/data-contracts.md
       - Biological model bundles: architecture/biological-model-bundles.md
       - Inference pipeline: architecture/inference-pipeline.md
-  - Backends:
-      - sci-Plex3 K562 component boundary: backends/sciplex3-k562-population-response.md
+  - Components (off the state path):
+      - sci-Plex3 K562 assay-response component: backends/sciplex3-k562-population-response.md
   - Data:
       - Evidence inventory: data/evidence-inventory.md
       - Real-data representability:
@@ -22,8 +23,6 @@ nav:
           - GSE141064 Live-seq: data/representability/gse141064-liveseq-functional-recorder.md
   - Verticals:
       - Vertical A estimand (draft): verticals/vertical-a-estimand.md
-  - Components:
-      - sci-Plex3 K562 population response: backends/sciplex3-k562-population-response.md
   - Guides:
       - Add a backend: guides/add-a-backend.md
       - Migrate v1 to v2: guides/migrate-v1-to-v2.md
@@ -42,5 +41,4 @@ nav:
       - sci-Plex3 p1 loader and baselines: adr/0011-sciplex3-p1-loader-and-baselines.md
       - sci-Plex3 p1-trained candidate: adr/0012-sciplex3-p1-trained-candidate.md
       - State-first roadmap reordering: adr/0013-state-first-roadmap-reordering.md
-  - Roadmap: roadmap.md
 strict: true

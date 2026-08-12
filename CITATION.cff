@@ -1,8 +1,22 @@
 cff-version: 1.2.0
 title: cellstate
-message: "If you use this software, cite the version and the scientific model backend you used."
+message: >-
+  If you use this software, cite the version and the scientific model backend you used. No
+  biological backend is registered and no benchmark is scientifically admitted; cite this software
+  as infrastructure and a specification, not as a validated cell-state model.
 type: software
-version: 0.1.0
-date-released: 2026-08-08
+version: 0.2.0
+abstract: >-
+  A system for computing a faithful and accurate representation of hidden cellular state: a
+  query-conditioned posterior over causally relevant cell state, together with the predictive
+  sufficiency and calibration evidence required to establish that the posterior is faithful.
+repository-code: "https://github.com/logannye/cellstate"
+keywords:
+  - single-cell
+  - virtual-cell
+  - state-estimation
+  - predictive-sufficiency
+  - bayesian-filtering
 authors:
-  - name: Cell State contributors
+  - given-names: Logan
+    family-names: Nye

@@ -8,7 +8,7 @@ version = "0.2.0"
 description = "Query-conditioned belief-state contracts and reference models for virtual-cell research"
 readme = "README.md"
 requires-python = ">=3.11"
-authors = [{ name = "Cell State contributors" }]
+authors = [{ name = "Logan Nye" }]
 keywords = ["single-cell", "virtual-cell", "state-estimation", "bayesian-filtering"]
 classifiers = [
   "Development Status :: 2 - Pre-Alpha",

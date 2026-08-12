@@ -95,25 +95,33 @@ to it.
   harnesses — neither of which requires new data, new authorization, or a successful model fit.
 - `Q3`, measuring the observational floor on the proving-ground query, is blocked. Scoring the fitted
   `p1` baselines against one another requires protected-partition predictions, and `p2`/`p3`/`p4` are
-  sealed behind the lifecycle grants of [ADR 0011](0011-sciplex3-p1-loader-and-baselines.md), issued
-  only by the control plane this record suspends. Unblocking it requires a further ADR that either
+  sealed behind the lifecycle grants of [ADR 0011](0011-sciplex3-p1-loader-and-baselines.md). No
+  issuer for those grants exists in `src/` — they appear only as blocker strings — and each is bound
+  to a candidate lifecycle state that only the protected execution this record suspends could reach.
+  Unblocking it requires a further ADR that either
   authorizes a single held-out read for baseline-versus-baseline scoring with no candidate model in
   the loop, or moves the floor measurement onto the Phase 2 estimand.
 - Adding a bootstrap interval to `SufficiencyReport` and a coverage-error upper bound to the
   calibration report are serialized-contract changes. Each needs a schema-version decision,
   regenerated JSON Schemas, and round-trip tests.
-- The Phase 2 gate on `sufficiency_evaluator` is not satisfiable today: the port is never derived into
-  `required_ports`, and a hand-typed `required` disposition outside the derived set is rejected.
-  Deriving it is a prerequisite of that gate and is named as such.
+- The Phase 2 gate on `sufficiency_evaluator` is satisfied by registering a runtime bundle, not by
+  amending code. `OPERATION_REQUIRED_PORTS[ESTIMATE_CELL_STATE]` already contains the port, and
+  `_derive_runtime_target_prerequisites` emits every entry of that map as an operation-contract
+  floor. No bundle derives it today only because the sole registered bundle is a component scaffold,
+  whose prerequisites come from the fixed component-prerequisite map. A hand-typed `required`
+  disposition outside the derived set is rejected, which is why the gate is written as
+  derive-then-satisfy. *(Corrected 2026-08-12: as first written this consequence stated that no code
+  path produces the port. That was wrong; the decision above is unaffected.)*
 - The metric suite frozen by [ADR 0008](0008-sciplex3-k562-component-benchmark.md) is not
   retrofitted. Its five metric families stay frozen; the differential-expression-weighted and
   rank-based metric requirements bind suites frozen from this record forward.
 - Program rules 1 and 3 are enforced by `tests/test_roadmap_queue_contract.py`. Rules 2 and 4 are not
   yet mechanically enforced; the enforcing mechanism is a diff-aware pull-request job, and until it
   exists those rules are conventions.
-- This record and the roadmap change it authorizes contain no `src/` implementation, so rule 3 of the
-  superseded ordering and rule 2 of the current one are both satisfied: rule 2 binds every change from
-  here forward.
+- This record and the roadmap change it authorizes contain no `src/` implementation, so decision 3 of
+  this record and program rule 2 of the reordered roadmap are both satisfied. The superseded roadmap
+  contained no such rule — that absence is the third property this record was written to correct —
+  and rule 2 binds every change from here forward.
 
 ## Rejected alternatives
 
