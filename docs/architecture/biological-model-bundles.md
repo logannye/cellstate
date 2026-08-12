@@ -252,9 +252,10 @@ ran no real-`p1` fit, and issued no candidate artifact, plan, observation, evide
 result. The clean-final OCI archive is byte-identical across three independent native and emulated
 builder environments under frozen inputs and toolchain and excludes build-host caches; its builder
 identity is frozen in the workflow and runtime lock. The checked-in sci-Plex3 component therefore
-remains `SCAFFOLD` and non-executable. Item 12.3's source-free proposal-construction, one-use authorization,
-runtime-preparation, fixed-source, terminal-evidence, and nonissuance controls are now assembled for
-a possible version-bound real-`p1` v5 execution. No canonical pending proposal exists, no exact
+remains `SCAFFOLD` and non-executable. **Suspended.** Item 12.3's source-free proposal-construction, one-use
+authorization, runtime-preparation, fixed-source, terminal-evidence, and nonissuance controls were
+assembled and then suspended by [ADR 0013](../adr/0013-state-first-roadmap-reordering.md); they are
+not to be dispatched, and the workflow fails closed. No canonical pending proposal exists, no exact
 digest has been approved, and no protected run has occurred. The exact archive's durable-
 distribution prerequisite is complete through a separate immutable, attested GitHub Release, but
 that release grants no source access or execution authority. See the [roadmap](../roadmap.md), the

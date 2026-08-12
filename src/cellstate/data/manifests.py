@@ -1886,8 +1886,8 @@ _METRIC_COMPATIBLE_CLAIMS: dict[MetricFamily, frozenset[ScientificClaim]] = {
     MetricFamily.INTERVENTION_EFFECT: frozenset({ScientificClaim.INTERVENTION_EFFECT}),
     # These families need target semantics not yet present in the 0.3 manifest (an exact
     # candidate/utility set, event-time/censoring, a held-out domain, or a paired-history task).
-    # They remain explicitly fail-closed until the benchmark contract introduced in roadmap
-    # item 8 can bind those requirements.
+    # They remain explicitly fail-closed until a frozen benchmark contract can bind those
+    # requirements.
     MetricFamily.INTERVENTION_RANKING: frozenset(),
     MetricFamily.EVENT_OR_SURVIVAL: frozenset(),
     MetricFamily.LINEAGE: frozenset({ScientificClaim.LINEAGE_FATE}),

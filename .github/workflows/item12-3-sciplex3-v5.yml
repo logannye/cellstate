@@ -24,6 +24,15 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 150
     steps:
+      - name: Refuse dispatch while Item 12.3 is suspended
+        run: |
+          set -euo pipefail
+          echo "Item 12.3 is suspended by docs/roadmap.md and ADR 0013." >&2
+          echo "It advances no state-capability ledger entry. No proposal may be approved and no" >&2
+          echo "protected execution may be dispatched. Resuming requires an ADR that states which" >&2
+          echo "ledger capability the execution advances, and the removal of this step." >&2
+          exit 1
+
       - name: Reject the wrong trusted workflow identity, actor, rerun, or input shape
         env:
           APPROVED_PROPOSAL_SHA256: ${{ inputs.approved_proposal_sha256 }}

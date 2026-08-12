@@ -65,63 +65,34 @@ not a biologically or clinically validated cell model.
 
 ## Current milestone
 
-Phase 0 is active. The experimental public-data/claim manifest `0.3-experimental` supports
-canonical repeated claim assessments, exact loss/metric eligibility, layered permission
-resolution, content-addressed dataset slices, interval-valued evidence clocks, and machine-checked
-reviewed representability ledgers. Those ledgers validate bound declarations and attestations; the
-current verifier does not resolve source bytes or replay selectors. Schema v2 enforces typed
-subjects, destructive evidence, bounded query
-support, query-compiled state, perturbation realization, scientific readiness/abstention, causal
-status, and standalone decision-oriented measurement selection. The Replogle K562 destructive-
-population proof and the GSE141064 Live-seq individual functional-recorder proof passed on
-2026-08-09 without authorizing data use or admitting either source for model training. The first
-Vertical A component benchmark is now frozen around the corrected sci-Plex3 K562 24-hour endpoint,
-with exact well/plate partitions and an explicit `COMPONENT_BENCHMARK` result. Its assessment and
-permission gates pass, but its executable metric, leakage, baseline, and performance gates have not
-run, so it is not scientifically admitted. The experimental biological-bundle contract and first
-population assay-response scaffold are now in place. The scaffold exhaustively maps all original
-model stages, exposes no public cell-state operation, contains no trained weights, and rejects
-execution. Its direct context-and-assignment to 24-hour assay response is not a hidden-state belief.
-Contract v0.1 now implements the trusted admission boundary around those declarations. It streams
-exact-byte verification, accepts real-data execution sources only from an authenticated typed-
-workflow selection, authenticates isolated loader and semantic-evaluator observations against
-external nonserialized HMAC trust roots, checks loaded objects against an application-owned
-interface registry, distinguishes verified validation semantics from passed results, recompiles
-query-dependent prerequisites, and returns only just-in-time reverified runtime handles. Persisted
-receipts never authorize execution by themselves; one immutable code snapshot is both hashed and
-loaded by the registry-owned trusted JIT loader, so independently supplied objects cannot borrow
-admitted bytes. The sci-Plex3 artifact remains a non-executable `SCAFFOLD`. Item 11 completed its
-immutable `p1` loader, close-reauthenticated count scan, and six mandatory non-admissible baselines.
-Item 12 candidate revisions v1–v4 all failed closed without issuing a model, prediction, metric,
-calibration, or lifecycle result. Item 12.1a's exact harness, tests, parent driver, and historical
-reports are canonical under `audits/item12_1a`. A source-code audit subsequently confirmed that v4's
-dose objective omits the full ELBO's `94785/768` equal-well multiplier, so v4 is retired and the
-planned real-`p1` Item 12.1b replay must not run. Item 12.2 has now completed its source-free v5
-software scope: one exact equal-well objective and compatible all-well action/context M-step;
-independently checked derivatives and nondecrease; exact-positive, request-bounded sampling;
-immutable-generation atomic publication; exact executable/input/staged-output closure; reproducible
-Linux `amd64` OCI identities whose clean-final archive is byte-identical across three independent
-native and emulated builder environments under frozen inputs and toolchain; and parent-owned whole-
-container wall/memory containment with host-effective UID/GID filesystem isolation on native Linux.
-The final image excludes build-host caches, and its exact Buildx/BuildKit authority is frozen by the
-runtime lock and workflow. It opened no protected source, ran no real-`p1` fit, and issued no
-candidate artifact, plan, observation, evidence, or lifecycle result. The component therefore
-remains `SCAFFOLD`. Item 12.3's source-free authorization, runtime-preparation, containment, and
-terminal-evidence control plane is now assembled for a separately authorized, version-bound,
-nonissuing real-`p1` v5 execution. It grants no authority: the canonical pending proposal is absent,
-no exact proposal digest has been approved or consumed, and no Item 12.3 source run has occurred.
-Durable runtime distribution is complete through the separate immutable, release-and-asset-attested
-`sciplex3-v5-runtime-20260811-locked` GitHub Release. A future approved attempt must dispatch the
-trusted workflow from `refs/heads/main` at exact execution commit `C`, supplying both the exact
-proposal SHA-256 and its proposal-only child commit `D`. The workflow treats `D` only as inert object
-data and the asset-free attempt-release target, never checks it out or executes it, remains on `C`,
-and reauthenticates the runtime before source acquisition. The monolithic source
-must be transferred and snapshotted whole and its full selector axes decoded to resolve `p1`; only
-`p1-train` expression/raw-count values may be decoded. Held-out expression/count values, endpoints,
-outcomes, scoring, and lifecycle authority remain sealed; public split and design metadata are not
-an access grant. Only bounded sanitized terminal evidence may leave the ephemeral runner, and it
-grants no lifecycle or scientific authority. No biological runtime or validated belief may be
-registered before its separate operation-specific admission and scientific gates pass.
+Phase 1 is active: make the faithfulness tests executable and measure the observational floor.
+
+Phase 0 is complete. Schema v2 enforces typed subjects, destructive evidence, bounded query support,
+query-compiled state, perturbation realization, scientific readiness and abstention, causal status,
+and standalone decision-oriented measurement selection. Manifest `0.3-experimental` carries
+claim-specific eligibility, content-addressed slices, interval-valued evidence clocks, and
+machine-checked reviewed representability ledgers, which validate bound declarations and attestations
+without resolving source bytes or replaying selectors.
+
+No biological backend is registered, no belief has been emitted by a biological model, and no
+benchmark is scientifically admitted. The repository has produced no scientific number: no metric
+implementation exists in any frozen suite, the sufficiency and calibration functions have no caller
+outside tests, and the observational floor is unmeasured.
+
+The sci-Plex3 K562 24-hour component remains a non-executable `SCAFFOLD` and its benchmark remains
+`COMPONENT_BENCHMARK`, not admitted. Its estimand has no admissible pre-cutoff observation and one
+horizon, so it cannot carry a sufficiency verdict. It is retained as data and split infrastructure and
+as the Phase 1 metric proving ground, not as a step toward the purpose. Its `p2`, `p3`, and `p4`
+endpoint values, outcomes, and scoring authority remain hard sealed; public split and design metadata
+are not an access grant.
+
+The Item 12.3 protected-execution control plane is suspended by the roadmap and fails closed on
+dispatch. No proposal is to be approved and no protected execution is to be dispatched. The rank-16
+continuous admixture candidate family is retired for the state path. Historical Item 11 and 12.x bytes
+under `audits/`, `benchmarks/`, and `containers/`, and ADRs 0011 and 0012, are frozen evidence, not
+executable work. See ADR 0013 for the reordering and its rationale.
+
+Next work is the implementation queue in `docs/roadmap.md`, in order.
 
 `docs/roadmap.md` is the sole authority for sequence and status. The full target architecture lives
 in `docs/architecture/full-buildout.md`; accepted rationale lives in ADRs. The sanitized local audit

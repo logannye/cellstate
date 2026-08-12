@@ -151,7 +151,7 @@ Loss assessments authorize training objectives only. A held-out-modality assessm
 scoped modality as the masked target in turn; it does not authorize a broader modality set. Metric
 IDs are local role identifiers under a typed metric family, not frozen formula definitions. Event
 or survival scoring, OOD/selective-risk, predictive-sufficiency, intervention-ranking, and
-decision-utility families remain fail-closed until the benchmark contract in roadmap item 8 binds
+decision-utility families remain fail-closed until the frozen `sciplex3-k562-24h-v1` benchmark contract (historical Item 8) binds
 their missing target, held-out-domain, paired-history, candidate-set, and utility semantics.
 
 Use policies cover every source and explicitly assess research training, commercial training,
