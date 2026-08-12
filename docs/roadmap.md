@@ -14,9 +14,9 @@ one, is not on this roadmap.
 evaluation design, including the formal estimand and the belief-subject semantics. This file defines
 implementation order and graduation gates, and is the sole authority for both.
 
-**If you are starting work:** the active phase is Phase 1 and the next action is item `Q1` of the
-[implementation queue](#implementation-queue). Everything before the phase list is the standard that
-work is held to, not work.
+**If you are starting work:** the active phase is Phase 1 and the next action is item `Q2` of the
+[implementation queue](#implementation-queue); `Q1` is delivered. Everything before the phase list is
+the standard that work is held to, not work.
 
 ## What "faithful" means here
 
@@ -415,9 +415,20 @@ required before any operational biological claim.
 ## Current status
 
 - **Phase 0:** complete.
-- **Phase 1:** active. No metric implementation exists in any frozen suite; the sufficiency and
-  calibration functions have no caller outside tests; no baseline has been scored against any other;
+- **Phase 1:** active. `Q1` is delivered: every `metric_id` the frozen sci-Plex3 suite declares
+  resolves to an implementation, and the multiway clustered bootstrap those metrics bind is
+  implemented and its coverage measured. The sufficiency and calibration functions still have no
+  caller outside tests and still return no interval; no baseline has been scored against any other;
   the observational floor is unmeasured.
+
+  Two results from `Q1` bear on later items. First, the frozen benchmark's untouched-test partition
+  contains **four plates** and 95 compounds across 384 wells, computed from its membership arrays.
+  Second, at that shape a plain percentile multiway bootstrap of a mean covers about 0.82 to 0.86
+  against a nominal 0.95, measured over 300 simulated two-way random-effects designs per seed; the
+  small-cluster scaling the implementation applies brings it to about 0.96. An interval from four
+  clusters is wide for a reason, and `Q3` and `Q5` should read it that way: the plate dimension of
+  this proving ground is at the edge of what a bootstrap can support, which is exactly the property
+  Phase 2 requires a state-bearing estimand to have in sufficient number.
 - **Phases 2–8:** not started.
 - **Biological backends registered:** none. No belief has been emitted by a biological model.
 - **Benchmarks scientifically admitted:** none.

@@ -255,6 +255,25 @@ describes the state of that work when it was written, not the current plan.
   artifact unchanged and defer the decision to re-version it with executable bindings to `Q3`, the
   first item that would run the implementations against the frozen partitions. Correct the count of
   the frozen suite: three `family` values across ten metrics, not "five metric families."
+- Implement the metric suite and its interval estimator (queue item `Q1`). Add
+  `cellstate.evaluation.metrics` with sample CRPS, the multivariate energy score, central predictive
+  intervals, marginal coverage error, marginal interval width, effect-profile RMSE, and the
+  equal-group mean, plus a differential-expression-weighted error and a rank-based score for suites
+  frozen from here on; every one of the ten `metric_id` entries the frozen sci-Plex3 suite declares
+  now resolves through `METRIC_IMPLEMENTATIONS`. Add `cellstate.evaluation.bootstrap` with the
+  multiway clustered bootstrap every metric in that suite binds. Fix the unbiased pairwise term at
+  `2 / (m (m - 1))`: the biased form rewards under-dispersion, which is the opposite of what a
+  posterior is asked to earn. References are closed forms and hand arithmetic, not recorded outputs.
+- Scale bootstrap interval endpoints by `t(min(K) - 1, 1 - alpha/2) / z(1 - alpha/2)`, and report the
+  unscaled percentile endpoints beside them. The multinomial pigeonhole bootstrap understates spread
+  when a dimension has few clusters, and the frozen benchmark's untouched-test partition has four
+  plates. Measured over 300 simulated two-way designs per seed at that shape, the unscaled interval
+  covers about 0.82 to 0.86 against a nominal 0.95 and the scaled interval about 0.96. Removing the
+  scale fails the recorded coverage reference.
+- Record two measured facts about the proving ground: its untouched-test partition holds 384 wells
+  across 95 compounds and four plates, computed from the membership arrays; and four clusters is at
+  the edge of what a bootstrap over that dimension can support. Both bear on `Q3` and on the
+  independent-replicate requirement Phase 2 places on a state-bearing estimand.
 
 ## 0.1.0 - Unreleased
 

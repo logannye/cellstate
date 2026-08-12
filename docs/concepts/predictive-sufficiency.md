@@ -86,6 +86,13 @@ function has a caller outside `tests/`.
 `markov_sufficiency_score` is `exp(-max(gain, 0))` — a monotone restatement of the gain, not
 independent evidence, and it must not be reported as a second measurement.
 
-Building both harnesses, and the serialized-contract changes they require, is Phase 1 of
-[`../roadmap.md`](../roadmap.md), which is the sole authority for when that happens. Until it lands,
-this document states a definition the repository can express and cannot yet execute.
+The estimator the missing interval requires does now exist. `multiway_clustered_bootstrap`
+(`src/cellstate/evaluation/bootstrap.py`) resamples over every declared dependence dimension jointly
+and returns an interval, and the proper scores a gain can be measured in are implemented in
+`src/cellstate/evaluation/metrics.py`. What remains is to fit paired `M1` and `M2` predictors at
+declared equal capacity, route the gain through the bootstrap, and add the interval to the
+serialized report.
+
+That work, and the serialized-contract changes it requires, is Phase 1 of
+[`../roadmap.md`](../roadmap.md), which is the sole authority for when it happens. Until it lands,
+this document states a definition the repository can express and cannot yet execute end to end.

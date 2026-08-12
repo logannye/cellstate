@@ -196,8 +196,15 @@ separately. A structurally verified `COMPONENT_BENCHMARK` may pass exact source 
 resolution while remaining non-admitted because implementations, leakage checks, baselines, or
 performance thresholds have not passed. `verified` never means biologically validated. The single
 benchmark in this repository is in exactly that state: `sciplex3-k562-24h-v1` is verified and not
-admitted, every metric entry in every frozen suite resolves to a specification-only implementation,
-and no baseline has been scored against another.
+admitted, every metric entry in its frozen suite binds a specification-only implementation, and no
+baseline has been scored against another.
+
+Executable code for those metrics and for the multiway clustered bootstrap they bind now exists in
+`cellstate.evaluation`, and a conformance test resolves every declared `metric_id` to it. The
+artifact's bindings are unchanged all the same, because a binding of `executable` asserts that the
+implementation has run against the frozen partitions, which has not happened. Re-versioning the
+artifact is deferred to the queue item that would run them; see
+[ADR 0014](../adr/0014-phase-1-completion-condition.md).
 
 The generated schemas capture structural JSON constraints. Several scientific invariants—including
 cross-field status/value rules, fingerprint binding, interval coverage, selection order, and EVSI
