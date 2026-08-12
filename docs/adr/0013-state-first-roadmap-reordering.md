@@ -1,6 +1,8 @@
 # ADR 0013: Reorder the roadmap around cell state as the primary object
 
-- **Status:** Accepted
+- **Status:** Accepted. The first bullet of the Phase 1 graduation gate it establishes is amended by
+  [ADR 0014](0014-phase-1-completion-condition.md); the reordering, the ledger, and the phase
+  sequence stand as written.
 - **Date:** 2026-08-12
 
 ## Context
@@ -113,8 +115,10 @@ to it.
   derive-then-satisfy. *(Corrected 2026-08-12: as first written this consequence stated that no code
   path produces the port. That was wrong; the decision above is unaffected.)*
 - The metric suite frozen by [ADR 0008](0008-sciplex3-k562-component-benchmark.md) is not
-  retrofitted. Its five metric families stay frozen; the differential-expression-weighted and
-  rank-based metric requirements bind suites frozen from this record forward.
+  retrofitted. Its ten metrics stay frozen; the differential-expression-weighted and
+  rank-based metric requirements bind suites frozen from this record forward. *(Corrected
+  2026-08-12: as first written this read "five metric families." The suite declares three `family`
+  values across ten metrics. See [ADR 0014](0014-phase-1-completion-condition.md).)*
 - Program rules 1 and 3 are enforced by `tests/test_roadmap_queue_contract.py`. Rules 2 and 4 are not
   yet mechanically enforced; the enforcing mechanism is a diff-aware pull-request job, and until it
   exists those rules are conventions.
