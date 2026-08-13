@@ -444,3 +444,49 @@ def test_an_arm_without_exactly_one_guide_is_refused(
     )
     with pytest.raises(CapabilityError, match="exactly one active"):
         estimate_cell_state(stripped, estimator=estimator)
+
+
+# ------------------------------------------------------- capability measurements
+
+
+def test_capability_measurements_are_computed_and_can_fail(arm_slice: ArmSlice) -> None:
+    """The measurements exist, are grouped at the library, and are not rigged to pass.
+
+    Rule 10: a phase gate that is a measurement is passed by *producing* the measurement.  These
+    currently report negative, and that is a result rather than a defect -- what would be a defect
+    is a measurement that could only ever come out favourable.
+    """
+
+    from cellstate.evaluation.gse274113_reports import (
+        held_out_states,
+        measure_earned_spread,
+        measure_intervention_response,
+        measure_nuisance_separation,
+    )
+
+    states = held_out_states(arm_slice)
+    assert len(states) == 280
+
+    null, non_null = measure_intervention_response(arm_slice)
+    spread = measure_earned_spread(states)
+    separation = measure_nuisance_separation(states, bound=0.35)
+
+    for measurement in (null, non_null, spread, separation):
+        assert measurement.unit_count == 14, "intervals must be grouped at the library"
+        assert measurement.interval.lower <= measurement.interval.upper
+        assert measurement.statement
+        assert isinstance(measurement.passed, bool)
+
+    # The verdicts are read off the interval, never off the point estimate.
+    assert spread.passed is (spread.interval.lower > 1.0)
+    assert separation.passed is (separation.interval.upper <= 0.35)
+    assert null.passed is (null.interval.upper < non_null.interval.lower)
+
+
+def test_a_state_is_never_estimated_from_its_own_library(arm_slice: ArmSlice) -> None:
+    """Leave-one-library-out, asserted on the estimate itself rather than on the fold alone."""
+
+    from cellstate.backends.gse274113.fit import fit_fold
+
+    for library in arm_slice.libraries:
+        assert library not in fit_fold(arm_slice, library).fit_library_ids
