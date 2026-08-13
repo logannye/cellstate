@@ -14,9 +14,18 @@ one, is not on this roadmap.
 evaluation design, including the formal estimand and the belief-subject semantics. This file defines
 implementation order and graduation gates, and is the sole authority for both.
 
-**If you are starting work:** the active phase is Phase 1 and the next action is item `Q4` of the
-[implementation queue](#implementation-queue); `Q1` and `Q2` are delivered and `Q3` is blocked.
-Everything before the phase list is the standard that work is held to, not work.
+**If you are starting work:** the active phase is Phase 1 and the next action is item `Q5` of the
+[implementation queue](#implementation-queue) — fit the observation model on `GSE274113`. `Q1` is
+delivered; `Q2` is delivered in substance but incomplete against its own done-when; `Q3` repairs the
+sufficiency verdict; `Q4` is decided, with a negative result, and owes a reviewed manifest. `Q7`, the
+estimand freeze, is blocked on source selection and is deliberately not next. Everything before the
+phase list is the standard that work is held to, not work.
+
+**The state of the object:** the state-capability ledger stands at 0 of 10, and `CellStateBelief` is
+constructed at exactly one site in `src/` — a synthetic reference. No belief has been emitted from
+real cells. Every item delivered so far has built the apparatus that judges a representation; `Q5`
+and `Q6` are the first that build the representation itself. See
+[ADR 0019](adr/0019-build-the-representation-on-held-evidence.md).
 
 ## What "faithful" means here
 
@@ -75,7 +84,10 @@ These apply to every phase.
    [ADR 0016](adr/0016-the-verdict-gates-on-the-interval.md). Retiring the proving-ground floor item,
    restating Phase 1's third graduation-gate bullet, and the queue renumbering that follows are
    decided by [ADR 0017](adr/0017-the-sufficiency-verdict-must-fail-closed.md), which also records
-   the old-to-new queue mapping.
+   the old-to-new queue mapping. Reordering the queue so the representation is built on evidence
+   already held, ahead of freezing an estimand, is decided by
+   [ADR 0019](adr/0019-build-the-representation-on-held-evidence.md), which carries its own mapping
+   table.
 5. **Every model declares its scope.** Query family, system boundary, assays, interventions,
    environments, horizons, and out-of-support and abstention behavior, in a registered model card
    alongside its data card.
@@ -573,11 +585,41 @@ not yet decomposed into items and must not be started from prose.
    decides: ineligible for the state-bearing estimand, retained for `Q6`. That split is currently
    prose, and `ClaimAssessment` is the mechanism that makes it machine-checkable.
    *Done when:* unchanged — the census is in the reviewed manifest.
-5. **`Q5` — freeze the state-bearing estimand and benchmark, and measure its floor.** [S1, S3, S9]
-   Pre-cutoff observation, multiple horizons, library-level partitions, computed leakage audit,
-   mandatory baselines including applicable persistence and temporal state-space, held-out-intervention
-   fold design with per-fold unit counts, and numeric acceptance thresholds set before a model exists.
-   The bundle contract derives `sufficiency_evaluator` into `required_ports` and binds it `provided`.
+5. **`Q5` — fit the observation model and separate the nuisance axis.** [S5] On `GSE274113`, the
+   source [ADR 0018](adr/0018-gse274113-rejected-for-the-state-estimand.md) rejected for the state
+   estimand and retained under rule 7 for exactly this. Nuisance separation with a held-out-modality
+   test in both directions across the paired RNA and ATAC readouts. The library is the nuisance axis
+   and it is already measured: across-library spread at a fixed target reaches 0.53, 0.51, 0.89 and
+   0.99 of across-target spread at days 7, 9, 11 and 14. S5 asks that varying a nuisance variable at
+   fixed biology change the predicted observation and **not** the inferred state, within a
+   predeclared bound on held-out units — so a nuisance axis of measured size is the material this
+   test needs, not an obstacle to it. Requires resolved licence terms and established byte identity
+   first; both are preconditions recorded by ADR 0018, not follow-ups.
+   *Done when:* the held-out-modality test runs in both directions with an interval grouped at the
+   library, and the predeclared bound is stated before the test is run.
+6. **`Q6` — emit the first biological belief, and test the `do` operator's null half.** [S2, S4]
+   Posterior inference through the public API, with support envelope, model and data cards, and
+   abstention enforced. This is the item that makes the project's object exist: `CellStateBelief` is
+   currently constructed at exactly one site in `src/`, a synthetic reference, so no belief has ever
+   been emitted from real cells.
+   S2 requires the posterior's spread to be **earned** — strictly wider than the point predictor's
+   residual spread on held-out units, with a posterior-predictive check on a supported assay
+   statistic. S4 is newly reachable here and was not reachable before: `GSE274113` carries `NT` as a
+   **declared-null** intervention against 19 perturbed transcription factors, all fully crossed with
+   library, which supplies both halves of S4's contrast — the null arm must leave the predictive
+   distribution unchanged to numerical tolerance, and a non-null arm must change it by more than
+   between-seed variation. The null half is currently asserted nowhere in this repository, so an
+   inert or spuriously-moving operator would pass every test it has.
+   *Done when:* a `CellStateBelief` is emitted from real cells through the public API; the S2 spread
+   comparison and both halves of the S4 contrast are reported with intervals grouped at the library.
+7. **`Q7` — freeze the state-bearing estimand and benchmark, and measure its floor.** [S1, S3, S9]
+   **Blocked on source selection, not on `Q4`.** Registered sources satisfying S1 are zero, and no
+   source may be named before the numeric selection criteria are fixed — setting them afterward
+   invites fitting them to the candidate. Pre-cutoff observation, multiple horizons, library-level
+   partitions, computed leakage audit, mandatory baselines including applicable persistence and
+   temporal state-space, held-out-intervention fold design with per-fold unit counts, and numeric
+   acceptance thresholds set before a model exists. The bundle contract derives
+   `sufficiency_evaluator` into `required_ports` and binds it `provided`.
    Carries the observational floor absorbed from the retired proving-ground item, per
    [ADR 0017](adr/0017-the-sufficiency-verdict-must-fail-closed.md), with the same interval
    discipline; and inherits from that record the decision on `benchmark_version` `1.1.0` re-homed
@@ -586,10 +628,6 @@ not yet decomposed into items and must not be started from prose.
    target, and no frozen policy may make a benchmark unevaluable on its own data — and the
    **reachable-threshold constraint**: no metric is frozen with an acceptance threshold not
    demonstrated reachable on real bytes.
-6. **`Q6` — fit paired RNA and ATAC observation models.** [S5] With nuisance separation and a
-   held-out-modality test in both directions.
-7. **`Q7` — implement posterior inference and emit the first biological belief.** [S2] Through the
-   public API, with support envelope, model and data cards, and abstention enforced.
 8. **`Q8` — fit the first state backend and report the sufficiency verdict.** [S4, S6, S7, S8, S9]
    Simplest model that can carry a state; full baseline suite; coverage report; risk-coverage
    monotonicity; sufficiency verdict with its interval, whatever it says.
