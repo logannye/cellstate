@@ -21,6 +21,7 @@ from typing import Any
 
 import numpy as np
 import pytest
+from scipy import stats
 
 from cellstate.evaluation import bootstrap
 from cellstate.evaluation.bootstrap import (
@@ -93,7 +94,11 @@ def _coverage(*, resample_count: int, replications: int, seed: int) -> tuple[flo
 
 
 class TestSmallClusterScale:
-    """The scale is ``t(K - 1, 0.975) / z(0.975)`` and is checked against published quantiles."""
+    """The scale is ``sqrt(K/(K-1)) * t(K - 1, 0.975) / z(0.975)`` (ADR 0016).
+
+    The Student factor is checked against published quantiles and the variance factor against its
+    closed form, so neither is a recorded output of the implementation under test.
+    """
 
     @pytest.mark.parametrize(
         ("clusters", "student_quantile"),
@@ -103,10 +108,24 @@ class TestSmallClusterScale:
         self, clusters: int, student_quantile: float
     ) -> None:
         normal_quantile = 1.959964
-        expected = student_quantile / normal_quantile
+        variance_deficiency = math.sqrt(clusters / (clusters - 1))
+        expected = variance_deficiency * student_quantile / normal_quantile
         assert small_cluster_scale(
             minimum_cluster_count=clusters, confidence_level=0.95
         ) == pytest.approx(expected, rel=1e-4)
+
+    def test_the_variance_factor_is_present_and_is_what_adr_0016_specifies(self) -> None:
+        """Deleting ``sqrt(K/(K-1))`` must fail a test, or the correction is decoration."""
+
+        for clusters in (2, 4, 12, 95):
+            scale = small_cluster_scale(minimum_cluster_count=clusters, confidence_level=0.95)
+            student_only = float(
+                stats.t.ppf(0.975, clusters - 1) / stats.norm.ppf(0.975)  # type: ignore[operator]
+            )
+            assert scale == pytest.approx(
+                student_only * math.sqrt(clusters / (clusters - 1)), rel=1e-9
+            )
+            assert scale > student_only
 
     def test_decreases_monotonically_toward_one(self) -> None:
         scales = [
@@ -356,7 +375,7 @@ def test_the_resample_chunk_size_is_pinned() -> None:
     """
 
     assert bootstrap._RESAMPLE_CHUNK == 256
-    assert bootstrap.BOOTSTRAP_IMPLEMENTATION_VERSION == "1.0.0"
+    assert bootstrap.BOOTSTRAP_IMPLEMENTATION_VERSION == "2.0.0"
 
 
 def test_frozen_configuration_constants_are_what_the_suite_declares() -> None:

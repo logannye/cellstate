@@ -30,9 +30,15 @@ which validate bound declarations and attestations without resolving source byte
 selectors.
 
 No biological backend is registered, no belief has been emitted by a biological model, and no
-benchmark is scientifically admitted. No metric implementation exists in any frozen suite, the
-sufficiency and calibration functions have no caller outside tests, and the observational floor is
-unmeasured: the repository has produced no scientific numbers.
+benchmark is scientifically admitted.
+
+Every `metric_id` the frozen sci-Plex3 suite declares now resolves to an executable implementation,
+and both faithfulness tests execute and return a verdict with a grouped bootstrap interval. What has
+not happened is their application to biology: the frozen artifact's own metric bindings remain
+`specification_only`, nothing outside `tests/` invokes either harness, no baseline has been scored
+against any other, and the observational floor is unmeasured. **The repository can now recognize a
+faithful representation on supplied arrays; it has still produced no scientific number about a
+cell.**
 
 The sci-Plex3 K562 24-hour component remains a non-executable `SCAFFOLD` and its benchmark remains
 `COMPONENT_BENCHMARK`, not admitted. Its estimand has no admissible pre-cutoff observation and one

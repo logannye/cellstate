@@ -274,6 +274,30 @@ describes the state of that work when it was written, not the current plan.
   across 95 compounds and four plates, computed from the membership arrays; and four clusters is at
   the edge of what a bootstrap over that dimension can support. Both bear on `Q3` and on the
   independent-replicate requirement Phase 2 places on a state-bearing estimand.
+- Make both faithfulness tests executable (queue item `Q2`). Add `evaluate_predictive_sufficiency`,
+  which takes one held-out loss per independent experimental unit from each of a paired `M1`/`M2`,
+  refuses to run unless the two declare equal capacity, bootstraps the paired per-unit difference
+  grouped at the declared dependence units, and reports the gain with its interval. Add
+  `fit_paired_ridge_losses`, a capacity-matched reference pair in which `M1` receives a permuted
+  history block where `M2` receives the real one, so equal capacity holds by construction and the
+  null comes with it. Add `evaluate_marginal_calibration`, reporting empirical coverage, its
+  absolute error, and a one-sided upper confidence bound on that error.
+- Carry the sampling distribution on both reports and enforce it
+  ([ADR 0015](docs/adr/0015-faithfulness-reports-carry-their-sampling-distribution.md)).
+  `SufficiencyReport` gains a grouped bootstrap interval and rejects an evaluated report without
+  one; the interval must describe the reported gain. `CalibrationReport` gains a coverage-error
+  upper bound and **gates its outcome on the bound rather than the point estimate**, so a point
+  estimate inside the threshold with a bound outside it now fails. Move `BootstrapInterval` from
+  `cellstate.evaluation.bootstrap` to `cellstate.domain.common`, since a serialized contract belongs
+  to the layer that owns serialization; the public import path is unchanged.
+- Keep the runtime `SchemaVersion` at `"2.0"`. Advancing the global literal would relabel the frozen,
+  hash-pinned `state-query.json` input contract on account of an output-side change that does not
+  touch it, and no stored artifact contains either report. The regenerated `schemas/v2/` diff is 429
+  insertions and no deletions, with no version string altered.
+- Record the harnesses' measured behaviour on two synthetic designs, 200 replications each: where the
+  target is generated from the state alone the interval covers zero 200 times out of 200 with a mean
+  gain of `-0.00003`; where the history also drives the target it covers zero 0 times out of 200 with
+  a mean gain of `+4.27`.
 
 ## 0.1.0 - Unreleased
 

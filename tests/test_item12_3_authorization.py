@@ -1671,6 +1671,31 @@ def test_workflow_is_fixed_ref_post_consumption_runtime_and_terminal_only() -> N
     assert "**" not in workflow
 
 
+def test_the_suspension_step_is_first_unconditional_and_fails_closed() -> None:
+    """The suspension is the only thing enforcing ADR 0013's "no protected execution".
+
+    Before this test the entire step could be deleted with all of this module's other tests still
+    green, because every one of them anchors on the *second* step.  A guard whose removal no test
+    notices is a guard that has already been removed.
+    """
+
+    workflow = (_ROOT / ".github/workflows/item12-3-sciplex3-v5.yml").read_text()
+    header = "      - name: Refuse dispatch while Item 12.3 is suspended"
+    assert header in workflow, "the suspension step is gone"
+
+    # It must be the *first* step: every other step in this file could do work.
+    step_headers = [line for line in workflow.splitlines() if line.startswith("      - name: ")]
+    assert len(step_headers) > 1, "the suspended stage still carries the steps it is suspending"
+    assert step_headers[0] == header, f"the suspension is not first; {step_headers[0]!r} is"
+
+    start = workflow.index(header)
+    body = workflow[start + len(header) : workflow.index(step_headers[1], start)]
+    # Unconditional: a suspension behind an ``if:`` is one that can be dispatched around.
+    assert "if:" not in body, "the suspension step is conditional"
+    assert body.rstrip().endswith("exit 1"), "the suspension step does not fail closed"
+    assert "ADR 0013" in body
+
+
 def test_workflow_authenticates_data_only_d_before_setup_or_repository_execution() -> None:
     workflow = (_ROOT / ".github/workflows/item12-3-sciplex3-v5.yml").read_text()
     initial = workflow.index(

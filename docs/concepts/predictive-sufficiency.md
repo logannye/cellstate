@@ -74,25 +74,31 @@ thing.
 Cluster coherence, reconstruction error, and attractive low-dimensional projections are not
 substitutes for either test.
 
-## Implementation status
-
-`evaluate_history_information_gain` (`src/cellstate/evaluation/sufficiency.py`) computes
-`gain = state_only_loss - state_plus_history_loss` and compares it to the query threshold. It accepts
-two losses a caller must already have produced: it does not fit `M1` or `M2`, does not resample, and
-returns no interval. `SufficiencyReport` has no interval field. `empirical_interval_coverage`
-(`src/cellstate/evaluation/calibration.py`) returns a coverage fraction with no upper bound. Neither
-function has a caller outside `tests/`.
-
 `markov_sufficiency_score` is `exp(-max(gain, 0))` — a monotone restatement of the gain, not
 independent evidence, and it must not be reported as a second measurement.
 
-The estimator the missing interval requires does now exist. `multiway_clustered_bootstrap`
-(`src/cellstate/evaluation/bootstrap.py`) resamples over every declared dependence dimension jointly
-and returns an interval, and the proper scores a gain can be measured in are implemented in
-`src/cellstate/evaluation/metrics.py`. What remains is to fit paired `M1` and `M2` predictors at
-declared equal capacity, route the gain through the bootstrap, and add the interval to the
-serialized report.
+## Implementation status
 
-That work, and the serialized-contract changes it requires, is Phase 1 of
-[`../roadmap.md`](../roadmap.md), which is the sole authority for when it happens. Until it lands,
-this document states a definition the repository can express and cannot yet execute end to end.
+`evaluate_predictive_sufficiency` (`src/cellstate/evaluation/sufficiency.py`) executes the
+comparison. It takes one held-out loss per independent experimental unit from each predictor,
+refuses to run unless the two declare equal capacity, bootstraps the **paired per-unit difference**
+through `multiway_clustered_bootstrap` grouped at the declared dependence units, and returns a
+`SufficiencyReport` carrying the interval. `SufficiencyReport` rejects an evaluated report that has
+no interval, so a gain cannot be reported as a verdict without its sampling distribution
+([ADR 0015](../adr/0015-faithfulness-reports-carry-their-sampling-distribution.md)).
+
+`fit_paired_ridge_losses` supplies a capacity-matched reference pair. Both predictors receive design
+matrices of identical shape, an identical penalty, and an identical solver; `M1` receives a permuted
+history block where `M2` receives the real one. Permutation preserves the history's marginal
+distribution and its contribution to capacity while destroying its association with the target, so
+equal capacity holds by construction rather than by assertion, and the null is available for free.
+
+Measured on two synthetic designs over 200 replications each, recorded in
+`tests/test_q2_faithfulness_harnesses.py`: where the target is generated from the state alone the
+interval covers zero 200 times out of 200 with a mean gain of `-0.00003`, and where the history also
+drives the target it covers zero 0 times out of 200 with a mean gain of `+4.27`.
+
+What the harness still does not do is decide whether an experiment can support the comparison. That
+judgment belongs to the query. Under a query with no admissible pre-cutoff evidence, `M2` receives
+the same inputs as `M1` and the test is *inapplicable*, not passed — which is why selecting a
+state-bearing estimand is scheduled as its own phase in [`../roadmap.md`](../roadmap.md).

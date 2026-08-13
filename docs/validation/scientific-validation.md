@@ -35,7 +35,11 @@ rule and is deliberately not retrofitted.
 
 **5. Coverage is reported as an upper confidence bound.** "Nominal 90% intervals came out near 90%"
 is not a result. The absolute coverage error is reported at every declared level with an upper
-confidence bound, grouped at the split unit, against the query's declared threshold.
+confidence bound, grouped at the split unit, against the query's declared threshold. This is
+enforced rather than asked for: `CalibrationReport` gates its outcome on the bound and refuses to
+construct an evaluated report that has none, so a point estimate inside the threshold with a bound
+outside it fails
+([ADR 0015](../adr/0015-faithfulness-reports-carry-their-sampling-distribution.md)).
 
 **6. A negative result is a result.** A failing sufficiency verdict or a failing coverage report,
 published with its interval, satisfies its gate. Only a suppressed measurement fails it.

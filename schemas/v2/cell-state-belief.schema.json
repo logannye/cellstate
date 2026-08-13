@@ -380,6 +380,114 @@
       "title": "BeliefSubject",
       "type": "object"
     },
+    "BootstrapInterval": {
+      "additionalProperties": false,
+      "description": "The sampling distribution of one statistic under a declared dependence structure.\n\nProduced by :func:`cellstate.evaluation.bootstrap.multiway_clustered_bootstrap` and carried by\nthe reports that state a verdict.  It lives here rather than beside the estimator because it is\na serialized boundary object, and ``domain`` may not depend on ``evaluation``.",
+      "properties": {
+        "cluster_counts": {
+          "items": {
+            "type": "integer"
+          },
+          "title": "Cluster Counts",
+          "type": "array"
+        },
+        "confidence_level": {
+          "title": "Confidence Level",
+          "type": "number"
+        },
+        "degenerate_resample_count": {
+          "title": "Degenerate Resample Count",
+          "type": "integer"
+        },
+        "dependence_dimension_ids": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Dependence Dimension Ids",
+          "type": "array"
+        },
+        "evaluation_unit_count": {
+          "title": "Evaluation Unit Count",
+          "type": "integer"
+        },
+        "implementation_version": {
+          "title": "Implementation Version",
+          "type": "string"
+        },
+        "interval_method": {
+          "const": "equal_tailed_percentile_small_cluster_scaled",
+          "title": "Interval Method",
+          "type": "string"
+        },
+        "lower": {
+          "title": "Lower",
+          "type": "number"
+        },
+        "percentile_lower": {
+          "title": "Percentile Lower",
+          "type": "number"
+        },
+        "percentile_upper": {
+          "title": "Percentile Upper",
+          "type": "number"
+        },
+        "point_estimate": {
+          "title": "Point Estimate",
+          "type": "number"
+        },
+        "resample_count": {
+          "title": "Resample Count",
+          "type": "integer"
+        },
+        "resampling_scheme": {
+          "const": "multiway_clustered",
+          "title": "Resampling Scheme",
+          "type": "string"
+        },
+        "rng_algorithm": {
+          "title": "Rng Algorithm",
+          "type": "string"
+        },
+        "seed": {
+          "title": "Seed",
+          "type": "integer"
+        },
+        "small_cluster_scale": {
+          "title": "Small Cluster Scale",
+          "type": "number"
+        },
+        "standard_error": {
+          "title": "Standard Error",
+          "type": "number"
+        },
+        "upper": {
+          "title": "Upper",
+          "type": "number"
+        }
+      },
+      "required": [
+        "point_estimate",
+        "lower",
+        "upper",
+        "percentile_lower",
+        "percentile_upper",
+        "small_cluster_scale",
+        "standard_error",
+        "confidence_level",
+        "resample_count",
+        "evaluation_unit_count",
+        "resampling_scheme",
+        "interval_method",
+        "dependence_dimension_ids",
+        "cluster_counts",
+        "degenerate_resample_count",
+        "seed",
+        "rng_algorithm",
+        "implementation_version"
+      ],
+      "title": "BootstrapInterval",
+      "type": "object"
+    },
     "CalibrationReport": {
       "additionalProperties": false,
       "properties": {
@@ -395,6 +503,30 @@
           ],
           "default": null,
           "title": "Calibration Error"
+        },
+        "calibration_error_upper_bound": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Calibration Error Upper Bound"
+        },
+        "coverage_interval": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/BootstrapInterval"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
         },
         "empirical_coverage": {
           "anyOf": [
@@ -3343,6 +3475,17 @@
           ],
           "default": null,
           "title": "History Information Gain"
+        },
+        "history_information_gain_interval": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/BootstrapInterval"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
         },
         "markov_sufficiency_score": {
           "anyOf": [
