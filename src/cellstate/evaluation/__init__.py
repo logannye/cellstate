@@ -28,6 +28,17 @@ from .query_sufficiency import (
     history_presence_for_cohort,
     request_carries_pre_cutoff_evidence,
 )
+from .scoring import (
+    FROZEN_SCIPLEX3_PROJECTION_RANK,
+    EvaluationCaseInputs,
+    ScoredCase,
+    ScoringTransformError,
+    TrainProjection,
+    aggregate_metric,
+    equal_group_weighted_mean,
+    panel_logcp10k,
+    score_case,
+)
 from .sufficiency import (
     PredictorCapacity,
     evaluate_history_information_gain,
@@ -37,18 +48,25 @@ from .sufficiency import (
 )
 
 __all__ = [
+    "FROZEN_SCIPLEX3_PROJECTION_RANK",
     "METRIC_IMPLEMENTATIONS",
     "BootstrapInterval",
+    "EvaluationCaseInputs",
     "MetricImplementation",
     "PredictorCapacity",
     "QuerySufficiencyEvaluator",
+    "ScoredCase",
+    "ScoringTransformError",
+    "TrainProjection",
     "admissible_pre_cutoff_observations",
+    "aggregate_metric",
     "central_interval",
     "differential_expression_weighted_rmse",
     "effect_rank_agreement",
     "empirical_interval_coverage",
     "energy_score",
     "equal_group_mean",
+    "equal_group_weighted_mean",
     "evaluate_cohort_sufficiency",
     "evaluate_history_information_gain",
     "evaluate_marginal_calibration",
@@ -60,9 +78,11 @@ __all__ = [
     "marginal_interval_coverage",
     "marginal_interval_width",
     "multiway_clustered_bootstrap",
+    "panel_logcp10k",
     "profile_rmse",
     "request_carries_pre_cutoff_evidence",
     "sample_crps",
+    "score_case",
     "small_cluster_scale",
     "weighted_mean",
 ]
