@@ -159,7 +159,8 @@ def main() -> int:
     real = [a for a in arms_out if not a["target"].startswith("NT_")]
     unmeasured = [a for a in real if a["counts"] is None]
     print(
-        f"wrote {OUT}\n  arms={len(arms_out)} (real={len(real)}, placebo={len(arms_out) - len(real)})"
+        f"wrote {OUT}\n  arms={len(arms_out)}"
+        f" (real={len(real)}, placebo={len(arms_out) - len(real)})"
         f"\n  cells retained={sum(a['cells'] for a in real):,}"
         f"  zero-panel cells dropped={sum(a['zero_panel_cells_dropped'] for a in real):,}"
         f"\n  NOT_MEASURED arms={len(unmeasured)}"

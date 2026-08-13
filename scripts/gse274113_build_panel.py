@@ -24,23 +24,87 @@ OUT = Path("backends/vertical-a/gse274113-rna-obs-v1/panel.json")
 REPS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 12, 13, 14, 16]
 
 # The nineteen perturbed transcription factors.  NT is the twentieth arm and is not a gene.
-TARGET_TFS = (
-    "ATF4 BCL11A FOSL1 GATA1 GATA2 GFI1B IRF1 IRF9 KLF1 LDB1 "
-    "LMO2 MYB NFE2 PRDM16 RUNX1 SNAI2 SOX12 SPI1 TAL1"
-).split()
+TARGET_TFS = [
+    "ATF4",
+    "BCL11A",
+    "FOSL1",
+    "GATA1",
+    "GATA2",
+    "GFI1B",
+    "IRF1",
+    "IRF9",
+    "KLF1",
+    "LDB1",
+    "LMO2",
+    "MYB",
+    "NFE2",
+    "PRDM16",
+    "RUNX1",
+    "SNAI2",
+    "SOX12",
+    "SPI1",
+    "TAL1",
+]
 
 MARKERS: dict[str, list[str]] = {
-    "erythroid": "HBB HBG1 HBG2 HBA1 HBA2 ALAS2 GYPA GYPB SLC4A1 EPOR AHSP CA1 TFRC KEL".split(),
-    "megakaryocyte": "PF4 PPBP ITGA2B VWF GP9 GP1BA THBS1 TUBB1".split(),
-    "myeloid": "ELANE MPO PRTN3 LYZ S100A8 S100A9 CTSG AZU1 CEBPA CSF1R".split(),
-    "eobasomast": "PRG2 CLC MS4A2 CPA3 HDC GATA3 IL5RA".split(),
-    "progenitor": "CD34 AVP CRHBP HLF MECOM SPINK2 PROM1 KIT MPL".split(),
-    "lymphoid": "DNTT VPREB1 IGLL1 IL7R CD79A".split(),
-    "cell_cycle": "MKI67 TOP2A PCNA CCNB1 TYMS".split(),
-    "housekeeping": (
-        "ACTB GAPDH B2M TUBB RPL13A RPS18 PPIA TBP HPRT1 UBC SDHA YWHAZ EEF1A1 "
-        "PGK1 RPLP0 PSMB2 VPS29 CHMP2A EMC7 GPI REEP5 SNRPD3 VCP"
-    ).split(),
+    "erythroid": [
+        "HBB",
+        "HBG1",
+        "HBG2",
+        "HBA1",
+        "HBA2",
+        "ALAS2",
+        "GYPA",
+        "GYPB",
+        "SLC4A1",
+        "EPOR",
+        "AHSP",
+        "CA1",
+        "TFRC",
+        "KEL",
+    ],
+    "megakaryocyte": ["PF4", "PPBP", "ITGA2B", "VWF", "GP9", "GP1BA", "THBS1", "TUBB1"],
+    "myeloid": [
+        "ELANE",
+        "MPO",
+        "PRTN3",
+        "LYZ",
+        "S100A8",
+        "S100A9",
+        "CTSG",
+        "AZU1",
+        "CEBPA",
+        "CSF1R",
+    ],
+    "eobasomast": ["PRG2", "CLC", "MS4A2", "CPA3", "HDC", "GATA3", "IL5RA"],
+    "progenitor": ["CD34", "AVP", "CRHBP", "HLF", "MECOM", "SPINK2", "PROM1", "KIT", "MPL"],
+    "lymphoid": ["DNTT", "VPREB1", "IGLL1", "IL7R", "CD79A"],
+    "cell_cycle": ["MKI67", "TOP2A", "PCNA", "CCNB1", "TYMS"],
+    "housekeeping": [
+        "ACTB",
+        "GAPDH",
+        "B2M",
+        "TUBB",
+        "RPL13A",
+        "RPS18",
+        "PPIA",
+        "TBP",
+        "HPRT1",
+        "UBC",
+        "SDHA",
+        "YWHAZ",
+        "EEF1A1",
+        "PGK1",
+        "RPLP0",
+        "PSMB2",
+        "VPS29",
+        "CHMP2A",
+        "EMC7",
+        "GPI",
+        "REEP5",
+        "SNRPD3",
+        "VCP",
+    ],
 }
 
 
@@ -82,7 +146,9 @@ def main() -> int:
     for category, members in [("target_tf", TARGET_TFS), *MARKERS.items()]:
         for symbol in members:
             if symbol in ambiguous:
-                raise SystemExit(f"{symbol} maps to multiple rows; refusing an ambiguous panel gene")
+                raise SystemExit(
+                    f"{symbol} maps to multiple rows; refusing an ambiguous panel gene"
+                )
             if symbol not in index_of:
                 raise SystemExit(f"{symbol} is absent from the gene axis")
             if symbol in seen:
