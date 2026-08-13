@@ -53,9 +53,12 @@ rejected.
 
 ### Local byte identity
 
-Recorded so that a later reviewed manifest binds the same bytes this census measured. These are the
-**local** artifacts; they have not yet been checked against the GEO record, which is item 2 of what
-`Q4` still owes below.
+Recorded so that a later reviewed manifest binds the same bytes this census measured. These were the
+**local** artifacts at the time of the census; they have since been checked against the GEO record
+and matched exactly — see [Byte identity, established](#byte-identity-established-supersedes-the-corroboration-above)
+— so this table is the binding record and needs no re-derivation. The reviewed manifest can be
+written from it without re-fetching, since each row carries the filename, byte count and SHA-256 a
+source entry requires.
 
 | Artifact | Bytes | SHA-256 |
 | --- | --- | --- |
@@ -185,6 +188,19 @@ posture already recorded for `GSE141064` under the policy id `gse141064-geo-righ
 downloadability is not a licence grant, and the absence of stated terms is an unresolved right
 rather than an open one.
 
+**The scope of use, recorded (added 2026-08-13, per
+[ADR 0020](../../adr/0020-rna-first-nuisance-separation.md) decision 4).** The publication's data
+availability statement is a bare deposit statement — "Raw and processed data have been deposited at
+GEO (accession numbers GSE274110 and GSE274113)" — with no terms, and no reuse conditions appear
+anywhere in the article. The article is CC BY 4.0 under HHMI's open-access policy; **that licenses
+the article, not the data**, and the two are not conflated here.
+
+The recorded position is therefore: *no terms asserted by submitter or journal, and no grant
+asserted either; owner-authorized for internal method development; **not cleared for any published
+biological claim***. Rule 6 requires the licence to be **recorded**, not to be permissive, so this
+satisfies rule 6 as written and **no rule is amended or weakened**. Any future publication re-opens
+the question rather than inheriting this decision.
+
 ### Byte identity: corroborated at the listing's resolution, not established
 
 **GEO publishes no checksum for these artifacts.** The series `filelist.txt` covers only the members
@@ -217,6 +233,81 @@ resolution excludes a wrong or substituted file; it does not exclude a modified 
 byte identity requires re-downloading roughly three gigabytes and hashing, which is worth doing only
 if the source is retained for some claim — see the decision below.
 
+### Byte identity, established (supersedes the corroboration above)
+
+Added 2026-08-13, after the table above. Every artifact was re-fetched from
+`https://ftp.ncbi.nlm.nih.gov/geo/series/GSE274nnn/GSE274113/suppl/` and hashed in flight, and the
+result compared against the local values this census recorded, by string comparison rather than by
+eye:
+
+**15 of 15 match exactly, on byte count and on SHA-256.** Zero mismatches.
+
+The corroboration section above is therefore superseded, not deleted: it records what was known
+before the download and why that was not enough. Byte identity is now **established**, which closes
+the precondition [ADR 0018](../../adr/0018-gse274113-rejected-for-the-state-estimand.md) decision 5
+placed on any use of this source.
+
+### The ATAC feature space is not shared, and it is confounded with the biology
+
+The census deferred this question; it is now measured, and the answer changes what an observation
+model on this source can be.
+
+| | Measured |
+| --- | --- |
+| Distinct **RNA** feature sets across 14 libraries | **1** — 36,601 genes, byte-identical Ensembl ID lists |
+| Distinct **ATAC** peak sets across 14 libraries | **14** — every library has its own |
+| Peak count range | 93,574 (`rep14`) to 158,290 (`rep1`), a 69% spread |
+
+There is no common ATAC coordinate system. Worse, the peak count is not a technical accident:
+
+| Timepoint | Libraries | Mean peaks | Mean cells |
+| --- | --- | --- | --- |
+| day 7 | 4 | 154,434 | 11,156 |
+| day 9 | 4 | 142,653 | 12,633 |
+| day 11 | 3 | 124,963 | 7,020 |
+| day 14 | 3 | 98,049 | 12,166 |
+
+Peak count declines monotonically with differentiation time, **`r` = −0.973** against the timepoint
+index. It is *not* driven by library size — `r` against cell count is **0.135**, and day 11 has the
+fewest cells while day 14 has the fewest peaks.
+
+The consequence is specific and it is an S5 problem rather than a nuisance one. Each library's peak
+set is called from that library, so **the ATAC observation space is itself a function of the
+biological variable under study**. A model fitted on per-library peaks would have its feature space
+determined by the thing it is trying to predict. That is a leak in the representation, not in the
+split.
+
+**Fixed genomic bins were proposed as the fix, and measured not to be one.** Peak identifiers carry
+coordinates (`chr1:9794-10688`), so peak counts can be re-quantified into an a-priori bin set
+without the fragment files. That was tested at 10 kb across all fourteen libraries — 120,468 union
+bins, 99.95% of peak identifiers parsing — and it fails:
+
+| Feature space | `r`(timepoint index, feature-space size) |
+| --- | --- |
+| raw per-library peak sets | −0.973 |
+| after 10 kb fixed binning | **−0.963** |
+
+Binning shares the **grid** by construction but not the **occupancy**, and occupancy is still
+derived from per-library peak calls, which track differentiation. The coordinate system stopped
+moving with the biology; the signal's permitted locations did not.
+
+A second defect sits underneath it. A bin with no peak call in a library is **not measured**, not
+zero accessibility, so filling it to obtain a rectangular matrix is imputation — **54.3% of the
+union grid** — which is precisely what the zero-panel doctrine forbids. The defect that made the
+frozen sci-Plex3 benchmark unevaluable reappears here in a different assay.
+
+Two routes remain, and both carry a stated cost:
+
+- the peak-call **intersection** grid — **55,029 bins** present in all fourteen libraries, 45.7% of
+  the union, where every value is a measurement and nothing is imputed, biased toward
+  constitutively open chromatin because the intersection is pinned by the sparsest day-14 libraries;
+- **fragment-level requantification** over a fixed grid, which needs the roughly 45 GB of per-sample
+  fragment files inside `GSE274113_RAW.tar` and is not held.
+
+[ADR 0020](../../adr/0020-rna-first-nuisance-separation.md) moves the held-out-modality test behind
+one of these rather than weakening it, and proceeds with nuisance separation on RNA, whose feature
+space has none of these problems.
+
 ### An unresolved second artifact family
 
 The series carries a **second** set of per-replicate matrices,
@@ -227,18 +318,32 @@ series must say which family it reads.
 
 ## What `Q4` still owes
 
-Items 1 to 3 are **resolved above**, and resolved against the source rather than in its favour:
-the licence is unresolved at source, byte identity is corroborated but not established, and the
-independent parent culture count is one and unmeasurable. What follows is what remains open, and
-none of it can change the decision those three facts force.
-4. **Whether the ATAC feature space is shared.** RNA is a fixed 36,601 features in every library.
-   The peak sets are not obviously shared and this has not been verified here; if the source
-   survives, a fixed-bin or peak-union aggregation becomes a named `Q5` deliverable.
-5. **A committed runner.** Every number above was computed from the bytes, but by a script held
-   outside this repository, so no reader can reproduce them from a checkout. Until a runner is
-   committed alongside the reviewed manifest, this census is a recorded claim rather than a checked
-   one, which is the same defect this project's rules exist to prevent. The tables stand as
-   measurements; they do not yet stand as reproducible measurements.
+Items 1 to 4 are **resolved above**, and resolved against the source rather than in its favour.
+This list is kept current as each is answered, because a list of open questions that still names
+answered ones is indistinguishable from one that has not been read.
+
+1. **Licence and use terms** — resolved: unresolved at source, and now *recorded* at a declared
+   scope (owner-authorized for internal method development, not cleared for any published
+   biological claim). Rule 6 asks for a record, not for permission.
+2. **The independent parent culture count** — resolved: it is one, and it is unmeasurable from what
+   is deposited. This is the fact that rejected the source for the state estimand.
+3. **Byte identity** — resolved and **established**, superseding the corroboration recorded earlier
+   in this file: all 15 artifacts re-fetched and matched exactly on byte count and SHA-256.
+4. **Whether the ATAC feature space is shared** — resolved, and the answer is **no**: 14 distinct
+   peak sets, size confounded with differentiation time at `r` = −0.973, and the fixed-bin fix
+   measured not to work. See the section above. This is what moved the held-out-modality test
+   behind clean ATAC.
+
+What remains open is one item, and it is the one that makes the rest checkable rather than merely
+recorded:
+
+5. **A committed runner, and the reviewed manifest it lands with.** Every number above was computed
+   from the bytes, but by a script held outside this repository, so no reader can reproduce them
+   from a checkout — and the bytes themselves are no longer held locally, having been re-fetched for
+   hashing and not retained. Until a runner is committed alongside the reviewed manifest, this
+   census is a recorded claim rather than a checked one, which is the same defect this project's
+   rules exist to prevent. The tables stand as measurements; they do not yet stand as reproducible
+   measurements.
 
 ## The decision this hands to the ADR
 

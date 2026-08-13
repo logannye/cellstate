@@ -4,6 +4,24 @@ Rule 1 (the purpose test) requires every implementation-queue item to name the s
 ledger entries it advances. Rule 2 exists because a rule that nothing checks is a guard that cannot
 fire; these tests are that check for rules 1 and 3.
 
+Rule 3 also says queue IDs are **ordinals, not stable identifiers**, which makes every prose
+reference to one a reference that a reorder silently invalidates.  A citation that dangles is
+harmless -- a reader notices ``Q12`` in a nine-item queue.  A citation that still *resolves*, to a
+different item than the author meant, is the dangerous case: after ADR 0019 and ADR 0020 the
+Phase 1 graduation gate still said the observational floor was measured at ``Q5``, and ``Q5`` by
+then held the observation model, which measures no floor.  The gate read as satisfiable and pointed
+at an item that could never satisfy it.
+
+So the cross-reference tests below do not check that a cited ID exists.  They check that it names
+the item the sentence is *about*, by pinning each citation to a title regex.  The pin is the part a
+renumber cannot quietly follow.
+
+**The population these tests cover is ``docs/roadmap.md`` only.**  Rule 3's other half -- that
+documents *outside* this file cite artifacts and ADRs rather than queue IDs -- is not enforced,
+because every ADR from 0015 onward cites queue IDs and is read through a mapping table instead.
+That convention is stated in rule 4 and is carried by the ADRs themselves; nothing checks it.  A
+reader should not mistake a green run here for the whole of rule 3.
+
 Rules 2 and 4 are not enforced here. They need a diff-aware pull-request job, which does not exist,
 and this module deliberately does not pretend otherwise.
 """
@@ -23,6 +41,7 @@ QUEUE_HEADING = "## Implementation queue"
 _LEDGER_ROW = re.compile(r"^\|\s*(S\d+)\s*\|")
 _QUEUE_ITEM = re.compile(r"^(\d+)\.\s+\*\*`(Q\d+)`")
 _CAPABILITY_TAG = re.compile(r"\[((?:S\d+)(?:,\s*S\d+)*)\]")
+_QUEUE_ID = re.compile(r"`(Q\d+)`")
 
 
 def _section(heading: str) -> str:
@@ -96,6 +115,122 @@ def test_every_queue_item_names_a_ledger_capability(
         unknown = claimed - ledger_ids
         assert not unknown, (
             f"{queue_id} cites capabilities absent from the ledger: {sorted(unknown)}"
+        )
+
+
+def _normalized(text: str) -> str:
+    """Collapse wrapping so a citation split across lines still matches as one phrase."""
+
+    return re.sub(r"\s+", " ", text)
+
+
+@pytest.fixture(scope="module")
+def queue_titles() -> dict[str, str]:
+    """Return ``{queue_id: title}`` for each item, where the title is its bolded heading line."""
+
+    titles: dict[str, str] = {}
+    for line in _section(QUEUE_HEADING).splitlines():
+        if match := _QUEUE_ITEM.match(line):
+            titles[match.group(2)] = _normalized(line)
+    return titles
+
+
+class CrossReference:
+    """A prose citation of a queue ID, pinned to the item the sentence is about.
+
+    ``citation`` locates the reference and captures the ID actually written.  ``anchor`` identifies
+    the intended item by a phrase from its title, which a renumber does not change.  When the two
+    disagree the roadmap is pointing a commitment at the wrong item.
+    """
+
+    def __init__(self, *, what: str, citation: str, anchor: str) -> None:
+        self.what = what
+        self.citation = re.compile(citation)
+        self.anchor = re.compile(anchor)
+
+
+CROSS_REFERENCES = (
+    CrossReference(
+        what="the starting-work pointer names the next item",
+        citation=r"the next action is item `(Q\d+)`",
+        anchor=r"fit the observation model",
+    ),
+    CrossReference(
+        what="the starting-work pointer names the blocked estimand freeze",
+        citation=r"`(Q\d+)`, the estimand freeze, is blocked",
+        anchor=r"freeze the state-bearing estimand",
+    ),
+    CrossReference(
+        what="the state-of-the-object note names the first item to build a representation",
+        citation=r"`(Q\d+)` and `Q\d+` are the first that build",
+        anchor=r"fit the observation model",
+    ),
+    CrossReference(
+        what="the state-of-the-object note names the first-belief item",
+        citation=r"`Q\d+` and `(Q\d+)` are the first that build",
+        anchor=r"emit the first biological belief",
+    ),
+    CrossReference(
+        what="Phase 1's gate names the item at which the specification-only constraint binds",
+        citation=r"a constraint that first binds at `(Q\d+)`",
+        anchor=r"freeze the state-bearing estimand",
+    ),
+    CrossReference(
+        what="Phase 1's gate names the item that measures the observational floor",
+        citation=r"The floor itself is measured at `(Q\d+)`",
+        anchor=r"measure its floor",
+    ),
+    CrossReference(
+        what="the observation-model item names where the modality test went",
+        citation=r"held-out-modality test therefore moves to `(Q\d+)`",
+        anchor=r"run the held-out-modality test",
+    ),
+    CrossReference(
+        what="the modality-test item names the item it was carved out of",
+        citation=r"Carries the test moved out of `(Q\d+)` by",
+        anchor=r"fit the observation model",
+    ),
+    CrossReference(
+        what="the source-review item names the item that uses the library nuisance axis",
+        citation=r"retained under rule 7 for `(Q\d+)`, where a measured library nuisance axis",
+        anchor=r"fit the observation model",
+    ),
+)
+
+
+def test_every_cited_queue_id_resolves_to_an_item(queue_titles: dict[str, str]) -> None:
+    """A reference to a retired or not-yet-created ordinal is a dangling citation."""
+
+    cited = set(_QUEUE_ID.findall(ROADMAP.read_text(encoding="utf-8")))
+    dangling = cited - set(queue_titles)
+    assert not dangling, f"roadmap cites queue IDs that no item carries: {sorted(dangling)}"
+
+
+@pytest.mark.parametrize("reference", CROSS_REFERENCES, ids=lambda ref: ref.what)
+def test_cross_references_name_the_item_they_mean(
+    reference: CrossReference,
+    queue_titles: dict[str, str],
+) -> None:
+    """Rule 3: queue IDs are ordinals, so a reorder can leave a citation on the wrong item."""
+
+    intended = [
+        queue_id for queue_id, title in queue_titles.items() if reference.anchor.search(title)
+    ]
+    assert len(intended) == 1, (
+        f"the anchor for {reference.what!r} matches {len(intended)} queue items ({intended}); "
+        "it must identify exactly one, or the pin cannot detect a renumber"
+    )
+
+    found = reference.citation.findall(_normalized(ROADMAP.read_text(encoding="utf-8")))
+    assert found, (
+        f"the citation for {reference.what!r} is gone from the roadmap; "
+        "delete this cross-reference or restore the sentence, but do not leave it unchecked"
+    )
+    for cited in found:
+        assert cited == intended[0], (
+            f"{reference.what}: the roadmap cites `{cited}`, but the item it means is "
+            f"`{intended[0]}` ({queue_titles[intended[0]]}). A reorder moved the item and the "
+            "citation stayed put."
         )
 
 
