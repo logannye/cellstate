@@ -48,4 +48,5 @@ nav:
       - The sufficiency verdict fails closed: adr/0017-the-sufficiency-verdict-must-fail-closed.md
       - GSE274113 rejected for the state estimand: adr/0018-gse274113-rejected-for-the-state-estimand.md
       - Build on held evidence: adr/0019-build-the-representation-on-held-evidence.md
+      - RNA-first nuisance separation: adr/0020-rna-first-nuisance-separation.md
 strict: true

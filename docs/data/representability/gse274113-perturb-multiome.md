@@ -261,12 +261,36 @@ biological variable under study**. A model fitted on per-library peaks would hav
 determined by the thing it is trying to predict. That is a leak in the representation, not in the
 split.
 
-**The path is fixed genomic bins, and it is available.** Peak identifiers carry coordinates
-(`chr1:9794-10688`), so peak counts can be re-quantified into a bin set fixed a priori, without the
-fragment files — which are inside the 42 GB `GSE274113_RAW.tar` and are not held. Binning is
-approximate, because peak boundaries do not align to bin edges, and that approximation must be
-declared rather than absorbed. What it buys is a coordinate system that does not move with the
-biology.
+**Fixed genomic bins were proposed as the fix, and measured not to be one.** Peak identifiers carry
+coordinates (`chr1:9794-10688`), so peak counts can be re-quantified into an a-priori bin set
+without the fragment files. That was tested at 10 kb across all fourteen libraries — 120,468 union
+bins, 99.95% of peak identifiers parsing — and it fails:
+
+| Feature space | `r`(timepoint index, feature-space size) |
+| --- | --- |
+| raw per-library peak sets | −0.973 |
+| after 10 kb fixed binning | **−0.963** |
+
+Binning shares the **grid** by construction but not the **occupancy**, and occupancy is still
+derived from per-library peak calls, which track differentiation. The coordinate system stopped
+moving with the biology; the signal's permitted locations did not.
+
+A second defect sits underneath it. A bin with no peak call in a library is **not measured**, not
+zero accessibility, so filling it to obtain a rectangular matrix is imputation — **54.3% of the
+union grid** — which is precisely what the zero-panel doctrine forbids. The defect that made the
+frozen sci-Plex3 benchmark unevaluable reappears here in a different assay.
+
+Two routes remain, and both carry a stated cost:
+
+- the peak-call **intersection** grid — **55,029 bins** present in all fourteen libraries, 45.7% of
+  the union, where every value is a measurement and nothing is imputed, biased toward
+  constitutively open chromatin because the intersection is pinned by the sparsest day-14 libraries;
+- **fragment-level requantification** over a fixed grid, which needs the roughly 45 GB of per-sample
+  fragment files inside `GSE274113_RAW.tar` and is not held.
+
+[ADR 0020](../../adr/0020-rna-first-nuisance-separation.md) moves the held-out-modality test behind
+one of these rather than weakening it, and proceeds with nuisance separation on RNA, whose feature
+space has none of these problems.
 
 ### An unresolved second artifact family
 
