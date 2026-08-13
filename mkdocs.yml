@@ -49,4 +49,5 @@ nav:
       - GSE274113 rejected for the state estimand: adr/0018-gse274113-rejected-for-the-state-estimand.md
       - Build on held evidence: adr/0019-build-the-representation-on-held-evidence.md
       - RNA-first nuisance separation: adr/0020-rna-first-nuisance-separation.md
+      - An admissible kind for a fitted observation model: adr/0021-an-admissible-kind-for-a-fitted-observation-model.md
 strict: true
