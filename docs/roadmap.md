@@ -427,12 +427,15 @@ required before any operational biological claim.
 
   Two results from `Q1` bear on later items. First, the frozen benchmark's untouched-test partition
   contains **four plates** and 95 compounds across 384 wells, computed from its membership arrays.
-  Second, at that shape a plain percentile multiway bootstrap of a mean covers about 0.82 to 0.86
-  against a nominal 0.95, measured over 300 simulated two-way random-effects designs per seed; the
-  small-cluster scaling the implementation applies brings it to about 0.96. An interval from four
-  clusters is wide for a reason, and `Q3` and `Q5` should read it that way: the plate dimension of
-  this proving ground is at the edge of what a bootstrap can support, which is exactly the property
-  Phase 2 requires a state-bearing estimand to have in sufficient number.
+  Second, four plates is at the edge of what a bootstrap can support, and the measurement says so.
+  Simulated on the *real* incidence of that partition at nominal 0.95, the plain percentile
+  multiway bootstrap covers 0.908 when the plate dimension carries the variance; the scaling the
+  implementation applies after [ADR 0016](adr/0016-the-verdict-gates-on-the-interval.md) brings it
+  to 0.935, and **not to 0.95**. The earlier figures recorded here — 0.82 to 0.86 unscaled and
+  about 0.96 scaled — were measured on a balanced generator at one variance configuration and did
+  not survive contact with the partition's own compound-by-plate incidence. `Q3` and `Q5` should
+  read the residual under-coverage as the property Phase 2 requires a state-bearing estimand *not*
+  to have: enough independent units that its interval does not need rescuing.
 - **Phases 2–8:** not started.
 - **Biological backends registered:** none. No belief has been emitted by a biological model.
 - **Benchmarks scientifically admitted:** none.
