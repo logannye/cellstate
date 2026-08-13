@@ -146,15 +146,91 @@ establishes is that the persistence question is now **an empirical one with a me
 least one readout**, and that the burden has moved: a day-14 horizon must be justified against this
 null, not assumed.
 
+## The provenance review, and the fact that decides the source
+
+Added 2026-08-13, from the GEO record and the publication rather than from the bytes. This is the
+half the census above could not supply, and it is what turns reject-versus-redesign into a decision
+with an answer.
+
+### The number of independent parent cultures is one, and cannot be measured
+
+The publication describes its robustness check as
+
+> "an independent biological replicate (using HSPCs from a different donor and sgRNAs targeting
+> different locations in the coding sequences of each TF, for a subset of 8 TFs)"
+
+— which places the **primary** experiment, the one these fourteen libraries come from, at a **single
+donor**. The cell count the same paper reports for that experiment, 137,604 cells with a detected
+sgRNA identity, is exactly the annotated cell count this census measured across the fourteen
+libraries, so the libraries and the single-donor experiment are the same thing.
+
+The deposited metadata cannot correct or confirm this. Every sample in the series records only
+`tissue: Hematopoietic cells`; **there is no donor field to measure**. So neither route available to
+this project — the publication's own text, or the bytes — demonstrates more than one independent
+biological unit.
+
+That is the decisive fact, and it is decisive in a way the earlier findings were not. `roadmap.md`
+requires a split unit that is "a genuine independent replicate, present in sufficient number to
+bootstrap", and rule 8 admits well, plate, library, donor, clone, or study. The only unit above the
+library available here is the **donor**, and there is one of it. The census already measured that
+the libraries are not interchangeable technical splits either — library-to-library spread reaches
+0.89 and 0.99 of the entire between-target spread by days 11 and 14 — so they are neither clean
+technical replicates nor biological ones.
+
+### Licence and use terms: unresolved at source, not permissive by default
+
+The GEO series page carries **no explicit licence and no data-use statement**. This is the same
+posture already recorded for `GSE141064` under the policy id `gse141064-geo-rights-unresolved`
+("GEO public deposit with submitter rights unresolved"), and it resolves the same way: public
+downloadability is not a licence grant, and the absence of stated terms is an unresolved right
+rather than an open one.
+
+### Byte identity: corroborated at the listing's resolution, not established
+
+**GEO publishes no checksum for these artifacts.** The series `filelist.txt` covers only the members
+of `GSE274113_RAW.tar` — per-sample ATAC fragment files — and does not list the fourteen
+`repN_filtered_feature_bc_matrix.h5` matrices at all. The supplementary directory listing gives
+sizes rounded to roughly one megabyte.
+
+Against that listing, all fifteen local artifacts agree:
+
+| Artifact | Local bytes | Local MiB | GEO listing |
+| --- | --- | --- | --- |
+| `rep1` | 289,235,875 | 275.8 | 276M |
+| `rep2` | 228,241,935 | 217.7 | 218M |
+| `rep3` | 184,666,689 | 176.1 | 176M |
+| `rep4` | 316,962,263 | 302.3 | 302M |
+| `rep5` | 235,083,990 | 224.2 | 224M |
+| `rep6` | 257,300,982 | 245.4 | 245M |
+| `rep7` | 243,529,044 | 232.2 | 232M |
+| `rep8` | 320,391,753 | 305.5 | 306M |
+| `rep9` | 175,044,644 | 166.9 | 167M |
+| `rep10` | 185,593,406 | 177.0 | 177M |
+| `rep12` | 172,401,672 | 164.4 | 164M |
+| `rep13` | 167,753,914 | 160.0 | 160M |
+| `rep14` | 167,889,976 | 160.1 | 160M |
+| `rep16` | 198,289,278 | 189.1 | 189M |
+| metadata | 3,307,117 | 3.2 | 3.2M |
+
+Fifteen of fifteen consistent. **That is corroboration, not identity.** Agreement at half-megabyte
+resolution excludes a wrong or substituted file; it does not exclude a modified one. Establishing
+byte identity requires re-downloading roughly three gigabytes and hashing, which is worth doing only
+if the source is retained for some claim — see the decision below.
+
+### An unresolved second artifact family
+
+The series carries a **second** set of per-replicate matrices,
+`GSE274113_filtered_feature_bc_matrix_N.h5`, at 27–94 MB, indexed by the same replicate numbers as
+the 160–306 MB `repN_` family this census measured. What the smaller family contains has not been
+verified here. Per-claim eligibility is a property of exact artifacts, so any future claim on this
+series must say which family it reads.
+
 ## What `Q4` still owes
 
-This is the evidence half only. Before the reviewed manifest can be written:
-
-1. **Licence and use terms**, and whether they permit the intended claim.
-2. **Exact byte identity** against the GEO record, not only against the local copies.
-3. **The number of independent parent cultures**, which is not in GEO — every sample carries only
-   `tissue: Hematopoietic cells` — and must come from the publication's methods, recorded as a
-   citation rather than as a measurement.
+Items 1 to 3 are **resolved above**, and resolved against the source rather than in its favour:
+the licence is unresolved at source, byte identity is corroborated but not established, and the
+independent parent culture count is one and unmeasurable. What follows is what remains open, and
+none of it can change the decision those three facts force.
 4. **Whether the ATAC feature space is shared.** RNA is a fixed 36,601 features in every library.
    The peak sets are not obviously shared and this has not been verified here; if the source
    survives, a fixed-bin or peak-union aggregation becomes a named `Q5` deliverable.
@@ -166,14 +242,27 @@ This is the evidence half only. Before the reviewed manifest can be written:
 
 ## The decision this hands to the ADR
 
-`Q5` must not begin until an ADR records the census and decides, on this evidence, among:
+The census by itself removed the option of choosing by assumption. The provenance review above
+removes the choice.
 
-- **Reject** the source for the Phase 2 estimand, which makes the roadmap's deferral of Vertical B
-  the binding constraint, since that deferral is conditioned on a Vertical A sufficiency verdict
-  that rejection makes unreachable;
-- **Redesign** to a short-horizon estimand — day 7 cutoff, days 9 and 11 as the two horizons S3
-  requires, day 14 dropped — with the target as the unit that spans the cutoff and the library
-  retained as a nested batch, accepting n=19 non-control units for the bootstrap;
-- **Redesign** onto a readout other than composition, and carry the burden this census sets.
+Three options were open:
 
-The census does not make that choice. It removes the option of making it by assumption.
+- **Reject** the source for the Phase 2 estimand;
+- **Redesign** to a short-horizon estimand — day 7 cutoff, days 9 and 11 as horizons, day 14
+  dropped — with the **target** as the unit that spans the cutoff and the library as a nested batch,
+  accepting n=19 non-control units;
+- **Redesign** onto a readout other than composition, carrying the burden this census sets.
+
+The second is **inadmissible**, and not on the evidence: rule 8 lists the units a split may follow —
+well, plate, library, donor, clone, or study — and a **target is the treatment, not a container**.
+Making the perturbation the unit of independence would also make a held-out-intervention fold
+incoherent, since the thing held out and the thing bootstrapped would be the same object.
+
+The third does not survive the donor count. A different readout changes what is measured, not how
+many independent biological units measured it, and that number is one.
+
+So the decision is **reject for the Phase 2 estimand** — recorded in
+[ADR 0018](../../adr/0018-gse274113-rejected-for-the-state-estimand.md), which also records what the
+source is retained *for*. Rejection here is claim-specific, as rule 7 requires: this series fails to
+carry a state-bearing estimand and remains well suited to a question that needs neither a spanning
+unit nor a horizon.

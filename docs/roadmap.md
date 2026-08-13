@@ -455,7 +455,16 @@ required before any operational biological claim.
   not survive contact with the partition's own compound-by-plate incidence. `Q3` and `Q5` should
   read the residual under-coverage as the property Phase 2 requires a state-bearing estimand *not*
   to have: enough independent units that its interval does not need rescuing.
-- **Phases 2–8:** not started.
+- **Phase 2:** not started, and **has no candidate source.** `Q4` is complete with a negative
+  result: `GSE274113`, this roadmap's only named Phase 2 candidate, is rejected for the
+  state-bearing estimand by [ADR 0018](adr/0018-gse274113-rejected-for-the-state-estimand.md). It
+  is retained under rule 7 for `Q6`. **Registered sources satisfying S1 — a unit observed both
+  before and after an inference cutoff — remain zero**, and S1 is the binding constraint on the
+  whole program: a query failing it cannot test S7, and S7 is the definition of faithful. Unlike
+  every capability advanced so far, S1 cannot be advanced by writing code. It is a property of an
+  experiment that already happened, so the next milestone is source selection against criteria
+  fixed before a source is named.
+- **Phases 3–8:** not started.
 - **Biological backends registered:** none. No belief has been emitted by a biological model.
 - **Benchmarks scientifically admitted:** none.
 
@@ -544,12 +553,26 @@ not yet decomposed into items and must not be started from prose.
    *Done when:* a design whose history blocks are all absent returns a not-evaluated report rather
    than `PASSED`; the retained fraction is carried on `SufficiencyReport` and round-trips; and
    `evaluate_predictive_sufficiency` has a non-test caller in `src/`.
-4. **`Q4` — review and manifest the state-bearing source.** [S1, S3] Produce the reviewed manifest and
-   representability assessment for `GSE274113`, including exact byte identity, license and use terms,
-   library structure, and per-claim eligibility. Record the number of independent parent cultures, the
-   number of libraries per timepoint and per treatment arm, and whether any population unit was
-   sampled at both day 7 and a later day. Record the explicit non-candidates and their reasons.
-   *Done when:* the census is in the reviewed manifest. `Q5` does not begin before it is.
+4. **`Q4` — review and manifest the state-bearing source.** [S1, S3] **Decided, not yet complete.**
+   The review is finished and its result is negative; the reviewed manifest this item's done-when
+   requires is not yet written, and until it is this item stays open — recording it as complete
+   against an unmet done-when is the error [ADR 0017](adr/0017-the-sufficiency-verdict-must-fail-closed.md)
+   corrected for `Q2`. The structural census and the provenance review are in
+   [the representability ledger](data/representability/gse274113-perturb-multiome.md); the decision
+   is [ADR 0018](adr/0018-gse274113-rejected-for-the-state-estimand.md). `GSE274113` is **rejected
+   for the state-bearing estimand**: 0 of 14 libraries span a timepoint, the day 7 → day 14 effect
+   is ρ = −0.026 against a permutation null of 0.025, and above the library the series supplies one
+   independent parent culture, which neither the publication nor the deposited metadata can raise.
+   The target-as-spanning-unit redesign is inadmissible under rule 8 and would itself need a rule 4
+   amendment. The source is retained under rule 7 for `Q6`, where a measured library nuisance axis
+   is S5's object rather than a defect, subject to resolved licence terms and established byte
+   identity. A rejection recorded for cause is a legitimate outcome for this item — rule 10's
+   principle, that a gate which is a measurement is passed by producing the measurement, applies to
+   source review as much as to a verdict — but the outcome still has to be recorded in the artifact
+   the item names. What remains is a reviewed manifest carrying the claim-specific split ADR 0018
+   decides: ineligible for the state-bearing estimand, retained for `Q6`. That split is currently
+   prose, and `ClaimAssessment` is the mechanism that makes it machine-checkable.
+   *Done when:* unchanged — the census is in the reviewed manifest.
 5. **`Q5` — freeze the state-bearing estimand and benchmark, and measure its floor.** [S1, S3, S9]
    Pre-cutoff observation, multiple horizons, library-level partitions, computed leakage audit,
    mandatory baselines including applicable persistence and temporal state-space, held-out-intervention
