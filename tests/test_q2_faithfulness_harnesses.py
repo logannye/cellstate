@@ -95,6 +95,7 @@ def _report(
     return evaluate_predictive_sufficiency(
         state_only_losses=state_only,
         state_plus_history_losses=state_plus_history,
+        history_present=[True] * state_only.shape[0],
         cluster_labels=_cluster_labels(state_only.shape[0]),
         tolerance=tolerance,
         metric="held_out_squared_error",
@@ -195,6 +196,7 @@ class TestEqualCapacity:
             evaluate_predictive_sufficiency(
                 state_only_losses=[1.0, 1.0, 1.0, 1.0],
                 state_plus_history_losses=[0.5, 0.5, 0.5, 0.5],
+                history_present=[True] * 4,
                 cluster_labels={"batch": list("aabb"), "plate": list("xyxy")},
                 tolerance=0.1,
                 metric="squared_error",
@@ -245,6 +247,7 @@ class TestSufficiencyContract:
                 history_information_gain=0.05,
                 markov_sufficiency_score=0.95,
                 maximum_history_information_gain=0.1,
+                retained_unit_fraction=1.0,
             )
 
     def test_the_interval_must_describe_the_reported_gain(self) -> None:
@@ -258,6 +261,7 @@ class TestSufficiencyContract:
                 history_information_gain_interval=bootstrap_interval_factory(0.99),
                 markov_sufficiency_score=0.95,
                 maximum_history_information_gain=0.1,
+                retained_unit_fraction=1.0,
             )
 
     def test_an_unevaluated_report_cannot_carry_an_interval(self) -> None:
@@ -284,6 +288,7 @@ class TestSufficiencyContract:
             evaluate_predictive_sufficiency(
                 state_only_losses=[1.0, 1.0],
                 state_plus_history_losses=[0.5],
+                history_present=[True, True],
                 cluster_labels={"batch": ["a", "b"]},
                 tolerance=0.1,
                 metric="squared_error",
@@ -497,4 +502,5 @@ class TestThePrimitivesHaveCallers:
                 tolerance=-0.1,
                 metric="squared_error",
                 interval=bootstrap_interval_factory(0.5),
+                retained_unit_fraction=1.0,
             )

@@ -259,6 +259,12 @@ class SufficiencyReport(SchemaModel):
     markov_sufficiency_score: float | None = Field(default=None, ge=0, le=1)
     maximum_history_information_gain: float = Field(ge=0)
     history_information_gain_interval: BootstrapInterval | None = None
+    # The share of offered units that carried an admissible pre-cutoff observation and therefore
+    # entered the paired comparison.  Required when evaluated, because a gain averaged over units on
+    # which the question was never asked is diluted toward zero -- and zero is the sufficient
+    # direction -- while those units contribute no spread, so the interval narrows at the same time.
+    # Bias and false precision from one cause.  See ADR 0017.
+    retained_unit_fraction: float | None = Field(default=None, gt=0, le=1)
     metric: str | None = None
     residual_predictive_history_features: tuple[str, ...] = ()
     suspected_missing_state_variables: tuple[str, ...] = ()
@@ -283,11 +289,13 @@ class SufficiencyReport(SchemaModel):
             value is not None for value in values
         ):
             raise ValueError("an unevaluated sufficiency report must not contain numeric sentinels")
-        if (
-            self.evaluation_status is not EvaluationStatus.EVALUATED
-            and self.history_information_gain_interval is not None
+        if self.evaluation_status is not EvaluationStatus.EVALUATED and (
+            self.history_information_gain_interval is not None
+            or self.retained_unit_fraction is not None
         ):
-            raise ValueError("an unevaluated sufficiency report cannot carry an interval")
+            raise ValueError(
+                "an unevaluated sufficiency report cannot carry an interval or a retained fraction"
+            )
         if self.evaluation_status is EvaluationStatus.EVALUATED:
             # A gain without a sampling distribution grouped at the independent experimental unit
             # is a number, not a verdict.  See ADR 0015.
@@ -295,6 +303,16 @@ class SufficiencyReport(SchemaModel):
                 raise ValueError(
                     "an evaluated sufficiency report requires a grouped bootstrap interval on the "
                     "history information gain"
+                )
+            # A comparison in which no unit carried a pre-cutoff observation is inapplicable, not
+            # sufficient.  Measured: with every history block absent the harness returned gain
+            # 0.0000 over the interval [0.0000, 0.0000] and PASSED -- the strongest certificate the
+            # contract can express, earned by the absence of evidence.  ``gt=0`` on the field makes
+            # the zero case unrepresentable; this makes omitting it unrepresentable too.  ADR 0017.
+            if self.retained_unit_fraction is None:
+                raise ValueError(
+                    "an evaluated sufficiency report requires the fraction of offered units that "
+                    "carried an admissible pre-cutoff observation"
                 )
             state_only = require_finite(cast(float, self.state_only_loss), name="state-only loss")
             state_plus_history = require_finite(

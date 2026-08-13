@@ -226,6 +226,7 @@ def test_sufficiency_report_enforces_its_defining_identity() -> None:
             history_information_gain_interval=bootstrap_interval_factory(0.2),
             markov_sufficiency_score=0.8,
             maximum_history_information_gain=0.3,
+            retained_unit_fraction=1.0,
         )
     with pytest.raises(ValidationError, match="finite"):
         SufficiencyReport(
@@ -236,6 +237,7 @@ def test_sufficiency_report_enforces_its_defining_identity() -> None:
             history_information_gain=float("inf"),
             markov_sufficiency_score=0.8,
             maximum_history_information_gain=0.3,
+            retained_unit_fraction=1.0,
         )
 
 

@@ -308,6 +308,7 @@ def _passing_diagnostics(dimensions: tuple[str, ...]) -> BeliefDiagnostics:
             history_information_gain_interval=bootstrap_interval_factory(0.05, half_width=0.04),
             markov_sufficiency_score=0.95,
             maximum_history_information_gain=0.1,
+            retained_unit_fraction=1.0,
             metric="negative_log_likelihood",
         ),
         identifiability=IdentifiabilityReport(
@@ -1132,6 +1133,7 @@ def test_sufficiency_reports_bind_loss_improvement_to_the_declared_threshold() -
         history_information_gain_interval=bootstrap_interval_factory(0.3),
         markov_sufficiency_score=0.4,
         maximum_history_information_gain=0.1,
+        retained_unit_fraction=1.0,
     )
     assert failed.outcome is CriterionOutcome.FAILED
 
@@ -1145,6 +1147,7 @@ def test_sufficiency_reports_bind_loss_improvement_to_the_declared_threshold() -
             history_information_gain_interval=bootstrap_interval_factory(0.01),
             markov_sufficiency_score=0.9,
             maximum_history_information_gain=0.1,
+            retained_unit_fraction=1.0,
         )
     with pytest.raises(ValidationError, match="must not contain numeric sentinels"):
         SufficiencyReport(
