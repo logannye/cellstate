@@ -43,10 +43,19 @@ library, and every one came out negative:
 | S2 earned spread | 0.22 | [0.16, 0.28] | > 1 | fails |
 
 **S5 is the clean result and the one that matters.** Across-library spread at a fixed target,
-measured in the *inferred state*, is 19× the across-target spread. The structural claim — that
-orthogonalising the biology basis against a nuisance basis fitted from `NT` residuals sends library
-variation to the nuisance block — does not hold on these bytes. A rank-3 nuisance basis does not
-span the library variation, and the remainder lands in biology.
+measured in the *inferred state*, is 19× the across-target spread.
+
+The obvious reading of that — that the nuisance basis fails to absorb the library — **is wrong, and
+was checked rather than assumed.** Decomposed by block, the across-library variance is **79.27** in
+the nuisance block against **3.07** in biology: the nuisance basis is absorbing the bulk of it,
+roughly 26× more than leaks through. What fails is the other side of the ratio. The biology block's
+between-target variance is only **0.257**, *smaller than the 3.07 of residual library variation it
+carries*, so the signal S5 needs is weak rather than the nuisance separation being broken.
+
+That connects to a measurement already on record: the biology basis is the leading subspace of
+within-library contrasts, and those contrasts sit near the sampling floor. A leading subspace fitted
+from mostly-noise contrasts is mostly a noise subspace. **Raising the nuisance rank would not fix
+this**; strengthening the between-target signal is the direction the evidence actually points.
 
 S4 and S2 carry measurement caveats recorded in `evaluation/gse274113_reports.py`: the placebo
 halves are smaller than the arms they are compared against, and S2 compares a posterior that
