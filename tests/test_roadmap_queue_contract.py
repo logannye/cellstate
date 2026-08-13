@@ -153,7 +153,10 @@ CROSS_REFERENCES = (
     CrossReference(
         what="the starting-work pointer names the next item",
         citation=r"the next action is item `(Q\d+)`",
-        anchor=r"fit the observation model",
+        # Moved from the observation model to the modality test when Q5 was delivered.  The pin is
+        # updated deliberately, which is the whole point: the guard refused to let the pointer
+        # drift silently onto a completed item.
+        anchor=r"run the held-out-modality test",
     ),
     CrossReference(
         what="the starting-work pointer names the blocked estimand freeze",
@@ -161,13 +164,13 @@ CROSS_REFERENCES = (
         anchor=r"freeze the state-bearing estimand",
     ),
     CrossReference(
-        what="the state-of-the-object note names the first item to build a representation",
-        citation=r"`(Q\d+)` and `Q\d+` are the first that build",
+        what="the delivered-with-negatives note names the observation-model item",
+        citation=r"\*\*`(Q\d+)` and `Q\d+` are\s+delivered, and their measurements are negative\*\*",
         anchor=r"fit the observation model",
     ),
     CrossReference(
-        what="the state-of-the-object note names the first-belief item",
-        citation=r"`Q\d+` and `(Q\d+)` are the first that build",
+        what="the delivered-with-negatives note names the first-belief item",
+        citation=r"\*\*`Q\d+` and `(Q\d+)` are\s+delivered, and their measurements are negative\*\*",
         anchor=r"emit the first biological belief",
     ),
     CrossReference(

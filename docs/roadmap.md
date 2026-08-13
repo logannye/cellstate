@@ -14,19 +14,47 @@ one, is not on this roadmap.
 evaluation design, including the formal estimand and the belief-subject semantics. This file defines
 implementation order and graduation gates, and is the sole authority for both.
 
-**If you are starting work:** the active phase is Phase 1 and the next action is item `Q5` of the
-[implementation queue](#implementation-queue) — fit the observation model on `GSE274113`. `Q1` is
-delivered; `Q2` is delivered in substance but incomplete against its own done-when; `Q3` is
-delivered and the sufficiency verdict now fails closed; `Q4` is decided, with a negative result, and
-owes a reviewed manifest. `Q8`, the estimand freeze, is blocked on source selection and is
-deliberately not next. Everything before the phase list is the standard that work is held to, not
-work.
+**If you are starting work:** the active phase is Phase 1 and the next action is item `Q6` of the
+[implementation queue](#implementation-queue). `Q1` is delivered; `Q2` is delivered in substance but
+incomplete against its own done-when; `Q3` is delivered and the sufficiency verdict now fails
+closed; `Q4` is decided, with a negative result, and owes a reviewed manifest. **`Q5` and `Q7` are
+delivered, and their measurements are negative** — see below. `Q8`, the estimand freeze, is blocked
+on source selection and is deliberately not next. Everything before the phase list is the standard
+that work is held to, not work.
 
-**The state of the object:** the state-capability ledger stands at 0 of 10, and `CellStateBelief` is
-constructed at exactly one site in `src/` — a synthetic reference. No belief has been emitted from
-real cells. Every item delivered so far has built the apparatus that judges a representation; `Q5`
-and `Q7` are the first that build the representation itself. See
-[ADR 0019](adr/0019-build-the-representation-on-held-evidence.md).
+**The state of the object: it exists, and it does not yet work.**
+
+`CellStateBelief` is now constructed from real cells. A population of CRISPRi-perturbed human CD34+
+progenitors goes through `estimate_cell_state` and comes back as a typed belief carrying a
+posterior, under the `empirical_observation_model` kind
+([ADR 0021](adr/0021-an-admissible-kind-for-a-fitted-observation-model.md)). That is the first time
+this project has computed any representation of cellular state, and it is what
+[ADR 0019](adr/0019-build-the-representation-on-held-evidence.md) reordered the queue to reach.
+
+**The state-capability ledger nonetheless stands at 0 of 10.** The capabilities `Q5` and `Q7` were
+scheduled to advance were measured on held-out libraries, with bootstrap intervals grouped at the
+library, and every one came out negative:
+
+| Capability | Measured | Interval | Required | |
+| --- | --- | --- | --- | --- |
+| S5 nuisance separation | 19.22 | [10.35, 29.90] | ≤ 0.35 | fails |
+| S4 null half (placebo) | 2.90 | [1.95, 4.03] | below the perturbed band | fails |
+| S4 non-null half | 3.08 | [2.30, 3.87] | above the null band | fails |
+| S2 earned spread | 0.22 | [0.16, 0.28] | > 1 | fails |
+
+**S5 is the clean result and the one that matters.** Across-library spread at a fixed target,
+measured in the *inferred state*, is 19× the across-target spread. The structural claim — that
+orthogonalising the biology basis against a nuisance basis fitted from `NT` residuals sends library
+variation to the nuisance block — does not hold on these bytes. A rank-3 nuisance basis does not
+span the library variation, and the remainder lands in biology.
+
+S4 and S2 carry measurement caveats recorded in `evaluation/gse274113_reports.py`: the placebo
+halves are smaller than the arms they are compared against, and S2 compares a posterior that
+conditioned on the arm against a predictor that did not. Neither failure can be attributed cleanly
+to the model, and neither is reported as if it could.
+
+Producing these numbers is what rule 10 asks of a gate that is a measurement. **The apparatus now
+judges a representation that exists, and its first verdict on that representation is negative.**
 
 ## What "faithful" means here
 
@@ -643,10 +671,17 @@ not yet decomposed into items and must not be started from prose.
    be recorded, not to be permissive, so that closes the second precondition without weakening the
    rule. What is still owed is the record's home: it lives in ADR 0020 and must also appear in the
    representability ledger and the reviewed manifest, which are the artifacts rule 6 points at.
-   The bytes themselves are **not currently held** — the 15 artifacts were re-fetched for hashing
-   and not retained — so this item begins by re-fetching roughly 3 GB against the recorded SHA-256s.
-   *Done when:* the RNA nuisance-separation test runs with an interval grouped at the library, and
-   the predeclared bound is stated before the test is run.
+   The bytes were re-fetched and verified, 15 of 15 on byte count and SHA-256.
+   **Delivered, with a negative result.** The observation model is fitted and checked in
+   (`src/cellstate/backends/gse274113/`, panel and slice under
+   `backends/vertical-a/gse274113-rna-obs-v1/`), and the nuisance-separation test ran on held-out
+   libraries against the bound **0.35**, stated before the run. It measured **19.22**, interval
+   [10.35, 29.90] grouped at the library — library variation reaches the inferred state rather than
+   staying in the nuisance block, so **S5 is not advanced**. The rank-3 nuisance basis fitted from
+   `NT` residuals does not span the library variation. Rule 10 is satisfied by producing the
+   measurement; the model is not.
+   *Done when:* unchanged, and met — the test ran with an interval grouped at the library and the
+   bound was predeclared.
 6. **`Q6` — run the held-out-modality test on clean ATAC.** [S5] Carries the test moved out of
    `Q5` by [ADR 0020](adr/0020-rna-first-nuisance-separation.md), at full strength: both directions,
    with an interval grouped at the library. Blocked until the ATAC observation space can be built
@@ -660,6 +695,19 @@ not yet decomposed into items and must not be started from prose.
    *Done when:* the test runs in both directions on a feature space carrying no imputed values, with
    its route and that route's bias stated.
 7. **`Q7` — emit the first biological belief, and test the `do` operator's null half.** [S2, S4]
+   **Delivered, with negative measurements.** A `CellStateBelief` is emitted from real cells through
+   `estimate_cell_state` for every arm of a held-out library, under the
+   `empirical_observation_model` kind authorized by
+   [ADR 0021](adr/0021-an-admissible-kind-for-a-fitted-observation-model.md). The S4 contrast is
+   measured in shared biology coordinates with both halves reported — placebo `NT_B − NT_A` at 2.90
+   [1.95, 4.03] against perturbed `target − NT` at 3.08 [2.30, 3.87] — and the bands **overlap**, so
+   the `do` operator does not discriminate a perturbation from a placebo and **S4 is not advanced**.
+   The S2 spread ratio is 0.22 [0.16, 0.28] against a requirement of >1, so **S2 is not advanced**.
+   Both carry measurement caveats recorded in `evaluation/gse274113_reports.py`: the placebo halves
+   carry fewer cells than the arms they are compared against, and the S2 comparison conditions on
+   different information. Neither negative is attributed cleanly to the model, and the caveats are
+   not treated as excuses either — the capabilities stay unadvanced.
+   *Original scope, unchanged:*
    Posterior inference through the public API, with support envelope, model and data cards, and
    abstention enforced. This is the item that makes the project's object exist: `CellStateBelief` is
    currently constructed at exactly one site in `src/`, a synthetic reference, so no belief has ever
