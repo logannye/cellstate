@@ -165,12 +165,18 @@ CROSS_REFERENCES = (
     ),
     CrossReference(
         what="the delivered-with-negatives note names the observation-model item",
-        citation=r"\*\*`(Q\d+)` and `Q\d+` are\s+delivered, and their measurements are negative\*\*",
+        citation=(
+            r"\*\*`(Q\d+)` and `Q\d+` are\s+delivered, and their measurements"
+            r" are negative\*\*"
+        ),
         anchor=r"fit the observation model",
     ),
     CrossReference(
         what="the delivered-with-negatives note names the first-belief item",
-        citation=r"\*\*`Q\d+` and `(Q\d+)` are\s+delivered, and their measurements are negative\*\*",
+        citation=(
+            r"\*\*`Q\d+` and `(Q\d+)` are\s+delivered, and their measurements"
+            r" are negative\*\*"
+        ),
         anchor=r"emit the first biological belief",
     ),
     CrossReference(
