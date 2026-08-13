@@ -15,6 +15,7 @@ def test_history_information_gain_reports_incomplete_state() -> None:
         tolerance=0.1,
         metric="negative_log_likelihood",
         interval=bootstrap_interval_factory(0.5),
+        retained_unit_fraction=1.0,
     )
     assert report.evaluation_status is EvaluationStatus.EVALUATED
     assert report.outcome is CriterionOutcome.FAILED

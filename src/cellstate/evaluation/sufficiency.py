@@ -31,9 +31,16 @@ experimental unit is not a verdict.  The gain is bootstrapped as a *paired* per-
 through :func:`cellstate.evaluation.bootstrap.multiway_clustered_bootstrap`, which is strictly more
 informative than differencing two independent means, and the interval is carried on the report.
 
-Nothing here decides whether the underlying experiment can support the comparison at all.  A query
-with no admissible pre-cutoff evidence makes ``M2`` identical to ``M1`` and the test inapplicable
-rather than passed; that judgment belongs to the query and its benchmark, not to this module.
+**Applicability.**  A query with no admissible pre-cutoff evidence makes ``M2`` identical to ``M1``,
+so the gain is exactly zero, its interval is degenerate at zero, and gating on the interval's upper
+end returns ``PASSED`` -- the strongest certificate the contract can express, earned by the absence
+of evidence.  This module used to note that such a design is "inapplicable rather than passed" and
+delegate the judgment to the query and its benchmark.  No caller existed to make it, so nothing did,
+and the ``PASSED`` stood.  The judgment now happens here: every call declares ``history_present``
+per unit, units without a pre-cutoff observation are excluded rather than averaged in as zero-gain
+units, the retained fraction is carried on the report, and a comparison retaining no unit is
+refused.  :mod:`cellstate.evaluation.query_sufficiency` computes that declaration from the requests
+themselves.  See ADR 0017.
 """
 
 from __future__ import annotations
@@ -80,6 +87,29 @@ class PredictorCapacity:
             raise ValueError("a predictor capacity must name its fitting procedure")
 
 
+def inapplicable_sufficiency_report(*, reason: str, tolerance: float) -> SufficiencyReport:
+    """Refuse the comparison, naming why, instead of returning a verdict on it.
+
+    A query with no admissible pre-cutoff evidence makes ``M2`` identical to ``M1``.  The gain is
+    then exactly zero and its bootstrap interval is degenerate at zero, so gating on the interval's
+    upper end returns ``PASSED`` with maximal confidence -- the strongest certificate of sufficiency
+    the contract can express, earned by the absence of evidence.  This module used to delegate that
+    judgment to "the query and its benchmark"; no caller existed to make it.  See ADR 0017.
+    """
+
+    if not reason:
+        raise ValueError("a refusal must name its reason")
+    return SufficiencyReport(
+        evaluation_status=EvaluationStatus.NOT_EVALUATED,
+        outcome=CriterionOutcome.NOT_EVALUATED,
+        maximum_history_information_gain=tolerance,
+        notes=(
+            "The sufficiency comparison was refused, not failed and not passed.",
+            reason,
+        ),
+    )
+
+
 def evaluate_history_information_gain(
     *,
     state_only_loss: float,
@@ -87,6 +117,7 @@ def evaluate_history_information_gain(
     tolerance: float,
     metric: str,
     interval: BootstrapInterval,
+    retained_unit_fraction: float,
     notes: tuple[str, ...] = (),
 ) -> SufficiencyReport:
     """Compare future prediction from state alone against state plus raw history.
@@ -101,6 +132,11 @@ def evaluate_history_information_gain(
     require_finite(tolerance, name="sufficiency tolerance")
     if tolerance < 0:
         raise ValueError("sufficiency tolerance must be nonnegative")
+    if not 0.0 < retained_unit_fraction <= 1.0:
+        raise ValueError(
+            "the retained unit fraction must lie in (0, 1]; a comparison retaining no unit is "
+            "inapplicable and must be refused through inapplicable_sufficiency_report"
+        )
     gain = state_only_loss - state_plus_history_loss
     # The verdict gates on the *upper end of the interval*, not on the point estimate.  A point
     # estimate inside the tolerance whose interval reaches well past it is not evidence of
@@ -126,8 +162,15 @@ def evaluate_history_information_gain(
         history_information_gain_interval=interval,
         markov_sufficiency_score=math.exp(-max(gain, 0.0)),
         maximum_history_information_gain=tolerance,
+        retained_unit_fraction=retained_unit_fraction,
         metric=metric,
-        notes=(verdict, separated, *notes),
+        notes=(
+            verdict,
+            separated,
+            f"{retained_unit_fraction:.4f} of offered units carried an admissible pre-cutoff "
+            "observation and entered the comparison.",
+            *notes,
+        ),
     )
 
 
@@ -135,6 +178,7 @@ def evaluate_predictive_sufficiency(
     *,
     state_only_losses: Sequence[float],
     state_plus_history_losses: Sequence[float],
+    history_present: Sequence[bool],
     cluster_labels: Mapping[str, Sequence[str]],
     tolerance: float,
     metric: str,
@@ -151,6 +195,17 @@ def evaluate_predictive_sufficiency(
     experimental unit, in the same order, from predictors whose declared capacity is equal.
     ``cluster_labels`` maps each dependence dimension to that unit's cluster label, and the gain is
     bootstrapped as a paired per-unit difference grouped over those dimensions.
+
+    ``history_present`` declares, per unit, whether that unit carried an admissible pre-cutoff
+    observation.  It is required rather than inferred: an all-zero history block is a legitimate
+    measurement in a sparse assay, so absence is a fact about the experiment and not about the
+    numbers, and inferring it here would silently reclassify measured zeros as missing data.
+    :func:`cellstate.evaluation.query_sufficiency.history_presence_for_cohort` computes it from the
+    requests themselves for callers that hold them.
+
+    Units without such an observation are excluded rather than averaged in, and the retained
+    fraction is carried on the report.  When no unit carries one the comparison is refused; see
+    :func:`inapplicable_sufficiency_report`.
     """
 
     if state_only_capacity != state_plus_history_capacity:
@@ -168,13 +223,45 @@ def evaluate_predictive_sufficiency(
     if not np.all(np.isfinite(state_only)) or not np.all(np.isfinite(state_plus_history)):
         raise ValueError("every held-out loss must be finite")
 
+    retained = np.asarray(history_present, dtype=bool)
+    if retained.shape != state_only.shape:
+        raise ValueError("history presence must be declared for exactly the units the losses cover")
+    offered = int(retained.size)
+    kept = int(retained.sum())
+    if kept == 0:
+        return inapplicable_sufficiency_report(
+            reason=(
+                f"None of the {offered} offered units carried an admissible pre-cutoff "
+                "observation, so the state-plus-history predictor had no history to use and the "
+                "comparison asks nothing. This is inapplicable, not sufficient."
+            ),
+            tolerance=tolerance,
+        )
+    # Excluded units are dropped from the cluster labels too.  Leaving them in would let a unit that
+    # never entered the comparison keep supplying a cluster to resample, which inflates the apparent
+    # number of independent units the interval rests on.
+    kept_indices = np.flatnonzero(retained)
+    retained_clusters = {
+        dimension: [labels[int(index)] for index in kept_indices]
+        for dimension, labels in cluster_labels.items()
+    }
+    state_only = state_only[kept_indices]
+    state_plus_history = state_plus_history[kept_indices]
+
     interval = multiway_clustered_bootstrap(
         values=state_only - state_plus_history,
-        cluster_labels=cluster_labels,
+        cluster_labels=retained_clusters,
         seed=seed,
         resample_count=resample_count,
         confidence_level=confidence_level,
         maximum_degenerate_resamples=maximum_degenerate_resamples,
+    )
+    excluded = offered - kept
+    exclusion_note = (
+        f"{excluded} of {offered} offered units carried no admissible pre-cutoff observation and "
+        "were excluded rather than averaged in as zero-gain units."
+        if excluded
+        else f"All {offered} offered units carried an admissible pre-cutoff observation."
     )
     return evaluate_history_information_gain(
         state_only_loss=float(state_only.mean()),
@@ -182,9 +269,11 @@ def evaluate_predictive_sufficiency(
         tolerance=tolerance,
         metric=metric,
         interval=interval,
+        retained_unit_fraction=kept / offered,
         notes=(
-            f"Paired over {state_only.size} experimental units with equal declared capacity "
+            f"Paired over {kept} experimental units with equal declared capacity "
             f"({state_only_capacity.family}, {state_only_capacity.parameter_count} parameters).",
+            exclusion_note,
         ),
     )
 

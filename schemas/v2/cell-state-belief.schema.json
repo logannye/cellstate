@@ -3537,6 +3537,20 @@
           "title": "Residual Predictive History Features",
           "type": "array"
         },
+        "retained_unit_fraction": {
+          "anyOf": [
+            {
+              "exclusiveMinimum": 0,
+              "maximum": 1,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Retained Unit Fraction"
+        },
         "state_only_loss": {
           "anyOf": [
             {
