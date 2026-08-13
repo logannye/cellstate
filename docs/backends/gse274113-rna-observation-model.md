@@ -117,11 +117,15 @@ honest list is empty.
 
 Two qualifications, so that these failures are not read as more than they are:
 
-- **S2's value depends on an undocumented estimand choice, so S2 is not yet measured.** The reported
-  0.22 uses the posterior's shrunk nuisance block. Using the arm's own least-squares nuisance
-  coefficients — the construction `fit.py` prescribes in as many words for inference — the same code
-  yields **1.21 [1.11, 1.31]**, which passes. Until an ADR fixes which of the two is the estimand,
-  neither number is a result and neither should be cited as one.
+- **S2's magnitude is not robust to an undocumented estimand choice, though its verdict is.** The
+  reported 0.22 uses a point predictor that takes every coefficient from the target's mean over the
+  fit libraries, which averages the arm's own nuisance coefficients away. Letting that predictor keep
+  the arm's own least-squares coefficients instead — the construction `fit.py` prescribes in as many
+  words for inference — moves the ratio to **0.65** (nuisance block only), **0.67** (nuisance and
+  realization) and **0.79** (all three blocks), a 3.6× swing across four defensible choices. **S2
+  fails under all of them**, so the capability is genuinely not advanced and the verdict stands. What
+  does not survive is the *number*: 0.22 should not be cited as the size of the shortfall, and an ADR
+  should fix the estimand before any future report quotes one.
 - **The substrate carries almost no perturbation signal**, so S2, S4 and S5 are verdicts on
   `GSE274113`'s CRISPRi arm before they are verdicts on this model. Mean on-target knockdown across
   the 19 targets is **−0.043** log2 fold-change and 6 of 19 move the **wrong way**; restricted to the
