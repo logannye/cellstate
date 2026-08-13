@@ -53,9 +53,12 @@ rejected.
 
 ### Local byte identity
 
-Recorded so that a later reviewed manifest binds the same bytes this census measured. These are the
-**local** artifacts; they have not yet been checked against the GEO record, which is item 2 of what
-`Q4` still owes below.
+Recorded so that a later reviewed manifest binds the same bytes this census measured. These were the
+**local** artifacts at the time of the census; they have since been checked against the GEO record
+and matched exactly — see [Byte identity, established](#byte-identity-established-supersedes-the-corroboration-above)
+— so this table is the binding record and needs no re-derivation. The reviewed manifest can be
+written from it without re-fetching, since each row carries the filename, byte count and SHA-256 a
+source entry requires.
 
 | Artifact | Bytes | SHA-256 |
 | --- | --- | --- |
