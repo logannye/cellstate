@@ -51,10 +51,15 @@ Omega = diag( 1/(y + 1/2) - 1/(n + G/2) )  +  psi^2
 
 The eight-dimensional state is `[biology(4) | library nuisance(3) | guide realization(1)]`.
 
-**Where S5 is won structurally.** `V` is the leading subspace of the NT arms across libraries — NT
-is the same biology everywhere, so what moves there is the library. `W` is the leading subspace of
-*within-library* contrasts — differencing inside a library cancels the library, so what moves there
-is the perturbation.
+**Where the split is attempted, and why it is not where S5 is decided.** `V` is the leading subspace
+of the NT arms across libraries — NT is the same biology everywhere, so what moves there is the
+library. `W` is the leading subspace of *within-library* contrasts — differencing inside a library
+cancels the library, so what moves there is the perturbation. An earlier revision of this card called
+that "where S5 is won structurally." It is not: a construction cannot win a capability whose
+definition is a held-out measurement, and when the measurement was run it failed at 19.22 against a
+bound of 0.35. The construction does what it says — the nuisance block absorbs 26× more library
+variance than leaks past it — and S5 still fails, because `W` is fitted from contrasts that sit near
+the sampling floor. See the ledger section below.
 
 **The declared-null intervention is estimated, not assumed.** `u_NT` comes from a deterministic
 within-library placebo split of the NT cells. A structurally-zero NT column would make the S4 null
@@ -73,9 +78,16 @@ half unfailable, which is the inert-`do` defect ADR 0019 names explicitly.
    carries all 19 target genes, so a measured efficiency is a real follow-up.
 5. **The delta-method Gaussian is poor at very low counts.** Accepted deliberately; the realized
    depth per arm is recorded above so a reader can judge it.
-6. **The residual sits at the sampling floor**, so `psi^2` is small and the posterior is tight.
-   Whether that tightness is *earned* is S2, and this model may not assert it about itself —
-   calibration adjudicates, and can fail.
+6. **`psi^2` is degenerate at its clamp in all 14 folds**, which is worse than "small" and is
+   recorded here rather than left to be rediscovered. The fitted extra-multinomial dispersion
+   `mean(residual^2) - mean(technical)` comes out **negative** in every fold and is clamped to
+   `1e-6` (`backends/gse274113/fit.py`). The driver is the zero counts: 10.6% of panel entries are
+   zero, each carries a plug-in technical variance of 2.0, and together they supply 79.6% of the
+   technical term's mass. The consequence is that **every posterior width this model reports is
+   technical-only** — precisely the failure `likelihood.py` states `psi^2` exists to prevent, so
+   that module's "it is fitted, not assumed" is false as shipped. No calibration claim may rest on
+   these widths until the zero-count handling is fixed, and this is the leading candidate cause of
+   the S2 measurement below.
 7. **Day-14 selection.** Annotation rate is 98–99% at days 7, 9 and 11 and **62%** at day 14, and
    the excluded day-14 barcodes are real cells rather than empty droplets. Composition also shifts
    with perturbation over time. Beliefs about day-14 libraries rest on a differently-selected
@@ -83,14 +95,50 @@ half unfailable, which is the inert-`do` defect ADR 0019 names explicitly.
 
 ## Ledger capabilities
 
-**Advanced, on held evidence:**
+**Advanced, on held evidence: none.**
 
-- **S5** — the nuisance axis is a declared subspace, separated from biology by construction.
-- **S2** — the belief carries a posterior whose spread responds to depth, and whose measurement and
-  biological components are computed rather than declared. Whether the spread is *earned* against
-  the point predictor's residual is not asserted here.
+S5, S2 and S4 were measured on held-out libraries after this card was first written, with intervals
+grouped at the library, and **all three failed**. The measurements are computed by
+`evaluation/gse274113_reports.py` and reproduce from the committed slice.
 
-**Reachable but not yet reported with intervals:** S4 (both halves), S6, S8.
+| | Measured | Interval | Required | |
+| --- | --- | --- | --- | --- |
+| S5 nuisance separation | 19.22 | [10.35, 29.90] | ≤ 0.35 | fails |
+| S2 earned spread | 0.22 | [0.16, 0.28] | > 1 | fails |
+| S4 null half (placebo) | 2.90 | [1.95, 4.03] | below the perturbed band | fails |
+| S4 non-null half | 3.08 | [2.30, 3.87] | above the null band | fails |
+
+An earlier revision of this section declared **S5 and S2 advanced**, on the structural argument that
+the nuisance axis is a declared subspace and that the posterior's components are computed rather
+than declared. That argument was wrong in the way [ADR 0021](../adr/0021-an-admissible-kind-for-a-fitted-observation-model.md)
+warned it would be: a *construction* is not a *measurement*, and the measurement went the other way.
+The claim is withdrawn. ADR 0021 decision 5 requires the advanced entries to be named here, and the
+honest list is empty.
+
+Two qualifications, so that these failures are not read as more than they are:
+
+- **S2's value depends on an undocumented estimand choice, so S2 is not yet measured.** The reported
+  0.22 uses the posterior's shrunk nuisance block. Using the arm's own least-squares nuisance
+  coefficients — the construction `fit.py` prescribes in as many words for inference — the same code
+  yields **1.21 [1.11, 1.31]**, which passes. Until an ADR fixes which of the two is the estimand,
+  neither number is a result and neither should be cited as one.
+- **The substrate carries almost no perturbation signal**, so S2, S4 and S5 are verdicts on
+  `GSE274113`'s CRISPRi arm before they are verdicts on this model. Mean on-target knockdown across
+  the 19 targets is **−0.043** log2 fold-change and 6 of 19 move the **wrong way**; restricted to the
+  15 targets detected above 200 panel-CPM it is **−0.094**. SNAI2 (0 CPM) and PRDM16 (3 CPM) are not
+  expressed at all, so two targets are unmeasurable in this readout. A working CRISPRi knockdown is
+  roughly −1 to −2. All three capabilities divide by or compare against a between-target biology
+  variance of **0.257**. ⚠️ These knockdown figures are measured from the committed slice but **no
+  committed runner computes them**; they are a recorded claim, not a checked one, and carry the same
+  standing as the census in the representability ledger.
+
+S5's failure is the one that does bear on the model, and its diagnosis is not the obvious one.
+Decomposed by block, across-library variance is **79.27** in the nuisance block against **3.07** in
+biology, so the nuisance basis absorbs roughly 26× more than leaks past it. What fails is the
+denominator: between-target variance is 0.257, smaller than the residual library variation the
+biology block carries. Raising the nuisance rank does not repair this and was measured not to.
+
+**Reachable but not yet reported with intervals:** S6, S8.
 
 **Structurally unreachable on this evidence, and not claimed:**
 
