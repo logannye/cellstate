@@ -185,6 +185,19 @@ posture already recorded for `GSE141064` under the policy id `gse141064-geo-righ
 downloadability is not a licence grant, and the absence of stated terms is an unresolved right
 rather than an open one.
 
+**The scope of use, recorded (added 2026-08-13, per
+[ADR 0020](../../adr/0020-rna-first-nuisance-separation.md) decision 4).** The publication's data
+availability statement is a bare deposit statement — "Raw and processed data have been deposited at
+GEO (accession numbers GSE274110 and GSE274113)" — with no terms, and no reuse conditions appear
+anywhere in the article. The article is CC BY 4.0 under HHMI's open-access policy; **that licenses
+the article, not the data**, and the two are not conflated here.
+
+The recorded position is therefore: *no terms asserted by submitter or journal, and no grant
+asserted either; owner-authorized for internal method development; **not cleared for any published
+biological claim***. Rule 6 requires the licence to be **recorded**, not to be permissive, so this
+satisfies rule 6 as written and **no rule is amended or weakened**. Any future publication re-opens
+the question rather than inheriting this decision.
+
 ### Byte identity: corroborated at the listing's resolution, not established
 
 **GEO publishes no checksum for these artifacts.** The series `filelist.txt` covers only the members
@@ -302,18 +315,32 @@ series must say which family it reads.
 
 ## What `Q4` still owes
 
-Items 1 to 3 are **resolved above**, and resolved against the source rather than in its favour:
-the licence is unresolved at source, byte identity is corroborated but not established, and the
-independent parent culture count is one and unmeasurable. What follows is what remains open, and
-none of it can change the decision those three facts force.
-4. **Whether the ATAC feature space is shared.** RNA is a fixed 36,601 features in every library.
-   The peak sets are not obviously shared and this has not been verified here; if the source
-   survives, a fixed-bin or peak-union aggregation becomes a named `Q5` deliverable.
-5. **A committed runner.** Every number above was computed from the bytes, but by a script held
-   outside this repository, so no reader can reproduce them from a checkout. Until a runner is
-   committed alongside the reviewed manifest, this census is a recorded claim rather than a checked
-   one, which is the same defect this project's rules exist to prevent. The tables stand as
-   measurements; they do not yet stand as reproducible measurements.
+Items 1 to 4 are **resolved above**, and resolved against the source rather than in its favour.
+This list is kept current as each is answered, because a list of open questions that still names
+answered ones is indistinguishable from one that has not been read.
+
+1. **Licence and use terms** — resolved: unresolved at source, and now *recorded* at a declared
+   scope (owner-authorized for internal method development, not cleared for any published
+   biological claim). Rule 6 asks for a record, not for permission.
+2. **The independent parent culture count** — resolved: it is one, and it is unmeasurable from what
+   is deposited. This is the fact that rejected the source for the state estimand.
+3. **Byte identity** — resolved and **established**, superseding the corroboration recorded earlier
+   in this file: all 15 artifacts re-fetched and matched exactly on byte count and SHA-256.
+4. **Whether the ATAC feature space is shared** — resolved, and the answer is **no**: 14 distinct
+   peak sets, size confounded with differentiation time at `r` = −0.973, and the fixed-bin fix
+   measured not to work. See the section above. This is what moved the held-out-modality test
+   behind clean ATAC.
+
+What remains open is one item, and it is the one that makes the rest checkable rather than merely
+recorded:
+
+5. **A committed runner, and the reviewed manifest it lands with.** Every number above was computed
+   from the bytes, but by a script held outside this repository, so no reader can reproduce them
+   from a checkout — and the bytes themselves are no longer held locally, having been re-fetched for
+   hashing and not retained. Until a runner is committed alongside the reviewed manifest, this
+   census is a recorded claim rather than a checked one, which is the same defect this project's
+   rules exist to prevent. The tables stand as measurements; they do not yet stand as reproducible
+   measurements.
 
 ## The decision this hands to the ADR
 

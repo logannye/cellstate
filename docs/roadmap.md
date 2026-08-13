@@ -16,10 +16,11 @@ implementation order and graduation gates, and is the sole authority for both.
 
 **If you are starting work:** the active phase is Phase 1 and the next action is item `Q5` of the
 [implementation queue](#implementation-queue) — fit the observation model on `GSE274113`. `Q1` is
-delivered; `Q2` is delivered in substance but incomplete against its own done-when; `Q3` repairs the
-sufficiency verdict; `Q4` is decided, with a negative result, and owes a reviewed manifest. `Q8`, the
-estimand freeze, is blocked on source selection and is deliberately not next. Everything before the
-phase list is the standard that work is held to, not work.
+delivered; `Q2` is delivered in substance but incomplete against its own done-when; `Q3` is
+delivered and the sufficiency verdict now fails closed; `Q4` is decided, with a negative result, and
+owes a reviewed manifest. `Q8`, the estimand freeze, is blocked on source selection and is
+deliberately not next. Everything before the phase list is the standard that work is held to, not
+work.
 
 **The state of the object:** the state-capability ledger stands at 0 of 10, and `CellStateBelief` is
 constructed at exactly one site in `src/` — a synthetic reference. No belief has been emitted from
@@ -87,7 +88,10 @@ These apply to every phase.
    the old-to-new queue mapping. Reordering the queue so the representation is built on evidence
    already held, ahead of freezing an estimand, is decided by
    [ADR 0019](adr/0019-build-the-representation-on-held-evidence.md), which carries its own mapping
-   table.
+   table. Splitting the held-out-modality test into its own item, and the renumbering that follows
+   it, are decided by [ADR 0020](adr/0020-rna-first-nuisance-separation.md), which carries a mapping
+   table that supersedes ADR 0019's. **An ADR that changes the queue carries a mapping table**, and
+   every earlier table is read through the latest one.
 5. **Every model declares its scope.** Query family, system boundary, assays, interventions,
    environments, horizons, and out-of-support and abstention behavior, in a registered model card
    alongside its data card.
@@ -191,7 +195,7 @@ Graduation gate:
   method they bind, resolves to an executable implementation with a golden fixture. A conformance
   test reads that specification and fails on any entry that does not resolve. Separately, no metric
   suite frozen under this roadmap contains a specification-only entry — a constraint that first binds
-  at `Q5`, since no such suite exists yet.
+  at `Q8`, the estimand-and-benchmark freeze, since no such suite exists yet.
 - The sufficiency harness returns the correct verdict, with an interval, on two synthetic designs:
   one where the state is sufficient by construction and one where it is not.
 - The sufficiency harness **refuses** a design on which the question is not being asked, rather than
@@ -201,7 +205,11 @@ Graduation gate:
   the Phase 2 estimand and the proving-ground query cannot satisfy S1, S3, or S7 — and a gate that
   cannot be passed, carried without a record of why, is exactly what rule 4 exists to prevent. See
   [ADR 0017](adr/0017-the-sufficiency-verdict-must-fail-closed.md). The floor itself is measured at
-  `Q5`, with the same interval discipline.
+  `Q8`, with the same interval discipline. ADR 0017 assigned the floor to the queue slot that then
+  held the estimand freeze; two later reorders moved that slot without moving the assignment, so the
+  item named here is the estimand freeze at its current ordinal, not the observation-model item that
+  now carries the old number. See [ADR 0019](adr/0019-build-the-representation-on-held-evidence.md)
+  and [ADR 0020](adr/0020-rna-first-nuisance-separation.md).
 
 ## Phase 2 — freeze a state-bearing estimand
 
@@ -227,19 +235,26 @@ Requirements for a state-bearing query:
 - a randomized or otherwise identified intervention with matched controls;
 - persistence and temporal state-space baselines both **applicable and mandatory**.
 
-Primary candidate, pending the unit census in queue item `Q4`: `GSE274113` Perturb-Multiome. A
-local-presence audit ([`data/evidence-inventory.md`](data/evidence-inventory.md)) records paired
-same-cell RNA and ATAC, about 137,600 cells, twenty CRISPR targets including control, and days 7, 9,
-11, and 14 with replicate libraries. **None of these figures is verified against source bytes.** The
-number of libraries, the number of libraries per treatment arm, and whether any population unit was
-sampled both at day 7 and at a later day are all unknown.
+**There is no candidate.** `GSE274113` Perturb-Multiome was this roadmap's only named candidate and
+is **rejected for this estimand** by [ADR 0018](adr/0018-gse274113-rejected-for-the-state-estimand.md).
+The rejection is recorded here rather than in the queue alone, so that a future reader does not
+rediscover the source and re-propose it.
 
-The intended design — day 7 as the pre-cutoff population observation; days 9, 11, and 14 as horizons;
-the library as split and bootstrap unit; the subject declared a population because cells are
-destructive with no cross-time identity — is a hypothesis that `Q4` must confirm before `Q5` freezes
-it. If no unit spans the inference cutoff, the day-7 observation is condition-level and this source
-fails S1. If the design is approximately one library per treatment arm, it falls under exclusion 2
-below. In either case the estimand is redesigned or the source is rejected.
+The figures are now verified against source bytes, and they are what rejected it. The intended
+design — day 7 as the pre-cutoff population observation; days 9, 11, and 14 as horizons; the library
+as split and bootstrap unit; the subject declared a population because cells are destructive with no
+cross-time identity — was a hypothesis, and the census in
+[the representability ledger](data/representability/gse274113-perturb-multiome.md) falsified it:
+**0 of 14 libraries span a timepoint**, so no unit is observed both before and after the cutoff and
+S1 fails; the day 7 → day 14 effect is ρ = −0.026 against a permutation null of 0.025, so the
+longest horizon is empty; and above the library the series supplies **one** independent parent
+culture, which neither the publication nor the deposited metadata can raise. Redesigning onto the
+target as the spanning unit is inadmissible under rule 8 — a target is the treatment, not a
+container — and would need its own rule 4 amendment.
+
+The source is retained under rule 7 for the observation-model work at `Q5` and `Q6`, where the
+library nuisance axis is S5's object rather than a defect. Retention for one claim is not candidacy
+for this one.
 
 Explicitly not candidates for this estimand, with reasons recorded rather than rediscovered:
 
@@ -442,15 +457,26 @@ required before any operational biological claim.
   resolves to an implementation, and the multiway clustered bootstrap those metrics bind is
   implemented and its coverage measured. `Q2` is **incomplete against its own done-when**. Both
   faithfulness tests execute, return an interval, and are enforced by their serialized contracts, but
-  the clause requiring non-test callers is unmet: `evaluate_predictive_sufficiency` is called from no
-  file in `src/`, `scripts/`, or `examples/`. An earlier revision of this section recorded `Q2`
-  delivered and claimed that **the project can recognize a faithful representation**. That claim is
-  withdrawn. The project can compute a history-information gain with an interval. It cannot yet
-  recognize a faithful representation, because a design carrying no admissible pre-cutoff evidence
-  returns `PASSED` with a degenerate interval — the strongest certificate the contract can express,
-  earned by the absence of evidence — and the applicability judgment that would refuse it is
-  delegated to a caller that does not exist. `Q3` repairs this; see
-  [ADR 0017](adr/0017-the-sufficiency-verdict-must-fail-closed.md).
+  the clause requiring non-test callers is **half** met. `evaluate_predictive_sufficiency` now has
+  one, supplied by `Q3`: `src/cellstate/evaluation/query_sufficiency.py` computes the applicability
+  judgment from the request and calls the harness. `evaluate_marginal_calibration` still has none —
+  it is called from no file in `src/`, `scripts/`, or `examples/` — and that, not the sufficiency
+  harness, is `Q2`'s remaining unmet clause.
+
+  An earlier revision of this section recorded `Q2` delivered and claimed that **the project can
+  recognize a faithful representation**. That claim was withdrawn and stays withdrawn. What has
+  changed is narrower than it sounds: the harness no longer returns `PASSED` on a design carrying no
+  admissible pre-cutoff evidence, because `Q3` supplied the delegate that refuses it. The project can
+  compute a history-information gain with an interval, and can now refuse to compute one where the
+  question is not being asked. It still cannot recognize a faithful representation, because no such
+  computation has been run against biology.
+
+  `Q3` is **delivered**. A design whose history blocks are all absent returns a not-evaluated report
+  rather than `PASSED`; the retained fraction is carried on `SufficiencyReport`, round-trips, and a
+  retained fraction of zero is unrepresentable; and the harness has a non-test caller in `src/`. See
+  [ADR 0017](adr/0017-the-sufficiency-verdict-must-fail-closed.md). That caller lives inside
+  `cellstate.evaluation` and nothing outside that package calls it, so the delegate exists but the
+  production path to it does not yet.
 
   What the project has not done at all is apply the tests to biology: no baseline has been scored
   against any other, no observational floor is measured, and no belief has been emitted by a
@@ -464,13 +490,16 @@ required before any operational biological claim.
   implementation applies after [ADR 0016](adr/0016-the-verdict-gates-on-the-interval.md) brings it
   to 0.935, and **not to 0.95**. The earlier figures recorded here — 0.82 to 0.86 unscaled and
   about 0.96 scaled — were measured on a balanced generator at one variance configuration and did
-  not survive contact with the partition's own compound-by-plate incidence. `Q3` and `Q5` should
-  read the residual under-coverage as the property Phase 2 requires a state-bearing estimand *not*
-  to have: enough independent units that its interval does not need rescuing.
-- **Phase 2:** not started, and **has no candidate source.** `Q4` is complete with a negative
-  result: `GSE274113`, this roadmap's only named Phase 2 candidate, is rejected for the
-  state-bearing estimand by [ADR 0018](adr/0018-gse274113-rejected-for-the-state-estimand.md). It
-  is retained under rule 7 for `Q6`. **Registered sources satisfying S1 — a unit observed both
+  not survive contact with the partition's own compound-by-plate incidence. `Q8` should read the
+  residual under-coverage as the property Phase 2 requires a state-bearing estimand *not* to have:
+  enough independent units that its interval does not need rescuing.
+- **Phase 2:** not started, and **has no candidate source.** `Q4` is **decided and not complete**:
+  the review is finished and its result is negative — `GSE274113`, this roadmap's only named Phase 2
+  candidate, is rejected for the state-bearing estimand by
+  [ADR 0018](adr/0018-gse274113-rejected-for-the-state-estimand.md) — but the reviewed manifest its
+  done-when requires is not written, so the item stays open. Recording it complete here against an
+  unmet done-when would repeat, for `Q4`, the error ADR 0017 corrected for `Q2`. The source is
+  retained under rule 7 for `Q5` and `Q6`. **Registered sources satisfying S1 — a unit observed both
   before and after an inference cutoff — remain zero**, and S1 is the binding constraint on the
   whole program: a query failing it cannot test S7, and S7 is the definition of faithful. Unlike
   every capability advanced so far, S1 cannot be advanced by writing code. It is a property of an
@@ -576,14 +605,19 @@ not yet decomposed into items and must not be started from prose.
    is ρ = −0.026 against a permutation null of 0.025, and above the library the series supplies one
    independent parent culture, which neither the publication nor the deposited metadata can raise.
    The target-as-spanning-unit redesign is inadmissible under rule 8 and would itself need a rule 4
-   amendment. The source is retained under rule 7 for `Q6`, where a measured library nuisance axis
-   is S5's object rather than a defect, subject to resolved licence terms and established byte
-   identity. A rejection recorded for cause is a legitimate outcome for this item — rule 10's
+   amendment. The source is retained under rule 7 for `Q5`, where a measured library nuisance axis
+   is S5's object rather than a defect, and for `Q6`, subject to established byte identity — now
+   closed — and to a recorded licence position. A rejection recorded for cause is a legitimate
+   outcome for this item — rule 10's
    principle, that a gate which is a measurement is passed by producing the measurement, applies to
    source review as much as to a verdict — but the outcome still has to be recorded in the artifact
    the item names. What remains is a reviewed manifest carrying the claim-specific split ADR 0018
-   decides: ineligible for the state-bearing estimand, retained for `Q6`. That split is currently
-   prose, and `ClaimAssessment` is the mechanism that makes it machine-checkable.
+   decides: ineligible for the state-bearing estimand, retained for `Q5` and `Q6`. That split is
+   currently prose, and `ClaimAssessment` is the mechanism that makes it machine-checkable. The
+   manifest also owes the committed runner the ledger names as outstanding: every census figure was
+   computed from the bytes by a script held outside this repository, so no reader can reproduce them
+   from a checkout, and until one is committed the census is a recorded claim rather than a checked
+   one.
    *Done when:* unchanged — the census is in the reviewed manifest.
 5. **`Q5` — fit the observation model and separate the nuisance axis.** [S5] On `GSE274113`, the
    source [ADR 0018](adr/0018-gse274113-rejected-for-the-state-estimand.md) rejected for the state
@@ -602,7 +636,15 @@ not yet decomposed into items and must not be started from prose.
    predeclared bound on held-out units — so a nuisance axis of measured size is the material this
    test needs, not an obstacle to it. Byte identity is **established** — all 15 artifacts re-fetched
    from GEO and matched exactly on byte count and SHA-256 — which closes one of the two preconditions
-   ADR 0018 set. Licence terms remain **unresolved at source** and are still owed.
+   ADR 0018 set. Licence terms are **unresolved at source and recorded as such** — no terms asserted
+   by submitter or journal, and no grant asserted either, owner-authorized for internal method
+   development and **not cleared for any published biological claim**, per
+   [ADR 0020](adr/0020-rna-first-nuisance-separation.md) decision 4. Rule 6 requires the licence to
+   be recorded, not to be permissive, so that closes the second precondition without weakening the
+   rule. What is still owed is the record's home: it lives in ADR 0020 and must also appear in the
+   representability ledger and the reviewed manifest, which are the artifacts rule 6 points at.
+   The bytes themselves are **not currently held** — the 15 artifacts were re-fetched for hashing
+   and not retained — so this item begins by re-fetching roughly 3 GB against the recorded SHA-256s.
    *Done when:* the RNA nuisance-separation test runs with an interval grouped at the library, and
    the predeclared bound is stated before the test is run.
 6. **`Q6` — run the held-out-modality test on clean ATAC.** [S5] Carries the test moved out of

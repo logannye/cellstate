@@ -1,7 +1,14 @@
 # ADR 0019: Build the representation on evidence already held, ahead of freezing an estimand
 
-- **Status:** Accepted
+- **Status:** Accepted; the queue mapping in decision 1 is **superseded** by
+  [ADR 0020](0020-rna-first-nuisance-separation.md)
 - **Date:** 2026-08-13
+
+> **Read the ordinals through ADR 0020.** This record's decision is unchanged — the representation is
+> built on held evidence before an estimand is frozen — but ADR 0020 inserted the held-out-modality
+> test as its own item, which shifted every ordinal after it. Where this record says `Q6` (first
+> belief) read `Q7`; where it says `Q7` (freeze the estimand) read `Q8`; where it says `Q8` (state
+> backend) read `Q9`. The queue in `docs/roadmap.md` is the authority.
 
 ## Context
 

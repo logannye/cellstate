@@ -58,9 +58,28 @@ across all fourteen libraries.** Shared feature space, no per-library calling st
    Weakening a declared test so that available data can pass it is the failure mode this project
    exists to prevent, and it would be undetectable afterward. Moving the test is visible.
 
-3. **S2 and S4 remain in `Q6` and are unaffected.** Neither needs a second modality. `NT` versus 19
-   perturbed transcription factors is an RNA-readable contrast, fully crossed with library at 280 of
-   280, so both halves of S4 survive intact.
+   Inserting an item renumbers everything after it, so this record carries its own mapping table and
+   it supersedes [ADR 0019](0019-build-the-representation-on-held-evidence.md)'s. Read every earlier
+   table through this one.
+
+   | Before this record | After | Note |
+   | --- | --- | --- |
+   | `Q5` observation model | `Q5` | unchanged in ordinal; loses the held-out-modality test |
+   | — | `Q6` held-out-modality test on clean ATAC | new, authorized by decision 2 |
+   | `Q6` first biological belief | `Q7` | unchanged in substance |
+   | `Q7` freeze the estimand | `Q8` | unchanged in substance; still blocked on source selection |
+   | `Q8` state backend and verdict | `Q9` | unchanged in substance |
+
+   Two consequences of this table are not cosmetic. The **observational floor**, assigned by
+   [ADR 0017](0017-the-sufficiency-verdict-must-fail-closed.md) to the slot then holding the estimand
+   freeze, is measured at `Q8` — not at `Q5`, which after two reorders holds the observation model
+   and measures no floor. The **specification-only constraint** on frozen metric suites likewise
+   first binds at `Q8`, the item that freezes a suite. Phase 1's graduation gate cited the old
+   ordinal for both and is corrected in the same change as this record.
+
+3. **S2 and S4 remain in the first-belief item — `Q7` after the table above — and are unaffected.**
+   Neither needs a second modality. `NT` versus 19 perturbed transcription factors is an RNA-readable
+   contrast, fully crossed with library at 280 of 280, so both halves of S4 survive intact.
 
 4. **Licence status is recorded, and its scope is recorded with it.** The publication's data
    availability statement is a bare deposit statement — "Raw and processed data have been deposited
