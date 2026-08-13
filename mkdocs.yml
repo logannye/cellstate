@@ -21,7 +21,6 @@ nav:
       - Real-data representability:
           - Replogle K562: data/representability/replogle-2022-k562.md
           - GSE141064 Live-seq: data/representability/gse141064-liveseq-functional-recorder.md
-          - GSE274113 Perturb-Multiome census: data/representability/gse274113-perturb-multiome.md
   - Verticals:
       - Vertical A estimand (draft): verticals/vertical-a-estimand.md
   - Guides:
