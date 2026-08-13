@@ -14,6 +14,8 @@ nav:
       - Data contracts: architecture/data-contracts.md
       - Biological model bundles: architecture/biological-model-bundles.md
       - Inference pipeline: architecture/inference-pipeline.md
+  - State-path models:
+      - GSE274113 RNA observation model: backends/gse274113-rna-observation-model.md
   - Components (off the state path):
       - sci-Plex3 K562 assay-response component: backends/sciplex3-k562-population-response.md
   - Data:
