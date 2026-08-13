@@ -19,7 +19,7 @@ def test_history_information_gain_reports_incomplete_state() -> None:
     assert report.evaluation_status is EvaluationStatus.EVALUATED
     assert report.outcome is CriterionOutcome.FAILED
     assert report.history_information_gain == pytest.approx(0.5)
-    assert "incomplete" in report.notes[0]
+    assert "not shown to be complete" in report.notes[0]
 
 
 def test_interval_coverage() -> None:

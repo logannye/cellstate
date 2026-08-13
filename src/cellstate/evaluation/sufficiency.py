@@ -10,8 +10,11 @@ predictors:
     predicts the future from the state and the raw pre-cutoff history.
 
 The history information gain is ``loss(M1) - loss(M2)`` under a negatively oriented proper score.
-A gain at or below the declared tolerance supports approximate sufficiency; a gain above it says
-the state is missing something the history still carries.
+Approximate sufficiency is supported when the **upper end of the gain's interval** falls at or
+below the declared tolerance; otherwise the state is not shown to carry what the history does.
+The gate is the interval, not the point estimate: a gain of zero measured so imprecisely that the
+interval reaches far past the tolerance is an underpowered comparison, and reporting it as
+sufficiency would let a weak experiment certify a state it never tested.  See ADR 0016.
 
 Two properties make the comparison mean what it claims.
 
@@ -99,11 +102,15 @@ def evaluate_history_information_gain(
     if tolerance < 0:
         raise ValueError("sufficiency tolerance must be nonnegative")
     gain = state_only_loss - state_plus_history_loss
-    supported = gain <= tolerance
+    # The verdict gates on the *upper end of the interval*, not on the point estimate.  A point
+    # estimate inside the tolerance whose interval reaches well past it is not evidence of
+    # sufficiency; it is an underpowered comparison.  This is the same argument ADR 0015 made for
+    # calibration, applied to the test it was written alongside.  See ADR 0016.
+    supported = interval.upper <= tolerance
     verdict = (
-        "Approximate sufficiency supported at the configured tolerance."
+        "Approximate sufficiency supported: the interval's upper end is within the tolerance."
         if supported
-        else "Raw history materially improves prediction; the state is incomplete."
+        else "Raw history may materially improve prediction; the state is not shown to be complete."
     )
     separated = (
         "The interval excludes zero."
@@ -214,7 +221,12 @@ def fit_paired_ridge_losses(
     both declare.  The loss is per unit so the caller can bootstrap the paired difference.
     """
 
-    if state_features.shape[0] != history_features.shape[0] != targets.shape[0]:
+    # Written as two explicit comparisons: the chained form ``a != b != c`` is ``a != b and
+    # b != c``, which never compares ``a`` with ``c`` and so passes ``(10, 10, 8)`` silently.
+    if (
+        state_features.shape[0] != history_features.shape[0]
+        or state_features.shape[0] != targets.shape[0]
+    ):
         raise ValueError("state, history, and targets must cover the same units")
     if train_mask.shape[0] != targets.shape[0]:
         raise ValueError("the training mask must cover the same units")

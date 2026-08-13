@@ -316,9 +316,18 @@ class SufficiencyReport(SchemaModel):
                 raise ValueError(
                     "the interval must be the sampling distribution of the reported gain"
                 )
-            expected = CriterionOutcome.PASSED if gain <= threshold else CriterionOutcome.FAILED
+            # The verdict gates on the upper end of the interval, not the point estimate: a gain
+            # inside the tolerance whose interval reaches past it is an underpowered comparison,
+            # not evidence of sufficiency.  ADR 0015 made this argument for calibration; ADR 0016
+            # applies it to the sufficiency test it was written alongside.
+            expected = (
+                CriterionOutcome.PASSED if interval.upper <= threshold else CriterionOutcome.FAILED
+            )
             if self.outcome is not expected:
-                raise ValueError("sufficiency outcome must agree with its declared threshold")
+                raise ValueError(
+                    "sufficiency outcome must agree with its declared threshold, which is applied "
+                    "to the upper end of the gain interval"
+                )
         return self
 
 
@@ -539,14 +548,49 @@ class CalibrationReport(SchemaModel):
             )
             if bound < error:
                 raise ValueError("an upper confidence bound cannot lie below the error it bounds")
+            # The bound is the quantity the outcome gates on, so it has to be *checkable*.  A
+            # bound the caller types by hand is a certificate that is filed and never presented:
+            # the gate would be defeated by writing a small number.  ADR 0016 therefore requires
+            # the interval and rebuilds the bound from it.
+            if self.coverage_interval is None:
+                raise ValueError(
+                    "an evaluated calibration report requires the grouped bootstrap interval its "
+                    "upper confidence bound is derived from"
+                )
+            coverage = require_finite(
+                cast(float, self.empirical_coverage), name="empirical coverage"
+            )
+            if not math.isclose(
+                self.coverage_interval.point_estimate, coverage, rel_tol=1e-9, abs_tol=1e-12
+            ):
+                raise ValueError(
+                    "the interval must be the sampling distribution of the reported coverage"
+                )
+            # ``nominal`` is not carried on the report, but it is recoverable: the error is the
+            # absolute deviation of coverage from nominal, so nominal is one of two values.  The
+            # bound must be the one this interval implies for one of them.
+            if not any(
+                math.isclose(
+                    bound,
+                    max(
+                        abs(self.coverage_interval.lower - nominal),
+                        abs(self.coverage_interval.upper - nominal),
+                        error,
+                    ),
+                    rel_tol=1e-9,
+                    abs_tol=1e-12,
+                )
+                for nominal in (coverage - error, coverage + error)
+            ):
+                raise ValueError(
+                    "the upper confidence bound must be the larger absolute deviation of the "
+                    "coverage interval's endpoints from nominal"
+                )
             # S6 asks whether the coverage error is within threshold as an upper bound.  A point
             # estimate inside the threshold with a bound outside it is not a pass.  See ADR 0015.
             expected = (
                 CriterionOutcome.PASSED
-                if (
-                    cast(float, self.empirical_coverage) >= self.minimum_coverage
-                    and bound <= self.maximum_calibration_error
-                )
+                if (coverage >= self.minimum_coverage and bound <= self.maximum_calibration_error)
                 else CriterionOutcome.FAILED
             )
             if self.outcome is not expected:

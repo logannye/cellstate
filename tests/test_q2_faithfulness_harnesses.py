@@ -130,7 +130,7 @@ class TestTheTwoSyntheticDesigns:
         assert interval.lower > 0.0
         assert interval.excludes_zero is True
         assert report.history_information_gain > 1.0
-        assert "state is incomplete" in report.notes[0]
+        assert "not shown to be complete" in report.notes[0]
 
     def test_the_verdict_is_reported_whichever_way_it_goes(self) -> None:
         """A negative verdict is a result.  Both designs produce a measurement with an interval."""

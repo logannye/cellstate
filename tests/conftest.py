@@ -103,7 +103,25 @@ def bootstrap_interval_factory(
         degenerate_resample_count=0,
         seed=0,
         rng_algorithm="numpy-pcg64dxsm-v1",
-        implementation_version="1.0.0",
+        implementation_version="2.0.0",
+    )
+
+
+def calibration_error_bound(
+    *, empirical_coverage: float, nominal_probability: float, half_width: float
+) -> float:
+    """The upper confidence bound ``CalibrationReport`` will accept for such an interval.
+
+    ADR 0016 made the bound recomputable from the interval, so a test that wants an evaluated
+    calibration report has to supply a bound consistent with the interval it supplies.  This
+    mirrors ``evaluate_marginal_calibration``'s own derivation rather than restating a constant.
+    """
+
+    error = abs(empirical_coverage - nominal_probability)
+    return max(
+        abs(empirical_coverage - half_width - nominal_probability),
+        abs(empirical_coverage + half_width - nominal_probability),
+        error,
     )
 
 

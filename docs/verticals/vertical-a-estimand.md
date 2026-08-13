@@ -288,7 +288,8 @@ This draft must remain unfrozen until all of the following are complete:
    approved in a versioned frozen benchmark manifest.
 9. The metrics this estimand will be scored on have executable implementations, and the sufficiency
    and calibration harnesses return a verdict with an interval grouped at the independent
-   experimental unit. Today no metric implementation exists in any frozen suite and neither harness
-   has a caller outside tests, so a benchmark frozen against this document could not yet be run.
+   experimental unit. Both halves are now implemented, but neither harness has a caller outside
+   `tests/` and the frozen suite's own bindings remain `specification_only`, so a benchmark frozen
+   against this document still could not be run end to end.
 
 Until then, this document is a design input—not a scientific support claim.

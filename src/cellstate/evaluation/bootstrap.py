@@ -24,14 +24,16 @@ The frozen semantics are:
   conditions the interval on the resamples that happened to be well behaved.
 
 **Why the endpoints are scaled.**  The multinomial pigeonhole bootstrap understates variance when
-a dimension has few clusters: a cluster's draw count has variance ``1 - 1/K`` rather than one, so
-the resampled spread is biased low by roughly that factor, and the bias does not vanish as the
-number of resamples grows.  Following the multiway-clustering convention of using a Student ``t``
-reference with ``min(K_d) - 1`` degrees of freedom, each endpoint's distance from the point
-estimate is scaled by ``t(min(K_d) - 1, 1 - alpha/2) / z(1 - alpha/2)``.  The factor decays to one
-as cluster counts grow and inflates sharply when they are small, which is the honest behavior:
-two clusters cannot support a 95 percent interval, and the interval should say so by being wide
-rather than by being precise and wrong.
+a dimension has few clusters, for two separate reasons, and :func:`small_cluster_scale` corrects
+both.  First, a cluster's draw count has variance ``1 - 1/K`` rather than one, so the resampled
+spread is biased low by ``sqrt((K - 1) / K)`` and the bias does not vanish as the number of
+resamples grows.  Second, a statistic formed from ``K`` clusters belongs against a Student ``t``
+reference with ``K - 1`` degrees of freedom rather than a normal one.  Each endpoint's distance
+from the point estimate is therefore scaled by
+``sqrt(K / (K - 1)) * t(K - 1, 1 - alpha/2) / z(1 - alpha/2)`` for ``K = min(K_d)``.  Both factors
+decay to one as cluster counts grow and inflate sharply when they are small, which is the honest
+behavior: two clusters cannot support a 95 percent interval, and the interval should say so by
+being wide rather than by being precise and wrong.
 
 The rule takes the smallest cluster count across dimensions and so is deliberately conservative:
 when the sparse dimension contributes little of the variance the interval is wider than it needs
@@ -39,10 +41,26 @@ to be.  That is the direction to err in, since the predicate a superiority claim
 whether the interval excludes zero.  Both raw percentile endpoints are reported alongside the
 scaled ones so the size of the correction is auditable and never silent.
 
-Measured coverage of a nominal 0.95 interval for the mean, over 300 simulated two-way
-random-effects designs per seed, is recorded in ``tests/test_q1_bootstrap.py``.  At the four-plate
-shape of the sci-Plex3 untouched-test partition the unscaled percentile interval covers about 0.82
-to 0.86 across seeds and resample counts; the scaled interval covers about 0.96.
+**Measured coverage, and its limit.**  Simulated two-way random-effects designs on the *real*
+incidence of the sci-Plex3 untouched-test partition — 384 wells, 4 plates, 95 compound labels, 94
+of which sit on exactly two plates — at nominal 0.95, 600 replications, 400 resamples:
+
+===================================  ==============  ====================
+variance regime                      ``t/z`` only    with ``sqrt(K/(K-1))``
+===================================  ==============  ====================
+plate-dominated (sd 2.0 / 0.2)       0.908 +- 0.012  0.935 +- 0.010
+plate-only      (sd 1.0 / 0.0)       0.912 +- 0.012  0.943 +- 0.009
+balanced        (sd 1.0 / 1.0)       0.940 +- 0.010  0.960 +- 0.008
+compound-dominated (sd 0.2 / 2.0)    0.998 +- 0.002  1.000
+plate-free      (sd 0.0 / 1.0)       1.000           1.000
+===================================  ==============  ====================
+
+ADR 0016 added the first column's missing factor because ``t/z`` alone under-covers by a margin
+that excludes nominal whenever the four-plate dimension carries the variance.  **Even corrected,
+coverage at ``K = 4`` in a plate-dominated regime is about 0.94, not 0.95.**  That residual is
+reported rather than tuned away: four clusters do not support a 95 percent interval, and a claim
+resting on one should be read with that in mind.  It is the property Phase 2 requires a
+state-bearing estimand to *not* have.
 
 Nothing in this module decides whether a comparison is scientifically meaningful.  It reports the
 sampling distribution of a statistic under the declared dependence structure and nothing else.
@@ -60,7 +78,10 @@ from scipy import stats
 
 from cellstate.domain.common import BootstrapInterval
 
-BOOTSTRAP_IMPLEMENTATION_VERSION: Final = "1.0.0"
+#: Bumped to 2.0.0 by ADR 0016: ``small_cluster_scale`` gained the ``sqrt(K/(K-1))`` variance
+#: correction, which changes every reported endpoint at a fixed seed.  Endpoints produced by
+#: 1.0.0 are not comparable to endpoints produced by this version.
+BOOTSTRAP_IMPLEMENTATION_VERSION: Final = "2.0.0"
 RNG_ALGORITHM: Final[Literal["numpy-pcg64dxsm-v1"]] = "numpy-pcg64dxsm-v1"
 RESAMPLING_SCHEME: Final[Literal["multiway_clustered"]] = "multiway_clustered"
 INTERVAL_METHOD: Final[Literal["equal_tailed_percentile_small_cluster_scaled"]] = (
@@ -100,9 +121,19 @@ __all__ = [
 def small_cluster_scale(*, minimum_cluster_count: int, confidence_level: float) -> float:
     """The factor by which each endpoint's distance from the point estimate is inflated.
 
-    ``t(K - 1, 1 - alpha/2) / z(1 - alpha/2)`` for ``K`` the smallest cluster count across
-    dependence dimensions.  Exactly one for a nominal level whose ``t`` and normal quantiles
-    coincide, above one otherwise, and monotonically decreasing toward one in ``K``.
+    Two corrections, for the two distinct defects of the multinomial pigeonhole bootstrap at
+    small ``K``, where ``K`` is the smallest cluster count across dependence dimensions:
+
+    ``sqrt(K / (K - 1))``
+        the *variance deficiency*.  A cluster's multinomial draw count has variance ``1 - 1/K``
+        rather than one, so the resampled spread is biased low by that factor regardless of how
+        many resamples are drawn.  This term removes the bias at its source.
+    ``t(K - 1, 1 - alpha/2) / z(1 - alpha/2)``
+        the *reference-distribution* correction, following the multiway-clustering convention of
+        referring a small-``K`` statistic to Student ``t`` rather than to the normal.
+
+    Both decay to one as ``K`` grows.  Before ADR 0016 only the second was applied, and the
+    resulting interval under-covered: see the measured table in the module docstring.
     """
 
     if minimum_cluster_count < 2:
@@ -112,7 +143,10 @@ def small_cluster_scale(*, minimum_cluster_count: int, confidence_level: float) 
     student_quantile = float(stats.t.ppf(upper_tail, minimum_cluster_count - 1))
     if not math.isfinite(student_quantile) or normal_quantile <= 0.0:
         raise ValueError("the small-cluster scale is undefined at this confidence level")
-    return student_quantile / normal_quantile
+    variance_deficiency = math.sqrt(
+        minimum_cluster_count / (minimum_cluster_count - 1),
+    )
+    return variance_deficiency * student_quantile / normal_quantile
 
 
 def weighted_mean(values: NDArray[np.float64], weights: NDArray[np.float64]) -> float:

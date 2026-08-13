@@ -19,9 +19,10 @@ The framework uses a functional core and replaceable model backends.
   fail-closed biological component scaffolds; its presence never implies runtime admission.
 - `reference/` contains an opt-in linear-Gaussian vertical slice for contract testing.
 - `evaluation/` owns the two tests that define faithfulness — calibration and predictive
-  sufficiency — alongside the retained sci-Plex3 baseline and candidate harnesses. Neither
-  faithfulness test has a caller outside tests, and no metric implementation exists in any frozen
-  suite; making them executable is Phase 1 and is the repository's current work.
+  sufficiency — alongside the metric suite and clustered bootstrap they report through, and the
+  retained sci-Plex3 baseline and candidate harnesses. Both tests are executable and return a
+  verdict with a grouped interval; neither has a caller outside `tests/`, and the frozen suite's own
+  metric bindings remain `specification_only`. Pointing them at biology is the remainder of Phase 1.
 - `training/` names the composable intervention-focused training objective.
 
 The four top-level operations are deliberately distinct:
