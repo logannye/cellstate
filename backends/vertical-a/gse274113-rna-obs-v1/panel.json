@@ -1,0 +1,608 @@
+{
+  "description": "Declared RNA panel for the GSE274113 observation model: the 19 CRISPRi target transcription factors, haematopoietic lineage markers, and housekeeping depth anchors. Chosen from biology and from the experiment's design, never from the response.",
+  "gene_axis_sha256": "a64d2adbd4ab2f0cbe0fe3062f38137472f4a346ec6937a12c2250c302f86244",
+  "gene_count": 100,
+  "genes": [
+    {
+      "category": "target_tf",
+      "ensembl_id": "ENSG00000142611",
+      "row_index": 127,
+      "symbol": "PRDM16"
+    },
+    {
+      "category": "housekeeping",
+      "ensembl_id": "ENSG00000126067",
+      "row_index": 781,
+      "symbol": "PSMB2"
+    },
+    {
+      "category": "progenitor",
+      "ensembl_id": "ENSG00000117400",
+      "row_index": 939,
+      "symbol": "MPL"
+    },
+    {
+      "category": "target_tf",
+      "ensembl_id": "ENSG00000162367",
+      "row_index": 1032,
+      "symbol": "TAL1"
+    },
+    {
+      "category": "myeloid",
+      "ensembl_id": "ENSG00000163220",
+      "row_index": 2059,
+      "symbol": "S100A9"
+    },
+    {
+      "category": "myeloid",
+      "ensembl_id": "ENSG00000143546",
+      "row_index": 2061,
+      "symbol": "S100A8"
+    },
+    {
+      "category": "progenitor",
+      "ensembl_id": "ENSG00000174059",
+      "row_index": 2879,
+      "symbol": "CD34"
+    },
+    {
+      "category": "target_tf",
+      "ensembl_id": "ENSG00000119866",
+      "row_index": 4042,
+      "symbol": "BCL11A"
+    },
+    {
+      "category": "eobasomast",
+      "ensembl_id": "ENSG00000091181",
+      "row_index": 5967,
+      "symbol": "IL5RA"
+    },
+    {
+      "category": "target_tf",
+      "ensembl_id": "ENSG00000179348",
+      "row_index": 7106,
+      "symbol": "GATA2"
+    },
+    {
+      "category": "megakaryocyte",
+      "ensembl_id": "ENSG00000169704",
+      "row_index": 7118,
+      "symbol": "GP9"
+    },
+    {
+      "category": "eobasomast",
+      "ensembl_id": "ENSG00000163751",
+      "row_index": 7311,
+      "symbol": "CPA3"
+    },
+    {
+      "category": "progenitor",
+      "ensembl_id": "ENSG00000085276",
+      "row_index": 7487,
+      "symbol": "MECOM"
+    },
+    {
+      "category": "erythroid",
+      "ensembl_id": "ENSG00000072274",
+      "row_index": 7791,
+      "symbol": "TFRC"
+    },
+    {
+      "category": "progenitor",
+      "ensembl_id": "ENSG00000007062",
+      "row_index": 8073,
+      "symbol": "PROM1"
+    },
+    {
+      "category": "progenitor",
+      "ensembl_id": "ENSG00000157404",
+      "row_index": 8327,
+      "symbol": "KIT"
+    },
+    {
+      "category": "progenitor",
+      "ensembl_id": "ENSG00000128040",
+      "row_index": 8358,
+      "symbol": "SPINK2"
+    },
+    {
+      "category": "megakaryocyte",
+      "ensembl_id": "ENSG00000163737",
+      "row_index": 8472,
+      "symbol": "PF4"
+    },
+    {
+      "category": "megakaryocyte",
+      "ensembl_id": "ENSG00000163736",
+      "row_index": 8473,
+      "symbol": "PPBP"
+    },
+    {
+      "category": "erythroid",
+      "ensembl_id": "ENSG00000250361",
+      "row_index": 8994,
+      "symbol": "GYPB"
+    },
+    {
+      "category": "erythroid",
+      "ensembl_id": "ENSG00000170180",
+      "row_index": 8996,
+      "symbol": "GYPA"
+    },
+    {
+      "category": "housekeeping",
+      "ensembl_id": "ENSG00000073578",
+      "row_index": 9381,
+      "symbol": "SDHA"
+    },
+    {
+      "category": "lymphoid",
+      "ensembl_id": "ENSG00000168685",
+      "row_index": 9685,
+      "symbol": "IL7R"
+    },
+    {
+      "category": "cell_cycle",
+      "ensembl_id": "ENSG00000134057",
+      "row_index": 9951,
+      "symbol": "CCNB1"
+    },
+    {
+      "category": "progenitor",
+      "ensembl_id": "ENSG00000145708",
+      "row_index": 10042,
+      "symbol": "CRHBP"
+    },
+    {
+      "category": "housekeeping",
+      "ensembl_id": "ENSG00000129625",
+      "row_index": 10299,
+      "symbol": "REEP5"
+    },
+    {
+      "category": "target_tf",
+      "ensembl_id": "ENSG00000125347",
+      "row_index": 10452,
+      "symbol": "IRF1"
+    },
+    {
+      "category": "myeloid",
+      "ensembl_id": "ENSG00000182578",
+      "row_index": 10794,
+      "symbol": "CSF1R"
+    },
+    {
+      "category": "housekeeping",
+      "ensembl_id": "ENSG00000196230",
+      "row_index": 11643,
+      "symbol": "TUBB"
+    },
+    {
+      "category": "housekeeping",
+      "ensembl_id": "ENSG00000231500",
+      "row_index": 11787,
+      "symbol": "RPS18"
+    },
+    {
+      "category": "housekeeping",
+      "ensembl_id": "ENSG00000156508",
+      "row_index": 12196,
+      "symbol": "EEF1A1"
+    },
+    {
+      "category": "target_tf",
+      "ensembl_id": "ENSG00000118513",
+      "row_index": 12626,
+      "symbol": "MYB"
+    },
+    {
+      "category": "housekeeping",
+      "ensembl_id": "ENSG00000112592",
+      "row_index": 13009,
+      "symbol": "TBP"
+    },
+    {
+      "category": "housekeeping",
+      "ensembl_id": "ENSG00000075624",
+      "row_index": 13111,
+      "symbol": "ACTB"
+    },
+    {
+      "category": "housekeeping",
+      "ensembl_id": "ENSG00000196262",
+      "row_index": 13514,
+      "symbol": "PPIA"
+    },
+    {
+      "category": "erythroid",
+      "ensembl_id": "ENSG00000197993",
+      "row_index": 14490,
+      "symbol": "KEL"
+    },
+    {
+      "category": "target_tf",
+      "ensembl_id": "ENSG00000019549",
+      "row_index": 15285,
+      "symbol": "SNAI2"
+    },
+    {
+      "category": "erythroid",
+      "ensembl_id": "ENSG00000133742",
+      "row_index": 15596,
+      "symbol": "CA1"
+    },
+    {
+      "category": "housekeeping",
+      "ensembl_id": "ENSG00000164924",
+      "row_index": 15751,
+      "symbol": "YWHAZ"
+    },
+    {
+      "category": "housekeeping",
+      "ensembl_id": "ENSG00000165280",
+      "row_index": 16492,
+      "symbol": "VCP"
+    },
+    {
+      "category": "target_tf",
+      "ensembl_id": "ENSG00000165702",
+      "row_index": 17352,
+      "symbol": "GFI1B"
+    },
+    {
+      "category": "eobasomast",
+      "ensembl_id": "ENSG00000107485",
+      "row_index": 17630,
+      "symbol": "GATA3"
+    },
+    {
+      "category": "lymphoid",
+      "ensembl_id": "ENSG00000107447",
+      "row_index": 18460,
+      "symbol": "DNTT"
+    },
+    {
+      "category": "target_tf",
+      "ensembl_id": "ENSG00000198728",
+      "row_index": 18563,
+      "symbol": "LDB1"
+    },
+    {
+      "category": "cell_cycle",
+      "ensembl_id": "ENSG00000148773",
+      "row_index": 18833,
+      "symbol": "MKI67"
+    },
+    {
+      "category": "erythroid",
+      "ensembl_id": "ENSG00000244734",
+      "row_index": 19107,
+      "symbol": "HBB"
+    },
+    {
+      "category": "erythroid",
+      "ensembl_id": "ENSG00000213934",
+      "row_index": 19110,
+      "symbol": "HBG1"
+    },
+    {
+      "category": "erythroid",
+      "ensembl_id": "ENSG00000196565",
+      "row_index": 19111,
+      "symbol": "HBG2"
+    },
+    {
+      "category": "target_tf",
+      "ensembl_id": "ENSG00000135363",
+      "row_index": 19474,
+      "symbol": "LMO2"
+    },
+    {
+      "category": "target_tf",
+      "ensembl_id": "ENSG00000066336",
+      "row_index": 19615,
+      "symbol": "SPI1"
+    },
+    {
+      "category": "eobasomast",
+      "ensembl_id": "ENSG00000186652",
+      "row_index": 19709,
+      "symbol": "PRG2"
+    },
+    {
+      "category": "eobasomast",
+      "ensembl_id": "ENSG00000149534",
+      "row_index": 19784,
+      "symbol": "MS4A2"
+    },
+    {
+      "category": "target_tf",
+      "ensembl_id": "ENSG00000175592",
+      "row_index": 20031,
+      "symbol": "FOSL1"
+    },
+    {
+      "category": "megakaryocyte",
+      "ensembl_id": "ENSG00000110799",
+      "row_index": 21081,
+      "symbol": "VWF"
+    },
+    {
+      "category": "housekeeping",
+      "ensembl_id": "ENSG00000111640",
+      "row_index": 21098,
+      "symbol": "GAPDH"
+    },
+    {
+      "category": "target_tf",
+      "ensembl_id": "ENSG00000123405",
+      "row_index": 21838,
+      "symbol": "NFE2"
+    },
+    {
+      "category": "myeloid",
+      "ensembl_id": "ENSG00000090382",
+      "row_index": 22096,
+      "symbol": "LYZ"
+    },
+    {
+      "category": "housekeeping",
+      "ensembl_id": "ENSG00000111237",
+      "row_index": 22494,
+      "symbol": "VPS29"
+    },
+    {
+      "category": "housekeeping",
+      "ensembl_id": "ENSG00000089157",
+      "row_index": 22634,
+      "symbol": "RPLP0"
+    },
+    {
+      "category": "housekeeping",
+      "ensembl_id": "ENSG00000150991",
+      "row_index": 22763,
+      "symbol": "UBC"
+    },
+    {
+      "category": "target_tf",
+      "ensembl_id": "ENSG00000213928",
+      "row_index": 23990,
+      "symbol": "IRF9"
+    },
+    {
+      "category": "myeloid",
+      "ensembl_id": "ENSG00000100448",
+      "row_index": 24021,
+      "symbol": "CTSG"
+    },
+    {
+      "category": "housekeeping",
+      "ensembl_id": "ENSG00000134153",
+      "row_index": 25335,
+      "symbol": "EMC7"
+    },
+    {
+      "category": "megakaryocyte",
+      "ensembl_id": "ENSG00000137801",
+      "row_index": 25390,
+      "symbol": "THBS1"
+    },
+    {
+      "category": "housekeeping",
+      "ensembl_id": "ENSG00000166710",
+      "row_index": 25538,
+      "symbol": "B2M"
+    },
+    {
+      "category": "eobasomast",
+      "ensembl_id": "ENSG00000140287",
+      "row_index": 25617,
+      "symbol": "HDC"
+    },
+    {
+      "category": "erythroid",
+      "ensembl_id": "ENSG00000188536",
+      "row_index": 26441,
+      "symbol": "HBA2"
+    },
+    {
+      "category": "erythroid",
+      "ensembl_id": "ENSG00000206172",
+      "row_index": 26442,
+      "symbol": "HBA1"
+    },
+    {
+      "category": "erythroid",
+      "ensembl_id": "ENSG00000169877",
+      "row_index": 27227,
+      "symbol": "AHSP"
+    },
+    {
+      "category": "megakaryocyte",
+      "ensembl_id": "ENSG00000185245",
+      "row_index": 28231,
+      "symbol": "GP1BA"
+    },
+    {
+      "category": "cell_cycle",
+      "ensembl_id": "ENSG00000131747",
+      "row_index": 29036,
+      "symbol": "TOP2A"
+    },
+    {
+      "category": "erythroid",
+      "ensembl_id": "ENSG00000004939",
+      "row_index": 29225,
+      "symbol": "SLC4A1"
+    },
+    {
+      "category": "megakaryocyte",
+      "ensembl_id": "ENSG00000005961",
+      "row_index": 29233,
+      "symbol": "ITGA2B"
+    },
+    {
+      "category": "progenitor",
+      "ensembl_id": "ENSG00000108924",
+      "row_index": 29475,
+      "symbol": "HLF"
+    },
+    {
+      "category": "myeloid",
+      "ensembl_id": "ENSG00000005381",
+      "row_index": 29523,
+      "symbol": "MPO"
+    },
+    {
+      "category": "cell_cycle",
+      "ensembl_id": "ENSG00000176890",
+      "row_index": 30088,
+      "symbol": "TYMS"
+    },
+    {
+      "category": "myeloid",
+      "ensembl_id": "ENSG00000172232",
+      "row_index": 30889,
+      "symbol": "AZU1"
+    },
+    {
+      "category": "myeloid",
+      "ensembl_id": "ENSG00000196415",
+      "row_index": 30890,
+      "symbol": "PRTN3"
+    },
+    {
+      "category": "myeloid",
+      "ensembl_id": "ENSG00000197561",
+      "row_index": 30891,
+      "symbol": "ELANE"
+    },
+    {
+      "category": "erythroid",
+      "ensembl_id": "ENSG00000187266",
+      "row_index": 31315,
+      "symbol": "EPOR"
+    },
+    {
+      "category": "target_tf",
+      "ensembl_id": "ENSG00000105610",
+      "row_index": 31384,
+      "symbol": "KLF1"
+    },
+    {
+      "category": "myeloid",
+      "ensembl_id": "ENSG00000245848",
+      "row_index": 31809,
+      "symbol": "CEBPA"
+    },
+    {
+      "category": "housekeeping",
+      "ensembl_id": "ENSG00000105220",
+      "row_index": 31823,
+      "symbol": "GPI"
+    },
+    {
+      "category": "eobasomast",
+      "ensembl_id": "ENSG00000105205",
+      "row_index": 32058,
+      "symbol": "CLC"
+    },
+    {
+      "category": "lymphoid",
+      "ensembl_id": "ENSG00000105369",
+      "row_index": 32134,
+      "symbol": "CD79A"
+    },
+    {
+      "category": "housekeeping",
+      "ensembl_id": "ENSG00000142541",
+      "row_index": 32445,
+      "symbol": "RPL13A"
+    },
+    {
+      "category": "housekeeping",
+      "ensembl_id": "ENSG00000130724",
+      "row_index": 32875,
+      "symbol": "CHMP2A"
+    },
+    {
+      "category": "target_tf",
+      "ensembl_id": "ENSG00000177732",
+      "row_index": 32891,
+      "symbol": "SOX12"
+    },
+    {
+      "category": "progenitor",
+      "ensembl_id": "ENSG00000101200",
+      "row_index": 32948,
+      "symbol": "AVP"
+    },
+    {
+      "category": "cell_cycle",
+      "ensembl_id": "ENSG00000132646",
+      "row_index": 32991,
+      "symbol": "PCNA"
+    },
+    {
+      "category": "megakaryocyte",
+      "ensembl_id": "ENSG00000101162",
+      "row_index": 33706,
+      "symbol": "TUBB1"
+    },
+    {
+      "category": "target_tf",
+      "ensembl_id": "ENSG00000159216",
+      "row_index": 34137,
+      "symbol": "RUNX1"
+    },
+    {
+      "category": "lymphoid",
+      "ensembl_id": "ENSG00000169575",
+      "row_index": 34591,
+      "symbol": "VPREB1"
+    },
+    {
+      "category": "lymphoid",
+      "ensembl_id": "ENSG00000128322",
+      "row_index": 34681,
+      "symbol": "IGLL1"
+    },
+    {
+      "category": "housekeeping",
+      "ensembl_id": "ENSG00000100028",
+      "row_index": 34713,
+      "symbol": "SNRPD3"
+    },
+    {
+      "category": "target_tf",
+      "ensembl_id": "ENSG00000128272",
+      "row_index": 35064,
+      "symbol": "ATF4"
+    },
+    {
+      "category": "target_tf",
+      "ensembl_id": "ENSG00000102145",
+      "row_index": 35637,
+      "symbol": "GATA1"
+    },
+    {
+      "category": "erythroid",
+      "ensembl_id": "ENSG00000158578",
+      "row_index": 35742,
+      "symbol": "ALAS2"
+    },
+    {
+      "category": "housekeeping",
+      "ensembl_id": "ENSG00000102144",
+      "row_index": 35882,
+      "symbol": "PGK1"
+    },
+    {
+      "category": "housekeeping",
+      "ensembl_id": "ENSG00000165704",
+      "row_index": 36194,
+      "symbol": "HPRT1"
+    }
+  ],
+  "panel_id": "gse274113-rna-panel-v1"
+}
