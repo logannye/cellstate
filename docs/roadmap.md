@@ -588,13 +588,22 @@ not yet decomposed into items and must not be started from prose.
 5. **`Q5` — fit the observation model and separate the nuisance axis.** [S5] On `GSE274113`, the
    source [ADR 0018](adr/0018-gse274113-rejected-for-the-state-estimand.md) rejected for the state
    estimand and retained under rule 7 for exactly this. Nuisance separation with a held-out-modality
-   test in both directions across the paired RNA and ATAC readouts. The library is the nuisance axis
+   test in both directions across the paired RNA and ATAC readouts, **over a fixed genomic bin set
+   rather than over called peaks**. Measured: the RNA feature space is shared across all 14
+   libraries (one byte-identical 36,601-gene ID list) but the ATAC space is not — there are 14
+   distinct peak sets, 93,574 to 158,290 peaks, and peak count declines monotonically with
+   differentiation time at `r` = −0.973 while tracking cell count at only 0.135. Per-library peak
+   calling therefore makes the ATAC observation space a function of the biology under study, which
+   is a leak in the representation rather than in the split. Peak identifiers carry coordinates, so
+   re-quantifying into an a-priori bin set dissolves it without the unheld fragment files; the
+   binning approximation is declared, not absorbed. The library is the nuisance axis
    and it is already measured: across-library spread at a fixed target reaches 0.53, 0.51, 0.89 and
    0.99 of across-target spread at days 7, 9, 11 and 14. S5 asks that varying a nuisance variable at
    fixed biology change the predicted observation and **not** the inferred state, within a
    predeclared bound on held-out units — so a nuisance axis of measured size is the material this
-   test needs, not an obstacle to it. Requires resolved licence terms and established byte identity
-   first; both are preconditions recorded by ADR 0018, not follow-ups.
+   test needs, not an obstacle to it. Byte identity is **established** — all 15 artifacts re-fetched
+   from GEO and matched exactly on byte count and SHA-256 — which closes one of the two preconditions
+   ADR 0018 set. Licence terms remain **unresolved at source** and are still owed.
    *Done when:* the held-out-modality test runs in both directions with an interval grouped at the
    library, and the predeclared bound is stated before the test is run.
 6. **`Q6` — emit the first biological belief, and test the `do` operator's null half.** [S2, S4]

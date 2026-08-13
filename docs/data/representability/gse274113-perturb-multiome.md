@@ -217,6 +217,57 @@ resolution excludes a wrong or substituted file; it does not exclude a modified 
 byte identity requires re-downloading roughly three gigabytes and hashing, which is worth doing only
 if the source is retained for some claim — see the decision below.
 
+### Byte identity, established (supersedes the corroboration above)
+
+Added 2026-08-13, after the table above. Every artifact was re-fetched from
+`https://ftp.ncbi.nlm.nih.gov/geo/series/GSE274nnn/GSE274113/suppl/` and hashed in flight, and the
+result compared against the local values this census recorded, by string comparison rather than by
+eye:
+
+**15 of 15 match exactly, on byte count and on SHA-256.** Zero mismatches.
+
+The corroboration section above is therefore superseded, not deleted: it records what was known
+before the download and why that was not enough. Byte identity is now **established**, which closes
+the precondition [ADR 0018](../../adr/0018-gse274113-rejected-for-the-state-estimand.md) decision 5
+placed on any use of this source.
+
+### The ATAC feature space is not shared, and it is confounded with the biology
+
+The census deferred this question; it is now measured, and the answer changes what an observation
+model on this source can be.
+
+| | Measured |
+| --- | --- |
+| Distinct **RNA** feature sets across 14 libraries | **1** — 36,601 genes, byte-identical Ensembl ID lists |
+| Distinct **ATAC** peak sets across 14 libraries | **14** — every library has its own |
+| Peak count range | 93,574 (`rep14`) to 158,290 (`rep1`), a 69% spread |
+
+There is no common ATAC coordinate system. Worse, the peak count is not a technical accident:
+
+| Timepoint | Libraries | Mean peaks | Mean cells |
+| --- | --- | --- | --- |
+| day 7 | 4 | 154,434 | 11,156 |
+| day 9 | 4 | 142,653 | 12,633 |
+| day 11 | 3 | 124,963 | 7,020 |
+| day 14 | 3 | 98,049 | 12,166 |
+
+Peak count declines monotonically with differentiation time, **`r` = −0.973** against the timepoint
+index. It is *not* driven by library size — `r` against cell count is **0.135**, and day 11 has the
+fewest cells while day 14 has the fewest peaks.
+
+The consequence is specific and it is an S5 problem rather than a nuisance one. Each library's peak
+set is called from that library, so **the ATAC observation space is itself a function of the
+biological variable under study**. A model fitted on per-library peaks would have its feature space
+determined by the thing it is trying to predict. That is a leak in the representation, not in the
+split.
+
+**The path is fixed genomic bins, and it is available.** Peak identifiers carry coordinates
+(`chr1:9794-10688`), so peak counts can be re-quantified into a bin set fixed a priori, without the
+fragment files — which are inside the 42 GB `GSE274113_RAW.tar` and are not held. Binning is
+approximate, because peak boundaries do not align to bin edges, and that approximation must be
+declared rather than absorbed. What it buys is a coordinate system that does not move with the
+biology.
+
 ### An unresolved second artifact family
 
 The series carries a **second** set of per-replicate matrices,
