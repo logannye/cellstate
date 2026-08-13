@@ -71,7 +71,11 @@ These apply to every phase.
    reordering by [ADR 0013](adr/0013-state-first-roadmap-reordering.md), and for the Phase 1
    completion condition by [ADR 0014](adr/0014-phase-1-completion-condition.md). The serialized
    contracts the faithfulness tests report through are decided by
-   [ADR 0015](adr/0015-faithfulness-reports-carry-their-sampling-distribution.md).
+   [ADR 0015](adr/0015-faithfulness-reports-carry-their-sampling-distribution.md) and
+   [ADR 0016](adr/0016-the-verdict-gates-on-the-interval.md). Retiring the proving-ground floor item,
+   restating Phase 1's third graduation-gate bullet, and the queue renumbering that follows are
+   decided by [ADR 0017](adr/0017-the-sufficiency-verdict-must-fail-closed.md), which also records
+   the old-to-new queue mapping.
 5. **Every model declares its scope.** Query family, system boundary, assays, interventions,
    environments, horizons, and out-of-support and abstention behavior, in a registered model card
    alongside its data card.
@@ -178,9 +182,14 @@ Graduation gate:
   at `Q5`, since no such suite exists yet.
 - The sufficiency harness returns the correct verdict, with an interval, on two synthetic designs:
   one where the state is sufficient by construction and one where it is not.
-- A scoreboard exists in which every baseline applicable to the proving-ground query has been scored
-  against every other on a real held-out partition, with intervals. Persistence and temporal
-  state-space are inapplicable there and unimplemented; they are first scored in Phase 4.
+- The sufficiency harness **refuses** a design on which the question is not being asked, rather than
+  returning a verdict on it. A comparison whose history blocks are absent resolves to a not-evaluated
+  report; it never resolves to `PASSED`. This replaces the proving-ground scoreboard that this bullet
+  previously required. That scoreboard is unreachable by design, not by delay — the floor moved onto
+  the Phase 2 estimand and the proving-ground query cannot satisfy S1, S3, or S7 — and a gate that
+  cannot be passed, carried without a record of why, is exactly what rule 4 exists to prevent. See
+  [ADR 0017](adr/0017-the-sufficiency-verdict-must-fail-closed.md). The floor itself is measured at
+  `Q5`, with the same interval discipline.
 
 ## Phase 2 — freeze a state-bearing estimand
 
@@ -417,13 +426,23 @@ required before any operational biological claim.
 ## Current status
 
 - **Phase 0:** complete.
-- **Phase 1:** active. `Q1` and `Q2` are delivered. Every `metric_id` the frozen sci-Plex3 suite
-  declares resolves to an implementation; the multiway clustered bootstrap those metrics bind is
-  implemented and its coverage measured; and both faithfulness tests now execute, return an
-  interval, and are enforced by their serialized contracts. **The project can recognize a faithful
-  representation, which it could not before.** What it has not done is apply the tests to biology:
-  no baseline has been scored against any other, the observational floor is unmeasured, and no
-  belief has been emitted by a biological model.
+- **Phase 1:** active. `Q1` is delivered: every `metric_id` the frozen sci-Plex3 suite declares
+  resolves to an implementation, and the multiway clustered bootstrap those metrics bind is
+  implemented and its coverage measured. `Q2` is **incomplete against its own done-when**. Both
+  faithfulness tests execute, return an interval, and are enforced by their serialized contracts, but
+  the clause requiring non-test callers is unmet: `evaluate_predictive_sufficiency` is called from no
+  file in `src/`, `scripts/`, or `examples/`. An earlier revision of this section recorded `Q2`
+  delivered and claimed that **the project can recognize a faithful representation**. That claim is
+  withdrawn. The project can compute a history-information gain with an interval. It cannot yet
+  recognize a faithful representation, because a design carrying no admissible pre-cutoff evidence
+  returns `PASSED` with a degenerate interval — the strongest certificate the contract can express,
+  earned by the absence of evidence — and the applicability judgment that would refuse it is
+  delegated to a caller that does not exist. `Q3` repairs this; see
+  [ADR 0017](adr/0017-the-sufficiency-verdict-must-fail-closed.md).
+
+  What the project has not done at all is apply the tests to biology: no baseline has been scored
+  against any other, no observational floor is measured, and no belief has been emitted by a
+  biological model.
 
   Two results from `Q1` bear on later items. First, the frozen benchmark's untouched-test partition
   contains **four plates** and 95 compounds across 384 wells, computed from its membership arrays.
@@ -507,27 +526,43 @@ not yet decomposed into items and must not be started from prose.
    `src/cellstate/domain/belief.py`, `schemas/`.
    *Done when:* both functions have non-test callers, both reports carry intervals, and the harness
    returns the correct verdict on a sufficient and an insufficient synthetic design.
-3. **`Q3` — measure the observational floor.** [S9] The six `p1` baselines are fitted and
-   authenticated, but scoring them against one another requires protected-partition predictions, and
-   `p2`/`p3`/`p4` are sealed behind lifecycle grants (ADR 0011) whose issuing control plane is
-   suspended above. This item requires an ADR that either authorizes a single held-out read for
-   baseline-versus-baseline scoring with no candidate model in the loop, or moves the floor
-   measurement onto the Phase 2 estimand. Until that ADR lands, `Q3` is blocked and `Q4` and `Q5`
-   proceed first. Persistence and temporal state-space are inapplicable to this query and
-   unimplemented; any scoreboard produced here must say so on its face. This is also the item that
-   decides whether to publish `benchmark_version` `1.1.0` of the frozen artifact with executable
-   metric bindings, since it is the first that would run them against the frozen partitions.
+3. **`Q3` — make the sufficiency verdict fail closed.** [S7] The harness returns `PASSED` with a
+   degenerate interval `[0.0000, 0.0000]` when every unit's history block is absent, on a design
+   where history demonstrably drives the target — so a query with no admissible pre-cutoff evidence
+   receives the strongest certificate of sufficiency the contract can express. `sufficiency.py`
+   delegates that applicability judgment to the query and its benchmark; no caller exists to make it,
+   which is also why `Q2`'s "non-test callers" clause is unmet. Authorized by
+   [ADR 0017](adr/0017-the-sufficiency-verdict-must-fail-closed.md): the module refuses an
+   inapplicable design rather than passing it; units lacking a pre-cutoff observation are excluded
+   from the paired comparison; the retained fraction becomes a required report field and a retained
+   fraction of zero is a refusal. This item also supplies the missing caller — the evaluator adapter
+   from a belief and a query to the paired loss vectors — which is `Q2`'s own unmet clause and not
+   new scope. Deliberately out of scope, and scheduled as evidence rather than decided: whether the
+   gain requires a noise-share decomposition, which the split-half reliability of the state and
+   history blocks on real bytes settles.
+   *Files:* `src/cellstate/evaluation/sufficiency.py`, `src/cellstate/domain/belief.py`, `schemas/`.
+   *Done when:* a design whose history blocks are all absent returns a not-evaluated report rather
+   than `PASSED`; the retained fraction is carried on `SufficiencyReport` and round-trips; and
+   `evaluate_predictive_sufficiency` has a non-test caller in `src/`.
 4. **`Q4` — review and manifest the state-bearing source.** [S1, S3] Produce the reviewed manifest and
    representability assessment for `GSE274113`, including exact byte identity, license and use terms,
    library structure, and per-claim eligibility. Record the number of independent parent cultures, the
    number of libraries per timepoint and per treatment arm, and whether any population unit was
    sampled at both day 7 and a later day. Record the explicit non-candidates and their reasons.
    *Done when:* the census is in the reviewed manifest. `Q5` does not begin before it is.
-5. **`Q5` — freeze the state-bearing estimand and benchmark.** [S1, S3, S9] Pre-cutoff observation,
-   multiple horizons, library-level partitions, computed leakage audit, mandatory baselines including
-   applicable persistence and temporal state-space, held-out-intervention fold design with per-fold
-   unit counts, and numeric acceptance thresholds set before a model exists. The bundle contract
-   derives `sufficiency_evaluator` into `required_ports` and binds it `provided`.
+5. **`Q5` — freeze the state-bearing estimand and benchmark, and measure its floor.** [S1, S3, S9]
+   Pre-cutoff observation, multiple horizons, library-level partitions, computed leakage audit,
+   mandatory baselines including applicable persistence and temporal state-space, held-out-intervention
+   fold design with per-fold unit counts, and numeric acceptance thresholds set before a model exists.
+   The bundle contract derives `sufficiency_evaluator` into `required_ports` and binds it `provided`.
+   Carries the observational floor absorbed from the retired proving-ground item, per
+   [ADR 0017](adr/0017-the-sufficiency-verdict-must-fail-closed.md), with the same interval
+   discipline; and inherits from that record the decision on `benchmark_version` `1.1.0` re-homed
+   from [ADR 0014](adr/0014-phase-1-completion-condition.md), the **zero-panel doctrine** — a sample
+   whose panel total is zero is a missing observation under an observation model, not an evaluable
+   target, and no frozen policy may make a benchmark unevaluable on its own data — and the
+   **reachable-threshold constraint**: no metric is frozen with an acceptance threshold not
+   demonstrated reachable on real bytes.
 6. **`Q6` — fit paired RNA and ATAC observation models.** [S5] With nuisance separation and a
    held-out-modality test in both directions.
 7. **`Q7` — implement posterior inference and emit the first biological belief.** [S2] Through the
@@ -536,6 +571,8 @@ not yet decomposed into items and must not be started from prose.
    Simplest model that can carry a state; full baseline suite; coverage report; risk-coverage
    monotonicity; sufficiency verdict with its interval, whatever it says.
 
-Items `Q1` and `Q2` require no new data, no new authorization, and no model fit. They are the shortest
-path to knowing whether the faithfulness tests work at all. `Q3` is the first item that needs both
-bytes and an access decision.
+Items `Q1` through `Q3` require no new data, no data-access decision, and no model fit. They are the
+shortest path to knowing whether the faithfulness tests work at all — and `Q3` exists because the
+answer turned out to be *not yet*: a test that cannot refuse a design carrying no evidence has not
+been shown to work, it has only been shown to run. `Q4` is the first item that needs bytes this
+project does not already hold, and `Q5` the first that needs an access decision.
