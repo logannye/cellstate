@@ -53,4 +53,5 @@ nav:
       - RNA-first nuisance separation: adr/0020-rna-first-nuisance-separation.md
       - An admissible kind for a fitted observation model: adr/0021-an-admissible-kind-for-a-fitted-observation-model.md
       - The technical variance is evaluated at a pooled rate: adr/0022-the-technical-variance-is-evaluated-at-a-pooled-rate.md
+      - The S2 estimand is a split-half replicate: adr/0023-the-s2-estimand-is-a-split-half-replicate.md
 strict: true
