@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import math
 from pathlib import Path
 
 import numpy as np
@@ -35,7 +36,12 @@ from cellstate.backends.gse274113.likelihood import (
     stabilize,
     technical_variance,
 )
-from cellstate.domain.belief import CausalStatus, CellStateBelief, CriterionOutcome
+from cellstate.domain.belief import (
+    CausalStatus,
+    CellStateBelief,
+    CriterionOutcome,
+    EvaluationStatus,
+)
 from cellstate.domain.distributions import UnavailableDistribution
 from cellstate.errors import CapabilityError
 from cellstate.ports.models import ModelArtifactKind
@@ -339,6 +345,85 @@ def test_the_belief_declares_what_this_evidence_cannot_support(
     assert belief.readiness.valid_for_prediction is False
     assert belief.readiness.valid_for_control is False
     assert belief.readiness.reasons
+
+    # Every readiness criterion this backend reports PASSED must be backed by a diagnostics report
+    # that was actually EVALUATED.  This fired twice before ADR 0021's gate was repaired: `support`
+    # said PASSED on a hardcoded SupportReport, and `measurement_model` said PASSED with no
+    # diagnostics counterpart to contradict it -- `coherent_contract` cross-checks the other six
+    # criteria and cannot reach that one.  A belief reading "abstention required, not valid for
+    # prediction, not valid for control -- but valid for measurement selection", from a query
+    # declaring no assays, is what that bought.
+    reports = {
+        "support": belief.diagnostics.support,
+        "sufficiency": belief.diagnostics.sufficiency,
+        "identifiability": belief.diagnostics.identifiability,
+        "decision_uncertainty": belief.diagnostics.decision_uncertainty,
+        "calibration": belief.diagnostics.calibration,
+        "causal": belief.diagnostics.causal_support,
+    }
+    for name, report in reports.items():
+        if getattr(belief.readiness, name) is CriterionOutcome.PASSED:
+            assert report.evaluation_status is EvaluationStatus.EVALUATED, (
+                f"readiness.{name} claims PASSED while its diagnostics report was never evaluated"
+            )
+
+    # `measurement_model` is the criterion with NO diagnostics counterpart, so the loop above cannot
+    # reach it and it has to be asserted directly.  Until a measurement-model report exists to be
+    # cross-checked, this backend cannot honestly claim it.
+    assert belief.readiness.measurement_model is CriterionOutcome.NOT_EVALUATED
+    assert belief.readiness.valid_for_measurement_selection is False
+
+    # The support report declines to invent scores rather than asserting perfect ones.
+    assert belief.diagnostics.support.evaluation_status is EvaluationStatus.NOT_EVALUATED
+    assert belief.diagnostics.support.in_distribution_score is None
+    assert belief.diagnostics.support.ood_score is None
+    assert belief.diagnostics.support.notes
+
+
+def test_the_support_report_is_not_the_same_certificate_for_impossible_data(
+    arm_slice: ArmSlice, estimator: GSE274113ObservationEstimator
+) -> None:
+    """A support verdict that ignores its input is not a measurement of support.
+
+    Before the repair this report read EVALUATED / PASSED / ``in_distribution_score=1.0`` /
+    ``ood_score=0.0``, and a composition no CD34+ progenitor could produce -- every one of the 100
+    panel genes at an identical rate -- received the identical certificate as a real held-out arm.
+
+    The repair is to stop claiming it, not to invent a score: a real one needs a decided estimand
+    and a threshold predeclared before the measurement, and this query's ``maximum_ood_score`` of
+    0.99 would leave even a correctly computed score unable to fail.  So what this test pins is
+    that the report is honest, and that it stays honest for impossible input.
+    """
+
+    composition, depth = arm_slice.log_composition(HELD_OUT, "GATA1")
+    cells = arm_slice.cells[(HELD_OUT, "GATA1")]
+    real = tuple(float(value) for value in composition)
+    # Every panel gene at an identical rate: housekeeping anchors and lineage markers alike.
+    uniform = tuple(math.log(1.0 / len(real)) for _ in real)
+    # And the real arm reflected about its own mean, so the most expressed genes become the least.
+    centre = sum(real) / len(real)
+    inverted = tuple(2.0 * centre - value for value in real)
+
+    verdicts = set()
+    for panel in (real, uniform, inverted):
+        request = arm_request(
+            HELD_OUT,
+            "GATA1",
+            query=estimator._query,
+            log_composition=panel,
+            cells=cells,
+            panel_total=int(depth),
+        )
+        support = estimate_cell_state(request, estimator=estimator).diagnostics.support
+        assert support.evaluation_status is EvaluationStatus.NOT_EVALUATED
+        assert support.outcome is CriterionOutcome.NOT_EVALUATED
+        assert support.abstention_required is True
+        verdicts.add((support.in_distribution_score, support.ood_score))
+
+    # The three verdicts are still identical -- that is not the defect and never was.  The defect
+    # was claiming EVALUATED and a perfect score while being identical.  Declining to score is a
+    # defensible constant; a fabricated measurement is not.
+    assert verdicts == {(None, None)}
 
 
 def test_uncertainty_separates_measurement_from_biology(
