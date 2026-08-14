@@ -56,6 +56,15 @@ The design supplies exactly that, on all fourteen libraries, and no code did it.
    scored on the other, so the comparison is like-for-like and the standing "the posterior conditions
    on the arm and the predictor does not" caveat is retired rather than restated.
 
+   **The fold discipline survives this, and that was checked rather than assumed.** `NT`'s direction
+   is estimated from the placebo split, so an estimand built on that same split invites the question
+   of whether the held-out library's halves informed the design they are then scored under. They do
+   not: `fit.py` draws `placebo_libraries` from `fit_libraries` alone. For a fold excluding library
+   *L*, the intercept, both subspaces, `psi^2`, the pooled rate and the `NT` direction all come from
+   the other thirteen libraries, and **both** halves of *L*'s `NT` arm are genuinely held out. Had
+   that gone the other way the estimand would have been inadmissible, and a split-half test is
+   precisely the shape where such a leak would be easy to miss and would flatter the result.
+
 2. **Per-gene spreads are aggregated as a root-mean-square on both sides.** Comparing a mean of
    standard deviations against an RMS residual mixes two aggregations and understates the numerator;
    on construction E it costs 8.0% (0.7718 against 0.8415). Whichever convention is chosen, it must be
