@@ -75,7 +75,6 @@ def _biology(fold: FittedFold, slice_data: ArmSlice, library: str, target: str) 
     realization direction is not: it is target-specific and orthogonal to ``W``.
     """
 
-    counts = slice_data.counts[(library, target)]
     composition, depth = slice_data.log_composition(library, target)
     design = fold.design(NULL_TARGET if target.startswith("NT_") else target)
     mean, _ = posterior(
@@ -83,7 +82,7 @@ def _biology(fold: FittedFold, slice_data: ArmSlice, library: str, target: str) 
         intercept=fold.intercept,
         design=design,
         prior_precision=fold.prior_precision(),
-        observation_variance_diagonal=fold.observation_variance(counts, depth),
+        observation_variance_diagonal=fold.observation_variance(depth),
     )
     return np.asarray(mean[: fold.biology_basis.shape[1]], dtype=np.float64)
 
@@ -115,10 +114,9 @@ def held_out_states(slice_data: ArmSlice, *, seed: int = DEFAULT_SEED) -> tuple[
     for library in slice_data.libraries:
         fold = folds[library]
         for target in slice_data.targets:
-            counts = slice_data.counts[(library, target)]
             composition, depth = slice_data.log_composition(library, target)
             design = fold.design(target)
-            variance = fold.observation_variance(counts, depth)
+            variance = fold.observation_variance(depth)
             mean, covariance = posterior(
                 composition,
                 intercept=fold.intercept,
@@ -214,11 +212,15 @@ def measure_intervention_response(
       the expected contrast is zero -- but it is *estimated*, so it can come out otherwise.
     * **non-null**: ``target - NT`` within the same library.
 
-    ⚠️ **The null half is biased upward and the bias is not corrected here.**  Each placebo half
-    carries about 285 cells against 444 to 570 for a real arm, so the null contrast is built from
-    noisier pseudobulks than the contrast it is compared against.  That makes separation *harder*
-    to demonstrate, so a passing result would be conservative -- but a failing one cannot be fully
-    attributed to the model.  Equalising the cell counts is the fix, and it is not applied yet.
+    ⚠️ **The null half is biased upward, the bias is not corrected here, and it is too small to
+    explain the result.**  Both contrasts' sampling noise goes as ``sqrt(1/n1 + 1/n2)``; the placebo
+    compares two half-sized NT populations while the perturbed contrast compares an arm against the
+    *full* NT arm.  Computed over all 266 (library, target) pairs, the placebo contrast carries
+    **1.16x** the multinomial noise sd of the perturbed one -- not the ~1.8x a naive per-arm cell
+    count suggests, since placebo halves average 409 cells against 474 for a perturbed arm.
+    Deflating the null by that factor leaves it at 1.74, still inside the perturbed interval.  **So
+    the failure is not explained by the imbalance**, and the caveat is recorded as a caveat rather
+    than as an excuse.  Equalising the cell counts is still the clean fix and is not applied yet.
 
     Grouped at the library, which is also what makes the two halves paired rather than pooled.
     """

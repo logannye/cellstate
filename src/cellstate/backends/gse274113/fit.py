@@ -48,6 +48,11 @@ NUISANCE_RANK = 3
 NULL_TARGET = "NT"
 PLACEBO_TARGETS = ("NT_A", "NT_B")
 
+# Floor on the fitted extra-multinomial dispersion.  Reaching it is a real signal about a fold, so
+# ``FittedFold`` records the pre-clamp value and ``dispersion_is_clamped`` reports it (ADR 0022
+# decision 4).  A silent floor is what let "psi^2 is fitted" stay false for fourteen folds.
+DISPERSION_FLOOR = 1e-6
+
 __all__ = [
     "BIOLOGY_RANK",
     "NUISANCE_RANK",
@@ -103,11 +108,24 @@ class FittedFold:
     biology_basis: FloatArray
     nuisance_basis: FloatArray
     target_directions: dict[str, FloatArray]
+    pooled_rate: FloatArray
     biology_prior_variance: float
     nuisance_prior_variance: float
     realization_prior_variance: float
     biological_observation_variance: float
+    biological_observation_variance_before_clamp: float
     residual_norm_by_target: dict[str, float]
+
+    @property
+    def dispersion_is_clamped(self) -> bool:
+        """Whether ``psi^2`` reached its floor rather than being fitted.
+
+        Under ADR 0022 this is measured per fold and reported, never assumed to be false.  It was
+        true in fourteen of fourteen folds before that decision, which is what made
+        ``likelihood.py``'s "it is fitted, not assumed" a false statement about shipped behaviour.
+        """
+
+        return self.biological_observation_variance_before_clamp <= DISPERSION_FLOOR
 
     @property
     def state_dimension(self) -> int:
@@ -131,9 +149,16 @@ class FittedFold:
         )
         return np.asarray(np.diag(diagonal), dtype=np.float64)
 
-    def observation_variance(self, counts: NDArray[np.int64], depth: float) -> FloatArray:
+    def observation_variance(self, depth: float) -> FloatArray:
+        """Total per-gene observation variance for an arm at this depth.
+
+        It no longer takes the arm's counts: under ADR 0022 the technical term is evaluated at the
+        fold's pooled rate, so an arm's own observation cannot inflate the variance it is weighted
+        by.  Depth still enters, because a deeper arm genuinely carries less sampling noise.
+        """
+
         return observation_variance(
-            technical_variance(counts, depth),
+            technical_variance(self.pooled_rate, depth),
             self.biological_observation_variance,
         )
 
@@ -179,6 +204,21 @@ def fit_fold(slice_data: ArmSlice, held_out_library: str) -> FittedFold:
 
     intercept = np.mean(
         [compositions[(lib, t)] for lib in fit_libraries for t in slice_data.targets], axis=0
+    )
+
+    # The rate the technical variance is evaluated at (ADR 0022).  Pooled over the fit libraries
+    # only, so a held-out library contributes nothing to the variance its own arms are weighted by.
+    # Pooling per target was measured and agrees to four decimal places on the fitted dispersion, so
+    # the flatter scope is taken and one leakage surface is avoided.
+    #
+    # The rate is pooled over the **Haldane-corrected** compositions, the same statistic the model
+    # is written on.  Raw proportions would estimate a never-observed gene's rate as exactly zero,
+    # and a zero rate is not a small rate: it makes the sampling variance zero, hence the precision
+    # infinite, and the posterior would weight that gene without bound.  Two panel genes are at or
+    # near zero throughout this slice, so this is a reachable case rather than a hypothetical.
+    pooled_rate = np.mean(
+        [np.exp(compositions[(lib, t)]) for lib in fit_libraries for t in slice_data.targets],
+        axis=0,
     )
 
     # Nuisance: NT is the same biology everywhere, so its across-library spread IS the library.
@@ -269,10 +309,11 @@ def fit_fold(slice_data: ArmSlice, held_out_library: str) -> FittedFold:
     # That double-counting inflated this term to 1.99 and washed every perturbation signal out of
     # the posterior.
     #
-    # The consequence of the correct choice is stated rather than hidden: with the sampling floor
-    # this small, the posterior is tight, and whether that tightness is *earned* is not something
-    # this estimator may assert about itself.  The calibration report adjudicates it, and it can
-    # fail.
+    # This subtraction is only meaningful if the term being subtracted is right, and for fourteen
+    # folds it was not: evaluated at the arm's own counts the technical term overstated the zero
+    # bucket 6.4x, drove the difference below negative 0.16, and pinned the result at the floor
+    # (ADR 0022).  The pre-clamp value is carried on the fold now, so a return to that state is
+    # visible rather than silent.
     residual_squares: list[float] = []
     technical_means: list[float] = []
     degrees_of_freedom = biology_basis.shape[1] + nuisance_basis.shape[1] + 1
@@ -288,10 +329,9 @@ def fit_fold(slice_data: ArmSlice, held_out_library: str) -> FittedFold:
             panel_size = residual.shape[0]
             scale = panel_size / max(panel_size - degrees_of_freedom, 1)
             residual_squares.append(float(np.mean(residual**2)) * scale)
-            technical_means.append(
-                float(np.mean(technical_variance(slice_data.counts[key], depths[key])))
-            )
-    biological_variance = max(float(np.mean(residual_squares) - np.mean(technical_means)), 1e-6)
+            technical_means.append(float(np.mean(technical_variance(pooled_rate, depths[key]))))
+    raw_variance = float(np.mean(residual_squares) - np.mean(technical_means))
+    biological_variance = max(raw_variance, DISPERSION_FLOOR)
 
     return FittedFold(
         held_out_library=held_out_library,
@@ -300,9 +340,11 @@ def fit_fold(slice_data: ArmSlice, held_out_library: str) -> FittedFold:
         biology_basis=biology_basis,
         nuisance_basis=nuisance_basis,
         target_directions=target_directions,
+        pooled_rate=np.asarray(pooled_rate, dtype=np.float64),
         biology_prior_variance=biology_prior,
         nuisance_prior_variance=nuisance_prior,
         realization_prior_variance=realization_prior,
         biological_observation_variance=biological_variance,
+        biological_observation_variance_before_clamp=raw_variance,
         residual_norm_by_target=residual_norm_by_target,
     )

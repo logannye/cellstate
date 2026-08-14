@@ -18,8 +18,10 @@ implementation order and graduation gates, and is the sole authority for both.
 [implementation queue](#implementation-queue). `Q1` is delivered; `Q2` is delivered in substance but
 incomplete against its own done-when; `Q3` is delivered and the sufficiency verdict now fails
 closed; `Q4` is decided, with a negative result, and owes a reviewed manifest. **`Q5` and `Q7` are
-delivered, and their measurements are negative** — see below; `Q5` is additionally open against its
-own done-when, whose predeclaration clause git refutes. `Q8`, the estimand freeze, is blocked
+delivered, and their measurements are negative** — see below. `Q5`'s predeclaration clause, unmet on
+its first run, is satisfied for the re-run by
+[ADR 0022](adr/0022-the-technical-variance-is-evaluated-at-a-pooled-rate.md).
+`Q8`, the estimand freeze, is blocked
 on source selection and is deliberately not next. Everything before the phase list is the standard
 that work is held to, not work.
 
@@ -38,30 +40,46 @@ library, and every one came out negative:
 
 | Capability | Measured | Interval | Required | |
 | --- | --- | --- | --- | --- |
-| S5 nuisance separation | 19.22 | [10.35, 29.90] | ≤ 0.35 | fails |
-| S4 null half (placebo) | 2.90 | [1.95, 4.03] | below the perturbed band | fails |
-| S4 non-null half | 3.08 | [2.30, 3.87] | above the null band | fails |
-| S2 earned spread | 0.22 | [0.16, 0.28] | > 1 | fails |
+| S5 nuisance separation | 10.36 | [6.27, 16.66] | ≤ 0.35 | fails |
+| S4 null half (placebo) | 2.03 | [1.44, 2.67] | below the perturbed band | fails |
+| S4 non-null half | 2.09 | [1.62, 2.56] | above the null band | fails |
+| S2 earned spread | 0.28 | [0.21, 0.35] | > 1 | fails |
+
+These are the values after [ADR 0022](adr/0022-the-technical-variance-is-evaluated-at-a-pooled-rate.md),
+against bounds that decision fixed **before** the run. The earlier values — 19.22, 2.90, 3.08, 0.22 —
+were measured under a technical variance that pinned `psi^2` at its clamp in all fourteen folds, and
+against a bound introduced in the same commit as its own result.
 
 **S5 is the clean result and the one that matters.** Across-library spread at a fixed target,
-measured in the *inferred state*, is 19× the across-target spread.
+measured in the *inferred state*, is 10× the across-target spread.
 
 The obvious reading of that — that the nuisance basis fails to absorb the library — **is wrong, and
-was checked rather than assumed.** Decomposed by block, the across-library variance is **79.27** in
-the nuisance block against **3.07** in biology: the nuisance basis is absorbing the bulk of it,
-roughly 26× more than leaks through. What fails is the other side of the ratio. The biology block's
-between-target variance is only **0.257**, *smaller than the 3.07 of residual library variation it
+was checked rather than assumed.** Decomposed by block, the across-library variance is **81.30** in
+the nuisance block against **0.609** in biology: the nuisance basis is absorbing the bulk of it,
+roughly 134× more than leaks through. What fails is the other side of the ratio. The biology block's
+between-target variance is only **0.109**, *smaller than the 0.609 of residual library variation it
 carries*, so the signal S5 needs is weak rather than the nuisance separation being broken.
+
+[ADR 0022](adr/0022-the-technical-variance-is-evaluated-at-a-pooled-rate.md) is why those figures
+moved, and the shape of the move is worth keeping. Fixing the technical variance cut the library
+leakage into the biology block **5×** (3.07 → 0.609) — a large, real gain in exactly the separation
+S5 names — while the between-target signal fell **2.4×** with it (0.257 → 0.109). The quotient
+improved only from 19.22 to 10.36. **A failing ratio names two suspects, and reporting the quotient
+alone would have hidden that the numerator was the term that got better.**
 
 That connects to a measurement already on record: the biology basis is the leading subspace of
 within-library contrasts, and those contrasts sit near the sampling floor. A leading subspace fitted
 from mostly-noise contrasts is mostly a noise subspace. **Raising the nuisance rank would not fix
 this**; strengthening the between-target signal is the direction the evidence actually points.
 
-S4 and S2 carry measurement caveats recorded in `evaluation/gse274113_reports.py`: the placebo
-halves are smaller than the arms they are compared against, and S2 compares a posterior that
-conditioned on the arm against a predictor that did not. Neither failure can be attributed cleanly
-to the model, and neither is reported as if it could.
+S4 and S2 carry measurement caveats recorded in `evaluation/gse274113_reports.py`, and both have
+now been quantified rather than left as qualifiers. **S4's caveat does not explain its failure:** the
+placebo contrast carries **1.16×** the multinomial noise sd of the perturbed one, computed over all
+266 pairs, and deflating the null by that factor leaves it at 1.74 — still inside the perturbed
+interval [1.62, 2.56]. **S2's does bear on its magnitude but not its verdict:** the ratio moves
+across a 3.6× range depending on which point-predictor construction is taken, and fails under every
+one of them. So S4's negative is attributable to the model, S2's size is not yet a measurement, and
+neither is reported as more than that.
 
 Producing these numbers is what rule 10 asks of a gate that is a measurement. **The apparatus now
 judges a representation that exists, and its first verdict on that representation is negative.**
@@ -682,33 +700,41 @@ not yet decomposed into items and must not be started from prose.
    rule. What is still owed is the record's home: it lives in ADR 0020 and must also appear in the
    representability ledger and the reviewed manifest, which are the artifacts rule 6 points at.
    The bytes were re-fetched and verified, 15 of 15 on byte count and SHA-256.
-   **Delivered, with a negative result, and open against one clause of its own done-when.** The
-   observation model is fitted and checked in (`src/cellstate/backends/gse274113/`, panel and slice
-   under `backends/vertical-a/gse274113-rna-obs-v1/`), and the nuisance-separation test ran on
-   held-out libraries against a bound of **0.35**. It measured **19.22**, interval [10.35, 29.90]
-   grouped at the library, so **S5 is not advanced**.
+   **Delivered, with a negative result.** The observation model is fitted and checked in
+   (`src/cellstate/backends/gse274113/`, panel and slice under
+   `backends/vertical-a/gse274113-rna-obs-v1/`), and the nuisance-separation test ran on held-out
+   libraries against a bound of **0.35**. It measured **10.36**, interval [6.27, 16.66] grouped at
+   the library, so **S5 is not advanced**.
 
-   **The bound was not predeclared, and an earlier revision of this entry claimed it was.**
-   `git log -S"bound=0.35"` returns exactly one commit — `1e5e4d1`, the commit that reported the
-   measurement. The bound and the result entered the repository together. Predeclaration was the
-   entire substantive content of this item's done-when, so that clause was self-certified, and the
-   item is recorded here the way `Q2` and `Q4` are: delivered in substance, open against its own
-   criterion. The measurement itself stands — it runs on held-out folds with an interval grouped at
-   the library and reproduces from the committed slice — but a measurement against a post-hoc
-   threshold is a weaker object than the one this item promised, and the difference is not one a
-   reader should have to reconstruct from git. The repair is not to re-litigate 19.22; it is to
-   commit the bound for the **next** run before that run, in an artifact a test reads.
+   **This is the second run, and only the second one satisfies the done-when.** The first measured
+   19.22 against a bound that `git log -S"bound=0.35"` places in exactly one commit — `1e5e4d1`, the
+   commit that reported the result. Bound and result entered together, and predeclaration was the
+   entire substantive content of this item's criterion, so that run was self-certified and was
+   recorded here as unmet. It stays recorded that way; a later repair does not retroactively make an
+   earlier run predeclared.
+   [ADR 0022](adr/0022-the-technical-variance-is-evaluated-at-a-pooled-rate.md) decision 5 fixed the
+   bounds in a merged commit **before** the re-run, which is the repair this item owed, and the
+   re-run is measured against them.
+
+   **What ADR 0022 changed, and why the improvement is not visible in the headline.** The technical
+   variance was evaluated at each arm's own count, so `1/(y + 1/2)` returned 2.0 at every zero entry;
+   11.1% of panel entries carried 79.8% of the claimed technical mass and `psi^2` clamped in all
+   fourteen folds. Evaluated at a pooled rate it is fitted in **0 of 14 clamped**, and library
+   leakage into the biology block fell **5×** (3.07 → 0.609). The between-target signal fell **2.4×**
+   with it (0.257 → 0.109), so S5 improved only from 19.22 to 10.36 and still fails by a factor of
+   thirty.
 
    **The diagnosis is not that the nuisance basis failed.** An earlier revision of this entry read
    "the rank-3 nuisance basis fitted from `NT` residuals does not span the library variation." That
    reading was checked and is wrong, and the summary at the head of this file has said so since
    `2045a1e` while this entry continued to carry the retracted version. Decomposed by block,
-   across-library variance is **79.27** in the nuisance block against **3.07** in biology, so the
-   basis absorbs roughly 26× more than leaks past it. What fails is the denominator: between-target
-   variance is **0.257**. Raising the nuisance rank does not repair this and was measured not to.
+   across-library variance is **81.30** in the nuisance block against **0.609** in biology, so the
+   basis absorbs roughly 134× more than leaks past it. What fails is the denominator: between-target
+   variance is **0.109**. Raising the nuisance rank does not repair this and was measured not to.
    Rule 10 is satisfied by producing the measurement; the model is not.
-   *Done when:* the interval clause is met — the test ran on held-out libraries with an interval
-   grouped at the library. **The predeclaration clause is not met**, and is not recorded as met.
+   *Done when:* met, for the second run — the test ran on held-out libraries with an interval grouped
+   at the library, against a bound predeclared in a merged ADR. The first run's predeclaration clause
+   was **not** met and is recorded above rather than erased.
 6. **`Q6` — run the held-out-modality test on clean ATAC.** [S5] Carries the test moved out of
    `Q5` by [ADR 0020](adr/0020-rna-first-nuisance-separation.md), at full strength: both directions,
    with an interval grouped at the library. Blocked until the ATAC observation space can be built
