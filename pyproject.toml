@@ -22,7 +22,7 @@ classifiers = [
 dependencies = [
   "numpy>=1.26",
   "pydantic>=2.10,<3",
-  "scipy>=1.11",
+  "scipy>=1.17.1",
 ]
 
 [project.optional-dependencies]
