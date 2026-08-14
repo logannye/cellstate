@@ -23,6 +23,12 @@ jobs:
       - run: uv sync --extra dev --no-editable
       - run: uv run --no-editable ruff format --check .
       - run: uv run --no-editable ruff check .
+      # The committed lock must satisfy the committed manifest. Without this, a bump that
+      # raises a floor in pyproject.toml and leaves uv.lock behind stays green, because
+      # every `uv sync` below re-resolves in place rather than failing.
+      - name: The lockfile satisfies the manifest
+        if: matrix.python-version == '3.11'
+        run: uv lock --check
       - name: Type check on minimum supported Python
         if: matrix.python-version == '3.11'
         run: uv run --no-editable mypy src
