@@ -43,12 +43,20 @@ library, and every one came out negative:
 | S5 nuisance separation | 10.36 | [6.27, 16.66] | ≤ 0.35 | fails |
 | S4 null half (placebo) | 2.03 | [1.44, 2.67] | below the perturbed band | fails |
 | S4 non-null half | 2.09 | [1.62, 2.56] | above the null band | fails |
-| S2 earned spread | 0.28 | [0.21, 0.35] | > 1 | fails |
+| S2 earned spread | 0.84 | [0.71, 0.98] | > 1 | fails |
 
 These are the values after [ADR 0022](adr/0022-the-technical-variance-is-evaluated-at-a-pooled-rate.md),
 against bounds that decision fixed **before** the run. The earlier values — 19.22, 2.90, 3.08, 0.22 —
 were measured under a technical variance that pinned `psi^2` at its clamp in all fourteen folds, and
 against a bound introduced in the same commit as its own result.
+
+S2's row changed again under [ADR 0023](adr/0023-the-s2-estimand-is-a-split-half-replicate.md), and
+for a different reason: not the variance but the **estimand**. It is now a split-half replicate on
+the declared-null arm — infer from `NT_A`, predict `NT_B`, score the claimed spread against the error
+actually realized — which is the first construction where both sides condition on the same
+information. Post-ADR-0022 the ratio ran 0.30 to 1.08 across five constructions and two aggregation
+conventions, **all failing**, so the verdict never turned on the choice; the size of the shortfall
+did, and 0.84 replaces 0.28 as the honest figure.
 
 **S5 is the clean result and the one that matters.** Across-library spread at a fixed target,
 measured in the *inferred state*, is 10× the across-target spread.
@@ -755,11 +763,28 @@ not yet decomposed into items and must not be started from prose.
    measured in shared biology coordinates with both halves reported — placebo `NT_B − NT_A` at 2.90
    [1.95, 4.03] against perturbed `target − NT` at 3.08 [2.30, 3.87] — and the bands **overlap**, so
    the `do` operator does not discriminate a perturbation from a placebo and **S4 is not advanced**.
-   The S2 spread ratio is 0.22 [0.16, 0.28] against a requirement of >1, so **S2 is not advanced**.
-   Both carry measurement caveats recorded in `evaluation/gse274113_reports.py`: the placebo halves
-   carry fewer cells than the arms they are compared against, and the S2 comparison conditions on
-   different information. Neither negative is attributed cleanly to the model, and the caveats are
-   not treated as excuses either — the capabilities stay unadvanced.
+   The S2 spread ratio is 0.84 [0.71, 0.98] against a requirement of >1, so **S2 is not advanced**.
+
+   **S2's number here is the third one this item has carried, and only this one has a decided
+   estimand.** It reported 0.22 on the first run, 0.28 after
+   [ADR 0022](adr/0022-the-technical-variance-is-evaluated-at-a-pooled-rate.md) changed the variance,
+   and 0.84 under [ADR 0023](adr/0023-the-s2-estimand-is-a-split-half-replicate.md), which changed
+   what is being measured. The first two used a point predictor that was never chosen — it was
+   written — and that was denied both the arm and its own library's nuisance coefficients, so its
+   ratio measured the handicap as much as the calibration. The estimand is now a split-half replicate
+   on `NT`, where both sides condition on the same information. Across five constructions and two
+   aggregation conventions the ratio spans 0.30 to 1.08 and **fails under every one**, so the verdict
+   was never at stake; ADR 0023 records the full grid, and notably declines the most favourable of
+   them.
+
+   The caveat that S4's halves carry fewer cells than the arms they are compared against still
+   stands, quantified at 1.16× and too small to explain the result. S2's old caveat — that the
+   comparison conditioned on different information — is **retired** rather than restated, which is
+   what makes its failure attributable: with sampling noise removed the systematic misfit is 0.1427
+   against a total claimed variance of 0.1213, so the model's error on a genuine replicate exceeds
+   everything its posterior claims. S2 now carries a different limit in its place: `NT` is the only
+   arm with a replicate, so calibration is established on **null biology only**, across 14 libraries.
+   Neither negative is treated as an excuse — the capabilities stay unadvanced.
    *Original scope, unchanged:*
    Posterior inference through the public API, with support envelope, model and data cards, and
    abstention enforced. This is the item that makes the project's object exist: `CellStateBelief` is
