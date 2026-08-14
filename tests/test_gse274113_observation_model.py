@@ -477,10 +477,111 @@ def test_capability_measurements_are_computed_and_can_fail(arm_slice: ArmSlice) 
         assert measurement.statement
         assert isinstance(measurement.passed, bool)
 
-    # The verdicts are read off the interval, never off the point estimate.
-    assert spread.passed is (spread.interval.lower > 1.0)
-    assert separation.passed is (separation.interval.upper <= 0.35)
-    assert null.passed is (null.interval.upper < non_null.interval.lower)
+    # The four measured values are PINNED.  docs/roadmap.md and the model card both quote them, and
+    # before this they were guarded by three assertions that restated the implementation
+    # (`assert separation.passed is (separation.interval.upper <= 0.35)`) and so could not fail for
+    # any input.  Editing BIOLOGY_RANK or NUISANCE_RANK in fit.py, or anything else that moves the
+    # fitted subspaces, must fail here rather than leave four documents silently wrong.
+    #
+    # The tolerance is relative, loose enough for BLAS variation across platforms and far tighter
+    # than the drift being guarded against: sweeping the nuisance rank moves S5 across 11.30 to
+    # 74.52, and every value below is deterministic given the committed slice (`held_out_states`
+    # takes no randomness, and the bootstrap is seeded).
+    assert separation.value == pytest.approx(19.2159, rel=1e-3)
+    assert separation.interval.lower == pytest.approx(10.3455, rel=1e-3)
+    assert separation.interval.upper == pytest.approx(29.9038, rel=1e-3)
+
+    assert spread.value == pytest.approx(0.2221, rel=1e-3)
+    assert spread.interval.lower == pytest.approx(0.16376, rel=1e-3)
+    assert spread.interval.upper == pytest.approx(0.28302, rel=1e-3)
+
+    assert null.value == pytest.approx(2.8968, rel=1e-3)
+    assert null.interval.lower == pytest.approx(1.95224, rel=1e-3)
+    assert null.interval.upper == pytest.approx(4.03407, rel=1e-3)
+
+    assert non_null.value == pytest.approx(3.0790, rel=1e-3)
+    assert non_null.interval.lower == pytest.approx(2.30078, rel=1e-3)
+    assert non_null.interval.upper == pytest.approx(3.86635, rel=1e-3)
+
+    # All four verdicts are negative on the committed evidence, and that is the recorded result.
+    assert not separation.passed
+    assert not spread.passed
+    assert not null.passed
+    assert not non_null.passed
+
+    # The verdict is read off the interval and BOTH branches are reachable.  A bound above the
+    # measured upper end passes and one below it fails, so `passed` is not a constant -- which is
+    # the property the replaced tautologies were reaching for but could not demonstrate.
+    assert measure_nuisance_separation(states, bound=30.0).passed is True
+    assert measure_nuisance_separation(states, bound=29.0).passed is False
+
+
+def test_the_s5_block_decomposition_is_computed_rather_than_asserted(arm_slice: ArmSlice) -> None:
+    """The decomposition that overturned S5's first diagnosis, computed from the shipped path.
+
+    ``docs/roadmap.md`` and the model card both rest their S5 reading on three numbers -- 79.27 in
+    the nuisance block, 3.07 in biology, 0.257 between targets -- and until this test existed **no
+    committed code computed any of them.**  They were a recorded claim, which is exactly the failure
+    mode this repository keeps finding in its own work.
+
+    The reading they support is the one that matters: the obvious diagnosis, that the nuisance basis
+    fails to absorb the library, is **wrong**.  The basis absorbs roughly 26x more than leaks past
+    it.  What fails is the denominator -- between-target variance of 0.257, smaller than the 3.07 of
+    residual library variation the biology block carries -- so the signal S5 needs is weak rather
+    than the separation being broken.  Raising the nuisance rank does not repair that.
+
+    Both quantities are means-first, and that is not incidental: the across-library figure is the
+    variance of the fourteen per-library mean coefficient vectors, and the between-target figure is
+    the variance of the per-target means.  Comparing a means-first quantity against a per-item one
+    would be comparing two different estimators and would put the 26x ratio out by a third.
+    """
+
+    folds = {library: fit_fold(arm_slice, library) for library in arm_slice.libraries}
+    biology: dict[tuple[str, str], np.ndarray] = {}
+    nuisance: dict[tuple[str, str], np.ndarray] = {}
+
+    for library in arm_slice.libraries:
+        fold = folds[library]
+        rank = fold.biology_basis.shape[1]
+        width = fold.nuisance_basis.shape[1]
+        for target in arm_slice.targets:
+            counts = arm_slice.counts[(library, target)]
+            composition, depth = arm_slice.log_composition(library, target)
+            design = fold.design(target)
+            mean, _ = posterior(
+                composition,
+                intercept=fold.intercept,
+                design=design,
+                prior_precision=fold.prior_precision(),
+                observation_variance_diagonal=fold.observation_variance(counts, depth),
+            )
+            biology[(library, target)] = np.asarray(mean[:rank], dtype=np.float64)
+            nuisance[(library, target)] = np.asarray(mean[rank : rank + width], dtype=np.float64)
+
+    libraries = list(arm_slice.libraries)
+    targets = list(arm_slice.targets)
+
+    def across_library(block: dict[tuple[str, str], np.ndarray]) -> float:
+        means = np.stack([np.mean([block[(lib, t)] for t in targets], axis=0) for lib in libraries])
+        return float(np.mean(np.var(means, axis=0)))
+
+    biology_means = np.stack(
+        [np.mean([biology[(lib, t)] for lib in libraries], axis=0) for t in targets]
+    )
+    between_target = float(np.mean(np.var(biology_means, axis=0)))
+    nuisance_across = across_library(nuisance)
+    biology_across = across_library(biology)
+
+    assert nuisance_across == pytest.approx(79.2685, rel=1e-3)
+    assert biology_across == pytest.approx(3.0702, rel=1e-3)
+    assert between_target == pytest.approx(0.25698, rel=1e-3)
+
+    # The claim the roadmap makes, restated as a relation rather than as three loose constants.
+    assert nuisance_across / biology_across == pytest.approx(25.82, rel=1e-3)
+    assert between_target < biology_across, (
+        "the S5 denominator must be the smaller quantity; if this flips, the roadmap's "
+        "'the signal is weak, not the separation broken' reading no longer follows"
+    )
 
 
 def test_a_state_is_never_estimated_from_its_own_library(arm_slice: ArmSlice) -> None:
