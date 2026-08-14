@@ -1,0 +1,492 @@
+"""The GSE274113 observation model, from frozen bytes to a belief about real cells.
+
+The headline test is :func:`test_a_belief_is_emitted_from_real_cells`.  Until it passed, every
+scheduled item in this project had built apparatus that *judges* a representation while the thing
+being judged had never been built.
+
+Several tests here exist specifically to have a reachable failing branch.  A guard that cannot fire
+is the defect this repository keeps finding in its own work, so the leakage refusal, the
+one-guide requirement and the ADR 0021 causal gate are each exercised from the side that fails.
+"""
+
+from __future__ import annotations
+
+import hashlib
+import json
+from pathlib import Path
+
+import numpy as np
+import pytest
+
+from cellstate.api import estimate_cell_state
+from cellstate.backends.gse274113.arm_request import arm_query, arm_request
+from cellstate.backends.gse274113.estimator import GSE274113ObservationEstimator
+from cellstate.backends.gse274113.fit import (
+    NULL_TARGET,
+    PLACEBO_TARGETS,
+    ArmSlice,
+    FittedFold,
+    fit_fold,
+)
+from cellstate.backends.gse274113.likelihood import (
+    log_composition,
+    posterior,
+    stabilize,
+    technical_variance,
+)
+from cellstate.domain.belief import CausalStatus, CellStateBelief, CriterionOutcome
+from cellstate.domain.distributions import UnavailableDistribution
+from cellstate.errors import CapabilityError
+from cellstate.ports.models import ModelArtifactKind
+
+ROOT = Path(__file__).resolve().parents[1]
+ARTIFACTS = ROOT / "backends" / "vertical-a" / "gse274113-rna-obs-v1"
+PANEL_PATH = ARTIFACTS / "panel.json"
+SLICE_PATH = ARTIFACTS / "arms.json"
+
+# Pinned so a regenerated artifact is a deliberate, visible act rather than a silent drift.
+PANEL_SHA256 = "710ed885667d8bff2f3803ab12762899116722c20cce1668b7808d223ddc127d"
+SLICE_SHA256 = "3de8ee39ba5dbf30aa383d1ae49193d2b818a031dff40098fdda4084d3cc6cfb"
+
+HELD_OUT = "rep1"
+
+
+def _sha256(path: Path) -> str:
+    return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+@pytest.fixture(scope="module")
+def panel() -> dict[str, object]:
+    return json.loads(PANEL_PATH.read_text(encoding="utf-8"))
+
+
+@pytest.fixture(scope="module")
+def arm_slice() -> ArmSlice:
+    return ArmSlice.from_payload(json.loads(SLICE_PATH.read_text(encoding="utf-8")))
+
+
+@pytest.fixture(scope="module")
+def fold(arm_slice: ArmSlice) -> FittedFold:
+    return fit_fold(arm_slice, HELD_OUT)
+
+
+@pytest.fixture(scope="module")
+def estimator(fold: FittedFold, arm_slice: ArmSlice) -> GSE274113ObservationEstimator:
+    panel_fingerprint = _sha256(PANEL_PATH)
+    slice_fingerprint = _sha256(SLICE_PATH)
+    seed = GSE274113ObservationEstimator(
+        fold,
+        query=arm_query(arm_slice.targets, model_fingerprint="0" * 64),
+        slice_fingerprint=slice_fingerprint,
+        panel_fingerprint=panel_fingerprint,
+    )
+    query = arm_query(arm_slice.targets, model_fingerprint=seed.model_fingerprint)
+    return GSE274113ObservationEstimator(
+        fold,
+        query=query,
+        slice_fingerprint=slice_fingerprint,
+        panel_fingerprint=panel_fingerprint,
+    )
+
+
+def _request(
+    arm_slice: ArmSlice, estimator: GSE274113ObservationEstimator, library: str, target: str
+):
+    composition, depth = arm_slice.log_composition(library, target)
+    return arm_request(
+        library,
+        target,
+        query=estimator._query,
+        log_composition=tuple(float(value) for value in composition),
+        cells=arm_slice.cells[(library, target)],
+        panel_total=int(depth),
+    )
+
+
+# --------------------------------------------------------------------- artifacts
+
+
+def test_frozen_artifacts_match_their_pinned_digests() -> None:
+    """A regenerated panel or slice changes the model; it may not change silently."""
+
+    assert _sha256(PANEL_PATH) == PANEL_SHA256
+    assert _sha256(SLICE_PATH) == SLICE_SHA256
+
+
+def test_the_panel_carries_every_perturbed_target(panel: dict[str, object]) -> None:
+    """On-target knockdown has to be readable, or the panel cannot see the perturbation at all."""
+
+    genes = panel["genes"]
+    assert isinstance(genes, list)
+    assert panel["gene_count"] == len(genes) == 100
+    symbols = {str(gene["symbol"]) for gene in genes}
+    targets = {str(gene["symbol"]) for gene in genes if gene["category"] == "target_tf"}
+    assert len(targets) == 19
+    assert targets <= symbols
+    assert len({str(gene["row_index"]) for gene in genes}) == len(genes)
+
+
+def test_the_slice_covers_every_arm_computed_from_its_own_arrays(arm_slice: ArmSlice) -> None:
+    """Recomputed from the membership arrays, never read from a declared count."""
+
+    assert len(arm_slice.libraries) == 14
+    assert len(arm_slice.targets) == 20
+    observed = {key for key in arm_slice.counts if not key[1].startswith("NT_")}
+    expected = {
+        (library, target) for library in arm_slice.libraries for target in arm_slice.targets
+    }
+    assert observed == expected, "280 of 280 (library, target) arms must be populated"
+    assert all(count.shape == (100,) for count in arm_slice.counts.values())
+    assert all(int(count.sum()) > 0 for count in arm_slice.counts.values())
+
+
+def test_the_placebo_split_exists_for_every_library(arm_slice: ArmSlice) -> None:
+    for library in arm_slice.libraries:
+        for half in PLACEBO_TARGETS:
+            assert (library, half) in arm_slice.counts
+
+
+# ------------------------------------------------------------------------- fit
+
+
+def test_a_fold_never_sees_the_library_it_answers(arm_slice: ArmSlice) -> None:
+    for library in arm_slice.libraries:
+        fitted = fit_fold(arm_slice, library)
+        assert library not in fitted.fit_library_ids
+        assert len(fitted.fit_library_ids) == 13
+
+
+def test_the_subspaces_are_orthogonal(fold: FittedFold) -> None:
+    """S5 is claimed structurally, so the structure has to actually hold."""
+
+    biology, nuisance = fold.biology_basis, fold.nuisance_basis
+    assert np.abs(biology.T @ nuisance).max() < 1e-10
+    assert np.abs(biology.T @ biology - np.eye(biology.shape[1])).max() < 1e-10
+    assert np.abs(nuisance.T @ nuisance - np.eye(nuisance.shape[1])).max() < 1e-10
+    shared = np.hstack([biology, nuisance])
+    for target, direction in fold.target_directions.items():
+        assert np.abs(shared.T @ direction).max() < 1e-10, f"{target} leaks into the shared basis"
+
+
+def test_the_declared_null_direction_is_not_structurally_zero(fold: FittedFold) -> None:
+    """The inert-``do`` defect ADR 0019 names by name.
+
+    If NT's direction were fixed at zero, the S4 null half would be unfailable: a check whose
+    failing branch cannot be reached.  It is estimated from a placebo split instead, so it is a
+    genuine direction whose *expected* magnitude is zero.
+    """
+
+    direction = fold.target_directions[NULL_TARGET]
+    assert np.linalg.norm(direction) == pytest.approx(1.0, abs=1e-10)
+    assert fold.residual_norm_by_target[NULL_TARGET] > 0.0
+
+
+def test_the_fitted_dispersion_is_positive(fold: FittedFold) -> None:
+    assert fold.biological_observation_variance > 0.0
+    assert fold.biology_prior_variance > 0.0
+    assert fold.nuisance_prior_variance > 0.0
+    assert fold.realization_prior_variance > 0.0
+
+
+def test_an_unknown_library_is_refused(arm_slice: ArmSlice) -> None:
+    with pytest.raises(ValueError, match="unknown library"):
+        fit_fold(arm_slice, "rep999")
+
+
+# ------------------------------------------------------------------ likelihood
+
+
+def test_an_unmeasured_arm_has_no_log_composition() -> None:
+    """The zero-panel doctrine: a zero total is missing, never a vector of zeros."""
+
+    with pytest.raises(ValueError, match="not measured"):
+        log_composition(np.zeros(4, dtype=np.int64))
+
+
+def test_technical_variance_matches_the_statistic_actually_formed() -> None:
+    """``1/(y + 1/2) - 1/(n + G/2)``, not the naive ``1/(np) - 1/n``."""
+
+    counts = np.array([0, 10, 1000], dtype=np.int64)
+    depth = float(counts.sum())
+    variance = technical_variance(counts, depth)
+    expected = 1.0 / (counts + 0.5) - 1.0 / (depth + counts.shape[0] / 2.0)
+    assert np.allclose(variance, expected)
+    assert variance[0] > variance[-1], "a zero count must be the noisiest entry"
+
+
+def test_stabilize_removes_negative_eigenvalues() -> None:
+    matrix = np.array([[1.0, 2.0], [2.0, 1.0]])
+    clipped = stabilize(matrix)
+    assert np.all(np.linalg.eigvalsh(clipped) >= -1e-12)
+    assert np.allclose(clipped, clipped.T)
+
+
+def test_the_posterior_tightens_as_depth_grows(fold: FittedFold) -> None:
+    """Spread has to respond to evidence, or it is a declared number rather than a posterior."""
+
+    design = fold.design(NULL_TARGET)
+    precision = fold.prior_precision()
+    widths = []
+    for scale in (1, 100):
+        counts = np.full(100, 10 * scale, dtype=np.int64)
+        composition, depth = log_composition(counts)
+        _, covariance = posterior(
+            composition,
+            intercept=fold.intercept,
+            design=design,
+            prior_precision=precision,
+            observation_variance_diagonal=technical_variance(counts, depth),
+        )
+        widths.append(float(np.trace(covariance)))
+    assert widths[1] < widths[0]
+
+
+def test_a_nonpositive_observation_variance_is_refused(fold: FittedFold) -> None:
+    with pytest.raises(ValueError, match="strictly positive"):
+        posterior(
+            np.zeros(100),
+            intercept=fold.intercept,
+            design=fold.design(NULL_TARGET),
+            prior_precision=fold.prior_precision(),
+            observation_variance_diagonal=np.zeros(100),
+        )
+
+
+# ------------------------------------------------------------------ the belief
+
+
+def test_a_belief_is_emitted_from_real_cells(
+    arm_slice: ArmSlice, estimator: GSE274113ObservationEstimator
+) -> None:
+    """The headline: real human cells in, a typed belief with a posterior out."""
+
+    request = _request(arm_slice, estimator, HELD_OUT, "GATA1")
+    belief = estimate_cell_state(request, estimator=estimator)
+
+    assert belief.subject.subject_id == f"gse274113:{HELD_OUT}:GATA1"
+    assert belief.subject.experimental_unit_kind == "library"
+    assert estimator.descriptor.artifact_kind is ModelArtifactKind.EMPIRICAL_OBSERVATION_MODEL
+    assert CellStateBelief.model_validate_json(belief.model_dump_json()) == belief
+
+
+def test_every_block_is_an_exact_marginal_of_the_joint(
+    arm_slice: ArmSlice, estimator: GSE274113ObservationEstimator
+) -> None:
+    """The pieces are slices of one covariance, so they cannot drift from the whole."""
+
+    belief = estimate_cell_state(
+        _request(arm_slice, estimator, HELD_OUT, "TAL1"), estimator=estimator
+    )
+    joint_mean = np.array(belief.joint_posterior.mean)
+    joint_dimensions = list(belief.joint_posterior.dimensions)
+
+    for block in (belief.factors[0].posterior, belief.nuisance.posterior):
+        offset = joint_dimensions.index(block.dimensions[0])
+        width = len(block.dimensions)
+        assert np.allclose(block.mean, joint_mean[offset : offset + width], atol=1e-12)
+
+    realization = belief.intervention_realizations[0].posterior
+    assert np.allclose(
+        realization.mean[0],
+        joint_mean[joint_dimensions.index(realization.dimensions[0])],
+        atol=1e-12,
+    )
+
+
+def test_the_belief_declares_what_this_evidence_cannot_support(
+    arm_slice: ArmSlice, estimator: GSE274113ObservationEstimator
+) -> None:
+    """S1, S3 and S7 are unreachable here, and the belief says so in fields, not prose."""
+
+    belief = estimate_cell_state(
+        _request(arm_slice, estimator, HELD_OUT, NULL_TARGET), estimator=estimator
+    )
+
+    assert isinstance(belief.dynamics.velocity, UnavailableDistribution)
+    assert belief.diagnostics.sufficiency.outcome is CriterionOutcome.NOT_EVALUATED
+    assert belief.diagnostics.causal_support.causal_status is CausalStatus.UNSUPPORTED
+    assert belief.readiness.abstention_required is True
+    assert belief.readiness.valid_for_prediction is False
+    assert belief.readiness.valid_for_control is False
+    assert belief.readiness.reasons
+
+
+def test_uncertainty_separates_measurement_from_biology(
+    arm_slice: ArmSlice, estimator: GSE274113ObservationEstimator
+) -> None:
+    belief = estimate_cell_state(
+        _request(arm_slice, estimator, HELD_OUT, "MYB"), estimator=estimator
+    )
+    components = {component.kind.value: component for component in belief.uncertainty.components}
+    assert components["measurement"].magnitude is not None
+    assert components["biological_stochasticity"].magnitude is not None
+    for unsupported in ("parameter", "model", "counterfactual"):
+        assert components[unsupported].magnitude is None
+
+
+def test_every_arm_of_the_held_out_library_emits_a_belief(
+    arm_slice: ArmSlice, estimator: GSE274113ObservationEstimator
+) -> None:
+    for target in arm_slice.targets:
+        belief = estimate_cell_state(
+            _request(arm_slice, estimator, HELD_OUT, target), estimator=estimator
+        )
+        assert belief.subject.subject_id.endswith(target)
+
+
+# ----------------------------------------------------- guards that can fire
+
+
+def test_an_in_fold_library_is_refused(
+    arm_slice: ArmSlice, estimator: GSE274113ObservationEstimator
+) -> None:
+    """The leakage guard.  ``rep2`` is inside this fold's fit set, so a belief for it would be
+    an in-sample estimate wearing the authority of a held-out one."""
+
+    request = _request(arm_slice, estimator, "rep2", "GATA1")
+    with pytest.raises(CapabilityError, match="in-sample"):
+        estimate_cell_state(request, estimator=estimator)
+
+
+def test_the_causal_gate_refuses_an_identified_claim(
+    arm_slice: ArmSlice, estimator: GSE274113ObservationEstimator
+) -> None:
+    """ADR 0021 decision 3, enforced in code rather than by convention.
+
+    Without this the new artifact kind would be a route around the admission registry.
+    """
+
+    from cellstate.domain.belief import (
+        CausalEstimandBinding,
+        CausalSupportReport,
+        EvaluationStatus,
+    )
+    from cellstate.domain.common import OntologyTerm
+    from cellstate.domain.events import AssignmentMechanism, InterventionEvent
+    from cellstate.domain.subjects import AggregationStatistic, SubjectKind, TargetAggregation
+
+    class OverclaimingEstimator(GSE274113ObservationEstimator):
+        """Produces a STRUCTURALLY VALID belief that claims an identified population effect.
+
+        The domain model already refuses a bare identified claim -- it demands a typed estimand, a
+        randomized design, scopes, evidence, provenance agreement and matching readiness.  All of
+        that is satisfied here on purpose, so what the test exercises is ADR 0021's gate and not one
+        of the layers beneath it.  Without that gate, this belief would be returned.
+        """
+
+        def estimate(self, request, *, options=None):  # type: ignore[no-untyped-def]
+            belief = super().estimate(request, options=options)
+            guide = next(
+                event for event in request.history.events if isinstance(event, InterventionEvent)
+            )
+            identified = CausalSupportReport(
+                evaluation_status=EvaluationStatus.EVALUATED,
+                outcome=CriterionOutcome.PASSED,
+                causal_status=CausalStatus.IDENTIFIED_POPULATION_EFFECT,
+                identification_basis="pooled CRISPRi transduction",
+                identification_design=AssignmentMechanism.RANDOMIZED,
+                source_scope=f"GSE274113 {HELD_OUT}",
+                target_scope=f"GSE274113 {HELD_OUT}",
+                # Identified support must cite EXTERNAL validation artifacts; the contract
+                # refuses ordinary history events here, so the descriptor's validation evidence
+                # is what an overclaiming model would have to point at.
+                evidence_ids=belief.provenance.validation_evidence_ids,
+                evidence_fingerprints=dict(belief.provenance.validation_evidence_fingerprints),
+                estimands=(
+                    CausalEstimandBinding(
+                        target=OntologyTerm(label="panel log composition"),
+                        horizon_name="now",
+                        aggregation=TargetAggregation(
+                            subject_kind=SubjectKind.POPULATION,
+                            statistic=AggregationStatistic.DISTRIBUTION,
+                            experimental_unit="library",
+                        ),
+                        intervention_spec_ids=(guide.intervention_spec_id,),
+                        comparator="NT",
+                    ),
+                ),
+            )
+            return belief.model_copy(
+                update={
+                    "diagnostics": belief.diagnostics.model_copy(
+                        update={"causal_support": identified}
+                    ),
+                    "readiness": belief.readiness.model_copy(
+                        update={"causal": CriterionOutcome.PASSED}
+                    ),
+                }
+            )
+
+    overclaiming = OverclaimingEstimator(
+        estimator._fold,
+        query=estimator._query,
+        slice_fingerprint=estimator._slice_fingerprint,
+        panel_fingerprint=estimator._panel_fingerprint,
+    )
+    request = _request(arm_slice, overclaiming, HELD_OUT, "GATA1")
+    with pytest.raises(CapabilityError, match="identified or transported"):
+        estimate_cell_state(request, estimator=overclaiming)
+
+
+def test_an_arm_without_exactly_one_guide_is_refused(
+    arm_slice: ArmSlice, estimator: GSE274113ObservationEstimator
+) -> None:
+    request = _request(arm_slice, estimator, HELD_OUT, "GATA1")
+    # CellHistory orders interventions before observations, so select by type rather than by
+    # position -- slicing would silently drop the observation instead of the guide.
+    from cellstate.domain.events import ObservationEvent
+
+    without_guide = tuple(
+        event for event in request.history.events if isinstance(event, ObservationEvent)
+    )
+    stripped = request.model_copy(
+        update={"history": request.history.model_copy(update={"events": without_guide})}
+    )
+    with pytest.raises(CapabilityError, match="exactly one active"):
+        estimate_cell_state(stripped, estimator=estimator)
+
+
+# ------------------------------------------------------- capability measurements
+
+
+def test_capability_measurements_are_computed_and_can_fail(arm_slice: ArmSlice) -> None:
+    """The measurements exist, are grouped at the library, and are not rigged to pass.
+
+    Rule 10: a phase gate that is a measurement is passed by *producing* the measurement.  These
+    currently report negative, and that is a result rather than a defect -- what would be a defect
+    is a measurement that could only ever come out favourable.
+    """
+
+    from cellstate.evaluation.gse274113_reports import (
+        held_out_states,
+        measure_earned_spread,
+        measure_intervention_response,
+        measure_nuisance_separation,
+    )
+
+    states = held_out_states(arm_slice)
+    assert len(states) == 280
+
+    null, non_null = measure_intervention_response(arm_slice)
+    spread = measure_earned_spread(states)
+    separation = measure_nuisance_separation(states, bound=0.35)
+
+    for measurement in (null, non_null, spread, separation):
+        assert measurement.unit_count == 14, "intervals must be grouped at the library"
+        assert measurement.interval.lower <= measurement.interval.upper
+        assert measurement.statement
+        assert isinstance(measurement.passed, bool)
+
+    # The verdicts are read off the interval, never off the point estimate.
+    assert spread.passed is (spread.interval.lower > 1.0)
+    assert separation.passed is (separation.interval.upper <= 0.35)
+    assert null.passed is (null.interval.upper < non_null.interval.lower)
+
+
+def test_a_state_is_never_estimated_from_its_own_library(arm_slice: ArmSlice) -> None:
+    """Leave-one-library-out, asserted on the estimate itself rather than on the fold alone."""
+
+    from cellstate.backends.gse274113.fit import fit_fold
+
+    for library in arm_slice.libraries:
+        assert library not in fit_fold(arm_slice, library).fit_library_ids

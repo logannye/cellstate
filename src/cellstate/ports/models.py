@@ -44,6 +44,15 @@ class ModelArtifactKind(StrEnum):
     CONTRACT_REFERENCE = "contract_reference"
     BIOLOGICAL_MODEL = "biological_model"
     SYNTHETIC_TEST_MODEL = "synthetic_test_model"
+    EMPIRICAL_OBSERVATION_MODEL = "empirical_observation_model"
+    """Fitted on real public bytes; reports state and uncertainty; claims nothing causal.
+
+    Authorized by ADR 0021.  It carries a biological model's provenance obligations -- the whole
+    reason ``CONTRACT_REFERENCE`` is unusable for real data is that it is forbidden to cite what it
+    was fit on -- and ``estimate_cell_state`` bars it from an identified or transported causal
+    claim, so it cannot serve as a route around the admission registry that still gates
+    ``BIOLOGICAL_MODEL``.
+    """
 
 
 class EstimatorDescriptor(SchemaModel):
@@ -107,6 +116,7 @@ class EstimatorDescriptor(SchemaModel):
         if self.artifact_kind in {
             ModelArtifactKind.BIOLOGICAL_MODEL,
             ModelArtifactKind.SYNTHETIC_TEST_MODEL,
+            ModelArtifactKind.EMPIRICAL_OBSERVATION_MODEL,
         } and (
             self.support_envelope_id is None
             or self.support_envelope_fingerprint is None

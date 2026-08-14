@@ -850,7 +850,7 @@ def estimate_cell_state(
 ) -> CellStateBelief:
     """Estimate a query-conditioned belief only after exact compilation and preflight."""
 
-    _validated_public_model_descriptor(estimator)
+    descriptor = _validated_public_model_descriptor(estimator)
     resolved_options = options or InferenceOptions()
     state_specification = _compile_query(estimator, request.query)
     if request.previous_belief is not None:
@@ -872,6 +872,18 @@ def estimate_cell_state(
         belief = CellStateBelief.model_validate(returned_belief.model_dump(mode="python"))
     except (AttributeError, TypeError, ValueError) as error:
         raise ContractViolationError("estimator returned an invalid belief contract") from error
+
+    if descriptor.artifact_kind is ModelArtifactKind.EMPIRICAL_OBSERVATION_MODEL and (
+        belief.diagnostics.causal_support.causal_status
+        in {
+            CausalStatus.IDENTIFIED_POPULATION_EFFECT,
+            CausalStatus.TRANSPORTED_UNDER_ASSUMPTIONS,
+        }
+    ):
+        raise CapabilityError(
+            "an empirical observation model cannot claim an identified or transported population "
+            "effect; identification is gated by the content-addressed admission registry"
+        )
 
     if belief.subject != request.history.subject:
         raise ContractViolationError("estimator returned a belief for the wrong typed subject")

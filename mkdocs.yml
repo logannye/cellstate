@@ -14,6 +14,8 @@ nav:
       - Data contracts: architecture/data-contracts.md
       - Biological model bundles: architecture/biological-model-bundles.md
       - Inference pipeline: architecture/inference-pipeline.md
+  - State-path models:
+      - GSE274113 RNA observation model: backends/gse274113-rna-observation-model.md
   - Components (off the state path):
       - sci-Plex3 K562 assay-response component: backends/sciplex3-k562-population-response.md
   - Data:
@@ -49,4 +51,5 @@ nav:
       - GSE274113 rejected for the state estimand: adr/0018-gse274113-rejected-for-the-state-estimand.md
       - Build on held evidence: adr/0019-build-the-representation-on-held-evidence.md
       - RNA-first nuisance separation: adr/0020-rna-first-nuisance-separation.md
+      - An admissible kind for a fitted observation model: adr/0021-an-admissible-kind-for-a-fitted-observation-model.md
 strict: true
