@@ -1,4 +1,4 @@
-.PHONY: install format lint lock-check type test schemas example example-reference explore build check
+.PHONY: install format lint lock-check type test schemas example example-reference explore ui build check
 
 install:
 	uv sync --all-extras --no-editable --reinstall-package cellstate
@@ -41,6 +41,11 @@ explore:
 	uv run python scripts/explore.py knockdown
 	uv run python scripts/explore.py spectrum
 	uv run python scripts/explore.py day
+
+# Syncs the extra itself, so `make ui` works from a bare checkout without a separate step.
+ui:
+	uv sync --all-extras --quiet
+	uv run --extra ui python -m cellstate.ui.server
 
 build:
 	uv build

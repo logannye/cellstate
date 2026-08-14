@@ -317,6 +317,10 @@ uv run python scripts/explore.py day         # does the panel see biology that I
 uv run python scripts/explore.py measure     # S2, S4, S5 with grouped intervals
 ```
 
+For a browser instead of a terminal — with sliders on the model's rank parameters and a live
+refit — `make ui` serves a local explorer at `127.0.0.1:8000`; see
+[the guide](docs/guides/the-web-ui.md).
+
 Run `knockdown` and `spectrum` before reading anything else. They are the two screens that say
 whether this deposit carries an effect at all, and on GSE274113's CRISPRi arm the answer is no —
 which is what the negative capability measurements below are mostly measuring.

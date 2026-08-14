@@ -175,7 +175,22 @@ def _canonical_signs(basis: FloatArray) -> FloatArray:
     return np.asarray(basis * signs, dtype=np.float64)
 
 
-def _leading_subspace(rows: FloatArray, rank: int) -> FloatArray:
+def _leading_subspace(rows: FloatArray, rank: int, *, name: str) -> FloatArray:
+    """The ``rank`` leading right-singular vectors of ``rows``.
+
+    ⚠️ ``np.linalg.svd`` returns only ``min(rows, columns)`` vectors, so ``right[:rank]`` on a
+    matrix with fewer rows than ``rank`` **silently returns fewer columns than asked for**.  The
+    fold would then report a rank nobody requested, which is a request that appears to succeed
+    while doing something else.  Refused instead.
+    """
+
+    available = min(rows.shape[0], rows.shape[1])
+    if rank > available:
+        raise ValueError(
+            f"{name}_rank={rank} exceeds the {available} directions this fold can resolve "
+            f"({rows.shape[0]} rows x {rows.shape[1]} genes); a larger rank would silently "
+            "return a smaller basis"
+        )
     _, _, right = np.linalg.svd(rows, full_matrices=False)
     return _canonical_signs(np.asarray(right[:rank].T, dtype=np.float64))
 
@@ -186,11 +201,41 @@ def _orthonormalize_against(basis: FloatArray, against: FloatArray) -> FloatArra
     return _canonical_signs(np.asarray(orthonormal[:, : basis.shape[1]], dtype=np.float64))
 
 
-def fit_fold(slice_data: ArmSlice, held_out_library: str) -> FittedFold:
-    """Fit the observation model on every library except ``held_out_library``."""
+def fit_fold(
+    slice_data: ArmSlice,
+    held_out_library: str,
+    *,
+    biology_rank: int = BIOLOGY_RANK,
+    nuisance_rank: int = NUISANCE_RANK,
+) -> FittedFold:
+    """Fit the observation model on every library except ``held_out_library``.
+
+    ``biology_rank`` and ``nuisance_rank`` default to the module constants, so every existing
+    caller and every pinned measurement is unaffected.  They are arguments rather than constants
+    because **the rank is a free parameter and reads as one**: the biology contrast matrix's
+    singular values fall 40.78, 30.59, 25.78, 24.34, 21.49, so a cut at four separates values that
+    differ by 12%.  Sweeping the rank was previously an edit to this file, which is not a thing a
+    reader can do while looking at the number it moves.
+
+    ⚠️ Non-default ranks do not produce the published measurements, and nothing downstream
+    renumbers itself to say so.  A caller that varies them owns saying which rank it used.
+    """
 
     if held_out_library not in slice_data.libraries:
         raise ValueError(f"unknown library {held_out_library!r}")
+    panel_size = len(slice_data.gene_symbols)
+    if biology_rank < 1 or nuisance_rank < 1:
+        raise ValueError(
+            f"both ranks must be at least one; got biology_rank={biology_rank}, "
+            f"nuisance_rank={nuisance_rank}"
+        )
+    # The shared basis [W | V] plus one target direction must stay within the panel, or the design
+    # is rank-deficient and the posterior is not identified.
+    if biology_rank + nuisance_rank >= panel_size:
+        raise ValueError(
+            f"biology_rank + nuisance_rank must be under the {panel_size}-gene panel width; "
+            f"got {biology_rank} + {nuisance_rank}"
+        )
     fit_libraries = tuple(lib for lib in slice_data.libraries if lib != held_out_library)
     perturbed = tuple(t for t in slice_data.targets if t != NULL_TARGET)
 
@@ -225,7 +270,7 @@ def fit_fold(slice_data: ArmSlice, held_out_library: str) -> FittedFold:
     nuisance_rows = np.vstack(
         [compositions[(lib, NULL_TARGET)] - intercept for lib in fit_libraries]
     )
-    nuisance_basis = _leading_subspace(nuisance_rows, NUISANCE_RANK)
+    nuisance_basis = _leading_subspace(nuisance_rows, nuisance_rank, name="nuisance")
 
     # Biology: differencing within a library cancels the library.
     contrasts = {
@@ -235,8 +280,13 @@ def fit_fold(slice_data: ArmSlice, held_out_library: str) -> FittedFold:
     }
     biology_rows = np.vstack(list(contrasts.values()))
     biology_basis = _orthonormalize_against(
-        _leading_subspace(biology_rows, BIOLOGY_RANK), nuisance_basis
+        _leading_subspace(biology_rows, biology_rank, name="biology"), nuisance_basis
     )
+
+    # The bases must be exactly the requested width.  Anything else is a fold misreporting its
+    # own rank, and every consumer reads the rank off `basis.shape[1]`.
+    assert biology_basis.shape[1] == biology_rank, "biology basis is not the requested rank"
+    assert nuisance_basis.shape[1] == nuisance_rank, "nuisance basis is not the requested rank"
 
     shared = np.hstack([biology_basis, nuisance_basis])
 
