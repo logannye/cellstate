@@ -741,3 +741,113 @@ def test_a_state_is_never_estimated_from_its_own_library(arm_slice: ArmSlice) ->
 
     for library in arm_slice.libraries:
         assert library not in fit_fold(arm_slice, library).fit_library_ids
+
+
+# ------------------------------------------------------------ the usable surface
+
+
+def test_one_call_estimates_an_arm_from_the_fold_that_excludes_it() -> None:
+    """``estimate_arm`` replaces roughly forty lines, and it may not replace the fold discipline.
+
+    The two-pass fingerprint construction it hides is real -- the query commits to the model that
+    answers it, so the query cannot be built before the model's fingerprint exists -- but hiding it
+    must not also hide *which* fold answers.  A belief about library ``L`` comes only from the fold
+    that excluded ``L``, and that is asserted here rather than trusted to the wrapper.
+    """
+
+    from cellstate.backends.gse274113 import estimate_arm
+    from cellstate.backends.gse274113.usage import _fold_and_estimator
+
+    belief = estimate_arm(HELD_OUT, "GATA1")
+    assert belief.subject.subject_id == f"gse274113:{HELD_OUT}:GATA1"
+    assert belief.readiness.abstention_required is True
+
+    fold, _ = _fold_and_estimator(HELD_OUT)
+    assert HELD_OUT not in fold.fit_library_ids
+    assert len(fold.fit_library_ids) == 13
+
+
+def test_the_convenience_surface_refuses_what_it_cannot_answer() -> None:
+    """Both refusals are exercised from the side that fails; neither is a comment."""
+
+    from cellstate.backends.gse274113 import compare_arms, estimate_arm
+
+    with pytest.raises(ValueError, match="unknown library"):
+        estimate_arm("no-such-library", "GATA1")
+    with pytest.raises(ValueError, match="unknown arm"):
+        estimate_arm(HELD_OUT, "NOT_A_TARGET")
+    with pytest.raises(ValueError, match="against itself"):
+        compare_arms(HELD_OUT, "GATA1", "GATA1")
+
+
+def test_the_readout_names_axes_by_genes_and_never_by_a_label() -> None:
+    """The biology block becomes readable, and stays a loading rather than an interpretation.
+
+    ``biology_0`` loading MPO, ELANE and AZU1 against CD79A and PPBP is granulocyte biology against
+    B-cell and platelet biology, and a reader can see that.  What must NOT appear is a field saying
+    so: an asserted label is a claim no measurement backs, which is the defect this repository keeps
+    removing from its own reports.
+    """
+
+    from cellstate.backends.gse274113 import describe_state, estimate_arm
+
+    description = describe_state(estimate_arm(HELD_OUT, "GATA1"))
+    assert description.library == HELD_OUT
+    assert description.target == "GATA1"
+    assert [axis.name for axis in description.axes] == [f"biology_{index}" for index in range(4)]
+
+    # No axis carries a name for what it means -- only the genes and the coordinate.
+    for axis in description.axes:
+        assert not hasattr(axis, "label")
+        assert len(axis.top_genes) == 6
+        assert axis.standard_deviation > 0.0
+        loadings = [abs(gene.loading) for gene in axis.top_genes]
+        assert loadings == sorted(loadings, reverse=True), "top genes must be ranked by |loading|"
+
+    # The abstention is reprinted, not smoothed away by the convenience layer.
+    assert description.abstention_required is True
+    assert description.reasons
+    assert "ABSTENTION REQUIRED" in str(description)
+
+    # Pinned: the leading axis is a real, recognisable contrast.  This fires if the fitted basis
+    # drifts, which is exactly when the printed interpretation would silently stop being true.
+    leading = description.axes[0]
+    assert leading.top_genes[0].symbol == "MPO"
+    assert {gene.symbol for gene in leading.top_genes} >= {"MPO", "ELANE", "CD79A"}
+
+
+def test_the_readout_refuses_a_belief_from_another_backend() -> None:
+    """A description is only meaningful in the basis the belief was scored under."""
+
+    from cellstate.backends.gse274113 import describe_state, estimate_arm
+
+    belief = estimate_arm(HELD_OUT, "GATA1")
+    foreign = belief.model_copy(
+        update={"subject": belief.subject.model_copy(update={"subject_id": "somewhere-else:x:y"})}
+    )
+    with pytest.raises(ValueError, match="did not come from this backend"):
+        describe_state(foreign)
+
+
+def test_an_unexpressed_target_moves_less_than_a_master_regulator() -> None:
+    """The readout is usable, which means it has to separate a real knockdown from a dead one.
+
+    SNAI2 is measured at 0 CPM in this panel -- it is not expressed, so its contrast against NT is
+    the size of a difference that means nothing here.  GATA1 is the erythroid/megakaryocyte master
+    regulator and the panel carries its programme directly.
+
+    ⚠️ This is a *sanity* property, not a capability claim.  The reported spread is a declared lower
+    bound, GATA1 clears it by well under a factor of two, and the grouped measurement in
+    ``gse274113_reports.py`` finds the perturbed contrast NOT separable from placebo.  What is
+    asserted here is only the ordering, which is what makes the surface worth reading at all.
+    """
+
+    from cellstate.backends.gse274113 import compare_arms
+
+    dead = compare_arms(HELD_OUT, "NT", "SNAI2")
+    master = compare_arms(HELD_OUT, "NT", "GATA1")
+    assert master.distance > dead.distance
+    assert dead.distance < dead.distance_lower_bound_sd, (
+        "an unexpressed target must not clear even the understated noise floor"
+    )
+    assert master.axis_names == dead.axis_names == tuple(f"biology_{i}" for i in range(4))
