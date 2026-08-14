@@ -110,13 +110,19 @@ grouped at the library, and **all three failed**. The measurements are computed 
 | | Measured | Interval | Required | |
 | --- | --- | --- | --- | --- |
 | S5 nuisance separation | 10.36 | [6.27, 16.66] | ≤ 0.35 | fails |
-| S2 earned spread | 0.28 | [0.21, 0.35] | > 1 | fails |
+| S2 earned spread | 0.84 | [0.71, 0.98] | > 1 | fails |
 | S4 null half (placebo) | 2.03 | [1.44, 2.67] | below the perturbed band | fails |
 | S4 non-null half | 2.09 | [1.62, 2.56] | above the null band | fails |
 
 These are the values **after** [ADR 0022](../adr/0022-the-technical-variance-is-evaluated-at-a-pooled-rate.md),
 measured against bounds that decision fixed before the run. The pre-ADR values were 19.22, 0.22,
 2.90 and 3.08, measured against a bound introduced in the same commit as its own result.
+
+S2's row also reflects a change of **estimand** rather than only of variance, per
+[ADR 0023](../adr/0023-the-s2-estimand-is-a-split-half-replicate.md): it was 0.28 under the
+superseded point-predictor construction and is 0.84 under the split-half replicate. The superseded
+construction is still computed and reported, as `measure_point_predictor_spread`, at 0.30 [0.23,
+0.38] under the decided aggregation. See the first qualification below.
 
 An earlier revision of this section declared **S5 and S2 advanced**, on the structural argument that
 the nuisance axis is a declared subspace and that the posterior's components are computed rather
@@ -127,16 +133,32 @@ honest list is empty.
 
 Two qualifications, so that these failures are not read as more than they are:
 
-- **S2's magnitude is not robust to an undocumented estimand choice, though its verdict is.** The
-  reported value uses a point predictor that takes every coefficient from the target's mean over the
-  fit libraries, which averages the arm's own nuisance coefficients away. Letting that predictor keep
-  the arm's own least-squares coefficients instead — the construction `fit.py` prescribes in as many
-  words for inference — moved the pre-ADR-0022 ratio from 0.22 to **0.65** (nuisance block only),
-  **0.67** (nuisance and realization) and **0.79** (all three blocks), a 3.6× swing across four
-  defensible choices. **S2 fails under all of them**, so the capability is genuinely not advanced and
-  the verdict stands. What does not survive is the *number*: the reported value should not be cited
-  as the size of the shortfall, and an ADR should fix the estimand before any future report quotes
-  one. ADR 0022 decision 6 explicitly leaves this open.
+- **S2's estimand is now fixed, and the reported number changed when it was.**
+  [ADR 0023](../adr/0023-the-s2-estimand-is-a-split-half-replicate.md) makes S2 a **split-half
+  replicate on the declared-null arm**: the state is inferred from `NT_A`, the predictive is formed
+  for `NT_B`, and the claimed spread is scored against the error actually realized. Both sides
+  condition on the same information, so the "the posterior has seen the arm and the predictor has
+  not" caveat this card used to carry is retired rather than restated.
+
+  The previously published **0.28** came from a point predictor denied both the arm and its own
+  library's nuisance coefficients, and it sat at the extreme pessimistic corner of a swept grid:
+  across five constructions and two gene-aggregation conventions the ratio runs **0.30 to 1.08**,
+  post-ADR-0022, with intervals grouped at the library. **Every construction fails**, so the verdict
+  never depended on the choice — but the shortfall's *size* did, and the honest figure is 0.84 rather
+  than 0.28. The full grid is in ADR 0023. That record also fixes the aggregation: both sides are a
+  root-mean-square, where the superseded form paired a *mean* of per-gene standard deviations against
+  an RMS residual and understated the numerator by 8.0%.
+
+  Two limits belong with the new number. It measures calibration on **null biology only** — `NT` is
+  the sole arm carrying a replicate — across 14 libraries rather than 280 arms. And the halves are
+  shallower than a full arm, 665,763 panel counts against 1,368,741; evaluating the technical term at
+  the full-arm depth moves the ratio from 0.8415 to **0.8322**, about 1.1% and in the direction that
+  makes the failure worse, so **the depth asymmetry does not explain it.**
+
+  What does: with sampling noise removed, the systematic misfit is **0.1427** against a total claimed
+  variance of **0.1213**. The misfit alone exceeds everything the posterior claims. Under the old
+  construction that diagnosis was unavailable, because its failure was equally consistent with a
+  predictor that had simply been handicapped.
 - **The substrate carries almost no perturbation signal**, so S2, S4 and S5 are verdicts on
   `GSE274113`'s CRISPRi arm before they are verdicts on this model. Mean on-target knockdown across
   the 19 targets is **−0.043** log2 fold-change and 6 of 19 move the **wrong way**; restricted to the

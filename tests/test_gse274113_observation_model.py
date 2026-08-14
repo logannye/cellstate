@@ -492,13 +492,14 @@ def test_capability_measurements_are_computed_and_can_fail(arm_slice: ArmSlice) 
         measure_earned_spread,
         measure_intervention_response,
         measure_nuisance_separation,
+        measure_point_predictor_spread,
     )
 
     states = held_out_states(arm_slice)
     assert len(states) == 280
 
     null, non_null = measure_intervention_response(arm_slice)
-    spread = measure_earned_spread(states)
+    spread = measure_earned_spread(arm_slice)
     separation = measure_nuisance_separation(states, bound=0.35)
 
     for measurement in (null, non_null, spread, separation):
@@ -521,9 +522,11 @@ def test_capability_measurements_are_computed_and_can_fail(arm_slice: ArmSlice) 
     assert separation.interval.lower == pytest.approx(6.26717, rel=1e-3)
     assert separation.interval.upper == pytest.approx(16.65935, rel=1e-3)
 
-    assert spread.value == pytest.approx(0.27806, rel=1e-3)
-    assert spread.interval.lower == pytest.approx(0.20723, rel=1e-3)
-    assert spread.interval.upper == pytest.approx(0.34669, rel=1e-3)
+    # S2 is the split-half replicate on NT decided by ADR 0023, NOT the library-blind point
+    # predictor that reported 0.27806 before it.  The estimand changed; the verdict did not.
+    assert spread.value == pytest.approx(0.84148, rel=1e-3)
+    assert spread.interval.lower == pytest.approx(0.71437, rel=1e-3)
+    assert spread.interval.upper == pytest.approx(0.97593, rel=1e-3)
 
     assert null.value == pytest.approx(2.02578, rel=1e-3)
     assert null.interval.lower == pytest.approx(1.43838, rel=1e-3)
@@ -544,6 +547,31 @@ def test_capability_measurements_are_computed_and_can_fail(arm_slice: ArmSlice) 
     # the property the replaced tautologies were reaching for but could not demonstrate.
     assert measure_nuisance_separation(states, bound=17.0).passed is True
     assert measure_nuisance_separation(states, bound=16.0).passed is False
+
+    # ADR 0023 decision 3: the superseded construction stays reported, so the change of estimand is
+    # visible in the record rather than looking like a number that moved on its own.  Both are
+    # pinned, and they must stay DISTINCT -- if a future edit collapses one into the other, the
+    # diagnostic stops diagnosing anything and this fails.
+    diagnostic = measure_point_predictor_spread(states)
+    assert diagnostic.value == pytest.approx(0.30205, rel=1e-3)
+    assert diagnostic.interval.lower == pytest.approx(0.22527, rel=1e-3)
+    assert diagnostic.interval.upper == pytest.approx(0.37581, rel=1e-3)
+    assert not diagnostic.passed
+    assert diagnostic.value < spread.value, (
+        "the library-blind predictor is handicapped twice over and must read more pessimistic "
+        "than the split-half replicate; equal values mean the estimand change was not applied"
+    )
+
+    # ADR 0023 decision 2: both sides aggregate as a root-mean-square.  The superseded form paired a
+    # MEAN of per-gene standard deviations against an RMS residual, which understates the numerator
+    # by Jensen and reported 0.27806 for this same construction.  Pinning the RMS value is what
+    # keeps a revert to the mixed aggregation from passing silently.
+    assert diagnostic.value != pytest.approx(0.27806, rel=1e-3)
+
+    # One replicate per library, so S2 resolves to 14 units rather than 280 arms.  This is the
+    # scope limit ADR 0023 decision 5 declares, asserted rather than left to the model card.
+    assert spread.unit_count == 14
+    assert len(arm_slice.libraries) == 14
 
 
 def test_the_s5_block_decomposition_is_computed_rather_than_asserted(arm_slice: ArmSlice) -> None:

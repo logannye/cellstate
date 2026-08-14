@@ -6,16 +6,19 @@ grouped at the **library**, which is the independent experimental unit under pro
 
 Three capabilities are measured, and each can fail:
 
-**S2 -- is the posterior's spread earned?**  The posterior predictive standard deviation is compared
-against the residual spread of a point predictor on the same held-out arms.
+**S2 -- is the posterior's spread earned?**  The state is inferred from one half of the ``NT`` arm
+and the predictive distribution it implies is scored against the other half, so the claimed spread
+meets an error the model genuinely has not seen.
 
-⚠️ **This comparison is not like-for-like, and the result must be read with that.**  The posterior
-conditions on the arm's own observation; the point predictor does not.  A posterior that has seen
-the arm is *expected* to be tighter than a predictor that has not, so a ratio below one is partly
-definitional for an observation model rather than pure evidence of overconfidence.  What it does
-establish is a direction: combined with a fitted dispersion sitting at the sampling floor, the
-posterior is narrow.  A clean S2 test needs a held-out *replicate of the same arm* -- split the
-arm's cells, infer from one half, predict the other -- which this design supplies only for NT.
+This is the test an earlier revision of this docstring described but no code performed.  That
+revision warned that the shipped comparison was **not like-for-like** -- the posterior conditioned
+on the arm's own observation while the point predictor did not, so a ratio below one was partly
+definitional -- and observed that a clean test needs a held-out *replicate of the same arm*, which
+this design supplies for ``NT``.  [ADR 0023] makes that the estimand.  The warning is retired rather
+than restated, and the number it qualified moved from 0.28 to 0.84 in the process.
+
+⚠️ What remains, and it is a real limit: ``NT`` is the only arm with a replicate, so S2 is measured
+on **null biology only**, across 14 libraries rather than 280 arms.
 
 **S4 -- does the ``do`` operator move when, and only when, the intervention moves?**  Both halves.
 The null half uses ``NT``, whose direction is estimated from a placebo split rather than fixed at
@@ -28,6 +31,8 @@ alone.
 
 Nothing here is a sufficiency result.  S1, S3 and S7 remain structurally unreachable on this
 evidence, and no combination of the measurements below substitutes for them.
+
+[ADR 0023]: ../../../docs/adr/0023-the-s2-estimand-is-a-split-half-replicate.md
 """
 
 from __future__ import annotations
@@ -37,7 +42,13 @@ from dataclasses import dataclass
 import numpy as np
 from numpy.typing import NDArray
 
-from ..backends.gse274113.fit import NULL_TARGET, ArmSlice, FittedFold, fit_fold
+from ..backends.gse274113.fit import (
+    NULL_TARGET,
+    PLACEBO_TARGETS,
+    ArmSlice,
+    FittedFold,
+    fit_fold,
+)
 from ..backends.gse274113.likelihood import posterior
 from .bootstrap import BootstrapInterval, multiway_clustered_bootstrap
 
@@ -52,6 +63,7 @@ __all__ = [
     "measure_earned_spread",
     "measure_intervention_response",
     "measure_nuisance_separation",
+    "measure_point_predictor_spread",
 ]
 
 
@@ -163,33 +175,123 @@ def _interval(values: list[float], libraries: list[str], *, seed: int) -> Bootst
 
 
 def measure_earned_spread(
-    states: tuple[ArmState, ...], *, seed: int = DEFAULT_SEED
+    slice_data: ArmSlice, *, seed: int = DEFAULT_SEED
 ) -> CapabilityMeasurement:
-    """S2: posterior predictive spread against a point predictor's held-out residual spread.
+    """S2: the posterior's claimed spread against the error it makes on a held-out replicate.
 
-    The ratio must exceed one for the spread to be earned, and the *lower* interval end is what
-    decides it -- a point estimate above one with an interval straddling it has not shown anything.
+    Per [ADR 0023] the estimand is a **split-half replicate on the declared-null arm**.  The state
+    is inferred from ``NT_A``, the predictive distribution is formed for ``NT_B``, and the claimed
+    spread is compared against the error actually realized on ``NT_B``.  The ratio must exceed one
+    for the spread to be earned, and the *lower* interval end decides it -- a point estimate above
+    one with an interval straddling it has not shown anything.
+
+    **Both sides condition on the same information**, which is what the four point-predictor
+    constructions could not supply: each of those scored a posterior that had seen the arm against a
+    predictor that had not, so the ratio was as much a statement about the handicap as about
+    calibration.  The superseded construction is kept below as a labelled diagnostic.
+
+    The fold discipline is intact and was checked rather than assumed.  ``NT``'s direction is
+    estimated from the placebo split, so an estimand built on that same split invites the question
+    of whether the held-out library's halves informed the design they are scored under.  They do
+    not: ``fit.py`` draws its placebo libraries from the fit libraries alone, so for a fold that
+    excludes *L* the intercept, both subspaces, ``psi^2``, the pooled rate and the ``NT`` direction
+    all come from the other thirteen libraries, and **both** halves of *L*'s ``NT`` arm are held
+    out.
+
+    ⚠️ **Scope: null biology only, across 14 libraries rather than 280 arms.**  ``NT`` is the only
+    arm in this design carrying a replicate.  This does not establish calibration on a perturbed
+    arm, and the limit is a property of the estimand rather than a caveat on one run.
+
+    ⚠️ **The halves are shallower than a full arm, and it does not explain the result.**  They carry
+    665,763 panel counts against 1,368,741, a 2.06x shortfall, and lower depth inflates both the
+    claimed spread and the realized error.  Recomputing with the technical term at the full-arm
+    depth on both sides moves the ratio from 0.8415 to **0.8322** -- about 1.1%, and in the
+    direction that makes the failure worse.
+
+    Both sides aggregate across genes as a root-mean-square.  The superseded form paired a *mean* of
+    per-gene standard deviations against an RMS residual, which is not like-for-like and understates
+    the numerator by 8.0% on this evidence.
+
+    [ADR 0023]: ../../../docs/adr/0023-the-s2-estimand-is-a-split-half-replicate.md
     """
 
-    ratios = [
-        float(np.mean(state.predictive_sd) / np.sqrt(np.mean(state.point_residual**2)))
-        for state in states
-    ]
-    libraries = [state.library for state in states]
+    ratios: list[float] = []
+    libraries: list[str] = []
+    for library in slice_data.libraries:
+        fold = fit_fold(slice_data, library)
+        design = fold.design(NULL_TARGET)
+        inferred_from, inferred_depth = slice_data.log_composition(library, PLACEBO_TARGETS[0])
+        predicted_for, predicted_depth = slice_data.log_composition(library, PLACEBO_TARGETS[1])
+        mean, covariance = posterior(
+            inferred_from,
+            intercept=fold.intercept,
+            design=design,
+            prior_precision=fold.prior_precision(),
+            observation_variance_diagonal=fold.observation_variance(inferred_depth),
+        )
+        predictive_variance = np.einsum(
+            "gi,ij,gj->g", design, covariance, design
+        ) + fold.observation_variance(predicted_depth)
+        residual = predicted_for - fold.intercept - design @ mean
+        ratios.append(float(np.sqrt(np.mean(predictive_variance)) / np.sqrt(np.mean(residual**2))))
+        libraries.append(library)
+
     interval = _interval(ratios, libraries, seed=seed)
-    value = float(np.mean(ratios))
     passed = interval.lower > 1.0
     return CapabilityMeasurement(
-        name="S2 earned posterior spread",
-        value=value,
+        name="S2 earned posterior spread (split-half replicate on NT)",
+        value=float(np.mean(ratios)),
         interval=interval,
         unit_count=len(set(libraries)),
         passed=passed,
         statement=(
-            "the posterior predictive is strictly wider than the point predictor's residual spread"
+            "the posterior's claimed spread covers the error it makes on a held-out replicate"
             if passed
-            else "the posterior is NOT shown to be wider than the residual spread it must cover; "
-            "on this evidence the spread is not earned"
+            else "the posterior claims a spread NARROWER than the error it makes on a held-out "
+            "replicate; on this evidence the spread is not earned"
+        ),
+    )
+
+
+def measure_point_predictor_spread(
+    states: tuple[ArmState, ...], *, seed: int = DEFAULT_SEED
+) -> CapabilityMeasurement:
+    """The superseded S2 construction, retained as a diagnostic. **This is not the S2 verdict.**
+
+    [ADR 0023] decision 3 keeps this reported rather than deleted, so that the change of estimand
+    stays visible in the record instead of appearing as a number that moved on its own.
+
+    It compares the posterior against a point predictor taking every coefficient from the target's
+    mean over the fold's fit libraries.  That predictor is handicapped twice: it never sees the arm,
+    while the posterior it is scored against does, and averaging coefficients across libraries
+    washes out the nuisance block, so it is then charged for library variation it was structurally
+    forbidden to know.  Both handicaps push the ratio down, which is why this construction sat at
+    the extreme pessimistic corner of the swept grid.
+
+    The reported value here is **not** the published 0.27806.  That figure was computed under the
+    mean-of-standard-deviations aggregation ADR 0023 decision 2 supersedes; under the decided
+    root-mean-square aggregation the same construction measures 0.30206.  One convention is kept in
+    code and the history is kept in the model card.
+
+    [ADR 0023]: ../../../docs/adr/0023-the-s2-estimand-is-a-split-half-replicate.md
+    """
+
+    ratios = [
+        float(np.sqrt(np.mean(state.predictive_sd**2)) / np.sqrt(np.mean(state.point_residual**2)))
+        for state in states
+    ]
+    libraries = [state.library for state in states]
+    interval = _interval(ratios, libraries, seed=seed)
+    return CapabilityMeasurement(
+        name="S2 diagnostic: posterior against a library-blind point predictor (NOT the verdict)",
+        value=float(np.mean(ratios)),
+        interval=interval,
+        unit_count=len(set(libraries)),
+        passed=interval.lower > 1.0,
+        statement=(
+            "diagnostic only, superseded as the S2 estimand by ADR 0023: the point predictor is "
+            "denied both the arm and its own library, so this ratio measures the handicap as much "
+            "as the calibration"
         ),
     )
 
