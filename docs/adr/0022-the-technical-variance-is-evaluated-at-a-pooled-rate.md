@@ -90,6 +90,10 @@ survived in a smaller form and was not re-measured.
    across four defensible constructions, all failing — and it gets its own record. This ADR changes
    only the variance the posterior is formed under.
 
+   *Settled by [ADR 0023](0023-the-s2-estimand-is-a-split-half-replicate.md), which fixes the estimand
+   as a split-half replicate on the declared-null arm. The figures quoted above are pre-ADR-0022; the
+   post-fix grid is recorded there.*
+
 ## What this costs
 
 The four measurements this repository has published all move, because every one of them reads a
