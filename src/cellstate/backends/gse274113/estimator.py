@@ -545,12 +545,28 @@ class GSE274113ObservationEstimator:
         )
         return BeliefDiagnostics(
             support=SupportReport(
-                evaluation_status=EvaluationStatus.EVALUATED,
-                outcome=CriterionOutcome.PASSED,
-                in_distribution_score=1.0,
-                ood_score=0.0,
+                # Not evaluated, because nothing here evaluates it.  This read EVALUATED / PASSED /
+                # in_distribution_score=1.0 / ood_score=0.0 / abstention_required=False, and every
+                # one of those was a literal: a uniform composition across all 100 panel genes, and
+                # an inverted one, both received the identical certificate as a real held-out arm.
+                # A report that returns the same verdict for data that could not exist is not a
+                # measurement of support, and claiming a perfect in-distribution score for it is
+                # worse than claiming nothing.
+                #
+                # The scores are optional precisely so a report can decline to invent them, so this
+                # states the honest position rather than substituting a hastily-chosen statistic.
+                # Computing a real one needs a decided estimand and a threshold predeclared before
+                # the measurement -- and the threshold matters more than it looks, since this query
+                # sets `maximum_ood_score=0.99`, against which a correctly computed score still
+                # could not fail.  Both belong in one record; neither is repaired here.
+                evaluation_status=EvaluationStatus.NOT_EVALUATED,
+                outcome=CriterionOutcome.NOT_EVALUATED,
                 maximum_ood_score=self._query.acceptance_thresholds.maximum_ood_score,
-                abstention_required=False,
+                abstention_required=True,
+                notes=(
+                    "no support envelope is computed by this observation model; the arm's position "
+                    "relative to the fit libraries' distribution is not scored",
+                ),
             ),
             sufficiency=SufficiencyReport(
                 evaluation_status=EvaluationStatus.NOT_EVALUATED,
@@ -602,17 +618,26 @@ class GSE274113ObservationEstimator:
 
     def _readiness(self) -> QueryReadinessReport:
         return QueryReadinessReport(
-            support=CriterionOutcome.PASSED,
+            support=CriterionOutcome.NOT_EVALUATED,
             sufficiency=CriterionOutcome.NOT_EVALUATED,
             identifiability=CriterionOutcome.NOT_EVALUATED,
             decision_uncertainty=CriterionOutcome.NOT_EVALUATED,
             calibration=CriterionOutcome.NOT_EVALUATED,
             causal=CriterionOutcome.NOT_EVALUATED,
-            measurement_model=CriterionOutcome.PASSED,
+            # `measurement_model` read PASSED, and it is the one criterion `coherent_contract`
+            # cannot contradict: the other six are cross-checked against a `BeliefDiagnostics`
+            # report and this one has no counterpart to check against.  So it asserted itself.
+            # The result was a belief reading "not valid for prediction, not valid for control,
+            # abstention required -- but valid for measurement selection", from a query declaring
+            # `available_assays=()`.  The reference estimator shows what earning it looks like:
+            # `linear_gaussian.py` derives each criterion from `diagnostics.*.outcome` and reports
+            # this one UNSUPPORTED.  Until a measurement-model report exists to be checked against,
+            # NOT_EVALUATED is the only claim this backend can support.
+            measurement_model=CriterionOutcome.NOT_EVALUATED,
             control_requested=True,
             valid_for_prediction=False,
             valid_for_control=False,
-            valid_for_measurement_selection=True,
+            valid_for_measurement_selection=False,
             # Abstention is the honest result, not a failure: the sufficiency test this project
             # defines faithfulness by is inapplicable on evidence with no spanning unit.
             abstention_required=True,
