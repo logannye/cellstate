@@ -18,7 +18,8 @@ implementation order and graduation gates, and is the sole authority for both.
 [implementation queue](#implementation-queue). `Q1` is delivered; `Q2` is delivered in substance but
 incomplete against its own done-when; `Q3` is delivered and the sufficiency verdict now fails
 closed; `Q4` is decided, with a negative result, and owes a reviewed manifest. **`Q5` and `Q7` are
-delivered, and their measurements are negative** — see below. `Q8`, the estimand freeze, is blocked
+delivered, and their measurements are negative** — see below; `Q5` is additionally open against its
+own done-when, whose predeclaration clause git refutes. `Q8`, the estimand freeze, is blocked
 on source selection and is deliberately not next. Everything before the phase list is the standard
 that work is held to, not work.
 
@@ -681,16 +682,33 @@ not yet decomposed into items and must not be started from prose.
    rule. What is still owed is the record's home: it lives in ADR 0020 and must also appear in the
    representability ledger and the reviewed manifest, which are the artifacts rule 6 points at.
    The bytes were re-fetched and verified, 15 of 15 on byte count and SHA-256.
-   **Delivered, with a negative result.** The observation model is fitted and checked in
-   (`src/cellstate/backends/gse274113/`, panel and slice under
-   `backends/vertical-a/gse274113-rna-obs-v1/`), and the nuisance-separation test ran on held-out
-   libraries against the bound **0.35**, stated before the run. It measured **19.22**, interval
-   [10.35, 29.90] grouped at the library — library variation reaches the inferred state rather than
-   staying in the nuisance block, so **S5 is not advanced**. The rank-3 nuisance basis fitted from
-   `NT` residuals does not span the library variation. Rule 10 is satisfied by producing the
-   measurement; the model is not.
-   *Done when:* unchanged, and met — the test ran with an interval grouped at the library and the
-   bound was predeclared.
+   **Delivered, with a negative result, and open against one clause of its own done-when.** The
+   observation model is fitted and checked in (`src/cellstate/backends/gse274113/`, panel and slice
+   under `backends/vertical-a/gse274113-rna-obs-v1/`), and the nuisance-separation test ran on
+   held-out libraries against a bound of **0.35**. It measured **19.22**, interval [10.35, 29.90]
+   grouped at the library, so **S5 is not advanced**.
+
+   **The bound was not predeclared, and an earlier revision of this entry claimed it was.**
+   `git log -S"bound=0.35"` returns exactly one commit — `1e5e4d1`, the commit that reported the
+   measurement. The bound and the result entered the repository together. Predeclaration was the
+   entire substantive content of this item's done-when, so that clause was self-certified, and the
+   item is recorded here the way `Q2` and `Q4` are: delivered in substance, open against its own
+   criterion. The measurement itself stands — it runs on held-out folds with an interval grouped at
+   the library and reproduces from the committed slice — but a measurement against a post-hoc
+   threshold is a weaker object than the one this item promised, and the difference is not one a
+   reader should have to reconstruct from git. The repair is not to re-litigate 19.22; it is to
+   commit the bound for the **next** run before that run, in an artifact a test reads.
+
+   **The diagnosis is not that the nuisance basis failed.** An earlier revision of this entry read
+   "the rank-3 nuisance basis fitted from `NT` residuals does not span the library variation." That
+   reading was checked and is wrong, and the summary at the head of this file has said so since
+   `2045a1e` while this entry continued to carry the retracted version. Decomposed by block,
+   across-library variance is **79.27** in the nuisance block against **3.07** in biology, so the
+   basis absorbs roughly 26× more than leaks past it. What fails is the denominator: between-target
+   variance is **0.257**. Raising the nuisance rank does not repair this and was measured not to.
+   Rule 10 is satisfied by producing the measurement; the model is not.
+   *Done when:* the interval clause is met — the test ran on held-out libraries with an interval
+   grouped at the library. **The predeclaration clause is not met**, and is not recorded as met.
 6. **`Q6` — run the held-out-modality test on clean ATAC.** [S5] Carries the test moved out of
    `Q5` by [ADR 0020](adr/0020-rna-first-nuisance-separation.md), at full strength: both directions,
    with an interval grouped at the library. Blocked until the ATAC observation space can be built
