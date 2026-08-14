@@ -52,4 +52,5 @@ nav:
       - Build on held evidence: adr/0019-build-the-representation-on-held-evidence.md
       - RNA-first nuisance separation: adr/0020-rna-first-nuisance-separation.md
       - An admissible kind for a fitted observation model: adr/0021-an-admissible-kind-for-a-fitted-observation-model.md
+      - The technical variance is evaluated at a pooled rate: adr/0022-the-technical-variance-is-evaluated-at-a-pooled-rate.md
 strict: true
