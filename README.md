@@ -278,12 +278,15 @@ The capabilities that backend was scheduled to advance were measured on held-out
 intervals grouped at the library, and **every one came out negative** — S5 at 10.36 against a bound
 of 0.35, S2 at 0.84 against a requirement above 1, and the S4 placebo and perturbed bands
 overlapping. Those are results rather than defects, and they are largely verdicts on the deposit
-before they are verdicts on the model: mean on-target knockdown across the 19 targets is **−0.043**
-log₂ fold-change, so the capability tests divide by a perturbation signal that is not there. The
-same panel and pipeline resolve day 7 → day 14 differentiation at **7.97×** the placebo contrast.
+before they are verdicts on the model: mean on-target knockdown across the 19 targets is **−0.058**
+log₂ fold-change with 6 of 19 moving the wrong way, so the capability tests divide by a perturbation
+signal that is not there. The matrix the biology basis is fitted on has the singular-value profile
+of the **placebo** contrast (s1/s0 0.76 against 0.75). The same panel and pipeline resolve day 7 →
+day 14 differentiation at **7.97×** the placebo contrast, at s1/s0 0.20 with 92.5% of the variance
+on one direction. `scripts/explore.py knockdown`, `spectrum` and `day` compute all of these.
 
-No benchmark has passed performance admission, no metric in any frozen suite has an executable
-implementation, and the sufficiency and calibration functions still have no non-test caller. The
+No benchmark has passed performance admission and the eligibility ledger is 0 of 10; the
+sufficiency and calibration functions still have no non-test caller. The
 linear-Gaussian reference remains a contract exercise and deliberately rejects biology it does not
 implement; its outputs are examples of contract behavior, not estimates of cellular state.
 
@@ -294,14 +297,29 @@ implement; its outputs are examples of contract behavior, not estimates of cellu
 Python 3.11 or newer with [`uv`](https://docs.astral.sh/uv/):
 
 ```bash
-uv sync --all-extras --no-editable
-uv run python examples/estimate_real_cell_state.py   # real CD34+ cells, no download
+uv sync --all-extras
+uv run python examples/estimate_real_cell_state.py       # real CD34+ cells, no download
 uv run --no-editable python examples/estimate_state.py   # contract reference, synthetic
 uv run --no-editable pytest
 ```
 
 The first example is the one to read: it estimates the state of real human progenitors and prints
 each biology axis by the panel genes that define it.
+
+To poke at the system rather than read one canned run, `scripts/explore.py` is an eleven-command
+surface over the same committed slice — see [the guide](docs/guides/explore-the-system.md):
+
+```bash
+uv run python scripts/explore.py inventory   # what the committed slice contains
+uv run python scripts/explore.py knockdown   # did the perturbation reach the readout?
+uv run python scripts/explore.py spectrum    # is there structure for the model to find?
+uv run python scripts/explore.py day         # does the panel see biology that IS there?
+uv run python scripts/explore.py measure     # S2, S4, S5 with grouped intervals
+```
+
+Run `knockdown` and `spectrum` before reading anything else. They are the two screens that say
+whether this deposit carries an effect at all, and on GSE274113's CRISPRi arm the answer is no —
+which is what the negative capability measurements below are mostly measuring.
 
 ```python
 from cellstate.backends.gse274113 import estimate_arm, describe_state, compare_arms
