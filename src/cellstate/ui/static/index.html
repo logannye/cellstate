@@ -1,0 +1,269 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>cellstate — GSE274113 explorer</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 32 32%22%3E%3Crect width=%2232%22 height=%2232%22 rx=%226%22 fill=%22%230E1517%22/%3E%3Ccircle cx=%2213%22 cy=%2216%22 r=%227%22 fill=%22%2300918A%22 fill-opacity=%22.85%22/%3E%3Ccircle cx=%2220%22 cy=%2216%22 r=%227%22 fill=%22%23BB5E14%22 fill-opacity=%22.75%22/%3E%3C/svg%3E">
+<link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+<div class="shell">
+
+  <header class="top">
+    <div class="brand">
+      <h1>cellstate</h1>
+      <span class="sub" id="slice-summary">loading slice…</span>
+    </div>
+    <nav class="tabs" role="tablist">
+      <button role="tab" data-view="lab"       aria-selected="true">Model laboratory</button>
+      <button role="tab" data-view="arm"       aria-selected="false">Arm explorer</button>
+      <button role="tab" data-view="substrate" aria-selected="false">Substrate</button>
+      <button role="tab" data-view="basis"     aria-selected="false">Fold / basis</button>
+    </nav>
+  </header>
+
+  <main>
+
+    <!-- ============================================================ MODEL LABORATORY -->
+    <section class="view active" id="view-lab" role="tabpanel">
+      <div class="controls">
+        <div class="slider">
+          <div class="row">
+            <label for="lab-bio">biology rank · W</label>
+            <span class="val" id="lab-bio-val">4</span>
+            <span class="dflt">default 4</span>
+          </div>
+          <input type="range" id="lab-bio" min="1" max="10" step="1" value="4">
+        </div>
+        <div class="slider">
+          <div class="row">
+            <label for="lab-nui">nuisance rank · V</label>
+            <span class="val" id="lab-nui-val">3</span>
+            <span class="dflt">default 3</span>
+          </div>
+          <input type="range" id="lab-nui" min="1" max="10" step="1" value="3">
+        </div>
+        <button class="act ghost" id="lab-reset">Reset to fitted</button>
+      </div>
+
+      <div id="lab-offdefault"></div>
+
+      <div class="tiles" id="lab-tiles"><div class="loading">fitting…</div></div>
+
+      <div class="grid side">
+        <div class="panel">
+          <div class="head"><h3>S5 and its two terms, across the rank grid</h3></div>
+          <p class="note">
+            The published sensitivity — S5 at 16.96 / 19.22 / 27.21 for ranks 3 / 4 / 5 — is three
+            points of this curve. Read the terms, never the quotient alone: the numerator and the
+            denominator move together, which is why S5 barely responds to a five-fold change in
+            leakage.
+          </p>
+          <div class="scroller" id="lab-response"><div class="loading">sweeping ranks…</div></div>
+          <div class="legend">
+            <span><i style="border-color: var(--series-a)"></i>leakage — biology across-library</span>
+            <span><i style="border-color: var(--series-b)"></i>signal — between-target</span>
+          </div>
+        </div>
+
+        <div class="panel">
+          <div class="head"><h3>Where the cut lands</h3></div>
+          <p class="note">
+            <code>W</code> is the leading subspace of the perturbation contrast matrix. The dashed
+            line is your current biology rank. There is no gap at four to cut at — the first
+            excluded direction is about 88% the size of the last included one.
+          </p>
+          <div class="scroller" id="lab-spectrum"><div class="loading">…</div></div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="head"><h3>Measurements at the current ranks</h3></div>
+        <div class="scroller" id="lab-measure"><div class="loading">…</div></div>
+      </div>
+    </section>
+
+    <!-- ============================================================ ARM EXPLORER -->
+    <section class="view" id="view-arm" role="tabpanel">
+      <div class="controls">
+        <div class="field">
+          <label for="arm-library">library</label>
+          <select id="arm-library"></select>
+        </div>
+        <div class="field">
+          <label for="arm-target">target</label>
+          <select id="arm-target"></select>
+        </div>
+        <div class="field">
+          <label for="arm-x">scatter x</label>
+          <select id="arm-x"></select>
+        </div>
+        <div class="field">
+          <label for="arm-y">scatter y</label>
+          <select id="arm-y"></select>
+        </div>
+      </div>
+
+      <div class="grid side">
+        <div class="panel">
+          <div class="head">
+            <h3 id="arm-title">state</h3>
+            <span class="chip off" id="arm-rankchip" hidden></span>
+          </div>
+          <p class="note">
+            Each axis is reported as the genes that define it. Calling <code>biology_0</code> “the
+            granulocyte axis” is a reasonable interpretation and it is yours to make — an asserted
+            label is a claim no measurement backs, so the readout does not ship one.
+          </p>
+          <div id="arm-axes"><div class="loading">…</div></div>
+          <div id="arm-abstention"></div>
+        </div>
+
+        <div class="panel">
+          <div class="head"><h3>Arms of this library, in shared coordinates</h3></div>
+          <p class="note">
+            One library only. A belief about library <em>L</em> comes from the fold that excluded
+            <em>L</em>, so arms in different libraries sit in different fitted bases and their
+            coordinates do not compare. Ellipses are 1 posterior sd.
+          </p>
+          <div class="scroller" id="arm-scatter"><div class="loading">…</div></div>
+          <div class="legend">
+            <span><i style="border-color: var(--series-b)"></i>NT — non-targeting control</span>
+            <span><i style="border-color: var(--series-a)"></i>perturbed target</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="head">
+          <h3>Every target against NT in this library</h3>
+          <span class="chip" id="sweep-floorchip"></span>
+        </div>
+        <p class="note">
+          Read each row against the <strong>floor</strong> — the mean contrast of targets that are
+          not expressed and therefore cannot have been knocked down — never against zero. The spread
+          column is a declared <em>lower</em> bound: it adds two posterior variances as though the
+          arms were independent, and they are not.
+        </p>
+        <div class="scroller" id="arm-sweep"><div class="loading">…</div></div>
+      </div>
+    </section>
+
+    <!-- ============================================================ SUBSTRATE -->
+    <section class="view" id="view-substrate" role="tabpanel">
+      <div class="tiles" id="sub-tiles"><div class="loading">…</div></div>
+
+      <div class="grid two">
+        <div class="panel">
+          <div class="head"><h3>Is there structure for the model to find?</h3></div>
+          <p class="note">
+            The matrix <code>W</code> is fitted on, against two references from this same slice.
+            Real biology concentrates; noise does not.
+          </p>
+          <div class="scroller" id="sub-spectrum"><div class="loading">…</div></div>
+          <div class="scroller" id="sub-spectrum-table"></div>
+        </div>
+
+        <div class="panel">
+          <div class="head"><h3>Did the perturbation reach the readout?</h3></div>
+          <p class="note">
+            Per target, the mean over libraries of
+            <code>log2( CPM(arm target) / CPM(arm NT) )</code>, computed from the committed counts.
+            A working CRISPRi screen gives roughly −1 to −2.
+          </p>
+          <div class="scroller" id="sub-knockdown"><div class="loading">…</div></div>
+        </div>
+      </div>
+
+      <div class="grid two">
+        <div class="panel">
+          <div class="head"><h3>Differentiation, day 7 → day 14</h3></div>
+          <p class="note">
+            Raw log-composition of the NT arms, no fitted basis and no regrouping. <strong>A readout,
+            deliberately not a measurement</strong>: <code>library_day</code> is nested inside
+            <code>library</code>, so it carries no interval and clears no gate.
+          </p>
+          <div class="scroller" id="sub-day"><div class="loading">…</div></div>
+        </div>
+
+        <div class="panel">
+          <div class="head"><h3>Does the ordering replicate?</h3></div>
+          <p class="note">
+            Each target's rank by contrast against NT, in all fourteen libraries. A not-expressed
+            target reaching rank 1 anywhere is the decisive observation.
+          </p>
+          <div class="scroller" id="sub-ranks"><div class="loading">…</div></div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="head"><h3>The panel</h3></div>
+        <div class="scroller" id="sub-panel"><div class="loading">…</div></div>
+        <div class="legend">
+          <span><i style="border-color: var(--series-b)"></i>CRISPRi target</span>
+          <span><i style="border-color: var(--neg-pole)"></i>below 10 CPM — not expressed</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============================================================ FOLD / BASIS -->
+    <section class="view" id="view-basis" role="tabpanel">
+      <div class="controls">
+        <div class="field">
+          <label for="basis-axis">axis</label>
+          <select id="basis-axis"></select>
+        </div>
+        <div class="field">
+          <label for="basis-library">fold detail</label>
+          <select id="basis-library"></select>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="head">
+          <h3>Do the fourteen fitted bases agree which way this axis points?</h3>
+          <span class="chip fail" id="basis-flipchip"></span>
+        </div>
+        <p class="note">
+          Cosine between each pair of folds for the selected axis. Teal is agreement, rust is
+          <strong>anti-alignment</strong>, grey is orthogonal. <code>_canonical_signs</code> fixes
+          each column's sign by its largest-magnitude entry — but that entry's <em>identity</em>
+          changes between folds, so the convention pins the wrong thing.
+        </p>
+        <div class="grid side">
+          <div class="scroller" id="basis-heatmap"><div class="loading">…</div></div>
+          <div class="scroller" id="basis-anchors"></div>
+        </div>
+        <p class="warnline">
+          This is the declared limit under which S5 and the block decomposition are computed: both
+          pool coefficients across all fourteen of these bases. Recorded in the model card, not
+          repaired — correcting it moves S5 from 10.36 to 9.23 and the between-target signal from
+          0.109 to 0.129, which is a change to a published measurement and belongs in an ADR.
+        </p>
+      </div>
+
+      <div class="grid two">
+        <div class="panel">
+          <div class="head"><h3 id="fold-title">fold</h3></div>
+          <div class="tiles" id="fold-tiles"></div>
+          <div class="scroller" id="fold-bases"></div>
+        </div>
+        <div class="panel">
+          <div class="head"><h3>Residual direction norm per target</h3></div>
+          <p class="note">
+            How much each target does <em>beyond</em> the shared basis. NT's own direction is
+            estimated from the placebo split rather than fixed at zero — if it were zero, S4's null
+            half could not fail.
+          </p>
+          <div class="scroller" id="fold-residuals"></div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+</div>
+
+<script type="module" src="/static/app.js"></script>
+</body>
+</html>
