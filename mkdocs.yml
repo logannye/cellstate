@@ -2,6 +2,10 @@ site_name: cellstate
 site_description: A system for computing a faithful representation of hidden cellular state
 theme:
   name: readthedocs
+# Design specs are records, not documentation pages.
+exclude_docs: |
+  superpowers/
+
 nav:
   - Home: index.md
   - Roadmap: roadmap.md
@@ -29,6 +33,7 @@ nav:
   - Guides:
       - Estimate a real cell state: guides/estimate-a-real-cell-state.md
       - Explore the system: guides/explore-the-system.md
+      - The web UI: guides/the-web-ui.md
       - Add a backend: guides/add-a-backend.md
       - Migrate v1 to v2: guides/migrate-v1-to-v2.md
   - Validation: validation/scientific-validation.md
