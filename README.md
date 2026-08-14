@@ -9,8 +9,11 @@ when the evidence supports one. The state is not a label, an embedding, or a coo
 manifold. It is whatever must be believed about the system in order to predict its future molecular
 and functional behavior under a declared intervention. "Faithful" has an exact meaning, given below.
 
-The contracts and the definition of faithfulness exist today. No biological backend does. What
-follows is the design and the tests it must pass, not a description of working software.
+The contracts, the definition of faithfulness, and one biological backend exist today. That backend
+emits a belief about real human CD34+ progenitors and **fails every faithfulness test it has been
+put to** — which is the design working rather than the design failing, since the tests were built to
+be failable and the deposit it runs on carries almost no perturbation signal. What follows is the
+design and the tests it must pass; treat the numbers as measured, and the capabilities as unearned.
 
 ## The problem
 
@@ -262,17 +265,27 @@ A sufficiency test that fails, reported with its interval, is a result. Suppress
 
 ## Status
 
-No biological backend is registered and no benchmark has passed performance admission. The repository
-provides the public contracts, the query-compiler contract and its compiled-specification binding
-check, the support gate, typed subjects and event histories, posterior and forecast schemas, dataset
-and split manifests with claim-specific eligibility, benchmark and leakage machinery, and a
-linear-Gaussian contract reference used to exercise contract behavior in tests. The reference backend
-deliberately rejects biology it does not implement; its outputs are examples of contract behavior,
-not estimates of cellular state.
+**A belief is emitted from real cells, and the state-capability ledger stands at 0 of 10.** Both
+halves of that sentence are the status.
 
-No metric in any frozen suite has an executable implementation, the sufficiency and calibration
-functions have no non-test caller, and no baseline has been scored against another: the repository
-has produced no scientific numbers.
+The `gse274113` backend fits an RNA observation model on CRISPRi-perturbed human CD34+ haematopoietic
+progenitors — 308 arms across 14 libraries, 137,604 cells, a 100-gene panel declared a priori — and
+`estimate_arm("rep1", "GATA1")` returns a typed `CellStateBelief` from a bare checkout in under a
+second. The fitted biology axes are recognisable haematopoietic lineage contrasts. See
+[the guide](docs/guides/estimate-a-real-cell-state.md).
+
+The capabilities that backend was scheduled to advance were measured on held-out libraries, with
+intervals grouped at the library, and **every one came out negative** — S5 at 10.36 against a bound
+of 0.35, S2 at 0.84 against a requirement above 1, and the S4 placebo and perturbed bands
+overlapping. Those are results rather than defects, and they are largely verdicts on the deposit
+before they are verdicts on the model: mean on-target knockdown across the 19 targets is **−0.043**
+log₂ fold-change, so the capability tests divide by a perturbation signal that is not there. The
+same panel and pipeline resolve day 7 → day 14 differentiation at **7.97×** the placebo contrast.
+
+No benchmark has passed performance admission, no metric in any frozen suite has an executable
+implementation, and the sufficiency and calibration functions still have no non-test caller. The
+linear-Gaussian reference remains a contract exercise and deliberately rejects biology it does not
+implement; its outputs are examples of contract behavior, not estimates of cellular state.
 
 [`docs/roadmap.md`](docs/roadmap.md) is the authority for implementation order and graduation status.
 
@@ -282,11 +295,24 @@ Python 3.11 or newer with [`uv`](https://docs.astral.sh/uv/):
 
 ```bash
 uv sync --all-extras --no-editable
-uv run --no-editable python examples/estimate_state.py
+uv run python examples/estimate_real_cell_state.py   # real CD34+ cells, no download
+uv run --no-editable python examples/estimate_state.py   # contract reference, synthetic
 uv run --no-editable pytest
 ```
 
-The public API requires an explicit model; there is no scientifically meaningless default.
+The first example is the one to read: it estimates the state of real human progenitors and prints
+each biology axis by the panel genes that define it.
+
+```python
+from cellstate.backends.gse274113 import estimate_arm, describe_state, compare_arms
+
+print(describe_state(estimate_arm("rep1", "GATA1")))
+print(compare_arms("rep1", "NT", "GATA1"))
+```
+
+The public API requires an explicit model; there is no scientifically meaningless default. Every
+belief this backend emits abstains, and the readout reprints the reasons rather than presenting a
+coordinate as an answer.
 
 Constructing the inputs is deliberately expensive. A `StateQuery` must declare its subject, horizons,
 targets, intervention space, environment space, evidence policy, and acceptance thresholds before any

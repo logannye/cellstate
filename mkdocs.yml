@@ -27,6 +27,7 @@ nav:
   - Verticals:
       - Vertical A estimand (draft): verticals/vertical-a-estimand.md
   - Guides:
+      - Estimate a real cell state: guides/estimate-a-real-cell-state.md
       - Add a backend: guides/add-a-backend.md
       - Migrate v1 to v2: guides/migrate-v1-to-v2.md
   - Validation: validation/scientific-validation.md
