@@ -45,6 +45,12 @@ sciplex3 = [
 [tool.hatch.build.targets.wheel]
 packages = ["src/cellstate"]
 
+# The committed GSE274113 slice travels with the wheel (336 KB).  Without this the flagship
+# backend imports cleanly and then cannot answer a single question, because `artifact_directory`
+# has no `backends/` tree to resolve -- which is the state every installed-package consumer was in.
+[tool.hatch.build.targets.wheel.force-include]
+"backends/vertical-a/gse274113-rna-obs-v1" = "cellstate/backends/gse274113/_slice"
+
 [tool.pytest.ini_options]
 addopts = "-ra --strict-config --strict-markers --cov=cellstate --cov-report=term-missing --cov-fail-under=85"
 pythonpath = ["src"]
