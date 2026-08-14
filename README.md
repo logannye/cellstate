@@ -9,8 +9,11 @@ when the evidence supports one. The state is not a label, an embedding, or a coo
 manifold. It is whatever must be believed about the system in order to predict its future molecular
 and functional behavior under a declared intervention. "Faithful" has an exact meaning, given below.
 
-The contracts and the definition of faithfulness exist today. No biological backend does. What
-follows is the design and the tests it must pass, not a description of working software.
+The contracts, the definition of faithfulness, and one biological backend exist today. That backend
+emits a belief about real human CD34+ progenitors and **fails every faithfulness test it has been
+put to** — which is the design working rather than the design failing, since the tests were built to
+be failable and the deposit it runs on carries almost no perturbation signal. What follows is the
+design and the tests it must pass; treat the numbers as measured, and the capabilities as unearned.
 
 ## The problem
 
