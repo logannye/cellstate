@@ -14,13 +14,16 @@ converge, and cannot silently return a mode dressed as a posterior.
 ``Omega`` is diagonal and carries **two** separable variance sources, which is what lets the
 belief's uncertainty breakdown be computed rather than declared:
 
-    omega_j = 1/(n p_j) - 1/n     technical, the delta-method multinomial term
-            + psi^2               biological, fitted across libraries at fixed arm
+    omega_j = lambda_j/(lambda_j + 1/2)^2 - 1/(n + G/2)    technical, at lambda_j = n p_j
+            + psi^2                                        biological, fitted across libraries
 
 The technical term shrinks as ``1/n``.  With ``n`` in the millions it becomes negligible, and a
 model carrying only that term would report a posterior of absurd confidence -- the failure mode
 where more sequencing depth is mistaken for more knowledge about the biology.  ``psi^2`` is what
-stops that, and it is fitted, not assumed.
+stops that, and per ADR 0022 it is now genuinely fitted rather than pinned at its clamp: the rate
+``p_j`` is pooled over the fold's fit libraries instead of read off the arm's own count, which is
+what made the fitted dispersion negative in all fourteen folds.  How many folds still reach the
+clamp is measured and reported in the model card, not assumed to be none.
 
 The delta-method Gaussian is a genuine approximation and it is poor at very low counts.  That cost
 is accepted deliberately, and the panel's realized counts per arm are recorded so a reader can
@@ -60,25 +63,55 @@ def log_composition(counts: IntArray) -> tuple[FloatArray, float]:
     return np.log((counts.astype(np.float64) + 0.5) / (total + size / 2.0)), total
 
 
-def technical_variance(counts: IntArray, depth: float) -> FloatArray:
+def technical_variance(pooled_rate: FloatArray, depth: float) -> FloatArray:
     """Sampling variance of the *Haldane-corrected* log-composition, per gene.
 
-    The naive delta method gives ``1/(n p) - 1/n``, and that is the variance of ``log(y/n)`` -- a
-    statistic this model never forms, because it is undefined at ``y = 0``.  What is actually
-    computed is ``log((y + 1/2) / (n + G/2))``, whose variance is ``1/(y + 1/2) - 1/(n + G/2)``.
+    The statistic actually formed is ``log((y + 1/2) / (n + G/2))``, whose delta-method variance is
+    ``lambda / (lambda + 1/2)^2 - 1/(n + G/2)`` at an expected count ``lambda = n * p``.
 
-    The distinction is not cosmetic and was caught by measurement rather than by inspection.  On a
-    real arm the naive form averages 0.1230 against an observed residual mean-square of 0.0760, so
-    it claims more sampling noise than the data contain; the corrected form averages 0.0760.  Using
-    the naive form drives the fitted biological variance to its floor, which would have produced an
-    overconfident posterior justified by an arithmetic mismatch rather than by biology.
+    **The rate is pooled, never the arm's own count, and that is the whole point of this function.**
+    An earlier form evaluated the same expression at ``y`` by way of the plug-in ``1/(y + 1/2)``.
+    That plug-in approaches the expression above only for large ``lambda``; at ``y = 0`` it returns
+    **2.0** whatever the true rate is, while a gene whose expected count is near zero is in fact
+    nearly deterministic -- it is observed as zero almost every time.  So it claimed its largest
+    variance exactly where the data carry their least.
+
+    Measured against the observed residual mean-square, per count bucket (ADR 0022):
+
+    ==========  ==================  =================  =====
+    count       observed residual2  claimed technical  ratio
+    ==========  ==================  =================  =====
+    ``y = 0``   0.3113              **2.0000**         6.42
+    1-4         0.3581              0.4708             1.31
+    5-19        0.2401              0.1074             0.45
+    >= 100      0.0243              0.0017             0.07
+    ==========  ==================  =================  =====
+
+    Zero counts were 11.1% of panel entries and **79.8% of the claimed technical mass**, which
+    drove ``mean(residual^2) - mean(technical)`` negative and pinned ``psi^2`` at its clamp in all
+    fourteen folds.  Above a few counts the data carry *more* spread than sampling explains, and
+    absorbing that excess is what ``psi^2`` is for; the zero bucket drowned it.
+
+    This is the second time the same defect has been repaired here.  The first repair fixed the
+    Haldane correction and left the plug-in, so the failure survived in a smaller form and was not
+    re-measured.  It is measured now, per fold, and the count of clamped folds is reported.
+
+    ``pooled_rate`` is a composition over the panel, taken from the fold's fit libraries only, so a
+    held-out library contributes nothing to the variance its own arms are scored under.
     """
 
     if depth <= 0.0:
         raise ValueError("depth must be positive")
-    size = counts.shape[0]
-    variance = 1.0 / (counts.astype(np.float64) + 0.5) - 1.0 / (depth + size / 2.0)
-    return np.asarray(variance, dtype=np.float64)
+    if pooled_rate.ndim != 1:
+        raise ValueError("pooled rate must be a one-dimensional composition")
+    if not np.all(pooled_rate >= 0.0):
+        raise ValueError("pooled rate must be non-negative")
+    size = pooled_rate.shape[0]
+    expected = depth * np.asarray(pooled_rate, dtype=np.float64)
+    variance = expected / (expected + 0.5) ** 2 - 1.0 / (depth + size / 2.0)
+    # A gene whose pooled rate vanishes leaves the multinomial correction dominant; the sampling
+    # variance of a statistic that never moves is zero, not negative.
+    return np.asarray(np.clip(variance, 0.0, None), dtype=np.float64)
 
 
 def observation_variance(technical: FloatArray, psi_squared: float) -> FloatArray:

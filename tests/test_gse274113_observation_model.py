@@ -22,6 +22,7 @@ from cellstate.api import estimate_cell_state
 from cellstate.backends.gse274113.arm_request import arm_query, arm_request
 from cellstate.backends.gse274113.estimator import GSE274113ObservationEstimator
 from cellstate.backends.gse274113.fit import (
+    DISPERSION_FLOOR,
     NULL_TARGET,
     PLACEBO_TARGETS,
     ArmSlice,
@@ -181,8 +182,19 @@ def test_the_declared_null_direction_is_not_structurally_zero(fold: FittedFold) 
     assert fold.residual_norm_by_target[NULL_TARGET] > 0.0
 
 
-def test_the_fitted_dispersion_is_positive(fold: FittedFold) -> None:
-    assert fold.biological_observation_variance > 0.0
+def test_the_fitted_dispersion_is_fitted_rather_than_clamped(fold: FittedFold) -> None:
+    """``psi^2`` must be a fitted quantity, not the floor wearing its name (ADR 0022 decision 4).
+
+    This assertion could not have failed before: the guard read
+    ``assert fold.biological_observation_variance > 0.0`` against a value produced by
+    ``max(..., 1e-6)``, so it passed on the clamp in all fourteen folds while ``likelihood.py``
+    claimed the term was fitted.  The pre-clamp value is now carried on the fold precisely so this
+    can fail.
+    """
+
+    assert not fold.dispersion_is_clamped
+    assert fold.biological_observation_variance_before_clamp > DISPERSION_FLOOR
+    assert fold.biological_observation_variance == pytest.approx(0.060434, rel=1e-3)
     assert fold.biology_prior_variance > 0.0
     assert fold.nuisance_prior_variance > 0.0
     assert fold.realization_prior_variance > 0.0
@@ -203,15 +215,33 @@ def test_an_unmeasured_arm_has_no_log_composition() -> None:
         log_composition(np.zeros(4, dtype=np.int64))
 
 
-def test_technical_variance_matches_the_statistic_actually_formed() -> None:
-    """``1/(y + 1/2) - 1/(n + G/2)``, not the naive ``1/(np) - 1/n``."""
+def test_technical_variance_is_evaluated_at_the_pooled_rate() -> None:
+    """``lambda/(lambda + 1/2)^2 - 1/(n + G/2)`` at a pooled ``lambda``, not at the arm's own count.
 
-    counts = np.array([0, 10, 1000], dtype=np.int64)
-    depth = float(counts.sum())
-    variance = technical_variance(counts, depth)
-    expected = 1.0 / (counts + 0.5) - 1.0 / (depth + counts.shape[0] / 2.0)
-    assert np.allclose(variance, expected)
-    assert variance[0] > variance[-1], "a zero count must be the noisiest entry"
+    The property that matters is the one ADR 0022 was written for: **the variance depends on the
+    pooled rate and not at all on what this particular arm observed.**  The old form could not
+    satisfy that -- it read ``y`` directly -- and it is why a zero count claimed a variance of 2.0
+    however small its true rate was.
+    """
+
+    rate = np.array([1e-8, 1e-5, 1e-3, 1e-1], dtype=np.float64)
+    depth = 1e5
+    variance = technical_variance(rate, depth)
+    expected_counts = depth * rate
+    expected = expected_counts / (expected_counts + 0.5) ** 2 - 1.0 / (depth + rate.shape[0] / 2.0)
+    assert np.allclose(variance, np.clip(expected, 0.0, None))
+
+    # The correction that matters: at a vanishing rate the variance goes to ZERO, because a gene
+    # that is never detected produces the same log-composition every time.  The old plug-in put its
+    # MAXIMUM there -- a flat 2.0 -- and that single entry carried 79.8% of the panel's claimed
+    # technical mass.
+    # 0.0040 here against the flat 2.0 the old plug-in returned for the same gene: 500x.
+    assert variance[0] < 0.01, "a vanishing rate must carry vanishing sampling variance"
+    assert variance[0] < variance[1] < 0.5, "variance rises toward the lambda = 1/2 peak"
+    assert variance[1] > variance[2] > variance[3], "and falls again as the expected count grows"
+
+    # Deeper sequencing lowers sampling noise for any gene past that peak.
+    assert np.all(technical_variance(rate, 10 * depth)[2:] < variance[2:])
 
 
 def test_stabilize_removes_negative_eigenvalues() -> None:
@@ -235,7 +265,7 @@ def test_the_posterior_tightens_as_depth_grows(fold: FittedFold) -> None:
             intercept=fold.intercept,
             design=design,
             prior_precision=precision,
-            observation_variance_diagonal=technical_variance(counts, depth),
+            observation_variance_diagonal=technical_variance(fold.pooled_rate, depth),
         )
         widths.append(float(np.trace(covariance)))
     assert widths[1] < widths[0]
@@ -487,21 +517,21 @@ def test_capability_measurements_are_computed_and_can_fail(arm_slice: ArmSlice) 
     # than the drift being guarded against: sweeping the nuisance rank moves S5 across 11.30 to
     # 74.52, and every value below is deterministic given the committed slice (`held_out_states`
     # takes no randomness, and the bootstrap is seeded).
-    assert separation.value == pytest.approx(19.2159, rel=1e-3)
-    assert separation.interval.lower == pytest.approx(10.3455, rel=1e-3)
-    assert separation.interval.upper == pytest.approx(29.9038, rel=1e-3)
+    assert separation.value == pytest.approx(10.36468, rel=1e-3)
+    assert separation.interval.lower == pytest.approx(6.26717, rel=1e-3)
+    assert separation.interval.upper == pytest.approx(16.65935, rel=1e-3)
 
-    assert spread.value == pytest.approx(0.2221, rel=1e-3)
-    assert spread.interval.lower == pytest.approx(0.16376, rel=1e-3)
-    assert spread.interval.upper == pytest.approx(0.28302, rel=1e-3)
+    assert spread.value == pytest.approx(0.27806, rel=1e-3)
+    assert spread.interval.lower == pytest.approx(0.20723, rel=1e-3)
+    assert spread.interval.upper == pytest.approx(0.34669, rel=1e-3)
 
-    assert null.value == pytest.approx(2.8968, rel=1e-3)
-    assert null.interval.lower == pytest.approx(1.95224, rel=1e-3)
-    assert null.interval.upper == pytest.approx(4.03407, rel=1e-3)
+    assert null.value == pytest.approx(2.02578, rel=1e-3)
+    assert null.interval.lower == pytest.approx(1.43838, rel=1e-3)
+    assert null.interval.upper == pytest.approx(2.67070, rel=1e-3)
 
-    assert non_null.value == pytest.approx(3.0790, rel=1e-3)
-    assert non_null.interval.lower == pytest.approx(2.30078, rel=1e-3)
-    assert non_null.interval.upper == pytest.approx(3.86635, rel=1e-3)
+    assert non_null.value == pytest.approx(2.09008, rel=1e-3)
+    assert non_null.interval.lower == pytest.approx(1.61546, rel=1e-3)
+    assert non_null.interval.upper == pytest.approx(2.56195, rel=1e-3)
 
     # All four verdicts are negative on the committed evidence, and that is the recorded result.
     assert not separation.passed
@@ -512,8 +542,8 @@ def test_capability_measurements_are_computed_and_can_fail(arm_slice: ArmSlice) 
     # The verdict is read off the interval and BOTH branches are reachable.  A bound above the
     # measured upper end passes and one below it fails, so `passed` is not a constant -- which is
     # the property the replaced tautologies were reaching for but could not demonstrate.
-    assert measure_nuisance_separation(states, bound=30.0).passed is True
-    assert measure_nuisance_separation(states, bound=29.0).passed is False
+    assert measure_nuisance_separation(states, bound=17.0).passed is True
+    assert measure_nuisance_separation(states, bound=16.0).passed is False
 
 
 def test_the_s5_block_decomposition_is_computed_rather_than_asserted(arm_slice: ArmSlice) -> None:
@@ -525,15 +555,23 @@ def test_the_s5_block_decomposition_is_computed_rather_than_asserted(arm_slice: 
     mode this repository keeps finding in its own work.
 
     The reading they support is the one that matters: the obvious diagnosis, that the nuisance basis
-    fails to absorb the library, is **wrong**.  The basis absorbs roughly 26x more than leaks past
-    it.  What fails is the denominator -- between-target variance of 0.257, smaller than the 3.07 of
-    residual library variation the biology block carries -- so the signal S5 needs is weak rather
+    fails to absorb the library, is **wrong**.  The basis absorbs roughly 134x more than leaks past
+    it.  What fails is the denominator -- between-target variance of 0.109, smaller than the 0.609
+    of residual library variation the biology block carries -- so the signal S5 needs is weak rather
     than the separation being broken.  Raising the nuisance rank does not repair that.
+
+    **ADR 0022 moved both terms, and reporting the ratio alone would have hidden it.**  Under the
+    old technical variance these read 79.27 / 3.07 / 0.257, ratio 25.8.  Evaluating the technical
+    term at a pooled rate cut the library variation leaking into the biology block **5x**
+    (3.07 -> 0.609) -- a large, real improvement in exactly the separation S5 names -- while the
+    between-target signal fell **2.4x** with it (0.257 -> 0.109).  S5 itself improved only from
+    19.22 to 10.36 and still fails by a factor of thirty.  A failing ratio names two suspects, and
+    here the numerator was the one that got better.
 
     Both quantities are means-first, and that is not incidental: the across-library figure is the
     variance of the fourteen per-library mean coefficient vectors, and the between-target figure is
     the variance of the per-target means.  Comparing a means-first quantity against a per-item one
-    would be comparing two different estimators and would put the 26x ratio out by a third.
+    would be comparing two different estimators and would put the ratio out by a third.
     """
 
     folds = {library: fit_fold(arm_slice, library) for library in arm_slice.libraries}
@@ -545,7 +583,6 @@ def test_the_s5_block_decomposition_is_computed_rather_than_asserted(arm_slice: 
         rank = fold.biology_basis.shape[1]
         width = fold.nuisance_basis.shape[1]
         for target in arm_slice.targets:
-            counts = arm_slice.counts[(library, target)]
             composition, depth = arm_slice.log_composition(library, target)
             design = fold.design(target)
             mean, _ = posterior(
@@ -553,7 +590,7 @@ def test_the_s5_block_decomposition_is_computed_rather_than_asserted(arm_slice: 
                 intercept=fold.intercept,
                 design=design,
                 prior_precision=fold.prior_precision(),
-                observation_variance_diagonal=fold.observation_variance(counts, depth),
+                observation_variance_diagonal=fold.observation_variance(depth),
             )
             biology[(library, target)] = np.asarray(mean[:rank], dtype=np.float64)
             nuisance[(library, target)] = np.asarray(mean[rank : rank + width], dtype=np.float64)
@@ -572,12 +609,12 @@ def test_the_s5_block_decomposition_is_computed_rather_than_asserted(arm_slice: 
     nuisance_across = across_library(nuisance)
     biology_across = across_library(biology)
 
-    assert nuisance_across == pytest.approx(79.2685, rel=1e-3)
-    assert biology_across == pytest.approx(3.0702, rel=1e-3)
-    assert between_target == pytest.approx(0.25698, rel=1e-3)
+    assert nuisance_across == pytest.approx(81.30157, rel=1e-3)
+    assert biology_across == pytest.approx(0.60868, rel=1e-3)
+    assert between_target == pytest.approx(0.10910, rel=1e-3)
 
     # The claim the roadmap makes, restated as a relation rather than as three loose constants.
-    assert nuisance_across / biology_across == pytest.approx(25.82, rel=1e-3)
+    assert nuisance_across / biology_across == pytest.approx(133.57, rel=1e-3)
     assert between_target < biology_across, (
         "the S5 denominator must be the smaller quantity; if this flips, the roadmap's "
         "'the signal is weak, not the separation broken' reading no longer follows"

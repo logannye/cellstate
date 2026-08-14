@@ -46,7 +46,7 @@ exact, deterministic, and with no sampler that can return a mode dressed as a po
 ```
 c   = log((y + 1/2) / (n + G/2))
 c   = alpha + [W | V | u_g] u + eps,   eps ~ N(0, Omega)
-Omega = diag( 1/(y + 1/2) - 1/(n + G/2) )  +  psi^2
+Omega = diag( lam/(lam + 1/2)^2 - 1/(n + G/2) )  +  psi^2,   lam = n * p_pooled
 ```
 
 The eight-dimensional state is `[biology(4) | library nuisance(3) | guide realization(1)]`.
@@ -56,10 +56,13 @@ of the NT arms across libraries — NT is the same biology everywhere, so what m
 library. `W` is the leading subspace of *within-library* contrasts — differencing inside a library
 cancels the library, so what moves there is the perturbation. An earlier revision of this card called
 that "where S5 is won structurally." It is not: a construction cannot win a capability whose
-definition is a held-out measurement, and when the measurement was run it failed at 19.22 against a
-bound of 0.35. The construction does what it says — the nuisance block absorbs 26× more library
+definition is a held-out measurement, and when the measurement was run it failed at 10.36 against a
+bound of 0.35. The construction does what it says — the nuisance block absorbs 134× more library
 variance than leaks past it — and S5 still fails, because `W` is fitted from contrasts that sit near
 the sampling floor. See the ledger section below.
+
+`p_pooled` is the panel composition averaged over the fold's fit libraries, never the arm's own
+counts ([ADR 0022](../adr/0022-the-technical-variance-is-evaluated-at-a-pooled-rate.md)).
 
 **The declared-null intervention is estimated, not assumed.** `u_NT` comes from a deterministic
 within-library placebo split of the NT cells. A structurally-zero NT column would make the S4 null
@@ -78,17 +81,20 @@ half unfailable, which is the inert-`do` defect ADR 0019 names explicitly.
    carries all 19 target genes, so a measured efficiency is a real follow-up.
 5. **The delta-method Gaussian is poor at very low counts.** Accepted deliberately; the realized
    depth per arm is recorded above so a reader can judge it.
-6. **`psi^2` is degenerate at its clamp in all 14 folds**, which is worse than "small" and is
-   recorded here rather than left to be rediscovered. The fitted extra-multinomial dispersion
-   `mean(residual^2) - mean(technical)` comes out **negative** in every fold and is clamped to
-   `1e-6` (`backends/gse274113/fit.py`). The driver is the zero counts: 10.6% of panel entries are
-   zero, each carries a plug-in technical variance of 2.0, and together they supply 79.6% of the
-   technical term's mass. The consequence is that **every posterior width this model reports is
-   technical-only** — precisely the failure `likelihood.py` states `psi^2` exists to prevent, so
-   that module's "it is fitted, not assumed" is false as shipped. No calibration claim may rest on
-   these widths until the zero-count handling is fixed, and this is the leading candidate cause of
-   the S2 measurement below.
-7. **Day-14 selection.** Annotation rate is 98–99% at days 7, 9 and 11 and **62%** at day 14, and
+6. **`psi^2` is fitted in all 14 folds, and the count of clamped folds is reported rather than
+   assumed.** It ranges 0.0517 to 0.0620 across the folds and reaches its `1e-6` floor in **0 of
+   14**. This was not true until [ADR 0022](../adr/0022-the-technical-variance-is-evaluated-at-a-pooled-rate.md):
+   evaluating the technical term at the arm's own count made `1/(y + 1/2)` return 2.0 at every zero
+   entry, so 10.6% of panel entries carried 79.6% of the claimed technical mass, the fitted
+   dispersion came out **negative in every fold**, and it clamped. Every posterior width this model
+   reported before that decision was technical-only — the exact failure `likelihood.py` says
+   `psi^2` exists to prevent. `FittedFold.dispersion_is_clamped` exposes the pre-clamp value so a
+   return to that state is visible.
+7. **A scalar `psi^2` cannot calibrate a variance that varies with count**, and this is not
+   repaired. After ADR 0022 the claimed total still understates the low-count buckets and
+   overstates the highest, where the ratio runs to roughly 2.7. It is a limitation of the
+   `technical + scalar` form rather than of the fit.
+8. **Day-14 selection.** Annotation rate is 98–99% at days 7, 9 and 11 and **62%** at day 14, and
    the excluded day-14 barcodes are real cells rather than empty droplets. Composition also shifts
    with perturbation over time. Beliefs about day-14 libraries rest on a differently-selected
    population, and this is not modelled.
@@ -103,10 +109,14 @@ grouped at the library, and **all three failed**. The measurements are computed 
 
 | | Measured | Interval | Required | |
 | --- | --- | --- | --- | --- |
-| S5 nuisance separation | 19.22 | [10.35, 29.90] | ≤ 0.35 | fails |
-| S2 earned spread | 0.22 | [0.16, 0.28] | > 1 | fails |
-| S4 null half (placebo) | 2.90 | [1.95, 4.03] | below the perturbed band | fails |
-| S4 non-null half | 3.08 | [2.30, 3.87] | above the null band | fails |
+| S5 nuisance separation | 10.36 | [6.27, 16.66] | ≤ 0.35 | fails |
+| S2 earned spread | 0.28 | [0.21, 0.35] | > 1 | fails |
+| S4 null half (placebo) | 2.03 | [1.44, 2.67] | below the perturbed band | fails |
+| S4 non-null half | 2.09 | [1.62, 2.56] | above the null band | fails |
+
+These are the values **after** [ADR 0022](../adr/0022-the-technical-variance-is-evaluated-at-a-pooled-rate.md),
+measured against bounds that decision fixed before the run. The pre-ADR values were 19.22, 0.22,
+2.90 and 3.08, measured against a bound introduced in the same commit as its own result.
 
 An earlier revision of this section declared **S5 and S2 advanced**, on the structural argument that
 the nuisance axis is a declared subspace and that the posterior's components are computed rather
@@ -118,14 +128,15 @@ honest list is empty.
 Two qualifications, so that these failures are not read as more than they are:
 
 - **S2's magnitude is not robust to an undocumented estimand choice, though its verdict is.** The
-  reported 0.22 uses a point predictor that takes every coefficient from the target's mean over the
+  reported value uses a point predictor that takes every coefficient from the target's mean over the
   fit libraries, which averages the arm's own nuisance coefficients away. Letting that predictor keep
   the arm's own least-squares coefficients instead — the construction `fit.py` prescribes in as many
-  words for inference — moves the ratio to **0.65** (nuisance block only), **0.67** (nuisance and
-  realization) and **0.79** (all three blocks), a 3.6× swing across four defensible choices. **S2
-  fails under all of them**, so the capability is genuinely not advanced and the verdict stands. What
-  does not survive is the *number*: 0.22 should not be cited as the size of the shortfall, and an ADR
-  should fix the estimand before any future report quotes one.
+  words for inference — moved the pre-ADR-0022 ratio from 0.22 to **0.65** (nuisance block only),
+  **0.67** (nuisance and realization) and **0.79** (all three blocks), a 3.6× swing across four
+  defensible choices. **S2 fails under all of them**, so the capability is genuinely not advanced and
+  the verdict stands. What does not survive is the *number*: the reported value should not be cited
+  as the size of the shortfall, and an ADR should fix the estimand before any future report quotes
+  one. ADR 0022 decision 6 explicitly leaves this open.
 - **The substrate carries almost no perturbation signal**, so S2, S4 and S5 are verdicts on
   `GSE274113`'s CRISPRi arm before they are verdicts on this model. Mean on-target knockdown across
   the 19 targets is **−0.043** log2 fold-change and 6 of 19 move the **wrong way**; restricted to the
@@ -137,10 +148,15 @@ Two qualifications, so that these failures are not read as more than they are:
   standing as the census in the representability ledger.
 
 S5's failure is the one that does bear on the model, and its diagnosis is not the obvious one.
-Decomposed by block, across-library variance is **79.27** in the nuisance block against **3.07** in
-biology, so the nuisance basis absorbs roughly 26× more than leaks past it. What fails is the
-denominator: between-target variance is 0.257, smaller than the residual library variation the
+Decomposed by block, across-library variance is **81.30** in the nuisance block against **0.609** in
+biology, so the nuisance basis absorbs roughly 134× more than leaks past it. What fails is the
+denominator: between-target variance is 0.109, smaller than the residual library variation the
 biology block carries. Raising the nuisance rank does not repair this and was measured not to.
+
+ADR 0022 moved both terms and the ratio hid it: library variation leaking into the biology block
+fell **5×** (3.07 → 0.609), a real improvement in exactly the separation S5 names, while the
+between-target signal fell **2.4×** with it (0.257 → 0.109). S5 improved from 19.22 to 10.36 and
+still fails by a factor of thirty.
 
 **Reachable but not yet reported with intervals:** S6, S8.
 

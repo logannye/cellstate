@@ -353,7 +353,7 @@ class GSE274113ObservationEstimator:
             intercept=self._fold.intercept,
             design=self._fold.design(target),
             prior_precision=self._fold.prior_precision(),
-            observation_variance_diagonal=self._fold.observation_variance(counts, panel_total),
+            observation_variance_diagonal=self._fold.observation_variance(panel_total),
         )
         joint = self._distribution(mean, covariance, self._dimensions)
 
@@ -495,7 +495,7 @@ class GSE274113ObservationEstimator:
             intercept=np.zeros(counts.shape[0], dtype=np.float64),
             design=self._fold.design(target),
             prior_precision=self._fold.prior_precision(),
-            observation_variance_diagonal=technical_variance(counts, panel_total),
+            observation_variance_diagonal=technical_variance(self._fold.pooled_rate, panel_total),
         )[1]
         measurement = float(np.trace(technical_only))
         total = float(np.trace(covariance))
