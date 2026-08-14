@@ -1,4 +1,4 @@
-.PHONY: install format lint type test schemas example example-reference explore build check
+.PHONY: install format lint lock-check type test schemas example example-reference explore build check
 
 install:
 	uv sync --all-extras --no-editable --reinstall-package cellstate
@@ -10,6 +10,13 @@ format:
 lint:
 	uv run --no-editable ruff format --check .
 	uv run --no-editable ruff check .
+
+# The committed lock must satisfy the committed manifest. Nothing enforced this, so a
+# dependency bump that raised a floor in pyproject.toml and left uv.lock behind stayed
+# green: every job runs `uv sync` without `--frozen`, silently re-resolving and passing
+# on a lock it had just rewritten in place.
+lock-check:
+	uv lock --check
 
 type:
 	uv run --no-editable mypy src
@@ -38,4 +45,4 @@ explore:
 build:
 	uv build
 
-check: lint type test schemas example build
+check: lint lock-check type test schemas example build
