@@ -734,6 +734,203 @@ def test_the_s5_block_decomposition_is_computed_rather_than_asserted(arm_slice: 
     )
 
 
+def test_the_three_decomposition_terms_pool_coefficients_across_fourteen_bases(
+    arm_slice: ArmSlice,
+) -> None:
+    """The decomposition above compares coordinates from fourteen *different* fitted bases.
+
+    ``compare_arms`` refuses two arms from different libraries, and its docstring gives the reason:
+    a belief about library *L* comes from the fold that excluded *L*, so arms in different libraries
+    are expressed in different fitted bases and their coordinates are not comparable.  The signature
+    makes the incomparable case impossible to write.
+
+    :func:`measure_nuisance_separation` and the decomposition above do exactly that comparison as
+    their core operation -- they average and difference ``ArmState.biology`` across all fourteen
+    folds.  ``gse274113_reports._biology`` says "``W`` is shared across every target, so biology
+    coefficients ARE comparable between arms", which is true *within* a fold and is the only sense
+    in which it is true.
+
+    The size of the problem is measured here rather than argued, and it is not small.
+    ``_canonical_signs`` fixes each column's sign by its largest-magnitude entry, but that entry's
+    **identity** changes between folds: ``biology_0``'s top-loading gene is ``MPO`` in seven folds
+    and ``CD79A`` in the other seven, and those are opposite poles of the same axis, so the
+    convention pins the wrong thing and the whole column flips.
+
+    Why this is recorded and not repaired: aligning the bases moves S5 from 10.36 to **9.23**
+    (-11%) and the between-target signal from 0.109 to **0.129** (+18%) -- three of the four pinned
+    numbers, and no verdict.  S5 still fails by a factor of twenty-six and the ledger stays 0 of 10.
+    Changing how a capability is computed is an ADR's decision, not a test's, so this test states
+    the defect and its magnitude and leaves the estimand where the merged ADRs put it.
+    """
+
+    import itertools
+
+    bases = {library: fit_fold(arm_slice, library).biology_basis for library in arm_slice.libraries}
+    pairs = list(itertools.combinations(arm_slice.libraries, 2))
+    assert len(pairs) == 91
+
+    # Column-wise agreement: does "biology_k" name the same direction in every fold?
+    flips = []
+    for axis in range(4):
+        cosines = [float(bases[a][:, axis] @ bases[b][:, axis]) for a, b in pairs]
+        flips.append(sum(1 for value in cosines if value < 0.0))
+
+    assert flips[0] > 40, (
+        "biology_0 reverses sign between folds in roughly half of the 91 pairs; a coefficient "
+        "of +2 in one fold is -2 in another, and S5 averages them together"
+    )
+
+    # The mechanism, named concretely so a future sign convention can be checked against it.
+    top_gene = {
+        library: arm_slice.gene_symbols[int(np.argmax(np.abs(basis[:, 0])))]
+        for library, basis in bases.items()
+    }
+    assert set(top_gene.values()) == {"MPO", "CD79A"}, (
+        "biology_0's largest-magnitude entry is what _canonical_signs keys the sign off; it "
+        "alternates between two genes at OPPOSITE poles of the axis"
+    )
+
+    # Axes 2 and 3 sit on near-degenerate singular values, so they are not individually identified.
+    for axis in (2, 3):
+        cosines = [abs(float(bases[a][:, axis] @ bases[b][:, axis])) for a, b in pairs]
+        assert min(cosines) < 0.05, (
+            f"biology_{axis} is near-orthogonal to itself across some fold pair; which direction "
+            "receives this name is close to arbitrary and the loadings printed for it are too"
+        )
+
+
+def test_the_s2_depth_caveat_reproduces(arm_slice: ArmSlice) -> None:
+    """The depth sensitivity ADR 0023 decision 4 rests on, computed instead of quoted.
+
+    Decision 4 discharges S2's single biggest structural handicap: the split-half arms are shallower
+    than a full arm, and lower depth inflates both the claimed spread and the realized error.  Its
+    own standard for that is quoted in the ADR -- "a caveat that is only ever stated is a caveat
+    nobody has checked" -- and neither of its two figures reproduced.
+
+    * The shortfall is **exactly 2.00x**, because ``NT`` is the bitwise sum of ``NT_A`` and
+      ``NT_B``.  The ADR says 2.06x, which is ``NT_B``'s depth alone quoted as the mean over halves.
+    * Recomputing at full-arm depth gives **0.7727**, an 8.2% move.  The ADR says 0.8322, 1.1%.
+      0.8322 is what a 1.1x depth multiplier returns, not the 2.0x the sentence names.
+
+    The conclusion is unchanged and stronger: the move is in the direction that makes S2's failure
+    *worse*, by seven times the stated margin.
+    """
+
+    from cellstate.backends.gse274113.likelihood import posterior
+    from cellstate.evaluation.gse274113_reports import measure_earned_spread
+
+    # The halves are exactly half the arm, which is what makes the shortfall exact rather than
+    # empirical -- `scripts/gse274113_build_slice.py` splits the NT cells, it does not resample.
+    for library in arm_slice.libraries:
+        halves = arm_slice.counts[(library, "NT_A")] + arm_slice.counts[(library, "NT_B")]
+        assert np.array_equal(arm_slice.counts[(library, NULL_TARGET)], halves)
+
+    mean_half = float(
+        np.mean(
+            [
+                arm_slice.counts[(library, half)].sum()
+                for library in arm_slice.libraries
+                for half in PLACEBO_TARGETS
+            ]
+        )
+    )
+    mean_full = float(
+        np.mean([arm_slice.counts[(library, NULL_TARGET)].sum() for library in arm_slice.libraries])
+    )
+    assert mean_full / mean_half == pytest.approx(2.0, abs=1e-12)
+    assert mean_half == pytest.approx(684370.0, rel=1e-4)
+
+    # S2 recomputed with the technical term at each library's own full NT depth on both sides.
+    ratios = []
+    for library in arm_slice.libraries:
+        fitted = fit_fold(arm_slice, library)
+        design = fitted.design(NULL_TARGET)
+        depth = float(arm_slice.counts[(library, NULL_TARGET)].sum())
+        variance = fitted.observation_variance(depth)
+        inferred_from, _ = arm_slice.log_composition(library, PLACEBO_TARGETS[0])
+        predicted_for, _ = arm_slice.log_composition(library, PLACEBO_TARGETS[1])
+        mean, covariance = posterior(
+            inferred_from,
+            intercept=fitted.intercept,
+            design=design,
+            prior_precision=fitted.prior_precision(),
+            observation_variance_diagonal=variance,
+        )
+        predictive = np.einsum("gi,ij,gj->g", design, covariance, design) + variance
+        residual = predicted_for - fitted.intercept - design @ mean
+        ratios.append(float(np.sqrt(np.mean(predictive)) / np.sqrt(np.mean(residual**2))))
+
+    shipped = measure_earned_spread(arm_slice).value
+    at_full_depth = float(np.mean(ratios))
+    assert shipped == pytest.approx(0.84148, rel=1e-3)
+    assert at_full_depth == pytest.approx(0.77270, rel=1e-3)
+    assert at_full_depth < shipped, (
+        "the depth correction must move S2 DOWN; if it ever moves up, depth becomes a candidate "
+        "explanation for the failure and ADR 0023 decision 4 needs revisiting"
+    )
+
+
+def test_the_fitted_dispersion_carries_a_measured_degrees_of_freedom_bias(
+    arm_slice: ArmSlice,
+) -> None:
+    """``psi^2``'s scalar ``G/(G-df)`` correction assumes a homoscedasticity the panel lacks.
+
+    ``fit.py`` fits the dispersion from an *unweighted* least-squares residual and rescales it
+    by a single ``panel_size / (panel_size - degrees_of_freedom)`` factor.  That factor is exact
+    only if the residual is homoscedastic.  Here ``Omega = technical + psi^2`` spans four orders of
+    magnitude across the panel, and for an OLS fit ``E[sum r^2] = sum_j (1 - h_jj) omega_j`` -- so
+    the scalar form is right only if leverage is uncorrelated with variance.  It is not: the design
+    columns load most heavily on exactly the low-count, high-variance genes.
+
+    Measured here rather than argued.  This is **recorded, not repaired**: correcting it moves
+    ``psi^2`` up about 9% and S2 from 0.8415 to roughly 0.86, which changes a published capability
+    measurement, and ADR 0022 is the precedent for how a change to this term gets made -- by an ADR,
+    not by a test.  Note also that ADR 0022's repair is intact and unrelated: 0 of 14 folds reach
+    ``DISPERSION_FLOOR``, so this is a bias in the estimator that replaced the clamp, not the clamp.
+    """
+
+    from cellstate.backends.gse274113.likelihood import technical_variance
+
+    correlations: list[float] = []
+    ratios: list[float] = []
+    for library in arm_slice.libraries:
+        fitted = fit_fold(arm_slice, library)
+        assert not fitted.dispersion_is_clamped
+
+        residual_sum = leverage_weighted_technical = leverage_weight = 0.0
+        for fit_library in fitted.fit_library_ids:
+            for target in arm_slice.targets:
+                composition, depth = arm_slice.log_composition(fit_library, target)
+                design = fitted.design(target)
+                coefficients, *_ = np.linalg.lstsq(
+                    design, composition - fitted.intercept, rcond=None
+                )
+                residual = composition - fitted.intercept - design @ coefficients
+                leverage = np.einsum(
+                    "gi,ij,gj->g", design, np.linalg.pinv(design.T @ design), design
+                )
+                technical = technical_variance(fitted.pooled_rate, depth)
+                residual_sum += float((residual**2).sum())
+                leverage_weighted_technical += float(((1.0 - leverage) * technical).sum())
+                leverage_weight += float((1.0 - leverage).sum())
+                correlations.append(float(np.corrcoef(leverage, technical)[0, 1]))
+
+        unbiased = (residual_sum - leverage_weighted_technical) / leverage_weight
+        ratios.append(fitted.biological_observation_variance / unbiased)
+
+    # Positive in every one of the 3,640 arm fits, and averaging around 0.42.  It is the sign and
+    # the consistency that create the bias, not the magnitude on any single arm.
+    assert min(correlations) > 0.0
+    assert float(np.mean(correlations)) > 0.3, (
+        "leverage and technical variance must be correlated for this bias to exist; if they "
+        "decorrelate, the scalar correction becomes adequate and this test should be retired"
+    )
+    assert min(ratios) > 0.87 and max(ratios) < 0.94, (
+        "the shipped psi^2 sits 6-13% below the leverage-weighted moment estimator in every fold"
+    )
+    assert float(np.mean(ratios)) == pytest.approx(0.916, abs=0.01)
+
+
 def test_a_state_is_never_estimated_from_its_own_library(arm_slice: ArmSlice) -> None:
     """Leave-one-library-out, asserted on the estimate itself rather than on the fold alone."""
 
@@ -829,25 +1026,57 @@ def test_the_readout_refuses_a_belief_from_another_backend() -> None:
         describe_state(foreign)
 
 
-def test_an_unexpressed_target_moves_less_than_a_master_regulator() -> None:
-    """The readout is usable, which means it has to separate a real knockdown from a dead one.
+def test_the_unexpressed_target_ordering_does_not_replicate_across_libraries() -> None:
+    """The ordering that reads as a sanity check in ``rep1`` is a property of ``rep1``.
 
-    SNAI2 is measured at 0 CPM in this panel -- it is not expressed, so its contrast against NT is
-    the size of a difference that means nothing here.  GATA1 is the erythroid/megakaryocyte master
-    regulator and the panel carries its programme directly.
+    An earlier revision of this test asserted, in ``HELD_OUT`` alone, that GATA1's contrast exceeds
+    SNAI2's and that SNAI2 -- measured at 0.6 CPM, so not expressed and incapable of being knocked
+    down -- stays under its own understated noise floor.  Both hold in ``rep1``.  Neither is a
+    property of the backend, and the population the assertions ranged over was a one-element
+    hand-written literal.
 
-    ⚠️ This is a *sanity* property, not a capability claim.  The reported spread is a declared lower
-    bound, GATA1 clears it by well under a factor of two, and the grouped measurement in
-    ``gse274113_reports.py`` finds the perturbed contrast NOT separable from placebo.  What is
-    asserted here is only the ordering, which is what makes the surface worth reading at all.
+    Measured over all fourteen libraries:
+
+    * ``GATA1 > SNAI2`` fails in **4 of 14** (``rep3``, ``rep5``, ``rep9``, ``rep10``).  In ``rep3``
+      SNAI2 produces the largest contrast of all nineteen targets.
+    * ``SNAI2`` stays under its own floor in only **5 of 14**.  In ``rep5`` it clears that floor by
+      3.3x.
+
+    This is recorded as a measurement rather than deleted, because it is the readout's own account
+    of why the ledger is 0 of 10: the perturbation is a measured null (mean on-target log2FC about
+    -0.06), the matrix ``W`` is fitted on has the singular-value profile of the placebo contrast,
+    and an ordering read off one library is reading that noise.  A test that pinned the favourable
+    library would have kept saying the surface separates a real knockdown from a dead one.
     """
 
-    from cellstate.backends.gse274113 import compare_arms
+    from cellstate.backends.gse274113 import compare_arms, load_arm_slice
 
+    libraries = load_arm_slice().libraries
+    ordered = [
+        library
+        for library in libraries
+        if compare_arms(library, "NT", "GATA1").distance
+        > compare_arms(library, "NT", "SNAI2").distance
+    ]
+    under_floor = [
+        library
+        for library in libraries
+        if (contrast := compare_arms(library, "NT", "SNAI2")).distance
+        < contrast.distance_lower_bound_sd
+    ]
+
+    assert len(libraries) == 14
+    assert sorted(set(libraries) - set(ordered)) == ["rep10", "rep3", "rep5", "rep9"], (
+        "the GATA1 > SNAI2 ordering holds in 10 of 14 libraries; if this set moved, the "
+        "ordering's dependence on which library you look at has changed"
+    )
+    assert len(under_floor) == 5, (
+        "an unexpressed target clears its own understated noise floor in 9 of 14 libraries; "
+        "this is the readout failing its own sanity property off the library it was read on"
+    )
+
+    # The rep1 reading itself, kept so the contrast between one library and fourteen is visible.
+    assert HELD_OUT in ordered and HELD_OUT in under_floor
     dead = compare_arms(HELD_OUT, "NT", "SNAI2")
     master = compare_arms(HELD_OUT, "NT", "GATA1")
-    assert master.distance > dead.distance
-    assert dead.distance < dead.distance_lower_bound_sd, (
-        "an unexpressed target must not clear even the understated noise floor"
-    )
     assert master.axis_names == dead.axis_names == tuple(f"biology_{i}" for i in range(4))

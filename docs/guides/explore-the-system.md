@@ -1,0 +1,259 @@
+# Explore the system
+
+`scripts/explore.py` is a command-line surface over the committed GSE274113 slice. It adds no
+capability and makes no claim the package does not already make — every number it prints comes from
+the shipped path, or is a plain observational statistic whose one-line construction is written out
+in the command's own `--help`.
+
+It exists because a representation nobody can poke at cannot be iterated on, and until now poking at
+it meant writing a script each time.
+
+## Launch
+
+From a source checkout, Python 3.11+ with [`uv`](https://docs.astral.sh/uv/):
+
+```bash
+uv sync --all-extras
+uv run python scripts/explore.py inventory
+```
+
+No download and no configuration. The panel and the arm slice are committed; the whole tour below
+runs in about three seconds of wall clock, and the slowest single command (`measure`, which fits all
+fourteen leave-one-library-out folds and bootstraps four capability measurements) takes about one
+second.
+
+`scripts/explore.py` puts `src/` on `sys.path` itself, so it also runs under a bare interpreter that
+has `numpy`, `scipy` and `pydantic`:
+
+```bash
+PYTHONPATH=src python scripts/explore.py inventory
+```
+
+## The tour, in the order worth reading it
+
+### 1. `inventory` — what is actually in the box
+
+```bash
+uv run python scripts/explore.py inventory
+```
+
+Fourteen libraries, twenty targets, 137,604 cells, a 100-gene panel, and the day each library was
+harvested. `NT` is the non-targeting control; `NT_A` / `NT_B` are a deterministic within-library
+split of the `NT` cells whose contrast is the placebo floor every other contrast is read against.
+
+### 2. `knockdown` — screen the substrate before you test the model
+
+```bash
+uv run python scripts/explore.py knockdown
+```
+
+**Run this before believing anything downstream.** For each CRISPRi target that is itself a panel
+gene, it prints the mean over libraries of `log2( CPM_target(arm target) / CPM_target(arm NT) )` —
+did the perturbation reach the readout at all?
+
+A working CRISPRi screen gives roughly −1 to −2. This one gives **−0.058** with **6 of 19 targets
+moving the wrong way**, and two of the targets (`SNAI2` at 0.6 CPM, `PRDM16` at 3.5 CPM) are not
+expressed in the panel at all. That is a *measured null*. Nothing downstream can recover a
+perturbation that never landed, and it is why `measure` divides by a between-target biology variance
+of 0.109 — it is dividing by approximately zero.
+
+The verdict is on the **deposit**, not on the model.
+
+### 3. `day` — does the panel see biology that is actually there?
+
+```bash
+uv run python scripts/explore.py day
+```
+
+The control for the control. Same panel, same pipeline, no fitted basis and no regrouping — just
+the raw log-composition of the `NT` arms, day 7 against day 14:
+
+| contrast | ‖Δ‖ | vs placebo |
+|---|---:|---:|
+| `NT` day 7 → day 14 | 40.207 | **7.97×** |
+| perturbed target vs `NT` (mean) | 5.383 | 1.07× |
+| placebo `NT_A` vs `NT_B` (mean) | 5.046 | 1.00× |
+
+92 of 100 panel genes track day at \|r\| > 0.7. **The instrument works.** Differentiation moves this
+panel eight times the placebo contrast; the CRISPRi perturbation moves it 1.07× — which *is* the
+placebo floor.
+
+> ⚠️ This is a **readout**, deliberately not a measurement. `library_day` is nested inside `library`
+> (three or four libraries per day, none spanning two), so it carries no interval and clears no
+> gate. Re-pointing the biology block at this axis would collapse K from 14 to 4 and yield a
+> *passing* S5 that means nothing.
+
+### 4. `spectrum` — is there structure for the model to find?
+
+```bash
+uv run python scripts/explore.py spectrum
+```
+
+`knockdown` asks whether the perturbation moved its own target gene. This asks the harder question:
+does the matrix the biology basis `W` is *fitted on* — the within-library contrasts
+`c[L, g] − c[L, NT]` — carry any structure at all?
+
+| contrast matrix | rows | s0 | s1 | s2 | s3 | s1/s0 | PC1 var |
+|---|---:|---:|---:|---:|---:|---:|---:|
+| perturbation: `target − NT` | 266 | 41.0 | 31.1 | 26.2 | 24.8 | 0.76 | 20.1% |
+| placebo: `NT_B − NT_A` (noise) | 14 | 10.0 | 7.5 | 6.4 | 5.9 | **0.75** | **26.6%** |
+| differentiation: `NT` across days | 14 | 55.4 | 11.1 | 5.9 | 4.9 | **0.20** | **92.5%** |
+
+Real biology *concentrates*: differentiation puts 92% of its variance on one direction. The
+perturbation contrast — the matrix `W` is actually fitted on — has the spectral shape of the
+**placebo**. Same verdict as `knockdown`, reached independently, and without needing the
+perturbation targets to be panel genes at all.
+
+Two consequences for the design:
+
+- **`BIOLOGY_RANK = 4` cuts a flat spectrum.** There is no gap at four to cut at — the first
+  *excluded* direction is ~88% the size of the last *included* one. The rank is a free parameter,
+  and the published rank sensitivity (S5 at 16.96 / 19.22 / 27.21 for ranks 3 / 4 / 5) is what a
+  free parameter cutting noise looks like.
+- **Only the leading axis is identified.** `biology_2` and `biology_3` sit on near-degenerate
+  singular values, so which direction receives which name is close to arbitrary — and it changes
+  between folds. Run `axes rep1` and `axes rep9` and compare: `biology_0`'s top-loading gene is
+  `MPO +0.335` in one and `CD79A +0.331` in the other, which are opposite poles of the same axis.
+
+### 5. `state` — one arm's belief, in gene terms
+
+```bash
+uv run python scripts/explore.py state rep1 GATA1
+```
+
+```
+rep1/GATA1  biology state, top-loading genes per axis
+  biology_0    +2.011 ± 0.339   MPO+0.33, CD79A-0.31, ELANE+0.28, THBS1-0.26, AZU1+0.21, PPBP-0.21
+  biology_1    +0.353 ± 0.367   PRTN3+0.44, ELANE+0.30, PPBP+0.28, PF4+0.26, MPL-0.26, S100A9-0.22
+  biology_2    +1.040 ± 0.370   VWF+0.46, CD34-0.35, GP1BA+0.28, S100A8+0.25, CD79A-0.24, IL5RA-0.22
+  biology_3    +1.825 ± 0.458   S100A8+0.49, CSF1R+0.32, S100A9+0.27, GP9-0.25, CRHBP+0.25, CTSG+0.22
+  ABSTENTION REQUIRED:
+    - predictive sufficiency is inapplicable: no library spans the inference cutoff
+    - this belief is a snapshot state estimate, not a faithfulness verdict
+```
+
+Four biology coordinates, each named by the panel genes that define its direction. The axes were
+fitted from the data. **The readout reports loadings and never a label** — calling `biology_0` "the
+granulocyte axis" is a reasonable interpretation and it is yours to make; the library will not put
+it in a field, because an asserted label is a claim no measurement backs.
+
+The abstention is reprinted, not smoothed over. Every belief this backend emits abstains.
+
+### 6. `axes` — what those coordinates are coordinates *in*
+
+```bash
+uv run python scripts/explore.py axes rep1
+```
+
+The fitted `W` (biology) and `V` (nuisance) bases of one fold, the fitted `ψ²` and whether it was
+clamped, and each target's residual direction norm `|u_g|` — how much that target does *beyond* the
+shared basis.
+
+Two things to notice. `W` is orthogonalized against `V`, which is a **declared bias**: biology
+genuinely aligned with the library axis is assigned to nuisance, biasing against finding biology
+rather than for it. And `NT`'s own `|u_g|` comes out second-largest of all twenty targets — the
+placebo split's residual direction is as big as a real perturbation's, which is the null showing up
+again in a different statistic.
+
+### 7. `contrast` and `sweep` — differences between arms
+
+```bash
+uv run python scripts/explore.py contrast rep1 NT GATA1
+uv run python scripts/explore.py sweep rep1
+```
+
+`sweep` ranks every target against `NT` in one library, next to the **floor** — the mean contrast of
+the targets that are not expressed and therefore cannot have been knocked down. Read every row
+against the floor, never against zero. In `rep1` only `GATA1` reaches 1.9× the floor, and the
+not-expressed `PRDM16` places eleventh.
+
+> Both commands take **one** library. That is a correctness constraint, not a convenience: a belief
+> about library *L* is emitted by the fold that excluded *L*, so arms in different libraries are
+> expressed in different fitted bases and their coordinates are not comparable. The signature makes
+> the incomparable case impossible to write.
+
+> `sd >=` is a declared **lower** bound. It adds the two posterior variances as though the arms were
+> independent, and they are not — both were scored under the same fold. The properly grouped
+> interval is what `measure` reports.
+
+Then ask whether that ordering is anything:
+
+```bash
+uv run python scripts/explore.py ranks
+```
+
+`rep1`'s ordering is easy to read as a result — the two master erythroid/MK regulators do come out
+on top there. Across all fourteen libraries it does not replicate:
+
+| target | mean rank | best | worst | NT CPM |
+|---|---:|---:|---:|---:|
+| RUNX1 | 6.0 | 1 | 16 | 10,020.9 |
+| MYB | 6.4 | 1 | 19 | 3,139.3 |
+| GATA1 | 7.3 | 1 | 18 | 2,045.4 |
+| … | | | | |
+| PRDM16 | 11.7 | 3 | 17 | **3.5** |
+| SNAI2 | 12.7 | **1** | 19 | **0.6** |
+
+`GATA1` holds rank 1 in three of fourteen libraries and falls to eighteenth in another. Every target
+spans most of the field. And decisively: **in `rep3`, `SNAI2` produces the largest contrast of all
+nineteen targets** — larger than `GATA1`'s 1.909 in `rep1`, the number the sanity check is built on.
+`SNAI2` is at 0.6 CPM and cannot have been knocked down, so whatever ranked it first is what is
+ranking everything else.
+
+### 8. `measure` — the shipped capability measurements
+
+```bash
+uv run python scripts/explore.py measure
+```
+
+S2, S4 and S5, on held-out libraries, with cluster-bootstrap intervals grouped at the library.
+All fail, and the block decomposition underneath says why:
+
+```
+  across-library variance in the NUISANCE block  :    81.3016   <- where library variation SHOULD land
+  across-library variance in the BIOLOGY block   :     0.6087   <- leakage; S5's numerator
+  between-target variance in the BIOLOGY block   :     0.1091   <- signal; S5's denominator
+```
+
+Read the terms, never the quotient alone. Library variation *is* being captured — 99.3% of it lands
+in the nuisance block. S5 fails because its **denominator** is near zero. ADR 0022 cut the leakage
+five-fold (3.07 → 0.609), a large real improvement in exactly what S5 names, and S5 barely moved
+because the signal fell with it (0.257 → 0.109).
+
+## What to do from here
+
+The system is functional, runs on real data, and is iterable — the bar it was built to. What it is
+**not** is validated: the ledger is 0 of 10 and it will stay 0 of 10 on this substrate, because the
+perturbation arm is a measured null.
+
+Two consequences worth internalising before proposing work:
+
+- **Hardening the instrument cannot move the ledger.** ψ², the S2 estimand and the admission gates
+  have all been repaired, and none of it moved a capability measurement — none of it can. A better
+  instrument aimed at no signal returns a better-characterised zero.
+- **Screen the substrate first.** `knockdown` is the shape of a pre-download gate: before spending
+  bytes on a new corpus, check that the perturbation reaches the readout for a few targets.
+
+## Interactive use
+
+Everything the tool prints is available from a REPL:
+
+```python
+from cellstate.backends.gse274113 import (
+    available_arms,
+    estimate_arm,
+    describe_state,
+    compare_arms,
+    load_arm_slice,
+)
+from cellstate.backends.gse274113.fit import fit_fold
+
+slice_data = load_arm_slice()
+fold = fit_fold(slice_data, "rep1")  # the fold that never saw rep1
+belief = estimate_arm("rep1", "GATA1")  # a typed CellStateBelief
+print(describe_state(belief))
+```
+
+> ⚠️ `load_arm_slice` is cached and returns a **shared** `ArmSlice`. The dataclass is frozen but the
+> count arrays inside it are not — mutating one in a REPL silently changes every later call,
+> including `measure`. Copy before you edit: `slice_data.counts[key].copy()`.

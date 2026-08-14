@@ -29,8 +29,11 @@ claim-specific eligibility, content-addressed slices, and machine-checked repres
 which validate bound declarations and attestations without resolving source bytes or replaying
 selectors.
 
-No biological backend is registered, no belief has been emitted by a biological model, and no
-benchmark is scientifically admitted.
+The `gse274113` RNA observation model **is** registered and beliefs **have** been emitted from real
+human CD34+ cells; see [the exploration guide](guides/explore-the-system.md). **No benchmark is
+scientifically admitted and the eligibility ledger is 0 of 10**, and on this substrate it will stay
+there: the deposit's CRISPRi arm is a measured null, so the capability tests divide by a
+perturbation signal that was never created.
 
 Every `metric_id` the frozen sci-Plex3 suite declares now resolves to an executable implementation,
 and both faithfulness tests execute and return a verdict with a grouped bootstrap interval. What has

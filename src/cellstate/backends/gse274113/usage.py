@@ -62,22 +62,33 @@ _PLACEHOLDER_FINGERPRINT = "0" * 64
 
 
 def artifact_directory() -> Path:
-    """Where the committed panel and slice live, in a source checkout.
+    """Where the committed panel and slice live.
 
-    A wheel does not carry ``backends/``, so this is resolved rather than assumed and every entry
-    point below accepts an explicit directory.  Failing loudly here beats a confusing error four
-    frames deeper.
+    Two locations are tried, in this order, because both are real and neither can be assumed:
+
+    1. ``cellstate/backends/gse274113/_slice`` -- where the wheel puts it.  The build
+       force-includes the 336 KB slice so that an *installed* ``cellstate`` can answer a question.
+       It could not before: the backend imported cleanly and then raised here, which made the
+       flagship path dead in every ``--no-editable`` install, including the mode every Makefile
+       target uses.
+    2. ``<repo>/backends/vertical-a/gse274113-rna-obs-v1`` -- where a source checkout keeps it,
+       and the only copy that exists when running straight from ``src/``.
+
+    Resolved rather than assumed, and every entry point below still accepts an explicit directory.
+    Failing loudly here beats a confusing error four frames deeper.
     """
 
-    directory = (
+    packaged = Path(__file__).resolve().parent / "_slice"
+    checkout = (
         Path(__file__).resolve().parents[4] / "backends" / "vertical-a" / "gse274113-rna-obs-v1"
     )
-    if not (directory / "arms.json").is_file():
-        raise FileNotFoundError(
-            f"the committed GSE274113 slice is not at {directory}; pass an explicit directory "
-            "(a wheel does not ship the backends/ tree, only a source checkout has it)"
-        )
-    return directory
+    for directory in (packaged, checkout):
+        if (directory / "arms.json").is_file():
+            return directory
+    raise FileNotFoundError(
+        f"the committed GSE274113 slice is at neither {packaged} nor {checkout}; "
+        "pass an explicit directory, or run from a source checkout"
+    )
 
 
 def _digest(path: Path) -> str:

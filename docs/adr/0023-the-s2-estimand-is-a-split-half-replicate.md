@@ -1,7 +1,26 @@
 # ADR 0023: the S2 estimand is a split-half replicate on the declared-null arm
 
-- **Status:** Accepted
+- **Status:** Accepted. **Decision 4's two arithmetic figures are corrected below; the decision
+  itself stands.** The body is left as written, per the rule that an accepted ADR's body is a
+  historical record.
 - **Date:** 2026-08-14
+
+> **Correction (decision 4, the depth asymmetry).** Neither figure in decision 4 reproduces from
+> the committed slice, and both are now computed by
+> `test_the_s2_depth_caveat_reproduces`:
+>
+> - The shortfall is **exactly 2.00×**, not 2.06×. `NT` is the bitwise sum of `NT_A` and `NT_B` in
+>   all fourteen libraries, so each half is exactly half the arm — 684,370 panel counts on average
+>   against 1,368,741. The 665,763 quoted in the body is the depth of `NT_B` *alone*, and quoting
+>   one half as "the halves" is what produced 2.06.
+> - The recomputation at full-arm depth gives **0.7727, about 8.2%** — not 0.8322, about 1.1%.
+>   0.8322 is what a 1.1× depth multiplier returns, not the 2.0× the sentence names.
+>
+> **The decision is unaffected and its conclusion is strengthened.** The move is still in the
+> direction that makes the failure *worse*, and by seven times the stated margin: the depth
+> asymmetry does not explain S2's failure, it deepens it. What failed was the ADR's own standard —
+> "a caveat that is only ever stated is a caveat nobody has checked" — applied to the caveat that
+> sentence appears in.
 
 ## Context
 

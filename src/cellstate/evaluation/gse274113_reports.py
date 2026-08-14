@@ -202,11 +202,20 @@ def measure_earned_spread(
     arm in this design carrying a replicate.  This does not establish calibration on a perturbed
     arm, and the limit is a property of the estimand rather than a caveat on one run.
 
-    ⚠️ **The halves are shallower than a full arm, and it does not explain the result.**  They carry
-    665,763 panel counts against 1,368,741, a 2.06x shortfall, and lower depth inflates both the
-    claimed spread and the realized error.  Recomputing with the technical term at the full-arm
-    depth on both sides moves the ratio from 0.8415 to **0.8322** -- about 1.1%, and in the
-    direction that makes the failure worse.
+    ⚠️ **The halves are shallower than a full arm, and it does not explain the result.**  ``NT`` is
+    the bitwise sum of ``NT_A`` and ``NT_B`` in all fourteen libraries, so each half is **exactly**
+    half the arm: 684,370 panel counts on average against 1,368,741, a **2.00x** shortfall.  Lower
+    depth inflates both the claimed spread and the realized error.  Recomputing with the technical
+    term at the full-arm depth on both sides moves the ratio from 0.8415 to **0.7727** -- about
+    8.2%, and in the direction that makes the failure *worse*.
+
+    An earlier revision of this paragraph put the shortfall at "2.06x" and the recomputation at
+    "0.8322 -- about 1.1%".  Neither reproduced.  The 2.06 was the depth of ``NT_B`` alone (665,763)
+    quoted as though it were the mean over both halves, and 0.8322 is what a **1.1x** depth
+    multiplier gives, not the 2.0x the sentence names.  The conclusion the caveat was written to
+    support is unchanged and in fact stronger -- depth does not excuse the failure, it deepens it --
+    but the numbers were a recorded claim that no code checked.  They are pinned now; see
+    ``test_the_s2_depth_caveat_reproduces``.
 
     Both sides aggregate across genes as a root-mean-square.  The superseded form paired a *mean* of
     per-gene standard deviations against an RMS residual, which is not like-for-like and understates

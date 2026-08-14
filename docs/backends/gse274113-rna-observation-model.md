@@ -90,6 +90,25 @@ half unfailable, which is the inert-`do` defect ADR 0019 names explicitly.
    reported before that decision was technical-only — the exact failure `likelihood.py` says
    `psi^2` exists to prevent. `FittedFold.dispersion_is_clamped` exposes the pre-clamp value so a
    return to that state is visible.
+
+   ⚠️ **`psi^2` carries a measured downward bias of about 8.4%, in every fold.** The dispersion is
+   fitted from an *unweighted* least-squares residual and rescaled by one scalar
+   `G / (G − df)` factor. That factor is exact only for a homoscedastic residual, and `Omega` spans
+   four orders of magnitude across this panel. For an OLS fit `E[Σr²] = Σ_j (1 − h_jj) ω_j`, so the
+   scalar form is correct only if leverage is uncorrelated with variance — and it is not: the design
+   columns load most heavily on exactly the low-count, high-variance genes, giving
+   `corr(h, technical)` between **0.40 and 0.50** in every fold. Against the leverage-weighted
+   moment estimator `(Σr² − Σ(1−h)·technical) / Σ(1−h)`, the shipped `psi^2` runs **0.887–0.925×**
+   (mean 0.916): 0.0579 against 0.0631. Correcting it moves S2 from 0.8415 to about **0.862**.
+   A second, related mismatch: the residual comes from an unweighted fit while every downstream use
+   of `psi^2` weights by `1/Omega`, so the estimator of the variance and the model it is used in are
+   not the same fit.
+
+   **Recorded, not repaired.** This changes a published capability measurement, and ADR 0022 is the
+   precedent for how this term gets changed — by a decision, not by a patch. It is measured by
+   `test_the_fitted_dispersion_carries_a_measured_degrees_of_freedom_bias`. Note that ADR 0022's
+   repair is intact and this is unrelated to it: 0 of 14 folds reach the floor, so this is a bias in
+   the estimator that *replaced* the clamp, not a return of the clamp.
 7. **A scalar `psi^2` cannot calibrate a variance that varies with count**, and this is not
    repaired. After ADR 0022 the claimed total still understates the low-count buckets and
    overstates the highest, where the ratio runs to roughly 2.7. It is a limitation of the
@@ -151,9 +170,13 @@ Two qualifications, so that these failures are not read as more than they are:
 
   Two limits belong with the new number. It measures calibration on **null biology only** — `NT` is
   the sole arm carrying a replicate — across 14 libraries rather than 280 arms. And the halves are
-  shallower than a full arm, 665,763 panel counts against 1,368,741; evaluating the technical term at
-  the full-arm depth moves the ratio from 0.8415 to **0.8322**, about 1.1% and in the direction that
-  makes the failure worse, so **the depth asymmetry does not explain it.**
+  shallower than a full arm — exactly half of it, since `NT` is the bitwise sum of `NT_A` and `NT_B`
+  in all fourteen libraries: 684,370 panel counts on average against 1,368,741, a **2.00×**
+  shortfall. Evaluating the technical term at the full-arm depth moves the ratio from 0.8415 to
+  **0.7727**, about 8.2% and in the direction that makes the failure worse, so **the depth asymmetry
+  does not explain it** — it deepens it. (An earlier revision put these at 2.06× and 0.8322/1.1%;
+  neither reproduced, and both are now pinned by `test_the_s2_depth_caveat_reproduces`. See the
+  correction on [ADR 0023](../adr/0023-the-s2-estimand-is-a-split-half-replicate.md).)
 
   What does: with sampling noise removed, the systematic misfit is **0.1427** against a total claimed
   variance of **0.1213**. The misfit alone exceeds everything the posterior claims. Under the old
@@ -161,13 +184,25 @@ Two qualifications, so that these failures are not read as more than they are:
   predictor that had simply been handicapped.
 - **The substrate carries almost no perturbation signal**, so S2, S4 and S5 are verdicts on
   `GSE274113`'s CRISPRi arm before they are verdicts on this model. Mean on-target knockdown across
-  the 19 targets is **−0.043** log2 fold-change and 6 of 19 move the **wrong way**; restricted to the
-  15 targets detected above 200 panel-CPM it is **−0.094**. SNAI2 (0 CPM) and PRDM16 (3 CPM) are not
-  expressed at all, so two targets are unmeasurable in this readout. A working CRISPRi knockdown is
-  roughly −1 to −2. All three capabilities divide by or compare against a between-target biology
-  variance of **0.257**. ⚠️ These knockdown figures are measured from the committed slice but **no
-  committed runner computes them**; they are a recorded claim, not a checked one, and carry the same
-  standing as the census in the representability ledger.
+  the 19 targets is **−0.058** log2 fold-change and 6 of 19 move the **wrong way**; restricted to the
+  15 targets detected above 200 panel-CPM it is **−0.097**. SNAI2 (0.6 CPM) and PRDM16 (3.5 CPM) are
+  not expressed at all, so two targets are unmeasurable in this readout. A working CRISPRi knockdown
+  is roughly −1 to −2. All three capabilities divide by or compare against a between-target biology
+  variance of **0.109**.
+
+  ✅ `scripts/explore.py knockdown` now computes these figures from the committed slice; they were
+  previously a recorded claim that no committed runner checked. The earlier card reported **−0.043**
+  and **−0.094**; under the Haldane-corrected log-composition this model is written on the values are
+  −0.058 and −0.097, and the wrong-signed counts (6 of 19, 3 of 15) are unchanged. The variance
+  figure previously read **0.257**, which is the pre-[ADR 0022](../adr/0022-the-technical-variance-is-evaluated-at-a-pooled-rate.md)
+  value and contradicted the 0.109 reported eight lines below it.
+
+  ⚠️ A third, independent statement of the same verdict, which needs no target to be a panel gene:
+  the within-library contrast matrix `W` is fitted on has the **singular-value profile of the
+  placebo contrast** — s1/s0 = 0.76 against the placebo's 0.75, with PC1 carrying 20% of the
+  variance against the placebo's 27%. Real biology on this same slice concentrates instead: the
+  day 7 → day 14 differentiation contrast has s1/s0 = 0.20 with PC1 at 92.5%. See
+  `scripts/explore.py spectrum`.
 
 S5's failure is the one that does bear on the model, and its diagnosis is not the obvious one.
 Decomposed by block, across-library variance is **81.30** in the nuisance block against **0.609** in
@@ -179,6 +214,46 @@ ADR 0022 moved both terms and the ratio hid it: library variation leaking into t
 fell **5×** (3.07 → 0.609), a real improvement in exactly the separation S5 names, while the
 between-target signal fell **2.4×** with it (0.257 → 0.109). S5 improved from 19.22 to 10.36 and
 still fails by a factor of thirty.
+
+⚠️ **Declared limit: all three terms pool coefficients across fourteen different fitted bases.**
+`compare_arms` refuses two arms from different libraries because a belief about library *L* comes
+from the fold that excluded *L*, so their coordinates are expressed in different fitted bases and
+are not comparable. `measure_nuisance_separation` and this decomposition do that comparison as their
+core operation, and `_biology`'s docstring asserts a cross-arm comparability that holds only *within*
+a fold. The magnitude is measured, not argued
+(`test_the_three_decomposition_terms_pool_coefficients_across_fourteen_bases`):
+
+- `biology_0` **reverses sign in 48 of the 91 fold pairs** (6 of 14 folds are anti-aligned to
+  `rep1`). `_canonical_signs` keys each column's sign to its largest-magnitude entry, but that
+  entry's *identity* changes — `biology_0`'s top gene is `MPO` in seven folds and `CD79A` in the
+  other seven, and their loadings differ by under 1% (`rep6`: CD79A 0.3265 against MPO 0.3232).
+  Those two genes are opposite poles of the same axis, so the convention pins the wrong thing.
+- `biology_2` and `biology_3` sit on **near-degenerate singular values** and are near-orthogonal to
+  themselves across some fold pairs (minimum \|cos\| of 0.006 and 0.010). Which direction receives
+  which name is close to arbitrary, and so are the loadings printed for them.
+- **The nuisance block is affected too**, so this is not a biology-block-specific defect: `rep13`'s
+  third nuisance column has \|cos\| 0.47 against `rep1`'s. The 81.30 term carries the same artifact.
+
+This is user-visible on the advertised readout. `describe_state` prints `rep1/NT` as
+`biology_0 +1.227, MPO+0.33 CD79A−0.31` and `rep16/NT` as `biology_0 −1.285, CD79A+0.34 MPO−0.33` —
+the same direction of haematopoietic biology, printed with opposite sign, with nothing saying so.
+
+Aligning the bases by orthogonal Procrustes moves **S5 from 10.36 to 9.23** (−11%) and the
+between-target signal from **0.109 to 0.129** (+18%); sign-alignment alone — the minimum
+unarguable correction, since \|cos\| ≈ 0.99 means the same axis — gives 9.84 and 0.121. Recomputed
+basis-free in gene space, the nuisance/biology ratio falls from 133.6 to **89.4**. No verdict
+changes: S5 still fails by a factor of twenty-six and the ledger stays 0 of 10. The estimand is left
+where the merged ADRs put it, because changing how a capability is computed is an ADR's decision;
+what is recorded here is that the pinned numbers carry this artifact and that the signal is 18%
+larger than they state.
+
+⚠️ **Second declared limit on the 134× figure, wherever it appears.** Both terms are *per-dimension
+means*, and the blocks have different widths — nuisance is 3 columns, biology is 4. "The nuisance
+block absorbs 134× more library variance than leaks past it" names a comparison of **totals**, which
+is 3 × 81.30 against 4 × 0.609, or 100×. In gene space, where the question is basis-free, it is
+**89×**. The 134 is a real quantity and the reading it supports — the nuisance basis works; the
+denominator is what fails — is unaffected at any of these values. But 134 is not the number the
+sentence claims.
 
 **Reachable but not yet reported with intervals:** S6, S8.
 

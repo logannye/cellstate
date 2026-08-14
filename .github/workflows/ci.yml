@@ -34,6 +34,15 @@ jobs:
         run: uv run --no-editable pytest --no-cov
       - run: uv run --no-editable python scripts/export_schemas.py
       - run: git diff --exit-code -- schemas
+      # The real-cell path, against the INSTALLED package. `pythonpath = ["src"]` means no test
+      # ever imports the wheel, so nothing here could see that the wheel shipped without the
+      # committed slice -- the flagship backend imported cleanly and then answered nothing.
+      - name: Estimate a real cell state from the installed package
+        run: uv run --no-editable --reinstall-package cellstate python examples/estimate_real_cell_state.py
+      - name: Screen the substrate the backend is fitted on
+        run: |
+          uv run python scripts/explore.py knockdown
+          uv run python scripts/explore.py spectrum
       - run: uv build
 
   docs:
