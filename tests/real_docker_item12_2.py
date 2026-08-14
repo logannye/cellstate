@@ -107,7 +107,7 @@ def _contracts(
         workdir="/workspace",
         environment={"PYTHONDONTWRITEBYTECODE": "1", "TMPDIR": "/run/cellstate/tmp"},
         worker_command=(
-            "--signal=KILL",
+            "--signal=TERM",
             "--kill-after=1s",
             str(watchdog_seconds),
             "/opt/runtime/bin/python",
@@ -158,7 +158,6 @@ def _exact_image_is_loaded() -> None:
     (
         ("success", 10, ("success", 0, False)),
         ("sleep-tree", 1, ("timeout", 137, False)),
-        ("oom", 20, ("oom_killed", 137, True)),
     ),
 )
 def test_real_docker_outcomes_remove_tree_and_anonymous_volume(
@@ -204,6 +203,142 @@ def test_real_docker_outcomes_remove_tree_and_anonymous_volume(
         )
         assert result_path.stat().st_mode & 0o777 == 0o444
     assert not (tmp_path / "canonical").exists()
+
+
+@pytest.mark.parametrize("attempt", range(3))
+def test_real_docker_oom_is_positive_or_fails_closed_without_inventing_timeout(
+    tmp_path: Path,
+    attempt: int,
+) -> None:
+    executor, source, code, _, _ = _executor(
+        tmp_path,
+        owner_id=f"item12-real-oom-{attempt}",
+        mode="oom",
+        wall_seconds=20,
+    )
+    observation = executor.run(
+        execution_id="probe",
+        source_path=source,
+        code_path=code,
+        output_path=executor.output_stage_path("probe"),
+    )
+    assert observation.exit_code == 137
+    assert not observation.timed_out
+    assert not observation.worker_watchdog_timed_out
+    if observation.oom_killed:
+        assert observation.outcome == "oom_killed"
+    else:
+        assert observation.outcome == "worker_failure"
+    assert observation.container_removed
+    assert observation.snapshot_volume_removed
+    assert observation.process_tree_cleaned
+    assert not observation.canonical_publication_performed
+    assert not (tmp_path / "canonical").exists()
+
+
+@pytest.mark.parametrize("attempt", range(3))
+def test_real_docker_worker_watchdog_exit_is_typed_separately_from_parent_timeout(
+    tmp_path: Path,
+    attempt: int,
+) -> None:
+    executor, source, code, _, _ = _executor(
+        tmp_path,
+        owner_id=f"item12-real-worker-watchdog-{attempt}",
+        mode="sleep-tree",
+        wall_seconds=10,
+    )
+    observation = executor.run(
+        execution_id="probe",
+        source_path=source,
+        code_path=code,
+        output_path=executor.output_stage_path("probe"),
+    )
+    assert observation.outcome == "timeout"
+    assert observation.exit_code == 124
+    assert not observation.timed_out
+    assert observation.worker_watchdog_timed_out
+    assert not observation.oom_killed
+    assert observation.container_removed
+    assert observation.snapshot_volume_removed
+
+
+def test_real_docker_worker_accepts_only_the_frozen_contained_topology(tmp_path: Path) -> None:
+    source = tmp_path / "source-free-topology-probe.h5ad"
+    source.write_bytes(b"topology-only; worker must not open this fixture\n")
+    output = tmp_path / "output"
+    output.mkdir()
+    probe = """
+from pathlib import Path
+from scripts.sciplex3_k562_v5_worker import _require_exact_contained_invocation
+from cellstate.backends.sciplex3_loader import SCIPLEX3_SOURCE_BYTE_COUNT, SCIPLEX3_SOURCE_SHA256
+_require_exact_contained_invocation(
+    source_path=Path('/run/cellstate/source/source.h5ad'),
+    output_path=Path('/run/cellstate/output'),
+    repository_root=Path('/workspace'),
+    execution_id='sciplex3-k562-v5-fit',
+    expected_source_sha256=SCIPLEX3_SOURCE_SHA256,
+    expected_source_byte_count=SCIPLEX3_SOURCE_BYTE_COUNT,
+    snapshot_directory=Path('/run/cellstate/snapshot'),
+    snapshot_max_bytes=3 * 1024**3,
+)
+print('contained-topology-verified')
+"""
+    completed = subprocess.run(
+        (
+            "docker",
+            "run",
+            "--rm",
+            "--platform",
+            "linux/amd64",
+            "--pull",
+            "never",
+            "--memory",
+            str(4 * 1024**3),
+            "--memory-swap",
+            str(4 * 1024**3),
+            "--pids-limit",
+            "256",
+            "--user",
+            f"{os.geteuid()}:{os.getegid()}",
+            "--network",
+            "none",
+            "--read-only",
+            "--cap-drop",
+            "ALL",
+            "--security-opt",
+            "no-new-privileges",
+            "--init",
+            "--tmpfs",
+            (
+                "/run/cellstate/tmp:rw,noexec,nosuid,nodev,size=268435456,mode=0700,"
+                f"uid={os.geteuid()},gid={os.getegid()}"
+            ),
+            "--mount",
+            f"type=bind,source={source},target=/run/cellstate/source/source.h5ad,readonly",
+            "--mount",
+            f"type=bind,source={REPOSITORY_ROOT},target=/workspace,readonly",
+            "--mount",
+            f"type=bind,source={output},target=/run/cellstate/output",
+            "--mount",
+            "type=volume,target=/run/cellstate/snapshot",
+            "--workdir",
+            "/workspace",
+            "--env",
+            "PYTHONPATH=/workspace/src:/workspace",
+            "--entrypoint",
+            "/opt/runtime/bin/python",
+            IMAGE_REFERENCE,
+            "-c",
+            probe,
+        ),
+        check=False,
+        capture_output=True,
+        text=True,
+        timeout=30,
+    )
+    assert completed.returncode == 0, completed.stderr
+    assert completed.stdout.strip() == "contained-topology-verified"
+    assert source.read_bytes() == b"topology-only; worker must not open this fixture\n"
 
 
 _CHILD = r"""

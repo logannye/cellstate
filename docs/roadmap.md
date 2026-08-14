@@ -1,562 +1,829 @@
-# Cell-state full-build roadmap
+# Cell-state roadmap
 
-This roadmap turns the contract scaffold into a scientifically defensible system for estimating a
-query-conditioned probability distribution over hidden, causally relevant cellular state. The
-system will be built as a family of support-bounded models. It will not claim that one embedding is
-a universal cellular state.
+## Purpose
 
-The detailed model, data, and evaluation design is in
-[`architecture/full-buildout.md`](architecture/full-buildout.md). This file defines implementation
-order and graduation gates.
+This project builds one thing: a system that computes a faithful and accurate representation of
+hidden cellular state.
+
+Everything else in this repository — contracts, schemas, manifests, admission machinery, benchmark
+tooling, runtime infrastructure — exists only to make that representation trustworthy. None of it is
+an end. An artifact that does not advance the representation, or the ability to recognize a faithful
+one, is not on this roadmap.
+
+[`architecture/full-buildout.md`](architecture/full-buildout.md) holds the model, data, and
+evaluation design, including the formal estimand and the belief-subject semantics. This file defines
+implementation order and graduation gates, and is the sole authority for both.
+
+**If you are starting work:** the active phase is Phase 1 and the next action is item `Q6` of the
+[implementation queue](#implementation-queue). `Q1` is delivered; `Q2` is delivered in substance but
+incomplete against its own done-when; `Q3` is delivered and the sufficiency verdict now fails
+closed; `Q4` is decided, with a negative result, and owes a reviewed manifest. **`Q5` and `Q7` are
+delivered, and their measurements are negative** — see below. `Q5`'s predeclaration clause, unmet on
+its first run, is satisfied for the re-run by
+[ADR 0022](adr/0022-the-technical-variance-is-evaluated-at-a-pooled-rate.md).
+`Q8`, the estimand freeze, is blocked
+on source selection and is deliberately not next. Everything before the phase list is the standard
+that work is held to, not work.
+
+**The state of the object: it exists, and it does not yet work.**
+
+`CellStateBelief` is now constructed from real cells. A population of CRISPRi-perturbed human CD34+
+progenitors goes through `estimate_cell_state` and comes back as a typed belief carrying a
+posterior, under the `empirical_observation_model` kind
+([ADR 0021](adr/0021-an-admissible-kind-for-a-fitted-observation-model.md)). That is the first time
+this project has computed any representation of cellular state, and it is what
+[ADR 0019](adr/0019-build-the-representation-on-held-evidence.md) reordered the queue to reach.
+
+**The state-capability ledger nonetheless stands at 0 of 10.** The capabilities `Q5` and `Q7` were
+scheduled to advance were measured on held-out libraries, with bootstrap intervals grouped at the
+library, and every one came out negative:
+
+| Capability | Measured | Interval | Required | |
+| --- | --- | --- | --- | --- |
+| S5 nuisance separation | 10.36 | [6.27, 16.66] | ≤ 0.35 | fails |
+| S4 null half (placebo) | 2.03 | [1.44, 2.67] | below the perturbed band | fails |
+| S4 non-null half | 2.09 | [1.62, 2.56] | above the null band | fails |
+| S2 earned spread | 0.84 | [0.71, 0.98] | > 1 | fails |
+
+These are the values after [ADR 0022](adr/0022-the-technical-variance-is-evaluated-at-a-pooled-rate.md),
+against bounds that decision fixed **before** the run. The earlier values — 19.22, 2.90, 3.08, 0.22 —
+were measured under a technical variance that pinned `psi^2` at its clamp in all fourteen folds, and
+against a bound introduced in the same commit as its own result.
+
+S2's row changed again under [ADR 0023](adr/0023-the-s2-estimand-is-a-split-half-replicate.md), and
+for a different reason: not the variance but the **estimand**. It is now a split-half replicate on
+the declared-null arm — infer from `NT_A`, predict `NT_B`, score the claimed spread against the error
+actually realized — which is the first construction where both sides condition on the same
+information. Post-ADR-0022 the ratio ran 0.30 to 1.08 across five constructions and two aggregation
+conventions, **all failing**, so the verdict never turned on the choice; the size of the shortfall
+did, and 0.84 replaces 0.28 as the honest figure.
+
+**S5 is the clean result and the one that matters.** Across-library spread at a fixed target,
+measured in the *inferred state*, is 10× the across-target spread.
+
+The obvious reading of that — that the nuisance basis fails to absorb the library — **is wrong, and
+was checked rather than assumed.** Decomposed by block, the across-library variance is **81.30** in
+the nuisance block against **0.609** in biology: the nuisance basis is absorbing the bulk of it,
+roughly 134× more than leaks through. What fails is the other side of the ratio. The biology block's
+between-target variance is only **0.109**, *smaller than the 0.609 of residual library variation it
+carries*, so the signal S5 needs is weak rather than the nuisance separation being broken.
+
+[ADR 0022](adr/0022-the-technical-variance-is-evaluated-at-a-pooled-rate.md) is why those figures
+moved, and the shape of the move is worth keeping. Fixing the technical variance cut the library
+leakage into the biology block **5×** (3.07 → 0.609) — a large, real gain in exactly the separation
+S5 names — while the between-target signal fell **2.4×** with it (0.257 → 0.109). The quotient
+improved only from 19.22 to 10.36. **A failing ratio names two suspects, and reporting the quotient
+alone would have hidden that the numerator was the term that got better.**
+
+That connects to a measurement already on record: the biology basis is the leading subspace of
+within-library contrasts, and those contrasts sit near the sampling floor. A leading subspace fitted
+from mostly-noise contrasts is mostly a noise subspace. **Raising the nuisance rank would not fix
+this**; strengthening the between-target signal is the direction the evidence actually points.
+
+S4 and S2 carry measurement caveats recorded in `evaluation/gse274113_reports.py`, and both have
+now been quantified rather than left as qualifiers. **S4's caveat does not explain its failure:** the
+placebo contrast carries **1.16×** the multinomial noise sd of the perturbed one, computed over all
+266 pairs, and deflating the null by that factor leaves it at 1.74 — still inside the perturbed
+interval [1.62, 2.56]. **S2's does bear on its magnitude but not its verdict:** the ratio moves
+across a 3.6× range depending on which point-predictor construction is taken, and fails under every
+one of them. So S4's negative is attributable to the model, S2's size is not yet a measurement, and
+neither is reported as more than that.
+
+Producing these numbers is what rule 10 asks of a gate that is a measurement. **The apparatus now
+judges a representation that exists, and its first verdict on that representation is negative.**
+
+## What "faithful" means here
+
+The definition lives in [`concepts/predictive-sufficiency.md`](concepts/predictive-sufficiency.md)
+and [`architecture/full-buildout.md`](architecture/full-buildout.md#validation-doctrine): a belief is
+faithful for a query when it is predictively sufficient for that query's declared targets and its
+predictive distributions are calibrated.
+
+Two commitments are specific to this roadmap. First, **both tests must return a numeric verdict with
+a sampling distribution.** A sufficiency gain or a coverage error reported without an interval,
+grouped at the declared independent experimental unit, is not a verdict. Second, **selecting evidence
+that can carry those tests is a first-class engineering task**, scheduled ahead of modeling, because
+most public single-cell data cannot carry them at all.
+
+## The state-capability ledger
+
+Every scheduled item names the capabilities it advances. Progress is measured against this list and
+nothing else. Each entry is worded so that a reader can determine objectively whether it is
+satisfied.
+
+| ID | Capability | Satisfied when |
+| --- | --- | --- |
+| S1 | Admissible pre-cutoff evidence | The frozen query admits a non-empty evidence set in the target modality before the inference cutoff, and at least one independent unit was observed both before and after it. Without this there is no hidden state to infer and no history for a belief to be sufficient against. |
+| S2 | A posterior, not a point | The belief carries samples or particles whose spread is earned: on held-out units the posterior predictive is strictly wider than the point predictor's residual spread, and a posterior-predictive check on a supported assay statistic is not rejected. |
+| S3 | At least two future horizons | The frozen query declares two or more horizons after the cutoff, and each is separately scored. One horizon cannot distinguish a state from a condition label. |
+| S4 | Controlled evolution under `do(U)` | The forecast moves when and only when the intervention moves: a declared-null intervention leaves the predictive distribution unchanged to numerical tolerance, and a non-null one changes it by more than between-seed variation. |
+| S5 | Assay-appropriate likelihoods | Varying a nuisance variable — library, capture, depth — at fixed biology changes the predicted observation and not the inferred state, within a predeclared bound on held-out units. |
+| S6 | Calibration | Absolute marginal coverage error is within a predeclared threshold at every declared level, as an upper confidence bound grouped at the split unit. |
+| S7 | An executable sufficiency verdict | The harness returns a history-information gain with a bootstrap interval grouped at the split unit, on genuinely held-out future evidence. This is the definition of faithful; without it the project cannot recognize its own success or failure. |
+| S8 | Identifiability and abstention | On a deliberately out-of-support partition the abstention rate exceeds the in-support rate, and the risk-coverage curve is monotone: discarding the lowest-confidence decile does not increase held-out risk. |
+| S9 | Superiority over the observational floor | Beats persistence, matched control, condition mean, nearest condition, pseudobulk GLM, and simple hierarchical and low-rank baselines, each individually, on the frozen proper scores, with a bootstrap interval grouped at the split unit that excludes zero. |
+| S10 | External replication | Performance holds on an untouched external study with no test-time refitting. Faithfulness that does not transport is overfitting to one experiment. |
+
+A query for which S1 or S3 is structurally unavailable cannot test S7. Such a query may be a useful
+engineering exercise, but it is not a step toward the purpose and must not be scheduled as one.
 
 ## Program rules
 
-The following rules apply to every phase:
+These apply to every phase.
 
-1. Biological training, validation, and test evidence comes only from publicly downloadable real
-   cell-biology datasets with accession/version, license, checksum, and provenance.
-2. Synthetic examples are permitted for unit and property tests, but never as biological evidence
-   or as a substitute for a real benchmark.
-3. Dataset eligibility is claim-specific. Destructive snapshots support population transitions,
-   not reconstructed individual-cell trajectories.
-4. Splits follow independent experimental units—not random cells—and are frozen before model
-   selection.
-5. Every model declares its query family, system boundary, assays, interventions, environments,
-   horizons, and OOD/abstention behavior.
-6. Each phase graduates on scientific acceptance evidence. Running code and low reconstruction
-   error are not graduation criteria.
+1. **The purpose test.** Every queue item states which ledger capabilities it advances. An item that
+   advances none is not scheduled, however well engineered. Enforced by
+   `tests/test_roadmap_queue_contract.py`.
+2. **Authorization precedes implementation.** A commit that amends this roadmap may not also
+   implement the work it authorizes. Authorization lands first, as its own merged change.
+3. **Numbered items only.** The implementation queue is a single ordered list. Appended prose confers
+   no authorization and creates no queue item. Queue IDs are ordinals within the current queue, not
+   stable identifiers; documents outside this file cite artifacts and ADRs, never queue IDs. Enforced
+   by `tests/test_roadmap_queue_contract.py`.
+4. **Order changes require an ADR.** Any change to phase order, to the ledger, or to a graduation
+   gate is a decision record, contemporaneous with the change. Rule 4 is satisfied for this
+   reordering by [ADR 0013](adr/0013-state-first-roadmap-reordering.md), and for the Phase 1
+   completion condition by [ADR 0014](adr/0014-phase-1-completion-condition.md). The serialized
+   contracts the faithfulness tests report through are decided by
+   [ADR 0015](adr/0015-faithfulness-reports-carry-their-sampling-distribution.md) and
+   [ADR 0016](adr/0016-the-verdict-gates-on-the-interval.md). Retiring the proving-ground floor item,
+   restating Phase 1's third graduation-gate bullet, and the queue renumbering that follows are
+   decided by [ADR 0017](adr/0017-the-sufficiency-verdict-must-fail-closed.md), which also records
+   the old-to-new queue mapping. Reordering the queue so the representation is built on evidence
+   already held, ahead of freezing an estimand, is decided by
+   [ADR 0019](adr/0019-build-the-representation-on-held-evidence.md), which carries its own mapping
+   table. Splitting the held-out-modality test into its own item, and the renumbering that follows
+   it, are decided by [ADR 0020](adr/0020-rna-first-nuisance-separation.md), which carries a mapping
+   table that supersedes ADR 0019's. **An ADR that changes the queue carries a mapping table**, and
+   every earlier table is read through the latest one.
+5. **Every model declares its scope.** Query family, system boundary, assays, interventions,
+   environments, horizons, and out-of-support and abstention behavior, in a registered model card
+   alongside its data card.
+6. **Public real evidence.** Biological training, validation, and test evidence comes only from
+   publicly downloadable real cell-biology datasets with accession, version, license, checksum, and
+   provenance. Synthetic data tests software and is never biological evidence.
+7. **Claim-specific eligibility.** A dataset may support one estimand and not another. Destructive
+   snapshots support population transitions, never reconstructed individual-cell trajectories.
+8. **Splits follow independent experimental units** — well, plate, library, donor, clone, or study —
+   never random cells, and are frozen before model selection.
+9. **Graduation is scientific.** Running code, passing contracts, and low reconstruction error are
+   not graduation criteria. Each phase graduates on evidence about biology.
+10. **A negative verdict graduates.** A phase whose gate is a measurement passes that gate by
+    producing the measurement with its interval. A sufficiency test that fails, reported honestly, is
+    a result and satisfies the gate. The phase gate reads `evaluation_status` and the presence of an
+    interval; it never reads `outcome`. A `FAILED` outcome blocks a runtime claim — correctly — but
+    does not block the phase. A gate that can only be passed by success creates pressure to suppress
+    failure.
 
-## Target verticals
+## Subjects
 
-### Vertical A: cultured-cell population response
+The four belief subjects are defined in
+[`architecture/full-buildout.md`](architecture/full-buildout.md#belief-subject-and-evidence-semantics)
+and are not interchangeable; the available evidence determines which one a representation may
+claim.
 
-The first engineering target is K562 and A549 response to CRISPR perturbations and small molecules
-over hours to days. Initial targets are future transcript distributions and, where cross-study
-support is adequate, phosphosignaling, morphology, proliferation, and viability.
+The first faithful representation this project produces will be a **population** belief. That is a
+complete instance of the purpose, not a compromise: a population state is hidden, is inferred from
+evidence, evolves under intervention, and is subject to both faithfulness tests. Individual-cell
+claims require individual-cell evidence and follow later.
 
-This vertical is first because public perturbation data are broad, controls are relatively clean,
-and overlapping cell systems make external replication possible. Cross-study overlap is a
-population-level transport bridge, never a claim that cells were paired across studies.
+## Verticals
 
-### Vertical B: primary human T-cell state and recovery
+**Vertical A — cultured-cell population state under genetic and chemical intervention.** First
+because public perturbation evidence is broad, controls are clean, and overlapping cell systems make
+external replication possible.
 
-The first translational target is primary human T-cell activation, repeated stimulation,
-exhaustion, withdrawal/rechallenge, and recovery. Targets include persistence, killing, cytokine
-production, metabolism, and molecular response. This vertical is biologically richer but has less
-uniformly paired public evidence, so it requires stricter transport assumptions and abstention.
+**Vertical B — primary human T-cell state and recovery.** Activation, repeated stimulation,
+exhaustion, withdrawal, rechallenge, and recovery, with molecular and functional targets. Richer
+biology, sparser paired evidence, stricter transport assumptions. Deferred until Vertical A has
+produced a sufficiency verdict.
 
-## Phase 0 — freeze scientific scope and benchmark semantics
+---
 
-**Objective:** make invalid claims and leakage difficult before introducing a biological model.
+## Phase 0 — scope, contracts, and evidence semantics
+
+**Advances:** none directly; it is the precondition for measuring S1–S10 at all.
+
+**Objective:** make invalid claims and leakage difficult before any biological model exists.
+
+**Status: complete.**
+
+Delivered: typed belief subjects with explicit destructive-evidence semantics; bounded query support
+and a compiled, fingerprinted state specification that travels with every belief; perturbation
+realization distinct from intended assignment; causal-status vocabulary; scientific-readiness and
+typed abstention; a standalone measurement-decision contract; the dataset capability and claim
+ledger, where eligibility is a property of the tuple (exact slice, exact claim, exact loss, exact
+split unit, exact use policy) rather than of a dataset name; and machine-checked representability
+ledgers that record what a dataset cannot support as durably as what it can.
+
+**Gate passed:** a schema review can represent each candidate dataset without fabricating same-cell
+links; leakage checks reject random-cell and shared-unit leakage; a query-support check explains why
+a dataset is or is not eligible for every planned loss and metric.
+
+## Phase 1 — make the faithfulness tests executable and measure the floor
+
+**Advances:** S6, S7, S9.
+
+**Objective:** the project currently cannot recognize a faithful representation, because the tests
+that define faithfulness have no executable implementation and no callers outside tests. Nothing
+downstream is meaningful until they do. This phase produces the repository's first scientific
+numbers; the only prior measurements are failed-fit diagnostics from a retired candidate.
 
 Deliverables:
 
-- A frozen query-family specification for Vertical A, including target, horizon, intervention,
-  environment, and precision requirements. Vertical B remains deferred until its own evidence and
-  query-family review is complete.
-- Distinct individual-cell, clone, population, and spatial-niche belief-subject semantics, with ADR
-  0005 deciding whether they use separate public contracts or a typed subject descriptor and
-  whether that decision requires a v1-to-v2 schema change.
-- Dataset capability and claim ledger: observational, interventional, longitudinal, lineage,
-  same-cell, multimodal, spatial, and functional evidence are separate fields.
-- Dataset, normalization, benchmark, and split manifest schemas.
-- Frozen validation protocols and mandatory baselines for the first benchmark.
-- Written causal-status vocabulary: associative, identified population effect, transported,
-  mechanistic extrapolation, and unsupported.
+- Executable metric implementations resolving every `metric_id` declared by the frozen sci-Plex3
+  metric-suite specification: sample CRPS, energy score, marginal coverage error, marginal interval
+  width, vehicle-relative pseudobulk effect error, and the equal-compound four-dose profile
+  diagnostic. Each with a golden fixture and an independently derived numerical reference.
+- The multiway clustered bootstrap those metrics declare, at the configuration the frozen suite
+  specifies: resampling over the compound and plate dependence units jointly, 2,000 resamples, a
+  0.95 interval. Every metric in that suite binds this estimator, and the sufficiency and calibration
+  harnesses take their intervals from it rather than reimplementing it.
+- At least one differential-expression-weighted metric and one rank-based metric in every metric
+  suite frozen from this phase onward. Marginal error and all-gene correlation are maximized by
+  predicting no change and must not stand alone. The sci-Plex3 suite frozen by
+  [ADR 0008](adr/0008-sciplex3-k562-component-benchmark.md) is not retrofitted: its ten metrics
+  across three families stay as frozen, and it serves only as the implementation proving ground and
+  as the specification the implementations are conformance-tested against.
+- A predictive-sufficiency harness: paired `M1`/`M2` predictors with declared equal capacity, the
+  multiway bootstrap above grouped at the declared split unit, a confidence interval on the history
+  information gain, and null calibration on a case where the true answer is known.
+- A calibration harness reporting absolute coverage error with an upper confidence bound.
+- The serialized-contract changes these require: a grouped-bootstrap interval on `SufficiencyReport`
+  and a coverage-error upper bound on the calibration report, each with a schema-version decision,
+  regenerated JSON Schemas, and round-trip tests.
 
 Graduation gate:
 
-- A schema review can represent each selected public dataset without fabricating same-cell links.
-- Leakage checks reject random-cell and shared-well/plate/donor/clone leakage.
-- A query-support check can explain why a dataset is or is not eligible for every planned loss and
-  metric.
-- No training code is required to demonstrate these properties.
+- Every `metric_id` declared by the frozen sci-Plex3 metric-suite specification, and the uncertainty
+  method they bind, resolves to an executable implementation with a golden fixture. A conformance
+  test reads that specification and fails on any entry that does not resolve. Separately, no metric
+  suite frozen under this roadmap contains a specification-only entry — a constraint that first binds
+  at `Q8`, the estimand-and-benchmark freeze, since no such suite exists yet.
+- The sufficiency harness returns the correct verdict, with an interval, on two synthetic designs:
+  one where the state is sufficient by construction and one where it is not.
+- The sufficiency harness **refuses** a design on which the question is not being asked, rather than
+  returning a verdict on it. A comparison whose history blocks are absent resolves to a not-evaluated
+  report; it never resolves to `PASSED`. This replaces the proving-ground scoreboard that this bullet
+  previously required. That scoreboard is unreachable by design, not by delay — the floor moved onto
+  the Phase 2 estimand and the proving-ground query cannot satisfy S1, S3, or S7 — and a gate that
+  cannot be passed, carried without a record of why, is exactly what rule 4 exists to prevent. See
+  [ADR 0017](adr/0017-the-sufficiency-verdict-must-fail-closed.md). The floor itself is measured at
+  `Q8`, with the same interval discipline. ADR 0017 assigned the floor to the queue slot that then
+  held the estimand freeze; two later reorders moved that slot without moving the assignment, so the
+  item named here is the estimand freeze at its current ordinal, not the observation-model item that
+  now carries the old number. See [ADR 0019](adr/0019-build-the-representation-on-held-evidence.md)
+  and [ADR 0020](adr/0020-rna-first-nuisance-separation.md).
 
-## Phase 1 — reproducible public-real-data foundation
+## Phase 2 — freeze a state-bearing estimand
 
-**Objective:** acquire and normalize public datasets without losing experimental design or raw
-provenance.
+**Advances:** S1, S3, S9.
+
+**Objective:** acquire an estimand in which a hidden state exists to be inferred and can be tested.
+
+A query with no admissible pre-cutoff observation and a single horizon cannot satisfy S1 or S3. Under
+such a query the sufficiency test is not merely unrun; it is inapplicable, because the raw history is
+empty and `M2` is identical to `M1`. The persistence and temporal state-space baselines are likewise
+inapplicable, which removes the two comparisons that would demonstrate the state carries information.
+No amount of contract rigor repairs this. It is a property of the experiment.
+
+Requirements for a state-bearing query:
+
+- at least one admissible pre-cutoff observation in the target modality, observed on a unit that is
+  also observed after the cutoff;
+- at least two future horizons after the inference cutoff;
+- a split unit that is a genuine independent replicate, present in sufficient number to bootstrap;
+- enough distinct interventions that a held-out-intervention fold still retains a bootstrappable
+  number of independent units; the fold design and its per-fold unit count are stated before a model
+  exists;
+- a randomized or otherwise identified intervention with matched controls;
+- persistence and temporal state-space baselines both **applicable and mandatory**.
+
+**There is no candidate.** `GSE274113` Perturb-Multiome was this roadmap's only named candidate and
+is **rejected for this estimand** by [ADR 0018](adr/0018-gse274113-rejected-for-the-state-estimand.md).
+The rejection is recorded here rather than in the queue alone, so that a future reader does not
+rediscover the source and re-propose it.
+
+The figures are now verified against source bytes, and they are what rejected it. The intended
+design — day 7 as the pre-cutoff population observation; days 9, 11, and 14 as horizons; the library
+as split and bootstrap unit; the subject declared a population because cells are destructive with no
+cross-time identity — was a hypothesis, and the census in
+[the representability ledger](data/representability/gse274113-perturb-multiome.md) falsified it:
+**0 of 14 libraries span a timepoint**, so no unit is observed both before and after the cutoff and
+S1 fails; the day 7 → day 14 effect is ρ = −0.026 against a permutation null of 0.025, so the
+longest horizon is empty; and above the library the series supplies **one** independent parent
+culture, which neither the publication nor the deposited metadata can raise. Redesigning onto the
+target as the spanning unit is inadmissible under rule 8 — a target is the treatment, not a
+container — and would need its own rule 4 amendment.
+
+The source is retained under rule 7 for the observation-model work at `Q5` and `Q6`, where the
+library nuisance axis is S5's object rather than a defect. Retention for one claim is not candidacy
+for this one.
+
+Explicitly not candidates for this estimand, with reasons recorded rather than rediscovered:
+
+1. Same-cell longitudinal sources whose reviewed cohort is on the order of tens of cells: too few
+   independent units to bootstrap a sufficiency gap.
+2. Designs with approximately one library per treatment arm: intervention and library are not
+   separable.
+3. Single-timepoint destructive cross-sectional screens: no pre-cutoff observation and one horizon.
 
 Deliverables:
 
-- Immutable bronze storage for exact downloaded bytes and content hashes.
-- Silver event/observation storage preserving raw counts, missingness, censoring, batch, controls,
-  donor, well/plate, intervention assignment, realized engagement, environment, time, clone, and
-  spatial relationships.
-- Gold query-specific examples generated from versioned transformations and frozen splits.
-- Ontology and unit mappings for genes, proteins, chemicals, cell types, assays, species, doses,
-  and time.
-- Source adapters for AnnData/HDF5, matrix-market/GEO, Parquet/Zarr, FCS, and OME-Zarr as demanded by
-  selected datasets.
-- Checksum-pinned public-real “golden slices” small enough for integration and CI tests.
-
-Initial acquisition order follows the first population benchmark, then expands the subject and
-timescale coverage:
-
-1. One replicated K562 perturbation source for Vertical A's first population benchmark.
-2. Live-seq (`GSE141064`) for a separate same-cell state-to-future contract test.
-3. LARRY (`GSE140802`) and cortical lineage Perturb-seq (`GSE284197`) for clone/fate structure.
-4. MIX-Seq and sci-Plex for cell-line/drug population response.
-5. DREAM/Bodenmiller signaling for fast response and measurement likelihoods.
-6. Multiome Perturb-seq and Perturb-CITE-seq for perturbed same-cell multimodality.
-7. Perturb-FISH/Perturb-map for neighborhood and spatial intervention effects.
-8. JUMP `cpg0000` profiles plus a bounded image subset for physical-state modeling.
-9. Targeted streamed subsets of Tahoe-100M; avoid an indiscriminate full download initially.
+- The reproducible data foundation, which is a prerequisite for admitting any source: immutable
+  bronze storage for exact downloaded bytes and content hashes; silver event storage preserving raw
+  counts, missingness, censoring, batch, controls, donor, library, well and plate, intervention
+  assignment, realized engagement, environment, time, clone, and spatial relationships; gold
+  query-specific examples generated from versioned transformations and frozen splits; ontology and
+  unit mappings for genes, proteins, chemicals, cell types, assays, species, doses, and time; source
+  adapters for AnnData/HDF5, matrix-market/GEO, Parquet/Zarr, FCS, and OME-Zarr as the selected
+  sources demand; and checksum-pinned public-real golden slices small enough for CI.
+- A frozen state-bearing query with declared subject, inference cutoff, admissible pre-cutoff
+  evidence, intervention timing and realization evidence, target timing and units, horizons, causal
+  class, and transport assumptions.
+- Library-level partitions with a measured leakage audit whose overlap counts are computed from the
+  membership arrays, not declared.
+- A frozen metric suite drawn from Phase 1, including the sufficiency and coverage gates with numeric
+  acceptance thresholds set before any model exists.
+- A support envelope and bundle contract for the corresponding backend.
 
 Graduation gate:
 
-- Two independent machines can reproduce the same golden slices and split memberships from
-  manifests.
-- Every normalized value traces to source bytes and a versioned transformation.
+- Two independent machines reproduce the same golden slices and split memberships from manifests.
 - License enforcement rejects an artifact whose declared use is incompatible with its dataset.
-- At least one complete K562/A549 benchmark and one longitudinal or lineage benchmark pass data
-  integrity and leakage audits.
+- The frozen query admits a non-empty pre-cutoff evidence set on units that span the cutoff, and at
+  least two horizons.
+- Persistence and temporal state-space appear in the mandatory baseline set as **applicable**. This
+  is checkable today through `BaselineApplicabilityRule.applies_to`.
+- The frozen query's support envelope declares the runtime operation that derives
+  `sufficiency_evaluator` into `required_ports`; `derive_query_prerequisite_report` returns it with
+  no entry in `invalid_dispositions`; and the bundle binds it `provided`. The disposition is derived
+  and then satisfied, never typed into the bundle by hand. No bundle in this repository derives it
+  today, because the only registered bundle is a component scaffold whose prerequisites come from the
+  fixed component-prerequisite map. A runtime bundle whose support envelope declares
+  `estimate_cell_state` does derive the port: `OPERATION_REQUIRED_PORTS[ESTIMATE_CELL_STATE]` contains
+  it, and `_derive_runtime_target_prerequisites` emits every entry of that map as an
+  operation-contract floor. Satisfying the gate therefore requires registering a runtime support
+  envelope and bundle, not amending the derivation.
+- The leakage audit reports computed overlap counts at the library level.
 
-## Phase 2 — assay observation models and posterior infrastructure
+## Phase 3 — observation models and posterior inference
 
-**Objective:** make the belief mean “uncertainty about biology after accounting for measurement,”
-not a compressed assay vector.
+**Advances:** S2, S5.
+
+**Objective:** make the belief mean "uncertainty about biology after accounting for measurement," not
+a compressed assay vector. This is the first phase that computes a belief from biology.
 
 Deliverables:
 
-- Count-aware RNA and ATAC likelihoods; calibrated protein/phosphoprotein, image, metabolic, and
-  functional likelihoods as the selected data permit.
-- Explicit nuisance variables for library/capture effects, staining panels, segmentation quality,
-  plate, batch, and detection/censoring.
-- Shared and modality-private latent factors, with held-out-modality inference tests.
-- Posterior artifact format for samples/particles, weights, structured state factors, and uncertainty
-  decomposition.
-- Amortized inference interfaces supporting filtering for deployment and smoothing only when the
-  evidence cutoff allows it.
+- Count-aware RNA and ATAC likelihoods, fitted on the frozen estimand's paired modalities.
+- Explicit nuisance variables for library, capture, depth, and detection or censoring, inferred
+  rather than corrected away.
+- Shared and modality-private latent factors, with a held-out-modality test: predict ATAC from a
+  belief conditioned on RNA alone, and the reverse.
+- A posterior artifact format carrying samples or particles, weights, structured state factors, and a
+  decomposition of measurement, biological, parameter, model, and transport uncertainty.
+- Filtering for deployment and smoothing only where the evidence cutoff allows it.
+- Biological runtime execution enabled through the public API, gated on resolved implementation,
+  model, training, and validation bytes and on query-specific operation prerequisites.
 
 Graduation gate:
 
 - Likelihoods are calibrated on held-out technical and biological replicates.
-- Posterior predictive checks reproduce supported assay statistics without erasing biological
-  treatment effects.
+- Posterior predictive checks reproduce supported assay statistics without erasing treatment effects.
 - Missing-modality tests distinguish unavailable evidence from observed zero.
 - A frozen belief cannot gain information from observations after its `as_of` time.
+- A biological backend emits a `CellStateBelief` through the public API, with its support envelope,
+  registered model and data cards, and abstention behavior enforced.
 
-## Phase 3 — first population-response biological backend
+## Phase 4 — first state backend and the sufficiency verdict
 
-**Objective:** ship the first useful, narrow biological backend for Vertical A.
+**Advances:** S4, S6, S7, S8, S9. This is the phase the project exists to reach.
 
-Deliverables:
+**Objective:** produce the first belief that is tested for faithfulness, and report the verdict.
 
-- Hierarchical K562/A549 priors conditioned on supported genotype, culture, and environment.
-- Endpoint and multi-horizon controlled transition models for CRISPR and small molecules.
-- Query-target decoders for future RNA distributions and supported functional targets.
-- Dose/time representation, intended-versus-realized perturbation handling, and matched controls.
-- Explicit inter-study transport variables rather than globally corrected pooled cells.
-- Registered model/data cards and an API-level support envelope with abstention.
+Model guidance, derived from what has already been learned here. The exact supporting evidence is in
+[ADR 0012](adr/0012-sciplex3-p1-trained-candidate.md) and `audits/item12_1a`.
 
-Graduation gate:
-
-- Beats persistence, control resampling, perturbation mean, nearest known condition, pseudobulk GLM,
-  and simple hierarchical/low-rank baselines on frozen proper-score metrics.
-- Treatment-minus-control effects and dose-response order are accurate on held-out wells,
-  replicates, doses, and perturbations.
-- Predictive intervals attain declared coverage and OOD risk decreases monotonically with
-  abstention.
-- Performance replicates on a completely held-out public study where compatible evidence exists.
-- Results are described as population-level effects unless individual-cell linkage was actually
-  observed.
-
-## Phase 4 — temporal dynamics, events, and branching
-
-**Objective:** represent evolution rather than only condition-to-endpoint mappings.
+- Begin from the simplest model that can carry a state: a hierarchical count model extended with a
+  per-timepoint latent and a random effect at the split unit. Complexity is added only after a
+  simpler model has been scored.
+- Actions enter through features, not through a free parameter per observed action. A per-action free
+  parameter cannot generalize to an unseen action in principle, and forecloses S10.
+- Equal weighting of experimental units is a property of the objective, not of the reporting. Every
+  term of the objective and of every derivative carries the same unit normalization.
+- A context parameter must be accompanied by a measured effective-context diagnostic. A context
+  dimension that collapses to an effective count near one is unidentified, and the diagnostic belongs
+  in the model's own gates, not in a retired harness.
 
 Deliverables:
 
-- Controlled neural SDE/ODE dynamics with explicit continuous process uncertainty.
-- Hazards and jump kernels for division, death, differentiation, contact change, and commitment.
-- Particle or mixture inference around bifurcations and rare transitions.
-- Individual-cell filtering validated only on truly tracked/sampled cells such as Live-seq and
-  time-lapse imaging.
-- Clone-level inheritance and fate models using LARRY, CellTagging, lineage Perturb-seq, and
-  appropriate imaging tracks.
-- Population distribution dynamics for destructive time courses; no invented identity matching.
+- Hierarchical priors conditioned on supported genotype, culture, and environment.
+- Controlled multi-horizon transition under `do(U)`, with intended versus realized perturbation
+  handled distinctly and matched controls.
+- Query-target decoders with calibrated abstention outside the support envelope.
+- The complete mandatory baseline suite fitted and scored, including persistence and temporal
+  state-space.
+- An executed sufficiency verdict and an executed coverage report.
 
 Graduation gate:
 
-- Multi-horizon future scores beat endpoint-only and no-change baselines at frozen temporal cutoffs.
-- Event hazards and lineage/fate probabilities are calibrated on entirely held-out cells or clones,
-  as the design requires.
-- Belief-only prediction is non-inferior to belief-plus-history within a predeclared sufficiency
-  margin, or the state/query is revised.
-- The backend correctly distinguishes individual, lineage, and population forecasts in serialized
-  results and model cards.
+- Beats every mandatory baseline individually on the frozen proper scores, with intervals.
+- Absolute marginal coverage error within the predeclared threshold at every declared level, as an
+  upper confidence bound.
+- Out-of-support risk decreases monotonically with abstention.
+- Effect direction and dose or time ordering are accurate on held-out units.
+- **A sufficiency verdict is reported with its interval.** A verdict of insufficiency graduates the
+  phase and routes to a declared response: expand the state factors, or narrow the query. Either
+  response requires an ADR.
+- Results are described at the subject level the evidence supports, and nowhere else.
 
-## Phase 5 — multimodal, environmental, and spatial context
+## Phase 5 — dynamics, events, and branching
+
+**Advances:** S3, S4, S8.
+
+**Objective:** represent evolution rather than horizon-to-horizon mappings.
+
+Deliverables: controlled continuous dynamics with explicit process uncertainty; hazards and jump
+kernels for division, death, differentiation, and commitment; particle or mixture inference around
+bifurcations; population distribution dynamics for destructive time courses without invented identity
+matching; clone-level inheritance and fate models where lineage was actually observed; individual-cell
+filtering only where the same cell was actually measured twice.
+
+Graduation gate: multi-horizon scores beat horizon-specific and no-change baselines at frozen temporal
+cutoffs; event hazards and fate probabilities are calibrated on entirely held-out units; the
+sufficiency margin is maintained or the state and query are revised; serialized results distinguish
+individual, lineage, and population forecasts.
+
+## Phase 6 — multimodal, environmental, and spatial context
+
+**Advances:** S5, S8, S10.
 
 **Objective:** model how context changes the state and its future consequences.
 
-Deliverables:
+Deliverables: fusion across RNA, ATAC, protein, signaling, morphology, and metabolism through assay
+likelihoods rather than concatenation; neighborhood graphs, environments, contacts, and interaction
+terms where measured; explicit inter-study transport variables rather than globally corrected pooled
+cells; mechanistic regulatory, signaling, and metabolic constraints as auditable, overridable soft
+priors; transport diagnostics separating interpolation, transport, and unsupported extrapolation.
 
-- RNA/ATAC/protein/signaling/morphology/metabolism fusion through assay likelihoods.
-- Neighborhood graphs, regional environments, transport fields, contacts, and cell–cell interaction
-  terms where observations support them.
-- Perturb-FISH/Perturb-map spatial benchmarks and multimodal perturbation benchmarks.
-- Mechanistic GRN, signaling, ligand–receptor, and metabolic constraints as auditable soft priors.
-- Counterfactual transport diagnostics separating interpolation, transport, and unsupported
-  extrapolation.
+Graduation gate: contextual inputs improve future target proper scores, not reconstruction, on
+held-out experiments; context effects replicate across independent studies; a claimed modality has
+predeclared incremental value — removing an uninformative input does not worsen calibration, while
+removing an informative one changes accuracy and uncertainty measurably; mechanistic constraints
+improve external prediction or calibration and can be ablated without changing contract semantics.
 
-Graduation gate:
+## Phase 7 — translational T-cell vertical
 
-- Multimodal/contextual models improve future query-target proper scores—not merely reconstruction—
-  on held-out experiments.
-- Context effects replicate across independent samples/studies where possible.
-- A modality or neighborhood has predeclared incremental value where claimed; removing an
-  uninformative input does not worsen calibration, while removing an informative input changes
-  uncertainty and accuracy in a measured, biologically interpretable way.
-- Mechanistic constraints improve external prediction or calibration and can be ablated without
-  changing contract semantics.
+**Advances:** S8, S10.
 
-## Phase 6 — translational T-cell vertical
+**Objective:** apply a validated state representation to primary human immune-cell state and function.
 
-**Objective:** apply the proven infrastructure to primary human immune-cell state and function.
+Deliverables: donor-aware priors and transport diagnostics; dynamics for activation, repeated
+exposure, exhaustion, withdrawal, and recovery; molecular and supported functional decoders for
+persistence, killing, cytokines, and metabolism; reconciliation of public T-cell datasets at the
+condition and population level, never by fabricated same-cell pairing; donor-, intervention-,
+context-, and whole-study-held-out evaluation.
 
-Deliverables:
+Graduation gate: functional distributions are calibrated on held-out donors or studies; the model
+improves over molecular-only and condition-mean baselines; transport limits and clinically
+unsupported uses are mechanically enforced; no patient-level or clinical claim without a separately
+designed validation program.
 
-- Donor-aware priors and transport diagnostics for primary T-cell experiments.
-- Dynamics for activation, repeated antigen exposure, exhaustion, withdrawal, and recovery.
-- Molecular and supported functional decoders for persistence, killing, cytokines, and metabolism.
-- Explicit reconciliation of local/public T-cell datasets by condition and population—never
-  fabricated same-cell pairing across studies.
-- Donor-, intervention-, context-, and whole-study-held-out evaluations.
+## Phase 8 — measurement value and intervention planning
 
-Graduation gate:
+**Advances:** S6, S8.
 
-- Functional distributions are calibrated on held-out donors or studies, not cells from familiar
-  donors.
-- The model improves over molecular-only and condition-mean baselines.
-- Transport limitations and clinically unsupported uses are explicit and mechanically enforced.
-- No patient-level or clinical decision claim is made without a separately designed validation
-  program.
+**Objective:** choose useful next measurements and interventions strictly inside validated support.
+Planning is last because it consumes a calibrated representation and cannot substitute for one.
 
-## Phase 7 — measurement value and intervention planning
+Deliverables: decision-relevant expected value of sample information over query targets, candidate
+interventions, environments, and horizons, backed by a calibrated assay-outcome model, hypothetical
+posterior updates, counterfactual replanning, and a declared decision utility; risk-aware intervention
+simulation over full predictive distributions; constraint handling for dose, timing, cost, toxicity,
+and feasibility; blinded or pseudo-prospective ranking benchmarks; fail-closed planner and measurement
+policies that distinguish an unevaluated calculation from an unsupported component and from a
+threshold-based abstention, with no numeric sentinels. Posterior covariance shrinkage is never
+reported as decision value.
 
-**Objective:** choose useful next measurements and interventions only inside validated support.
+Graduation gate: measurement selection reduces calibrated uncertainty or decision regret on held-out
+real experiments against cost-matched policies; intervention ranking improves top-k recovery and
+regret over effect-size and nearest-neighbor policies; recommendations are limited to supported
+systems and communicate uncertainty and causal status; prospective experimental validation remains
+required before any operational biological claim.
 
-Deliverables:
+---
 
-- A standalone `recommend_next_measurement` operation whose request binds a parent belief,
-  intervention objective, ordered candidate scenarios, candidate assays, timing, utility units, and
-  assay, delay, and collection-effect penalties.
-- Decision-relevant EVSI over query targets, candidate interventions, environments, and horizons,
-  backed by a calibrated assay-outcome model, hypothetical posterior updates, counterfactual
-  replanning, and declared decision utility.
-- Risk-aware intervention simulation using full predictive distributions.
-- Constraint handling for dose, timing, cost, toxicity, and experimental feasibility.
-- Retrospective blinded/pseudo-prospective ranking benchmarks on hidden interventions.
-- A fail-closed planner that rejects incompatible model versions, targets, units, horizons, and OOD
-  candidates.
-- A fail-closed measurement policy that distinguishes `NOT_EVALUATED` calculations from
-  `UNSUPPORTED` components and threshold-based `ABSTAINED` decisions, all without numeric
-  sentinels; covariance shrinkage alone never counts as EVSI.
+## Current status
 
-Graduation gate:
+- **Phase 0:** complete.
+- **Phase 1:** active. `Q1` is delivered: every `metric_id` the frozen sci-Plex3 suite declares
+  resolves to an implementation, and the multiway clustered bootstrap those metrics bind is
+  implemented and its coverage measured. `Q2` is **incomplete against its own done-when**. Both
+  faithfulness tests execute, return an interval, and are enforced by their serialized contracts, but
+  the clause requiring non-test callers is **half** met. `evaluate_predictive_sufficiency` now has
+  one, supplied by `Q3`: `src/cellstate/evaluation/query_sufficiency.py` computes the applicability
+  judgment from the request and calls the harness. `evaluate_marginal_calibration` still has none —
+  it is called from no file in `src/`, `scripts/`, or `examples/` — and that, not the sufficiency
+  harness, is `Q2`'s remaining unmet clause.
 
-- Measurement selection reduces calibrated uncertainty or decision regret on held-out real
-  experiments versus cost-matched policies.
-- Intervention ranking improves top-k recovery and regret over simple effect-size and nearest-
-  neighbor policies.
-- Recommendations are limited to supported systems/candidates and communicate uncertainty and
-  causal status.
-- Real prospective experimental validation remains a requirement before operational biological or
-  clinical claims.
+  An earlier revision of this section recorded `Q2` delivered and claimed that **the project can
+  recognize a faithful representation**. That claim was withdrawn and stays withdrawn. What has
+  changed is narrower than it sounds: the harness no longer returns `PASSED` on a design carrying no
+  admissible pre-cutoff evidence, because `Q3` supplied the delegate that refuses it. The project can
+  compute a history-information gain with an interval, and can now refuse to compute one where the
+  question is not being asked. It still cannot recognize a faithful representation, because no such
+  computation has been run against biology.
 
-## Immediate implementation queue
+  `Q3` is **delivered**. A design whose history blocks are all absent returns a not-evaluated report
+  rather than `PASSED`; the retained fraction is carried on `SufficiencyReport`, round-trips, and a
+  retained fraction of zero is unrepresentable; and the harness has a non-test caller in `src/`. See
+  [ADR 0017](adr/0017-the-sufficiency-verdict-must-fail-closed.md). That caller lives inside
+  `cellstate.evaluation` and nothing outside that package calls it, so the delegate exists but the
+  production path to it does not yet.
 
-**Active gate -- executable first population component:** the schema-v2 semantic spine and manifest
-`0.3-experimental` eligibility ledger pass their contract and adversarial reviews. On 2026-08-09,
-content-addressed proofs demonstrated that Replogle K562 destructive single-cell data can represent
-a population snapshot and that a GSE141064 Live-seq slice can represent an individual same-cell
-future-function relationship without fabricated linkage. Step 8 then froze the corrected
-sci-Plex3 K562 24-hour component benchmark: 173,652 real nuclei, 1,536 independent well subjects,
-16 protected plates, 752 exact compound-dose actions, four materialized partitions, authoritative
-well-level cases, a training-derived 2,000-feature output schema, and prespecified metrics,
-baselines, and paired acceptance rules. Its exact assessment and benchmark-use permission gates
-pass. Its executable scoring, leakage, baseline, and performance gates remain deliberately
-incomplete, so it is `COMPONENT_BENCHMARK`, not scientifically admitted. Step 9 approved an
-exhaustive biological support-port map and bound a non-runnable direct population assay-response
-scaffold to the exact artifacts. The component is intentionally separate from hidden-state
-estimation and exposes none of the four public operations. Step 10 completed the trusted admission
-boundary around contract v0.1 declarations: exact bytes, loaded interfaces, semantic results, and
-query-derived prerequisites can now be authenticated and rebound without turning a serialized
-receipt into runtime authority. That infrastructure does not supply a trained model, run a metric,
-or pass a scientific gate. Item 11 has now completed the first frozen-data software path. Its
-immutable, single-purpose `p1-train` loader close-reauthenticated the exact 2,526,631,614-byte
-source, scanned all 94,785 training records across 768 wells, and froze content-addressed fitted-
-state identities for all six probabilistic baselines. The loader does not parse held-out outcomes
-and refuses `p2`, `p3`, and `p4` before protected raw-endpoint access unless future
-lifecycle-bound grants exist.
-These are software provenance artifacts, not benchmark results: no prediction campaign, metric,
-comparison, or performance gate has run. Item 12 now defines the separate p1-only training and
-verification boundary for a first candidate distribution model. Its original rank-16
-Gamma--Poisson family with a separate `q`/capture term and 16 free factor shapes failed closed on
-the exact real `p1` fit before artifact emission because variance reallocation drove a factor shape
-to the rejected boundary. V2 removed `q`/capture, but its free pooled shape drifted toward the lower
-guard and its outer fit remained unconverged. A fixed-shape v3 counterfactual still failed the
-relative-ELBO and terminal factor-order gates. A bounded characterization cleared its activation
-rank but rejected its tail-dominated independent lognormal plate nuisance. The audited v4
-software-only design fixes `r_theta=0.1`, adds row-local inner equilibration, and proposes an
-empirical whole-`rho`-row unseen-plate context. Its valid exact-reference, p1-only, nonissuing run
-failed closed during initial inner equilibration, before an outer update or ELBO trace, and its
-provisional `rho` reached near single-plate concentration. A subsequent source-code audit also found
-that the v4 dose Newton objective omits the exact `94785/768` equal-well multiplier carried by the
-corresponding terms in the tracked full ELBO, so its dose penalty is on the wrong relative scale.
-V4 is retired and remains `NO-GO` and unissued. Item 12.2 has since completed a source-free v5
-software boundary covering the corrected objective/M-step, exact-positive request-level sampling,
-immutable atomic publication, exact code/input/stage closure, reproducible OCI identity, and hard
-parent-owned whole-container containment. It opened no protected source, ran no real-`p1` fit, and
-issued no candidate artifact, plan, observation, evidence, or lifecycle result. The sci-Plex3
-component therefore remains a non-executable `SCAFFOLD` and must not present source-free design
-fixtures, provisional state, or unrun performance as a validated biological belief. Item 12.3 is
-only a proposed, separately authorized, version-bound, nonissuing real-`p1` v5 execution; it is not
-authorized and has not run.
+  What the project has not done is apply the *faithfulness tests* to biology: no baseline has been
+  scored against any other and no observational floor is measured. A belief **has** been emitted by
+  a biological model since `Q5`/`Q7` — the sentence here said otherwise until it was corrected, and
+  the two capability measurements those items delivered are negative.
 
-The next development work proceeds in this order:
+  Two results from `Q1` bear on later items. First, the frozen benchmark's untouched-test partition
+  contains **four plates** and 95 compounds across 384 wells, computed from its membership arrays.
+  Second, four plates is at the edge of what a bootstrap can support, and the measurement says so.
+  Simulated on the *real* incidence of that partition at nominal 0.95, the plain percentile
+  multiway bootstrap covers 0.908 when the plate dimension carries the variance; the scaling the
+  implementation applies after [ADR 0016](adr/0016-the-verdict-gates-on-the-interval.md) brings it
+  to 0.935, and **not to 0.95**. The earlier figures recorded here — 0.82 to 0.86 unscaled and
+  about 0.96 scaled — were measured on a balanced generator at one variance configuration and did
+  not survive contact with the partition's own compound-by-plate incidence. `Q8` should read the
+  residual under-coverage as the property Phase 2 requires a state-bearing estimand *not* to have:
+  enough independent units that its interval does not need rescuing.
+- **Phase 2:** not started, and **has no candidate source.** `Q4` is **decided and not complete**:
+  the review is finished and its result is negative — `GSE274113`, this roadmap's only named Phase 2
+  candidate, is rejected for the state-bearing estimand by
+  [ADR 0018](adr/0018-gse274113-rejected-for-the-state-estimand.md) — but the reviewed manifest its
+  done-when requires is not written, so the item stays open. Recording it complete here against an
+  unmet done-when would repeat, for `Q4`, the error ADR 0017 corrected for `Q2`. The source is
+  retained under rule 7 for `Q5` and `Q6`. **Registered sources satisfying S1 — a unit observed both
+  before and after an inference cutoff — remain zero**, and S1 is the binding constraint on the
+  whole program: a query failing it cannot test S7, and S7 is the definition of faithful. Unlike
+  every capability advanced so far, S1 cannot be advanced by writing code. It is a property of an
+  experiment that already happened, so the next milestone is source selection against criteria
+  fixed before a source is named.
+- **Phases 3–8:** not started.
+- **Biological backends registered:** one, `gse274113` (RNA observation model, human CD34+
+  progenitors). Beliefs have been emitted from real cells since `Q5`/`Q7`.
+- **Benchmarks scientifically admitted:** none. The eligibility ledger is 0 of 10.
 
-1. **Completed 2026-08-09:** record this pause and keep the current query and candidate sources
-   explicitly unfrozen.
-2. **Completed 2026-08-09:** draft the complete Vertical A estimand, including belief subject and aggregation, inference
-   cutoff, admissible pre-cutoff evidence, intervention timing and realization evidence, target
-   timing and units, causal class, and transport assumptions.
-3. **Completed 2026-08-09:** accept and expand ADR 0005, including an explicit schema-v2 and
-   compatibility decision.
-4. **Completed 2026-08-09:** implement v2 contracts for typed subjects and destructive evidence,
-   bounded action/environment spaces, a compiled active-state specification,
-   perturbation-realization belief, and query-scoped support, validity, causal-status, and
-   abstention semantics. Identified effects additionally require typed query/scenario estimands,
-   eligible designs, and content-addressed support and validation evidence.
-5. **Completed 2026-08-09:** restore decision-oriented next-measurement selection as a separately
-   parameterized fourth public operation. Its public contract binds at least two semantically
-   distinct ordered candidate regimes, exact decision-set and causal evidence, timing, transport,
-   and every collection cost. A supported numeric EVSI requires calibrated assay outcomes,
-   hypothetical updating, counterfactual replanning, and decision utility. The non-biological
-   reference returns `NOT_EVALUATED`, never a covariance proxy. This completes the software
-   contract only; biological EVSI remains gated on real-data validation in Phase 7.
-6. **Completed 2026-08-09:** allow repeated, independently scoped dataset claim assessments and
-   separate metric/loss eligibility. Manifest `0.3-experimental` now binds canonical scopes, exact
-   readouts, claim references, evidence sources, split safety, and layered legal permission; metric
-   families whose benchmark semantics are not yet typed remain ineligible.
-7. **Completed 2026-08-09:** add content-addressed dataset slices, interval-valued evidence clocks,
-   and machine-checked reviewed representability ledgers. They validate bound declarations and
-   reviewer attestations without resolving source bytes or replaying selectors. Replogle K562
-   establishes destructive population-snapshot semantics; GSE141064 Live-seq establishes
-   viability-preserving same-cell future-function semantics. Both keep legal use unauthorized and
-   all unsupported scientific casts explicit.
-8. **Completed 2026-08-09:** freeze Vertical A's first component query, benchmark, split semantics,
-   metrics, mandatory baselines, and acceptance policy on corrected sci-Plex3 K562 data. The
-   content-addressed artifact passes exact claim, loss, metric, split, source, and permission
-   resolution while remaining non-admitted until executable performance gates run.
-9. **Completed 2026-08-09:** approve an exhaustive biological model-bundle/support-port contract and
-   bind the first exact population assay-response scaffold behind it. The contract binds
-   content-addressed training, calibration, model-selection, validation, implementation, and
-   benchmark declarations, but v0.1 deliberately cannot convert declarations into execution
-   receipts. The sci-Plex3 scaffold remains at `SCAFFOLD`, exposes no estimator, evolution,
-   planning, or measurement operation, and cannot emit either a response distribution or
-   `CellStateBelief` until trusted verification and the component's scientific gates pass.
-10. **Completed 2026-08-10:** implement the trusted, scope-bound admission boundary. Artifact
-    verification incrementally hashes byte streams and requires closed-world one-to-one coverage.
-    Real-data execution inputs come only from a capability-scoped, HMAC-authenticated workflow
-    selection whose typed resolution artifacts are themselves byte-covered. Application-owned
-    isolated loaders authenticate bounded observations of exact code and loaded objects; a separate
-    verifier checks those objects against an application-owned interface registry. Typed result
-    manifests bind exact evidence roles, partitions, cases, model and implementation scope, and
-    supporting bytes, while readiness records semantic verification separately from scientific
-    pass/fail. The deterministic prerequisite compiler derives and fingerprints conditional ports
-    from the exact query, envelope, and target surface. External secrets and live interface objects
-    remain nonserialized. Execution guards seal one reacquired code stream, verify and load that
-    same immutable snapshot through the registry-owned trusted loader, repeat interface checks,
-    and return operation-scoped nonserialized handles for only those checked objects. Missing trust, stale
-    scope, forged attestations, failed results, or omitted/extra receipts remain blockers. The
-    sci-Plex3 component remains at `SCAFFOLD` because it still has no trained artifact, executable
-    evaluation, mandatory baseline results, or admitted benchmark.
-11. **Completed 2026-08-10:** implement the first frozen-data software path without opening a
-    held-out lifecycle stage. The single-purpose loader authenticates the exact sci-Plex3 H5AD and
-    checked-in `p1` closure, then yields immutable sparse raw-count batches on the ordered 2,000-
-    feature panel. Public frozen design metadata precommits exact split-membership arrays,
-    record/well/plate identities, and outcome-free prediction cases, but protected `p2` calibration
-    endpoint values, `p3` selection endpoint values, and `p4` source outcomes and scoring authority
-    remain hard sealed pending future grants bound respectively to
-    `TRAINED_CANDIDATE`,
-    `CALIBRATED_CANDIDATE`, and `MODEL_SELECTED_FROZEN` lifecycle states. Six mandatory
-    probabilistic algorithms fit only from `p1`: matched-vehicle resampling, exact-condition
-    empirical resampling, exact-condition negative binomial, hierarchical well negative binomial,
-    low-rank compound-dose response, and nearest-supported-dose resampling. Every algorithm has an
-    explicit no-action path; matched vehicles come only from `p1` source plates, and nearest dose
-    excludes the exact requested dose. Frozen prediction semantics are 512 samples per case and
-    seed, seeds 0 through 4, and NumPy `PCG64DXSM`. Fitted-state manifests and prediction shards are
-    designed for content addressing and streaming rather than a dense campaign-wide materialization.
-    The exact source was authenticated before and after use; all 94,785 `p1` records across 768
-    wells were scanned; seven genuine zero-panel rows were retained; and six fitted-state identities
-    were materialized with no held-out access or lifecycle authority. None of this is baseline
-    performance, scientific admission, or a public cell-state runtime.
-12. **In progress; source-free Item 12.2 completed 2026-08-11:** establish the first honest
-    p1-trained candidate boundary. The immutable pre-fit plan contract, not an issued plan, binds
-    the exact typed `p1` role, count stream, scan, assembly, design, feature, action, target,
-    candidate specification, trainer/factory code and its executable closure, exact mounted code
-    plus declared public JSON/runtime inputs, output schema, contained-execution policy, runtime-
-    image lock, and complete single-thread Linux `x86_64` runtime. That runtime is CPython 3.11.15,
-    NumPy 2.4.6, SciPy 1.17.1, and `scipy-openblas` 0.3.31.188.0. Runtime-only HMAC source-selection
-    and fit-semantic receipts, exact byte resolution, query-prerequisite verification, and an
-    application-owned loaded-interface registry are all required before `TRAINED_CANDIDATE` can be
-    derived; deterministic files remain evidence rather than authority. The first rank-16 design
-    used Gamma--Poisson factors, a separate `q`/capture term, and 16 free shapes. It failed closed at
-    the Gamma-shape boundary on the exact real `p1` data and emitted no model. V2 removed
-    `q`/capture, but its free pooled shape
-    crossed below `0.1`, reached approximately `0.073524`, and the outer trajectory remained
-    unconverged at pass 50. V3 fixed `r_theta=0.1`, but its nonissuing counterfactual still failed
-    relative-ELBO convergence and terminal factor-order stability. Its follow-up characterization showed a raw
-    activation-rank ratio `8.472584996122713e-7`, about 56.85 times the strict gate, and isolated the
-    original rank rejection to a 12-decimal quantization half-boundary. It also showed that the
-    independent mean-one lognormal unseen-plate model was tail-dominated at
-    `sigma_plate=5.66126548675`.
+The cultured-cell population-response component frozen against a single-timepoint destructive drug
+screen remains at `SCAFFOLD`, and its benchmark remains `COMPONENT_BENCHMARK`, not admitted. Its
+estimand has no pre-cutoff observation and one horizon, so it cannot satisfy S1, S3, or S7, and it is
+not a step toward the purpose. It is reclassified accordingly: a completed engineering exercise that
+proved the data and split machinery, and the proving ground for the Phase 1 metric work.
 
-    The audited incompatible v4 software design retains 16 continuous Gamma--Poisson factors,
-    fixes `r_theta=0.1`, adds deterministic row-local inner equilibration, and proposes replacing
-    the lognormal plate draw with uniform selection of one complete observed `p1` `rho` row.
-    Its calibration declaration precommits to `tau_j=exp(j/20)` for integer `j=-20,...,6`, with
-    shape `0.1/tau_j^2` and factorwise-renormalized `rho^tau_j`; it does not read `p2` or choose a
-    value.
+Its partitions, manifests, split discipline, and definition-time leakage review — computed overlap
+counts, all zero — are retained as infrastructure. That review records its own unassessed residue,
+source-duplicate detection beyond exact row identifiers, and the admission-time leakage audit required
+by ADR 0008 has not run and is not required, since the benchmark is not on the admission path.
 
-    The first v4 launch produced report
-    `4677fc8ef1a458bf3616abc507250572c2da7a8d53c1c8a7a03d4b097f3d4877`, but its audit hook
-    rejected h5py's nonpersistent `/dev/null` probe before fitting. That attempt is infrastructure-
-    invalid, contains no fit, and must not be interpreted as science. The replacement execution was
-    an exact-reference, p1-only, nonissuing run. Its report,
-    `66e9debc1a402e7aa68cbc934f7c5f641529eea3187ec15606364c912af8faa8`, passed integrity and
-    post-hoc resource acceptance checks and kept all provisional tensors finite. It failed initial,
-    untraced inner
-    equilibration at sweep 50 with passing streak 0, `Rshape=0.24714465227035654`, and
-    `Relog=3.750385840630546`, before any outer update or ELBO trace. The two residuals are
-    respectively 24,714,465 and 375,038,584 times the `1e-8` tolerance. The provisional loading-
-    rank ratio `0.101239623839`, activation-rank ratio `0.001249342162`, and minimum contribution
-    share `0.001237124212` describe initialization only and are not evidence that rescues the failed
-    fit. The provisional `rho` maximum was `7.999995552807402`; because each factor column sums to
-    eight, at least one factor places `99.9999444101%` of its context mass on one plate and has an
-    effective context count of approximately `1.0000011118`. This is a candidate-family risk, not a
-    fitted-model pathology. The empirical whole-row context must be reexamined and is not a
-    validated unseen-plate model.
+In scope for continued use: the frozen partitions, membership arrays, leakage review, golden fixtures,
+and the six fitted `p1` baseline states. Out of scope: the candidate lifecycle and the execution
+control plane, which are suspended below.
 
-    V4 is `NO-GO`. It issued no model, plan, observation, training evidence, materialization, or
-    lifecycle result. Item 12 remains in progress and the component remains `SCAFFOLD`. Throughout
-    this work protected `p2`, `p3`, and `p4` raw H5AD/UMI endpoint values and lifecycle scoring
-    authority remain sealed, and calibration, selection, performance, admission, component
-    execution, and every public cell-state runtime remain false.
+## Suspended and off-path work
 
-**Item 12.1a — local-map and plate-context characterization software freeze** is complete. Its
-historical evidence is now canonical under
-[`audits/item12_1a`](https://github.com/logannye/cellstate/tree/main/audits/item12_1a). The frozen
-harness SHA-256 is
-`f4e6b76847bd926952995d66233389768f091135699fb60a38d7d9762bb03ff1`; its test SHA-256 is
-`8989618e259fb4aed0e0798bc010e40092c45e6bd30234bb3a7b534cdc562903`.
-The exact parent driver (`795c5929...`) and both historical reports (`4677fc8e...` and
-`66e9debc...`) are stored beside them. Twenty-six focused tests, Ruff check/format, compilation, and
-an independent SHA-bound math/containment audit reported no P0/P1 finding within the frozen
-local-map and containment scope. That audit did not validate the outer dose objective. The contract
-fixes 50 production maps
-`A0 -> ... -> A50`, exactly one diagnostic-only `A51` lookahead, per-sweep `Rshape` and `Relog`,
-synchronized local objectives, one- and two-step distances and update cosine, deterministic worst
-row/factor/count summaries, shape/rate/mass invariants, per-sweep analytic 16-by-16 Jacobian
-spectral radii, exact replay equality, state/allocation digests, and all 16 bounded `rho`
-effective-context counts and maximum shares. An objective decrease routes to an implementation
-fix. An intact objective plus a two-cycle or noncontractive map routes to a versioned v5
-safeguarded local solver. Near-zero prior/context behavior or effective context near one routes to
-v5 plate regularization or neutralization. The contract does not prefreeze damping or shrinkage.
+Work in this section is frozen, not deleted. It may be resumed only by an ADR that states which ledger
+capability it advances.
 
-**Item 12.1b — retired before execution.** The planned exact-reference real-`p1` replay of the v4
-harness is no longer the next step and must not run. Item 12.1a opened no source. The later
-source-code audit established that v4's dose-block objective minimizes an unweighted per-well Gamma
-term plus the global dose penalty, while the tracked full ELBO multiplies that Gamma term by
-`94785/768`. Because this changes the intended objective and can invalidate outer-step
-nondecrease, another real-source characterization of v4 would spend authorization on a candidate
-already known to be mathematically inconsistent. No Item 12.1b report, artifact, or lifecycle
-evidence exists.
+1. **Protected-execution authorization control plane — suspended.** It governs the execution of a
+   candidate for the component described above, which cannot emit a cell-state belief. It advances no
+   ledger capability. No proposal is to be approved and no protected execution is to be dispatched;
+   the workflow fails closed on dispatch.
+2. **Container containment and reproducible runtime distribution — frozen as delivered.** The software
+   is retained and no further work is scheduled. Resource limits on a training run are a dependency of
+   a run, not a milestone.
+3. **The rank-16 continuous admixture candidate family — retired for the state path.** It is a
+   condition-level mean model with a free parameter per observed action, indexed at the well and not
+   the cell. Its corrected objective mathematics, its equal-unit normalization constant, and its
+   effective-context diagnostic are salvaged into the Phase 4 guidance above. The lifecycle scaffolding
+   around it is not.
 
-**Item 12.2 — source-free v5 objective, M-step, sampling, publication, evidence closure, and
-execution containment — completed 2026-08-11.** The active v5 fixed-`q` objective applies the exact
-`94785/768` equal-well factor to all 768 wells and the same dose penalty used by its M-step. Its
-all-well update covers `alpha`, arithmetic-mean-one constrained `log-rho`, and the complete `delta`
-dose-effect tensor. An independently implemented scalar objective, feasible-coordinate finite-
-difference gradients, dose and joint arrowhead Hessian checks, a treated-well adversarial fixture,
-strict one-ULP decrease rejection, and accepted-substep and complete-block checks verify nondecrease
-on that same canonical objective.
+## Implementation queue
 
-The sampler exactly conditions the whole raw-count panel to be positive using the zero-truncated
-superposition of compound-Poisson/log-series factor counts. Support requires an exact
-`CandidateSampleRequest`, including its bounded sample count; target-only `supports()` fails. One
-immutable certificate covers 753 actions (752 compound-dose assignments plus no action), the one
-neutral unit unseen-plate context, and all 27 declared `tau` values: `20,331` combinations. The
-maximum request is 512 draws, and the conservative complete-request conditional signed-`int64`
-Chernoff tail bound is at most `2^-64`. Compound-Poisson intensity, log-series RNG support,
-allocation overflow, and overflow-safe panel positivity are included in the same global fail-closed
-decision. Per-draw substreams are prefix-stable and outputs bind exact model, calibration,
-sampling-contract, target, context, and seed provenance.
+Each item names the ledger capabilities it advances. Items are worked in order. Queue IDs are prefixed
+`Q` and do not continue the historical Item 1–12 sequence, whose numbering is bound into
+content-addressed manifests and must not be reused. The queue extends through Phase 4; Phases 5–8 are
+not yet decomposed into items and must not be started from prose.
 
-Publication now renders and verifies one content-addressed immutable generation before atomically
-replacing only `current.json`. Concurrent readers observe a complete old or new generation. Forced
-process death at every visibility boundary, stable-lock release, orphan and temporary cleanup,
-resealing, next-run recovery, and path/symlink tampering are covered. The pre-fit contract binds a
-canonical `TrainingCodeClosureManifest` for the complete Python executable set and an
-`ExecutionInputClosureManifest` for that code plus every declared public JSON/runtime input. The
-protected source remains a separate authenticated read-only input. A typed no-follow
-`StagedTrainingInventory` binds worker outputs, excluding only worker/parent observation metadata;
-`ContainedTrainingObservation` joins worker source pre/post authentication and stage identity to
-the parent's image, policy, process-tree, and cleanup evidence.
+1. **`Q1` — implement the metric suite and its interval estimator.** [S6, S9] Sample CRPS, energy
+   score, marginal coverage error, marginal interval width, vehicle-relative pseudobulk effect error,
+   and the equal-compound four-dose profile diagnostic — the six distinct computations behind the ten
+   `metric_id` entries the frozen sci-Plex3 suite declares — plus the multiway clustered bootstrap
+   every one of them binds. Each with a golden fixture and an independently derived numerical
+   reference; the bootstrap's reference is a design whose interval is known analytically, never a
+   recorded output of the implementation under test. Add a differential-expression-weighted metric and
+   a rank-based metric for suites frozen from here on.
+   *Files:* new `src/cellstate/evaluation/metrics.py` and
+   `src/cellstate/evaluation/bootstrap.py`; port kinds at `src/cellstate/backends/contracts.py`;
+   suite gate at `src/cellstate/data/benchmarks.py`.
+   *Done when:* a conformance test reads
+   `benchmarks/vertical-a/sciplex3-k562-24h-v1/support/metric-suite-spec.json` and resolves every
+   `metric_id` it declares, and the uncertainty method they bind, to an executable implementation —
+   failing on any entry that does not resolve — and `make check` is green. The frozen benchmark
+   artifact's own bindings stay `specification_only`; re-versioning it is `Q3`'s decision, per
+   [ADR 0014](adr/0014-phase-1-completion-condition.md).
+2. **`Q2` — implement the sufficiency and calibration harnesses.** [S7, S6] Paired `M1`/`M2`
+   predictors with declared equal capacity, `Q1`'s multiway bootstrap grouped at the split unit, a
+   confidence interval on the history information gain, and null calibration. This requires adding a
+   grouped-bootstrap interval to `SufficiencyReport` and a coverage-error upper bound to the
+   calibration report; both are serialized-contract changes needing a schema-version decision,
+   regenerated JSON Schemas, and round-trip tests before any harness is written.
+   *Files:* `src/cellstate/evaluation/sufficiency.py`, `src/cellstate/evaluation/calibration.py`,
+   `src/cellstate/domain/belief.py`, `schemas/`.
+   *Done when:* both functions have non-test callers, both reports carry intervals, and the harness
+   returns the correct verdict on a sufficient and an insufficient synthetic design.
+3. **`Q3` — make the sufficiency verdict fail closed.** [S7] The harness returns `PASSED` with a
+   degenerate interval `[0.0000, 0.0000]` when every unit's history block is absent, on a design
+   where history demonstrably drives the target — so a query with no admissible pre-cutoff evidence
+   receives the strongest certificate of sufficiency the contract can express. `sufficiency.py`
+   delegates that applicability judgment to the query and its benchmark; no caller exists to make it,
+   which is also why `Q2`'s "non-test callers" clause is unmet. Authorized by
+   [ADR 0017](adr/0017-the-sufficiency-verdict-must-fail-closed.md): the module refuses an
+   inapplicable design rather than passing it; units lacking a pre-cutoff observation are excluded
+   from the paired comparison; the retained fraction becomes a required report field and a retained
+   fraction of zero is a refusal. This item also supplies the missing caller — the evaluator adapter
+   from a belief and a query to the paired loss vectors — which is `Q2`'s own unmet clause and not
+   new scope. Deliberately out of scope, and scheduled as evidence rather than decided: whether the
+   gain requires a noise-share decomposition, which the split-half reliability of the state and
+   history blocks on real bytes settles.
+   *Files:* `src/cellstate/evaluation/sufficiency.py`, `src/cellstate/domain/belief.py`, `schemas/`.
+   *Done when:* a design whose history blocks are all absent returns a not-evaluated report rather
+   than `PASSED`; the retained fraction is carried on `SufficiencyReport` and round-trips; and
+   `evaluate_predictive_sufficiency` has a non-test caller in `src/`.
+4. **`Q4` — review and manifest the state-bearing source.** [S1, S3] **Decided, not yet complete.**
+   The review is finished and its result is negative; the reviewed manifest this item's done-when
+   requires is not yet written, and until it is this item stays open — recording it as complete
+   against an unmet done-when is the error [ADR 0017](adr/0017-the-sufficiency-verdict-must-fail-closed.md)
+   corrected for `Q2`. The structural census and the provenance review are in
+   [the representability ledger](data/representability/gse274113-perturb-multiome.md); the decision
+   is [ADR 0018](adr/0018-gse274113-rejected-for-the-state-estimand.md). `GSE274113` is **rejected
+   for the state-bearing estimand**: 0 of 14 libraries span a timepoint, the day 7 → day 14 effect
+   is ρ = −0.026 against a permutation null of 0.025, and above the library the series supplies one
+   independent parent culture, which neither the publication nor the deposited metadata can raise.
+   The target-as-spanning-unit redesign is inadmissible under rule 8 and would itself need a rule 4
+   amendment. The source is retained under rule 7 for `Q5`, where a measured library nuisance axis
+   is S5's object rather than a defect, and for `Q6`, subject to established byte identity — now
+   closed — and to a recorded licence position. A rejection recorded for cause is a legitimate
+   outcome for this item — rule 10's
+   principle, that a gate which is a measurement is passed by producing the measurement, applies to
+   source review as much as to a verdict — but the outcome still has to be recorded in the artifact
+   the item names. What remains is a reviewed manifest carrying the claim-specific split ADR 0018
+   decides: ineligible for the state-bearing estimand, retained for `Q5` and `Q6`. That split is
+   currently prose, and `ClaimAssessment` is the mechanism that makes it machine-checkable. The
+   manifest also owes the committed runner the ledger names as outstanding: every census figure was
+   computed from the bytes by a script held outside this repository, so no reader can reproduce them
+   from a checkout, and until one is committed the census is a recorded claim rather than a checked
+   one.
+   *Done when:* unchanged — the census is in the reviewed manifest.
+5. **`Q5` — fit the observation model and separate the nuisance axis.** [S5] On `GSE274113`, the
+   source [ADR 0018](adr/0018-gse274113-rejected-for-the-state-estimand.md) rejected for the state
+   estimand and retained under rule 7 for exactly this. Nuisance separation with a held-out-modality
+   **on the RNA readout**, per [ADR 0020](adr/0020-rna-first-nuisance-separation.md). Measured: the
+   RNA feature space is shared across all 14 libraries — one byte-identical 36,601-gene ID list, no
+   per-library calling step, nothing imputed — while the ATAC space is 14 distinct peak sets whose
+   size declines monotonically with differentiation time at `r` = −0.973. Fixed 10 kb binning was
+   proposed as the fix and **measured not to work**: it shares the grid but not the occupancy, and
+   `r` only moves to −0.963. Filling uncalled bins with zero would impute 54.3% of the union grid,
+   which the zero-panel doctrine forbids. The held-out-modality test therefore moves to `Q6` rather
+   than being weakened to fit; see there. The library is the nuisance axis
+   and it is already measured: across-library spread at a fixed target reaches 0.53, 0.51, 0.89 and
+   0.99 of across-target spread at days 7, 9, 11 and 14. S5 asks that varying a nuisance variable at
+   fixed biology change the predicted observation and **not** the inferred state, within a
+   predeclared bound on held-out units — so a nuisance axis of measured size is the material this
+   test needs, not an obstacle to it. Byte identity is **established** — all 15 artifacts re-fetched
+   from GEO and matched exactly on byte count and SHA-256 — which closes one of the two preconditions
+   ADR 0018 set. Licence terms are **unresolved at source and recorded as such** — no terms asserted
+   by submitter or journal, and no grant asserted either, owner-authorized for internal method
+   development and **not cleared for any published biological claim**, per
+   [ADR 0020](adr/0020-rna-first-nuisance-separation.md) decision 4. Rule 6 requires the licence to
+   be recorded, not to be permissive, so that closes the second precondition without weakening the
+   rule. What is still owed is the record's home: it lives in ADR 0020 and must also appear in the
+   representability ledger and the reviewed manifest, which are the artifacts rule 6 points at.
+   The bytes were re-fetched and verified, 15 of 15 on byte count and SHA-256.
+   **Delivered, with a negative result.** The observation model is fitted and checked in
+   (`src/cellstate/backends/gse274113/`, panel and slice under
+   `backends/vertical-a/gse274113-rna-obs-v1/`), and the nuisance-separation test ran on held-out
+   libraries against a bound of **0.35**. It measured **10.36**, interval [6.27, 16.66] grouped at
+   the library, so **S5 is not advanced**.
 
-The frozen Linux `amd64` runtime is reproducible byte-for-byte under frozen inputs and toolchain
-across three independent `--no-cache`, provenance-disabled builds at
-`SOURCE_DATE_EPOCH=1786406400`: Docker Desktop `amd64` emulation, the separate local `tinyzkp`
-`docker-container` builder pinned to the locked BuildKit image, and native Linux `amd64` GitHub
-Actions. All three produced archive SHA-256
-`37c2fa5846acfbd8357476859bd7f8f0ac6591261d79c2f6f46f0aa22fb76454`, index
-`sha256:e0f0afd6c66197a37d0ab7a05e7cccfe5990da1fd8497e175fdf3ab909a67812`, runnable child
-manifest `sha256:12c2faa6019fb60cdcabaa8f38f70e99be7998997b97ddb0ca59fbe2e82f1e25`, and config
-`sha256:80ed48f278d7a46c0ae7811285efc69181ae59872a358cc9b176079aa09f3cc8`. The Dockerfile SHA-256 is
-`a3a71c3d61c71235d9c1a99c16aa00568b398971adfc2da65388b0c7ea3987a0`. Its multi-stage clean final
-copies only the curated `/opt`, `/run`, and `/workspace` runtime tree, excluding build-host caches
-such as Rosetta's `/root/.cache/rosetta`; the workflow and runtime-image lock freeze the exact
-Buildx/BuildKit builder identity.
-Native-Linux execution is frozen as `host-effective-uid-gid`: the worker runs as the host's numeric
-effective UID/GID, and the bounded mode-`0700` tmpfs is mounted with that same UID/GID. The sole
-anonymous snapshot volume uses `empty-image-directory-mode-1777` initialization. This makes the
-declared `0400`/`0700` host binds usable by the contained non-root worker without widening their
-permissions.
-The parent accounts its 3,600-second budget before public code/input staging and actively bounds
-every Docker command and wait; a returned staging overrun fails before container creation. The in-
-container hard timeout begins before protected-source open and is 3,540 seconds with a five-second
-kill-after bound, covering snapshot, fit, and close-reauthentication. The aggregate cgroup
-policy passes both `--memory` and `--memory-swap` as 4,294,967,296 bytes, disabling additional swap.
-Source-free live probes passed for success, timeout with descendants, cgroup OOM, supervisor
-death/watchdog and next-run recovery, anonymous snapshot-volume cleanup, no canonical publication,
-and parent no-follow re-inventory and sealing of the exact worker stage.
+   **This is the second run, and only the second one satisfies the done-when.** The first measured
+   19.22 against a bound that `git log -S"bound=0.35"` places in exactly one commit — `1e5e4d1`, the
+   commit that reported the result. Bound and result entered together, and predeclaration was the
+   entire substantive content of this item's criterion, so that run was self-certified and was
+   recorded here as unmet. It stays recorded that way; a later repair does not retroactively make an
+   earlier run predeclared.
+   [ADR 0022](adr/0022-the-technical-variance-is-evaluated-at-a-pooled-rate.md) decision 5 fixed the
+   bounds in a merged commit **before** the re-run, which is the repair this item owed, and the
+   re-run is measured against them.
 
-Item 12.2 completed only this source-free software acceptance. It did not open protected source or
-`p1`, run a real fit, issue a candidate artifact, plan, observation, evidence, materialization, or
-lifecycle result, calibrate, score, or change the component from `SCAFFOLD`.
+   **What ADR 0022 changed, and why the improvement is not visible in the headline.** The technical
+   variance was evaluated at each arm's own count, so `1/(y + 1/2)` returned 2.0 at every zero entry;
+   11.1% of panel entries carried 79.8% of the claimed technical mass and `psi^2` clamped in all
+   fourteen folds. Evaluated at a pooled rate it is fitted in **0 of 14 clamped**, and library
+   leakage into the biology block fell **5×** (3.07 → 0.609). The between-target signal fell **2.4×**
+   with it (0.257 → 0.109), so S5 improved only from 19.22 to 10.36 and still fails by a factor of
+   thirty.
 
-**Item 12.3 — proposed separately authorized, version-bound, nonissuing real-p1 v5 execution.** This
-is the next proposed milestone, not an authorization. Its exact candidate version, source scope,
-runtime/limit identities, permitted nonissuing outputs, and stop conditions require separate review
-and explicit authorization. The current image must be loaded from its exact local OCI layout and is
-not claimed to be remotely published; durable distribution of that locked archive is an additional
-prerequisite. No Item 12.3 run has occurred. It cannot borrow Item 12.2's source-free
-acceptance as data authority, open `p2`, `p3`, or protected `p4` raw endpoints, inspect held-out
-outcomes, score predictions, issue lifecycle evidence, or reinterpret public frozen split/case
-metadata as permission to resolve protected source bytes.
+   **The diagnosis is not that the nuisance basis failed.** An earlier revision of this entry read
+   "the rank-3 nuisance basis fitted from `NT` residuals does not span the library variation." That
+   reading was checked and is wrong, and the summary at the head of this file has said so since
+   `2045a1e` while this entry continued to carry the retracted version. Decomposed by block,
+   across-library variance is **81.30** in the nuisance block against **0.609** in biology, so the
+   basis absorbs roughly 134× more than leaks past it. What fails is the denominator: between-target
+   variance is **0.109**. Raising the nuisance rank does not repair this and was measured not to.
+   Rule 10 is satisfied by producing the measurement; the model is not.
+   *Done when:* met, for the second run — the test ran on held-out libraries with an interval grouped
+   at the library, against a bound predeclared in a merged ADR. The first run's predeclaration clause
+   was **not** met and is recorded above rather than erased.
+6. **`Q6` — run the held-out-modality test on clean ATAC.** [S5] Carries the test moved out of
+   `Q5` by [ADR 0020](adr/0020-rna-first-nuisance-separation.md), at full strength: both directions,
+   with an interval grouped at the library. Blocked until the ATAC observation space can be built
+   without imputation, by one of two routes — the peak-call **intersection** grid (55,029 bins
+   present in all 14 libraries, every value a measurement, at the cost of a declared bias toward
+   constitutively open chromatin, since the intersection is pinned by the sparsest day-14
+   libraries), or **fragment-level requantification** over a fixed grid after the ~45 GB
+   `GSE274113_RAW.tar` download. The route is chosen before the test is run, and its cost is
+   declared with the result. This item exists so that the missing cross-modality check stays visible
+   in the queue rather than dissolving into a softer test that RNA alone can pass.
+   *Done when:* the test runs in both directions on a feature space carrying no imputed values, with
+   its route and that route's bias stated.
+7. **`Q7` — emit the first biological belief, and test the `do` operator's null half.** [S2, S4]
+   **Delivered, with negative measurements.** A `CellStateBelief` is emitted from real cells through
+   `estimate_cell_state` for every arm of a held-out library, under the
+   `empirical_observation_model` kind authorized by
+   [ADR 0021](adr/0021-an-admissible-kind-for-a-fitted-observation-model.md). The S4 contrast is
+   measured in shared biology coordinates with both halves reported — placebo `NT_B − NT_A` at 2.03
+   [1.44, 2.67] against perturbed `target − NT` at 2.09 [1.62, 2.56] — and the bands **overlap**, so
+   the `do` operator does not discriminate a perturbation from a placebo and **S4 is not advanced**.
+   The S2 spread ratio is 0.84 [0.71, 0.98] against a requirement of >1, so **S2 is not advanced**.
 
-Only a future successful trusted verification may move the component to `TRAINED_CANDIDATE`. A
-future one-use grant may open `p2` for calibration only after that exact state; a separate grant may
-open `p3` for model selection and freezing only
-after calibration; and `p4` source outcomes and locked scoring remain untouched until a locked
-evaluator receives an exact `MODEL_SELECTED_FROZEN` candidate. Public frozen p4 design metadata is
-not evaluation authority. Passing that component lifecycle would authorize only the exact
-assay-response API; a hidden-state backend still requires its own observation/prior, inference,
-dynamics, sufficiency, identifiability, and operation-specific evidence.
+   **S2's number here is the third one this item has carried, and only this one has a decided
+   estimand.** It reported 0.22 on the first run, 0.28 after
+   [ADR 0022](adr/0022-the-technical-variance-is-evaluated-at-a-pooled-rate.md) changed the variance,
+   and 0.84 under [ADR 0023](adr/0023-the-s2-estimand-is-a-split-half-replicate.md), which changed
+   what is being measured. The first two used a point predictor that was never chosen — it was
+   written — and that was denied both the arm and its own library's nuisance coefficients, so its
+   ratio measured the handicap as much as the calibration. The estimand is now a split-half replicate
+   on `NT`, where both sides condition on the same information. Across five constructions and two
+   aggregation conventions the ratio spans 0.30 to 1.08 and **fails under every one**, so the verdict
+   was never at stake; ADR 0023 records the full grid, and notably declines the most favourable of
+   them.
 
-This sequence corrects the semantic spine before adapters or models depend on it. It preserves the
-existing manifest work while ensuring the first implementation cannot satisfy software contracts by
-violating the scientific estimand.
+   The caveat that S4's halves carry fewer cells than the arms they are compared against still
+   stands, quantified at 1.16× and too small to explain the result. S2's old caveat — that the
+   comparison conditioned on different information — is **retired** rather than restated, which is
+   what makes its failure attributable: with sampling noise removed the systematic misfit is 0.1427
+   against a total claimed variance of 0.1213, so the model's error on a genuine replicate exceeds
+   everything its posterior claims. S2 now carries a different limit in its place: `NT` is the only
+   arm with a replicate, so calibration is established on **null biology only**, across 14 libraries.
+   Neither negative is treated as an excuse — the capabilities stay unadvanced.
+   *Original scope, unchanged:*
+   Posterior inference through the public API, with support envelope, model and data cards, and
+   abstention enforced. This is the item that makes the project's object exist: `CellStateBelief` is
+   currently constructed at exactly one site in `src/`, a synthetic reference, so no belief has ever
+   been emitted from real cells.
+   S2 requires the posterior's spread to be **earned** — strictly wider than the point predictor's
+   residual spread on held-out units, with a posterior-predictive check on a supported assay
+   statistic. S4 is newly reachable here and was not reachable before: `GSE274113` carries `NT` as a
+   **declared-null** intervention against 19 perturbed transcription factors, all fully crossed with
+   library, which supplies both halves of S4's contrast — the null arm must leave the predictive
+   distribution unchanged to numerical tolerance, and a non-null arm must change it by more than
+   between-seed variation. The null half is currently asserted nowhere in this repository, so an
+   inert or spuriously-moving operator would pass every test it has.
+   *Done when:* a `CellStateBelief` is emitted from real cells through the public API; the S2 spread
+   comparison and both halves of the S4 contrast are reported with intervals grouped at the library.
+8. **`Q8` — freeze the state-bearing estimand and benchmark, and measure its floor.** [S1, S3, S9]
+   **Blocked on source selection, not on `Q4`.** Registered sources satisfying S1 are zero, and no
+   source may be named before the numeric selection criteria are fixed — setting them afterward
+   invites fitting them to the candidate. Pre-cutoff observation, multiple horizons, library-level
+   partitions, computed leakage audit, mandatory baselines including applicable persistence and
+   temporal state-space, held-out-intervention fold design with per-fold unit counts, and numeric
+   acceptance thresholds set before a model exists. The bundle contract derives
+   `sufficiency_evaluator` into `required_ports` and binds it `provided`.
+   Carries the observational floor absorbed from the retired proving-ground item, per
+   [ADR 0017](adr/0017-the-sufficiency-verdict-must-fail-closed.md), with the same interval
+   discipline; and inherits from that record the decision on `benchmark_version` `1.1.0` re-homed
+   from [ADR 0014](adr/0014-phase-1-completion-condition.md), the **zero-panel doctrine** — a sample
+   whose panel total is zero is a missing observation under an observation model, not an evaluable
+   target, and no frozen policy may make a benchmark unevaluable on its own data — and the
+   **reachable-threshold constraint**: no metric is frozen with an acceptance threshold not
+   demonstrated reachable on real bytes.
+9. **`Q9` — fit the first state backend and report the sufficiency verdict.** [S4, S6, S7, S8, S9]
+   Simplest model that can carry a state; full baseline suite; coverage report; risk-coverage
+   monotonicity; sufficiency verdict with its interval, whatever it says.
+
+Items `Q1` through `Q3` require no new data, no data-access decision, and no model fit. They are the
+shortest path to knowing whether the faithfulness tests work at all — and `Q3` exists because the
+answer turned out to be *not yet*: a test that cannot refuse a design carrying no evidence has not
+been shown to work, it has only been shown to run. `Q4` is the first item that needs bytes this
+project does not already hold, and `Q5` the first that needs an access decision.

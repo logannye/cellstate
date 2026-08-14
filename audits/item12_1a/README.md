@@ -1,5 +1,13 @@
 # Item 12.1a frozen audit lineage
 
+**Historical.** The rank-16 continuous admixture candidate family characterized here is retired for
+the state path by [ADR 0013](../../docs/adr/0013-state-first-roadmap-reordering.md): it is a
+condition-level mean model whose latent is indexed at the well, with a free parameter per observed
+action that cannot generalize to an unseen action in principle. Nothing in this directory is live
+work. What was salvaged from it — the corrected objective mathematics, the equal-unit normalization
+constant, and the effective-context diagnostic — is carried into the Phase 4 model guidance in
+[`docs/roadmap.md`](../../docs/roadmap.md); the lifecycle scaffolding around it is not.
+
 This directory makes the completed, source-free Item 12.1a software audit reproducible from the
 canonical checkout. The Python and JSON files are historical, content-addressed evidence. They are
 not a supported runtime API and do not authorize opening any sci-Plex3 source or held-out
@@ -40,8 +48,9 @@ hard memory containment. Any future real-source execution therefore also needs a
 enforced worker/container memory limit and a recorded runtime-image digest. The historical reports
 must not be interpreted as model, calibration, validation, performance, or lifecycle evidence.
 
-The next milestone is source-free v5 objective and M-step redesign. It must demonstrate analytic
-gradient agreement with the full tracked ELBO, fixed-`q` nondecrease for every accepted action-block
-M-step, and hard externally enforced wall-time and memory containment before any new real-`p1`
-authorization can be considered. The retained v4 harness is reproducibility evidence, not the
-starting point for that authorization.
+**Historical.** The source-free v5 objective and M-step redesign this file named as its next
+milestone was completed, and the whole rank-16 continuous admixture candidate family was then
+retired for the state path by
+[ADR 0013](../../docs/adr/0013-state-first-roadmap-reordering.md). The real-`p1` authorization it was
+a prerequisite for is suspended: no proposal may be approved and no protected execution dispatched.
+The retained v4 harness is reproducibility evidence and names no pending work.

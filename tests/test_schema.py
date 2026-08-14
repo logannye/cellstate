@@ -52,6 +52,16 @@ from cellstate.domain import (
     SupportReport,
     TargetPrediction,
 )
+from cellstate.training.execution import (
+    ContainedTrainingObservation,
+    ContainedTrainingTerminalObservation,
+)
+from cellstate.training.item12_3_authorization import (
+    Item123DurableFallbackTerminalReport,
+    Item123ExecutionProposal,
+    Item123TerminalReport,
+    VerifiedItem123ExecutionCapability,
+)
 
 SCHEMA_ROOT = Path(__file__).resolve().parents[1] / "schemas"
 V2_MODELS: dict[str, type[BaseModel]] = {
@@ -164,8 +174,16 @@ def test_checked_in_experimental_schemas_are_current_and_warn_consumers() -> Non
         "bundle-readiness.schema.json": BundleReadiness,
         "candidate-fit-receipt.schema.json": CandidateFitReceipt,
         "candidate-training-plan.schema.json": CandidateTrainingPlan,
+        "contained-training-observation.schema.json": ContainedTrainingObservation,
+        "contained-training-terminal-observation.schema.json": (
+            ContainedTrainingTerminalObservation
+        ),
         "dataset-manifest.schema.json": DatasetManifest,
         "execution-source-selection-receipt.schema.json": ExecutionSourceSelectionReceipt,
+        "item12-3-durable-fallback-terminal.schema.json": (Item123DurableFallbackTerminalReport),
+        "item12-3-execution-proposal.schema.json": Item123ExecutionProposal,
+        "item12-3-terminal-report.schema.json": Item123TerminalReport,
+        "item12-3-verified-capability.schema.json": VerifiedItem123ExecutionCapability,
         "loaded-interface-receipt.schema.json": LoadedInterfaceReceipt,
         "population-assay-response-preflight.schema.json": PopulationAssayResponsePreflight,
         "population-assay-response-task.schema.json": PopulationAssayResponseTask,

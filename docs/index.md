@@ -1,57 +1,53 @@
 # cellstate
 
-`cellstate` is a research framework for estimating query-conditioned probability distributions
-over hidden, causally relevant cellular state and forecasting future molecular and functional
-behavior under declared interventions and environments.
+`cellstate` computes a query-conditioned probability distribution over hidden, causally relevant
+cellular state, and forecasts future molecular and functional behavior under declared interventions
+and environments. The purpose of the project is a faithful and accurate representation of cell
+state; everything else exists to make that representation trustworthy.
 
-The repository is currently a contract kernel plus a non-biological reference backend. The agreed
-end-state is a family of support-bounded biological backends trained and evaluated with traceable
-public real-cell experiments. No single embedding, assay, or dataset is treated as universal cell
-state.
+No single embedding, assay, or dataset is treated as universal cell state. The end-state is a family
+of support-bounded biological backends trained and evaluated against traceable public real-cell
+experiments.
 
 Start with:
 
 1. the [belief-state concept](concepts/belief-state.md);
-2. the [full-build architecture](architecture/full-buildout.md);
-3. the [scientific validation contract](validation/scientific-validation.md); and
-4. the phased [development roadmap](roadmap.md).
+2. the [predictive-sufficiency concept](concepts/predictive-sufficiency.md);
+3. the [full-build architecture](architecture/full-buildout.md);
+4. the [scientific validation contract](validation/scientific-validation.md); and
+5. the [roadmap](roadmap.md), which is the sole authority for implementation order, the
+   state-capability ledger, and graduation status.
 
-The experimental, machine-readable dataset capability and use-policy scaffold is now in place. The
-active schema-v2 semantic spine now expresses typed subjects, destructive evidence, bounded
-counterfactuals, compiled state, perturbation realization, query-scoped scientific readiness, and a
-standalone next-measurement decision contract. The contract reference reports measurement EVSI as
-`NOT_EVALUATED`; it does not substitute covariance reduction. The scoped eligibility ledger is now
-implemented and adversarially hardened. Machine-checked reviewed Replogle K562 and GSE141064
-Live-seq representability ledgers pass structural checks without source-byte resolution or selector
-replay while keeping their legal use unauthorized. A corrected sci-Plex3
-K562 24-hour component benchmark freezes Vertical A's first exact query, well-level cases,
-plate-level splits, metric semantics, planned baselines, and acceptance policy. Its assessment and
-permission checks pass, while performance and scientific-admission gates remain closed. The active
-biological-bundle contract now maps every original model stage and binds a non-runnable population
-assay-response scaffold to that benchmark. Contract v0.1 derives every declaration as `SCAFFOLD`
-because the required trained model and later lifecycle evidence do not exist. The trusted
-byte-resolution and loaded-interface verifier boundary, the `p1`-only loader, and six mandatory
-non-admissible baseline implementations now exist. Item 12 candidate revisions v1 through v4 all
-failed closed without issuing a model or lifecycle evidence. Item 12.1a's exact historical audit
-bytes are canonical under
-[`audits/item12_1a`](https://github.com/logannye/cellstate/tree/main/audits/item12_1a), but a later
-source-code audit found
-that v4's dose objective is inconsistently scaled relative to its tracked full equal-well ELBO. V4
-and its planned real-`p1` Item 12.1b replay are retired. Item 12.2 has now completed its source-free
-v5 software scope: the equal-well objective and all-well M-step agree; independent derivative and
-nondecrease checks pass; exact positive-panel sampling supports at most 512 draws under a global
-`2^-64` conditional signed-`int64` tail budget; publication uses immutable generations and one
-atomic pointer; and exact code/input/stage closure runs behind a reproducible Linux `amd64` OCI
-identity with parent-owned whole-container containment and host-effective UID/GID execution on
-native Linux. The clean-final archive is byte-identical across three independent native and
-emulated builder environments under frozen inputs and toolchain, excludes build-host caches, and
-freezes its builder identity in the workflow and runtime lock. No protected source was opened, no
-real-`p1` fit ran, and no candidate artifact, plan, observation, evidence, or lifecycle result was
-issued. The component remains `SCAFFOLD`. Item 12.3 is only a proposed, separately authorized,
-version-bound, nonissuing real-`p1` v5 execution; it is not authorized or run. The exact image is
-not remotely published, and durable
-distribution of its locally loaded OCI archive is a prerequisite to that authorization. The
-scaffold is not a current-state estimator and exposes none of the four public cell-state operations.
-Protected `p2`, `p3`, and `p4` raw UMI count-matrix/endpoint bytes, outcomes, and lifecycle scoring
-authority remain sealed; public frozen split membership and benchmark-design metadata are not an
-access grant.
+## Status
+
+Phase 1 is active: make the faithfulness tests executable and measure the observational floor.
+
+Phase 0 is complete. Schema v2 enforces typed subjects, destructive evidence, bounded query support,
+query-compiled state, perturbation realization, scientific readiness and abstention, causal status,
+and standalone decision-oriented measurement selection. Manifest `0.3-experimental` carries
+claim-specific eligibility, content-addressed slices, and machine-checked representability ledgers,
+which validate bound declarations and attestations without resolving source bytes or replaying
+selectors.
+
+The `gse274113` RNA observation model **is** registered and beliefs **have** been emitted from real
+human CD34+ cells; see [the exploration guide](guides/explore-the-system.md). **No benchmark is
+scientifically admitted and the eligibility ledger is 0 of 10**, and on this substrate it will stay
+there: the deposit's CRISPRi arm is a measured null, so the capability tests divide by a
+perturbation signal that was never created.
+
+Every `metric_id` the frozen sci-Plex3 suite declares now resolves to an executable implementation,
+and both faithfulness tests execute and return a verdict with a grouped bootstrap interval. What has
+not happened is their application to biology: the frozen artifact's own metric bindings remain
+`specification_only`, nothing outside `tests/` invokes either harness, no baseline has been scored
+against any other, and the observational floor is unmeasured. **The repository can now recognize a
+faithful representation on supplied arrays; it has still produced no scientific number about a
+cell.**
+
+The sci-Plex3 K562 24-hour component remains a non-executable `SCAFFOLD` and its benchmark remains
+`COMPONENT_BENCHMARK`, not admitted. Its estimand has no admissible pre-cutoff observation and one
+horizon, so it cannot carry a sufficiency verdict; it is retained as data and split infrastructure
+and as the Phase 1 metric proving ground. Its held-out endpoint values, outcomes, and scoring
+authority remain sealed.
+
+The protected-execution control plane is suspended and the rank-16 candidate family is retired for
+the state path; see [ADR 0013](adr/0013-state-first-roadmap-reordering.md).

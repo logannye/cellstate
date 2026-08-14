@@ -1,10 +1,15 @@
 # sci-Plex3 v5 contained runtime
 
-This image is the source-touching worker runtime for roadmap Item 12.2. The base image and every
-Python wheel are content pinned. The host supervisor must invoke the built image by the exact digest
-recorded in `runtime-image-lock.json`; tags are never execution authority.
+**Suspended.** This image was built and validated source-free in historical Item 12.2. It was the
+source-touching worker runtime for a suspended Item 12.3 attempt; it is retained as frozen evidence,
+not as a runtime to be invoked. The base image and every Python
+wheel are content pinned, and `runtime-image-lock.json` records the exact digest the host wrapper
+and supervisor were required to invoke; tags were never execution authority. While the control plane
+is suspended, no wrapper or supervisor may invoke this image at all.
 
-The image itself supplies no data authority. The host supervisor accounts its 3,600-second budget
+The image itself supplies no data authority. The containment design recorded below was exercised
+only by source-free live probes and never against protected source. The host supervisor accounts its
+3,600-second budget
 before public code/input staging and actively bounds every Docker command and wait; a returned
 staging overrun fails before container creation. An independent 3,540-second in-container watchdog
 begins before protected-source open and covers snapshot, fit, and close-reauthentication even if the
@@ -25,7 +30,8 @@ workflow: Buildx `v0.28.0` at commit `b1281b81bba797b21d9eaf256e6a13eb14419836`,
 `v0.24.0` from image
 `sha256:6eceb8971ce4fceb3daca562832642706238b7eea72941fcf9896c93c3c4a53e`, and Dockerfile frontend
 `sha256:a57df69d0ea827fb7266491f2813635de6f17269be881f696fbfdf2d83dda33e`.
-After selecting that exact builder, build the Linux x86-64 image from this directory:
+Reproducing the frozen archive bytes — the only remaining use of this directory — requires selecting
+that exact builder and building the Linux x86-64 image from this directory:
 
 ```console
 docker buildx build --no-cache --provenance=false --platform linux/amd64 \
@@ -51,11 +57,17 @@ records the exact archive, index, child, config, ordered layers, builder identit
 source-free probe. Rebuilding with a different builder or changing any layer creates a new candidate
 runtime version and requires a new lock; the lock must never be edited to bless an unreviewed image.
 
-Load the exact OCI output through Docker's containerd image store before execution; Docker's classic
+Load the exact OCI output through Docker's containerd image store; Docker's classic
 graphdriver image store does not import OCI-layout archives. CI enables the documented
 `containerd-snapshotter` feature only after the two archives pass exact verification, then verifies
 the isolated Docker 29.7.2 daemon before loading the archive and running the live probes. The image
-is not claimed to be published or remotely pullable, and durable distribution of the locked archive
-is a prerequisite to any proposed Item 12.3 authorization. This source-free runtime evidence opened
-no protected source, ran no real-`p1` fit, and issued no candidate artifact, training record, or
-lifecycle result.
+is durably distributed as the sole asset of the immutable, attested
+[`sciplex3-v5-runtime-20260811-locked`](https://github.com/logannye/cellstate/releases/tag/sciplex3-v5-runtime-20260811-locked)
+GitHub Release. Had protected-source work remained authorized, a consumer would have had to verify that release,
+asset, archive, complete image closure, and exact Docker 29.7.2 native-Linux runtime after one-use
+attempt consumption and before opening source. That asset-bearing runtime release is distinct from
+the immutable, asset-free attempt release that would have consumed one exact approved proposal.
+Neither publication grants source authority by itself, and while Item 12.3 is suspended no proposal
+may be approved and no protected execution dispatched. No canonical pending Item 12.3 proposal
+exists, no protected execution has run, and this source-free runtime work issued no candidate
+artifact, training record, or lifecycle result.

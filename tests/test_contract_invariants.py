@@ -7,6 +7,7 @@ import numpy as np
 import pytest
 from conftest import (
     SYNTHETIC_TEST_OPTIONS,
+    bootstrap_interval_factory,
     environment_factory,
     environment_spec_factory,
     intervention_factory,
@@ -222,8 +223,10 @@ def test_sufficiency_report_enforces_its_defining_identity() -> None:
             state_only_loss=1,
             state_plus_history_loss=0.5,
             history_information_gain=0.2,
+            history_information_gain_interval=bootstrap_interval_factory(0.2),
             markov_sufficiency_score=0.8,
             maximum_history_information_gain=0.3,
+            retained_unit_fraction=1.0,
         )
     with pytest.raises(ValidationError, match="finite"):
         SufficiencyReport(
@@ -234,6 +237,7 @@ def test_sufficiency_report_enforces_its_defining_identity() -> None:
             history_information_gain=float("inf"),
             markov_sufficiency_score=0.8,
             maximum_history_information_gain=0.3,
+            retained_unit_fraction=1.0,
         )
 
 

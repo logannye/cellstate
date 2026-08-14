@@ -2,16 +2,25 @@
 
 ## Status and purpose
 
-This document is the durable blueprint for expanding `cellstate` from a backend-neutral contract
-scaffold into a scientifically validated family of biological models. It records the agreed system
-boundary, data policy, modeling strategy, validation doctrine, and initial vertical slices.
+This project computes a faithful and accurate representation of hidden cellular state. Everything
+else — contracts, schemas, manifests, admission machinery, runtime infrastructure — exists to make
+that representation trustworthy.
 
-The project goal is not to learn a universal embedding called “cell state.” It is to estimate a
-**query-conditioned belief** that meets predeclared predictive-sufficiency and complexity criteria
-for named future outcomes under named interventions, environments, and horizons.
+This document is the durable design target for the biological system that will produce it: the
+system boundary, the formal estimand, belief-subject and evidence semantics, the data policy, the
+modeling strategy, and the validation doctrine. It is written in the prescriptive present tense and
+describes what the system must be, not what is built. It confers no schedule and no status.
+[`../roadmap.md`](../roadmap.md) is the sole authority for implementation order, for the
+state-capability ledger S1–S10, and for graduation status.
 
-The existing linear-Gaussian backend remains a contract and software reference. Nothing in that
-backend is biological validation.
+The representation is not a universal embedding called “cell state.” It is a **query-conditioned
+belief** that meets predeclared predictive-sufficiency and calibration criteria for named future
+outcomes under named interventions, environments, and horizons — the two tests in
+[validation doctrine](#validation-doctrine).
+
+No biological backend is registered, no belief has been emitted by a biological model, and no
+benchmark is scientifically admitted. The existing linear-Gaussian backend remains a contract and
+software reference. Nothing in that backend is biological validation.
 
 ## Governing scientific conclusion
 
@@ -39,8 +48,7 @@ universal virtual cell or arbitrary counterfactual planning.
 For query `Q` at experimental time `t`, estimate:
 
 ```text
-B_t^Q =
-P(X_t^Q, \Theta, R_{\leq t}, \Xi \mid H_{\leq t}, C, Q)
+B_t^Q = P(X_t^Q, Theta, R_{<=t}, Xi | H_{<=t}, C, Q)
 ```
 
 where:
@@ -55,7 +63,7 @@ where:
 Future prediction is a separate operation:
 
 ```text
-P(Z_{t+h} \mid B_t^Q, \operatorname{do}(U_{t:t+h}), E_{t:t+h}, Q)
+P(Z_{t+h} | B_t^Q, do(U_{t:t+h}), E_{t:t+h}, Q)
 ```
 
 where `Z` contains query targets rather than backend-private latent coordinates. The use of
@@ -94,8 +102,15 @@ The active domain distinguishes:
 | Population | Experimental sample, condition, well, or distribution | Population transition and response distribution |
 | Spatial niche | Region plus cells/neighborhood graph | Contextual state and neighborhood-dependent response |
 
-Evidence also needs a role: direct, ancestor, descendant, sibling, clone aggregate, population,
-neighborhood, or external prior. Backends must reject evidence roles they do not model.
+The four subjects are not interchangeable, and the available identity evidence — not convenience —
+determines which one a representation may claim. A population belief is a complete instance of the
+object, not a fallback: it is hidden, it is inferred from evidence, it evolves under intervention,
+and it is subject to both faithfulness tests. Individual-cell claims require individual-cell
+evidence.
+
+Evidence also needs a role. The active domain enumerates nine: direct, ancestor, descendant,
+sibling, clone aggregate, matched population, general population, spatial neighbor, and external
+reference. Backends must reject evidence roles they do not model.
 
 No ingestion or training pipeline may infer subject identity from similar expression, nearest
 neighbors, optimal transport, shared cluster membership, or adjacent sampling times. Those methods
@@ -293,17 +308,22 @@ No row in this portfolio is the whole system. The goal is complementary constrai
 | Drug response and viability | MIX-Seq; PRISM | Molecular population response linked to condition-level viability | Not same-cell molecular-to-function pairing |
 | Fast signaling | DREAM signaling; Bodenmiller mass cytometry | Stimulus/drug/dose phosphosignaling dynamics | Narrow panels and systems |
 | Perturbed multimodality | Multiome Perturb-seq; Perturb-CITE-seq | Same-cell RNA+ATAC or RNA+protein under perturbation | Usually one destructive endpoint |
-| Individual state to future | Live-seq (`GSE141064`) | Viability-preserving state measurement followed by future phenotype | Small and biologically narrow |
+| Individual state to future | Live-seq (`GSE141064`) | Viability-preserving state measurement followed by future phenotype | Reviewed cohort is on the order of tens of cells — too few independent units to bootstrap a sufficiency verdict |
 | Lineage/fate | LARRY; CellTagging; `GSE284197` | Clone inheritance, differentiation, and perturbation/fate | Clone/sister linkage, not repeated whole-cell measurement |
 | Spatial perturbation | Perturb-FISH; Perturb-map; Perturb-DBiT | Neighborhood-dependent response and spatial intervention | Targeted panels or terminal spatial assays |
 | Physical dynamics | JUMP Cell Painting; MitoCheck | Morphology, batch robustness, division/death/event dynamics | Molecular state sparse or in separate studies |
 | Metabolism/proteomics | SpaceM; SCoPE2; CCLE metabolomics; decryptM | Metabolic/protein observation and target-engagement anchors | Often baseline or population level |
 | Population priors | CELLxGENE Census; DepMap | Cell-type/context priors and stable cell-line features | Observational/bulk; no dynamic cell belief |
 
-The initial high-value acquisition order is maintained in the
-[`roadmap`](../roadmap.md#phase-1-reproducible-public-real-data-foundation). Full Tahoe and JUMP
-image downloads are intentionally deferred; stream or download bounded subsets aligned to the first
-query family.
+Acquisition order is maintained in the [`roadmap`](../roadmap.md#implementation-queue) and is driven
+by the requirements of the next state-bearing estimand, not by dataset size or availability. A source
+carries a state estimand only when it supplies an admissible observation in the target modality
+before the inference cutoff **on a unit that is also observed after it**, at least two horizons after
+the cutoff, an identified intervention with matched controls, and enough independent experimental
+units to bootstrap a verdict. No row in the table above has been shown to meet all four; each row
+records a plausible role, and the source under review for the first state-bearing estimand is named
+in the roadmap, not here. Full Tahoe and JUMP image downloads are intentionally deferred; stream or
+download bounded subsets aligned to the current query family.
 
 ### Local-data conclusion
 
@@ -312,6 +332,16 @@ clinical observational atlases, and bulk functional studies. They do not, indivi
 provide a single coherent complete-cell trajectory with every required causal and contextual field.
 The sanitized, accession-level evidence for that conclusion is preserved in the
 [local evidence inventory](../data/evidence-inventory.md).
+
+The weaker question that actually gates the state path is whether any of them carries a state
+estimand at all: an admissible pre-cutoff observation on a unit that spans the inference cutoff, two
+or more horizons after it, an identified intervention with matched controls, and enough independent
+units to bootstrap. Three failure modes recur and are recorded here so they are not rediscovered — a
+same-cell longitudinal cohort of tens of cells has too few independent units; a design with
+approximately one library per treatment arm cannot separate intervention from library; and a
+single-timepoint destructive screen has no pre-cutoff observation and one horizon. Which local
+source, if any, survives this test is settled by the reviewed manifest and unit census scheduled in
+the roadmap, not by this document.
 
 They may enter only for roles justified in their manifests—for example:
 
@@ -455,6 +485,17 @@ predeclared tolerance.
 
 ## Validation doctrine
 
+A belief is **faithful** for a query when two things hold: it is predictively sufficient for that
+query's declared targets, and its predictive distributions are calibrated. Both are numeric
+verdicts, and **neither is a verdict without a sampling distribution.** A sufficiency gain or a
+coverage error reported as a bare point number is a diagnostic, not a result: each is reported with
+an interval obtained by resampling the declared independent experimental unit — a multiway grouped
+bootstrap where units are crossed — and a sufficiency verdict additionally names the tolerance the
+interval is compared against. Resampling cells inside a shared unit measures sampling noise, not
+replication.
+
+A test that fails, reported with its interval, is a result. Suppressing it is not.
+
 ### Independent split units
 
 The primary split unit follows how the experiment was conducted: well, plate, biological replicate,
@@ -488,6 +529,12 @@ Use metrics aligned to returned distributions and query targets:
 - belief-only versus belief-plus-history performance difference;
 - planner top-k recovery and regret when planning is enabled.
 
+Every metric suite frozen from [ADR 0013](../adr/0013-state-first-roadmap-reordering.md) forward
+carries at least one differential-expression-weighted metric and one rank-based metric. Marginal
+error and all-gene correlation are maximized by predicting no change and never stand alone. The
+sci-Plex3 suite frozen by [ADR 0008](../adr/0008-sciplex3-k562-component-benchmark.md) predates
+that requirement and is not retrofitted.
+
 Reconstruction loss, cluster purity, UMAP appearance, and annotation concordance are diagnostic—not
 proof of a sufficient causal state.
 
@@ -509,17 +556,26 @@ and calibration—not because it is more expressive.
 
 ### Predictive sufficiency test
 
-For a held-out future target, compare equally capable predictors:
+For a held-out future target, compare two predictors of declared equal capacity:
 
 ```text
-M_1: \hat Z_{t+h} = f(B_t^Q, U, E, Q)
-
-M_2: \hat Z_{t+h} = f(B_t^Q, H_{\le t}, U, E, Q)
+M1: Z_{t+h} = f(B_t^Q, U, E, Q)
+M2: Z_{t+h} = f(B_t^Q, H_{<=t}, U, E, Q)
+gain = score(M1) - score(M2)
 ```
 
-If `M_2` materially improves a predeclared proper score, the belief is not sufficient for that
-query. Expand its factors or narrow the query/support claim. This diagnostic requires genuinely
-held-out future evidence; reconstruction cannot substitute for it.
+`score` is negatively oriented — a loss such as CRPS, lower is better — so `gain >= 0`. The belief
+is sufficient for `Q` when the upper end of the interval on `gain`, bootstrapped at the declared
+independent experimental unit, falls below the predeclared tolerance. If raw history materially
+improves prediction, the belief is not sufficient: expand its factors, or narrow the query and the
+support claim.
+
+The test is meaningful only where a history exists. Under a query with no admissible pre-cutoff
+observation, `M2` and `M1` receive the same inputs, the gain is identically zero, and the test
+passes trivially — it is inapplicable, not satisfied. A query must therefore supply an admissible
+pre-cutoff observation on a unit that is also observed after the cutoff, and at least two horizons
+after it. This diagnostic requires genuinely held-out future evidence; reconstruction cannot
+substitute for it.
 
 ### Counterfactual validation limit
 
@@ -547,16 +603,22 @@ Recursive inference and forecasting already require model/configuration/posterio
 Production artifacts extend that requirement to biological training support and calibration
 identity.
 
-## First two vertical slices
+## Verticals
 
-### A. K562/A549 population response
+Two verticals are planned, in order. Vertical B is deferred until Vertical A has produced a
+sufficiency verdict; the roadmap is the authority for when either begins.
 
-**Scope:** cultured human cancer cell lines; CRISPR and small molecules; roughly 3–72 hours;
-transcript distribution first, then signaling, morphology, proliferation, and viability where
-supported.
+### A. Cultured-cell population state under genetic and chemical intervention
 
-**Direct-response candidates:** Norman/Replogle K562 genetic perturbations, K562/A549 arms verified
-within sci-Plex or Tahoe, and compatible MIX-Seq/PRISM conditions.
+**Scope:** cultured human cell lines; CRISPR and small molecules; horizons set by the frozen
+state-bearing estimand rather than assumed in advance; transcript and chromatin distributions first,
+then signaling, morphology, proliferation, and viability where supported.
+
+**Candidate direct evidence:** a perturbation source that observes the same experimental units both
+before an inference cutoff and at two or more later times. Single-endpoint destructive screens —
+Norman and Replogle K562 genetic perturbations, sci-Plex, Tahoe, MIX-Seq, and PRISM conditions —
+supply population-response comparisons, assay likelihoods, and baselines, but none of them supplies
+a pre-cutoff observation, so none can carry this vertical's estimand on its own.
 
 **Transported-prior candidates:** breast-cancer DREAM signaling, PBMC Bodenmiller signaling,
 mostly-U2OS JUMP morphology, SHARE-seq baselines, and DepMap stable context. These may inform priors
@@ -566,16 +628,16 @@ an exact overlapping system and protocol are independently verified.
 **First releasable query:** the complete, deliberately unfrozen estimand is maintained in the
 [Vertical A scientific estimand](../verticals/vertical-a-estimand.md). In brief: given a typed
 cultured-cell population, cutoff-safe baseline evidence and causal history, a bounded compound or
-genetic intervention and environment, and a named horizon, estimate calibrated distributions over
-supported future transcriptional targets with explicit realization uncertainty, causal status,
-transport assumptions, and abstention. The query is frozen only after its contract and real-data
-representability gates pass.
+genetic intervention and environment, and two or more named horizons after the cutoff, estimate
+calibrated distributions over supported future targets with explicit realization uncertainty, causal
+status, transport assumptions, and abstention. The query is frozen only after its contract and
+real-data representability gates pass, at the roadmap phase that freezes a state-bearing estimand.
 
 **Why first:** it has the densest intervention coverage, tractable culture environments, replicated
 controls, and overlapping public systems. It exercises the full data and validation spine before
 adding individual-cell claims.
 
-### B. Primary human T-cell stimulation and recovery
+### B. Primary human T-cell state and recovery (deferred)
 
 **Scope:** activation, repeated antigen exposure, exhaustion, withdrawal/rechallenge, and recovery;
 hours-to-days horizons; donor-conditioned molecular and functional targets.
@@ -589,6 +651,9 @@ history.
 
 **Constraint:** many molecular and functional endpoints occur in separate assays or studies. The
 backend must surface transport uncertainty and may not imply they were measured in the same cells.
+
+**Deferred.** Richer biology, sparser paired evidence, and stricter transport assumptions mean this
+vertical begins only after Vertical A has produced a sufficiency verdict with its interval.
 
 ## Planning is a gated downstream capability
 

@@ -3,7 +3,11 @@ from __future__ import annotations
 from uuid import uuid4
 
 import pytest
-from conftest import intervention_spec_factory
+from conftest import (
+    bootstrap_interval_factory,
+    calibration_error_bound,
+    intervention_spec_factory,
+)
 from pydantic import ValidationError
 
 from cellstate.domain.belief import (
@@ -298,8 +302,13 @@ def _passing_diagnostics(dimensions: tuple[str, ...]) -> BeliefDiagnostics:
             state_only_loss=1.0,
             state_plus_history_loss=0.95,
             history_information_gain=0.05,
+            # Narrow enough that the interval's upper end clears the 0.1 tolerance: the verdict
+            # gates on the interval, not the point estimate (ADR 0016), so a passing report needs
+            # a measurement precise enough to support the pass.
+            history_information_gain_interval=bootstrap_interval_factory(0.05, half_width=0.04),
             markov_sufficiency_score=0.95,
             maximum_history_information_gain=0.1,
+            retained_unit_fraction=1.0,
             metric="negative_log_likelihood",
         ),
         identifiability=IdentifiabilityReport(
@@ -326,7 +335,11 @@ def _passing_diagnostics(dimensions: tuple[str, ...]) -> BeliefDiagnostics:
             empirical_coverage=0.9,
             minimum_coverage=0.8,
             calibration_error=0.05,
+            calibration_error_upper_bound=calibration_error_bound(
+                empirical_coverage=0.9, nominal_probability=0.95, half_width=0.02
+            ),
             maximum_calibration_error=0.1,
+            coverage_interval=bootstrap_interval_factory(0.9, half_width=0.02),
         ),
         causal_support=CausalSupportReport(
             evaluation_status=EvaluationStatus.NOT_EVALUATED,
@@ -1117,8 +1130,10 @@ def test_sufficiency_reports_bind_loss_improvement_to_the_declared_threshold() -
         state_only_loss=1.0,
         state_plus_history_loss=0.7,
         history_information_gain=0.3,
+        history_information_gain_interval=bootstrap_interval_factory(0.3),
         markov_sufficiency_score=0.4,
         maximum_history_information_gain=0.1,
+        retained_unit_fraction=1.0,
     )
     assert failed.outcome is CriterionOutcome.FAILED
 
@@ -1129,8 +1144,10 @@ def test_sufficiency_reports_bind_loss_improvement_to_the_declared_threshold() -
             state_only_loss=1.0,
             state_plus_history_loss=0.95,
             history_information_gain=0.01,
+            history_information_gain_interval=bootstrap_interval_factory(0.01),
             markov_sufficiency_score=0.9,
             maximum_history_information_gain=0.1,
+            retained_unit_fraction=1.0,
         )
     with pytest.raises(ValidationError, match="must not contain numeric sentinels"):
         SufficiencyReport(
@@ -1183,7 +1200,11 @@ def test_diagnostic_scores_cannot_disagree_with_scientific_outcomes() -> None:
             empirical_coverage=0.7,
             minimum_coverage=0.8,
             calibration_error=0.05,
+            calibration_error_upper_bound=calibration_error_bound(
+                empirical_coverage=0.7, nominal_probability=0.75, half_width=0.0
+            ),
             maximum_calibration_error=0.1,
+            coverage_interval=bootstrap_interval_factory(0.7, half_width=0.0),
         )
     with pytest.raises(ValidationError, match="must be disjoint"):
         ObservabilityReport(observed=("capacity",), unidentifiable=("capacity",))

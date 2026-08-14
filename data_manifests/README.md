@@ -1,15 +1,20 @@
 # Dataset manifests
 
-**Status:** the `0.3-experimental` contract is under Phase 0 review. Two reviewed representability
-proofs and one reviewed sci-Plex3 K562 component-benchmark manifest are checked in. The sci-Plex3
-assessment and benchmark-evaluation permission resolve for its exact CC-BY source bytes, but the
-benchmark is not scientifically admitted because executable metrics, leakage, baselines, and
-performance gates have not passed.
+**Status:** Phase 0 is complete and Phase 1 is active. The `0.3-experimental` contract remains
+experimental. Two reviewed representability proofs and one reviewed sci-Plex3 K562
+component-benchmark manifest are checked in. The sci-Plex3 assessment and benchmark-evaluation
+permission resolve for its exact CC-BY source bytes, but the benchmark is not scientifically
+admitted, and it is no longer on the admission path:
+[ADR 0013](../docs/adr/0013-state-first-roadmap-reordering.md) reclassifies that component off the
+state path and retains it as data, split, and metric-proving-ground infrastructure.
 
-This directory will contain reviewed, machine-readable manifests for the public real-cell datasets
-used by `cellstate` biological backends and benchmarks. Large source artifacts do not belong in Git.
+This directory contains reviewed, machine-readable manifests for the public real-cell datasets used
+by `cellstate` biological backends and benchmarks. A manifest exists for exactly one reason: to
+establish whether an exact data slice can carry a stated claim about hidden cellular state. It is
+instrumental, and an exact manifest for a slice that cannot carry a state claim is not progress.
+Large source artifacts do not belong in Git.
 
-A manifest is admitted only after verifying:
+A manifest is reviewed only after verifying:
 
 - the exact accession, release, source URL, media type, byte count, and SHA-256 digest;
 - the license, attribution, redistribution, derivative-use, and commercial-use conditions;
@@ -51,13 +56,12 @@ plates as split units, and supports only the randomized assignment-to-24-hour ca
 endpoint estimand. It does not support a pretreatment molecular belief, same-cell dynamics,
 viability, unseen-compound transport, or a complete Vertical A benchmark.
 
-The remaining manifest queue is:
-
-1. a replicated source with an admissible pretreatment molecular state and independent future
-   endpoint for the complete Vertical A benchmark;
-2. LARRY (`GSE140802`) -- clone and fate evidence;
-3. MIX-Seq -- time-resolved population drug response and condition-level viability; and
-4. one fast-signaling source -- short-horizon phosphosignaling dynamics.
+Acquisition order is set by [`docs/roadmap.md`](../docs/roadmap.md#implementation-queue) and by
+nothing else, and the requirements a state-bearing source must satisfy are stated there. The next
+source to be reviewed is the state-bearing candidate named in that queue; LARRY, MIX-Seq, and a
+fast-signaling source remain in the candidate portfolio in
+[`docs/architecture/full-buildout.md`](../docs/architecture/full-buildout.md) and are not
+scheduled.
 
 The manifest graph keeps lifecycle concerns separate:
 

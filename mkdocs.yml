@@ -1,9 +1,10 @@
 site_name: cellstate
-site_description: Belief-state contracts for virtual-cell modeling
+site_description: A system for computing a faithful representation of hidden cellular state
 theme:
   name: readthedocs
 nav:
   - Home: index.md
+  - Roadmap: roadmap.md
   - Concepts:
       - Belief state: concepts/belief-state.md
       - Predictive sufficiency: concepts/predictive-sufficiency.md
@@ -13,18 +14,21 @@ nav:
       - Data contracts: architecture/data-contracts.md
       - Biological model bundles: architecture/biological-model-bundles.md
       - Inference pipeline: architecture/inference-pipeline.md
-  - Backends:
-      - sci-Plex3 K562 component boundary: backends/sciplex3-k562-population-response.md
+  - State-path models:
+      - GSE274113 RNA observation model: backends/gse274113-rna-observation-model.md
+  - Components (off the state path):
+      - sci-Plex3 K562 assay-response component: backends/sciplex3-k562-population-response.md
   - Data:
       - Evidence inventory: data/evidence-inventory.md
       - Real-data representability:
           - Replogle K562: data/representability/replogle-2022-k562.md
           - GSE141064 Live-seq: data/representability/gse141064-liveseq-functional-recorder.md
+          - GSE274113 Perturb-Multiome census: data/representability/gse274113-perturb-multiome.md
   - Verticals:
       - Vertical A estimand (draft): verticals/vertical-a-estimand.md
-  - Components:
-      - sci-Plex3 K562 population response: backends/sciplex3-k562-population-response.md
   - Guides:
+      - Estimate a real cell state: guides/estimate-a-real-cell-state.md
+      - Explore the system: guides/explore-the-system.md
       - Add a backend: guides/add-a-backend.md
       - Migrate v1 to v2: guides/migrate-v1-to-v2.md
   - Validation: validation/scientific-validation.md
@@ -41,5 +45,15 @@ nav:
       - Trusted admission verification: adr/0010-trusted-admission-verification.md
       - sci-Plex3 p1 loader and baselines: adr/0011-sciplex3-p1-loader-and-baselines.md
       - sci-Plex3 p1-trained candidate: adr/0012-sciplex3-p1-trained-candidate.md
-  - Roadmap: roadmap.md
+      - State-first roadmap reordering: adr/0013-state-first-roadmap-reordering.md
+      - Phase 1 completion condition: adr/0014-phase-1-completion-condition.md
+      - Reports carry their sampling distribution: adr/0015-faithfulness-reports-carry-their-sampling-distribution.md
+      - The verdict gates on the interval: adr/0016-the-verdict-gates-on-the-interval.md
+      - The sufficiency verdict fails closed: adr/0017-the-sufficiency-verdict-must-fail-closed.md
+      - GSE274113 rejected for the state estimand: adr/0018-gse274113-rejected-for-the-state-estimand.md
+      - Build on held evidence: adr/0019-build-the-representation-on-held-evidence.md
+      - RNA-first nuisance separation: adr/0020-rna-first-nuisance-separation.md
+      - An admissible kind for a fitted observation model: adr/0021-an-admissible-kind-for-a-fitted-observation-model.md
+      - The technical variance is evaluated at a pooled rate: adr/0022-the-technical-variance-is-evaluated-at-a-pooled-rate.md
+      - The S2 estimand is a split-half replicate: adr/0023-the-s2-estimand-is-a-split-half-replicate.md
 strict: true

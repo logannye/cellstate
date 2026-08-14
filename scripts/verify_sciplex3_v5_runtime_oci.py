@@ -6,7 +6,9 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import os
 import re
+import stat
 import subprocess
 import sys
 import tarfile
@@ -292,19 +294,39 @@ def verify_builder(lock_path: Path) -> None:
 class _OciArchive:
     def __init__(self, path: Path) -> None:
         self.path = path
+        flags = os.O_RDONLY | getattr(os, "O_CLOEXEC", 0) | getattr(os, "O_NOFOLLOW", 0)
+        descriptor: int | None = None
         try:
-            self._archive = tarfile.open(path, mode="r:*")  # noqa: SIM115
+            descriptor = os.open(path, flags)
+            self._stream = os.fdopen(descriptor, "rb")
+            descriptor = None
+        except OSError as exc:
+            if descriptor is not None:
+                os.close(descriptor)
+            raise VerificationError(f"cannot securely open OCI archive {path}: {exc}") from exc
+        try:
+            self._initial_state = os.fstat(self._stream.fileno())
+        except OSError as exc:
+            self._stream.close()
+            raise VerificationError(f"cannot inspect OCI archive {path}: {exc}") from exc
+        if not stat.S_ISREG(self._initial_state.st_mode):
+            self._stream.close()
+            raise VerificationError(f"OCI archive {path} must be one regular non-symlink file")
+        try:
+            self._archive = tarfile.open(fileobj=self._stream, mode="r:*")  # noqa: SIM115
         except (OSError, tarfile.TarError) as exc:
+            self._stream.close()
             raise VerificationError(f"cannot open OCI archive {path}: {exc}") from exc
         self._members: dict[str, tarfile.TarInfo] = {}
         try:
             self._index_members()
         except Exception:
-            self._archive.close()
+            self.close()
             raise
 
     def close(self) -> None:
         self._archive.close()
+        self._stream.close()
 
     def __enter__(self) -> _OciArchive:
         return self
@@ -348,6 +370,37 @@ class _OciArchive:
             raise VerificationError(f"short read for OCI archive member {name}")
         return payload
 
+    def sha256(self) -> str:
+        """Hash the securely opened descriptor without changing tarfile's shared offset."""
+
+        digest = hashlib.sha256()
+        offset = 0
+        while chunk := os.pread(self._stream.fileno(), 1024 * 1024, offset):
+            digest.update(chunk)
+            offset += len(chunk)
+        if offset != self._initial_state.st_size:
+            raise VerificationError(f"OCI archive {self.path} changed while being hashed")
+        return digest.hexdigest()
+
+    def verify_stable(self) -> None:
+        current = os.fstat(self._stream.fileno())
+        if (
+            current.st_dev,
+            current.st_ino,
+            current.st_size,
+            stat.S_IMODE(current.st_mode),
+            current.st_mtime_ns,
+            current.st_ctime_ns,
+        ) != (
+            self._initial_state.st_dev,
+            self._initial_state.st_ino,
+            self._initial_state.st_size,
+            stat.S_IMODE(self._initial_state.st_mode),
+            self._initial_state.st_mtime_ns,
+            self._initial_state.st_ctime_ns,
+        ):
+            raise VerificationError(f"OCI archive {self.path} changed during verification")
+
     def verify_blob(self, digest: str, expected_size: int | None = None) -> bytes:
         match = SHA256_DIGEST.fullmatch(digest)
         if match is None:
@@ -390,16 +443,13 @@ def verify_archive(lock_path: Path, archive_path: Path) -> ArchiveIdentity:
     expected_config = _required_digest(lock, "config_digest", "lock")
     expected_archive = _required_sha256_hex(lock, "archive_sha256", "lock")
     expected_layers = _locked_layers(lock)
-    try:
-        archive_sha256 = _sha256_file(archive_path)
-    except OSError as exc:
-        raise VerificationError(f"cannot hash OCI archive {archive_path}: {exc}") from exc
-    if archive_sha256 != expected_archive:
-        raise VerificationError(
-            f"OCI archive SHA-256 drift: expected {expected_archive}, got {archive_sha256}"
-        )
 
     with _OciArchive(archive_path) as archive:
+        archive_sha256 = archive.sha256()
+        if archive_sha256 != expected_archive:
+            raise VerificationError(
+                f"OCI archive SHA-256 drift: expected {expected_archive}, got {archive_sha256}"
+            )
         layout = _load_json_bytes(archive.read("oci-layout"), "oci-layout")
         if layout != OCI_LAYOUT:
             raise VerificationError("unexpected OCI layout version or fields")
@@ -478,6 +528,9 @@ def verify_archive(lock_path: Path, archive_path: Path) -> ArchiveIdentity:
         referenced = {image_digest, config_digest, *(layer.digest for layer in layer_identities)}
         if archive.blob_digests() != referenced:
             raise VerificationError("OCI archive contains missing or unreferenced blobs")
+        if archive.sha256() != archive_sha256:
+            raise VerificationError("OCI archive changed while its content closure was verified")
+        archive.verify_stable()
 
     return ArchiveIdentity(
         archive_sha256=archive_sha256,
@@ -569,6 +622,11 @@ def _parser() -> argparse.ArgumentParser:
     )
     archives.add_argument("--archive", action="append", type=Path, required=True)
 
+    archive = subparsers.add_parser(
+        "verify-archive", help="verify one distributed OCI archive against the exact lock"
+    )
+    archive.add_argument("--archive", type=Path, required=True)
+
     subparsers.add_parser("verify-loaded-image", help="verify the exact image loaded in Docker")
     return parser
 
@@ -588,6 +646,9 @@ def main(argv: Sequence[str] | None = None) -> int:
             print("verified exact Buildx and BuildKit identities")
         elif args.command == "verify-archives":
             identity = verify_archives(args.lock, args.archive)
+            print(json.dumps(asdict(identity), sort_keys=True, separators=(",", ":")))
+        elif args.command == "verify-archive":
+            identity = verify_archive(args.lock, args.archive)
             print(json.dumps(asdict(identity), sort_keys=True, separators=(",", ":")))
         elif args.command == "verify-loaded-image":
             verify_loaded_image(args.lock)

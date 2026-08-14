@@ -2,14 +2,16 @@
 
 - **Status:** Draft; deliberately unfrozen
 - **Draft version:** `0.1-draft`
-- **Last reviewed:** 2026-08-09
-- **Owning roadmap gate:** Phase 0, contract alignment
+- **Last reviewed:** 2026-08-12
+- **Owning roadmap gate:** Phase 2, freeze a state-bearing estimand
 
 This document defines the scientific question that the first cultured-cell population backend is
 intended to answer. It is complete enough to drive schema design and dataset representability
 reviews, but it is **not** a benchmark, support claim, or permission to train a biological model.
-The query, systems, horizons, targets, and thresholds become frozen only after the K562 and Live-seq
-representability proofs and benchmark review required by the roadmap.
+The query, systems, horizons, targets, and thresholds become frozen only through the Phase 2
+requirements in [`../roadmap.md`](../roadmap.md), which supersede the freeze conditions this
+document was written under. The K562 and Live-seq representability proofs are complete and are no
+longer the gating condition.
 
 ADR 0008 freezes a deliberately narrower sci-Plex3 K562 component benchmark: static experimental
 context plus an assigned compound-dose predicts a 24-hour captured-nucleus assay distribution on a
@@ -23,8 +25,12 @@ For a declared cultured-cell population at an inference cutoff, given only admis
 before that cutoff, estimate the query-relevant population belief and use it to predict calibrated
 future molecular or functional distributions under a bounded intervention and environment.
 
-The first candidate slice is a K562 population-response task. A549 and additional modalities are
-transport or expansion tasks until separately admitted. The system must not reduce the task to a
+The first candidate slice was a K562 population-response task, which has no admissible pre-cutoff
+evidence and one horizon and therefore cannot carry the sufficiency test.
+[ADR 0013](../adr/0013-state-first-roadmap-reordering.md) supersedes it with a state-bearing
+estimand; the cell system, source, and admission of that estimand are settled by the roadmap's
+source review, not here. A549 and additional modalities are transport or expansion tasks until
+separately admitted. The system must not reduce the task to a
 lookup of `endpoint ~ intervention + cell line`: the inferred belief must condition on a declared
 pre-cutoff evidence history, propagate uncertainty, and pass the state-only versus
 state-plus-history sufficiency test.
@@ -70,9 +76,10 @@ Later early-response variants may place `t > 0` after an intervention and assimi
 measurements. Each such variant is a distinct query with its own cutoff, eligible evidence, support,
 and leakage audit; it is not an implicit extension of the pre-intervention task.
 
-Candidate future horizons are in the roughly 3--72 hour range. The frozen benchmark will include
-only named horizons directly supported by admitted source records and will never infer temporal
-coverage from filenames or adjacent conditions.
+The frozen benchmark will declare at least two named horizons after the cutoff, will include only
+horizons directly supported by admitted source records, and will never infer temporal coverage from
+filenames or adjacent conditions. No horizon range is asserted in advance of source admission; the
+earlier 3--72 hour range was written for a superseded single-endpoint candidate.
 
 ## Formal belief and forecast
 
@@ -238,9 +245,16 @@ where comparable evidence exists.
 Primary metrics operate on returned distributions and include proper predictive scores,
 treatment-minus-control effect error, population-distribution distance, calibration coverage and
 sharpness, OOD risk--coverage, and the belief-only versus belief-plus-history sufficiency gap.
-Mandatory baselines include persistence/no change, matched-control resampling, perturbation mean,
-nearest supported condition, pseudobulk generalized linear models, simple dose/time hierarchical
-models, and a low-rank or linear state-space model where temporal evidence permits.
+Every metric suite frozen against this document carries at least one differential-expression-weighted
+and one rank-based metric; marginal error and all-gene correlation are maximized by predicting no
+change and never stand alone. Every verdict is reported with a bootstrap interval grouped at the
+declared independent experimental unit; a gain or a coverage error without an interval is not a
+verdict.
+
+Mandatory baselines are ledger entry `S9` in [`../roadmap.md`](../roadmap.md), plus a temporal
+state-space or low-rank model. Persistence and temporal state-space are not conditional here: a
+state-bearing estimand has the pre-cutoff observation and the second horizon that make them
+applicable, and they are the two comparisons that would show that the state carries information.
 
 No random-cell split, reconstruction score, cluster coherence, or embedding visualization can
 graduate this query.
@@ -249,11 +263,16 @@ graduate this query.
 
 This draft must remain unfrozen until all of the following are complete:
 
-1. ADR 0005 accepts the belief-subject and schema-v2 decision.
-2. The v2 query can encode the bounded domains and acceptance gates above.
-3. The compiled state contract represents active factors, realization, nuisance/context, and
-   out-of-query dimensions without fabricating support.
-4. Forecasts carry target aggregation, causal status, scientific support, and abstention.
+1. **Satisfied 2026-08-09:** [ADR 0005](../adr/0005-belief-subject-semantics.md) accepts the
+   belief-subject and schema-v2 decision.
+2. **Satisfied in Phase 0:** the v2 query encodes the bounded domains and acceptance gates above
+   through `NumericDomain`, `CategoricalDomain`, `ScalarRange`, `IntegerRange`, `ScheduleDomain`,
+   and `AcceptanceThresholds` in `src/cellstate/domain/query.py`.
+3. **Satisfied in Phase 0:** `CompiledStateSpecification` carries `active_factors`,
+   `excluded_factors`, `intervention_realization_dimensions`, `observation_nuisance_dimensions`,
+   and `context_modulator_dimensions`.
+4. **Satisfied in Phase 0:** forecasts carry target aggregation, causal status through
+   `CausalSupportReport`, scientific support, and typed abstention.
 5. **Satisfied 2026-08-09:** dataset manifest `0.3-experimental` allows independently scoped claim,
    loss, and metric eligibility. Concrete benchmark metric definitions and split membership remain
    blocker 8 rather than being inferred from this structural ledger.
@@ -267,5 +286,10 @@ This draft must remain unfrozen until all of the following are complete:
    runtime selector replay.
 8. Exact source-backed horizons, targets, intervention ranges, thresholds, splits, and baselines are
    approved in a versioned frozen benchmark manifest.
+9. The metrics this estimand will be scored on have executable implementations, and the sufficiency
+   and calibration harnesses return a verdict with an interval grouped at the independent
+   experimental unit. Both halves are now implemented, but neither harness has a caller outside
+   `tests/` and the frozen suite's own bindings remain `specification_only`, so a benchmark frozen
+   against this document still could not be run end to end.
 
 Until then, this document is a design input—not a scientific support claim.

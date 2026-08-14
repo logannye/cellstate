@@ -1,6 +1,10 @@
 # ADR 0008: freeze the first Vertical A component benchmark
 
-- **Status:** Accepted
+- **Status:** Accepted; the frozen benchmark definition stands as written. Its component was
+  reclassified off the state path by [ADR 0013](0013-state-first-roadmap-reordering.md), which
+  retains the partitions, split discipline, leakage review, and golden fixtures as infrastructure
+  and as the Phase 1 metric proving ground. The remaining admission work described under
+  "Admission boundary" below is no longer scheduled
 - **Date:** 2026-08-09
 - **Decision owners:** cellstate maintainers
 - **Scope:** Vertical A query and benchmark semantics
@@ -129,8 +133,9 @@ molecular baseline, validate multiple horizons, or authorize intervention planni
 
 - Replogle and Live-seq retain their separate representability roles; neither is substituted into
   this benchmark.
-- Phase 1 adapters may target this exact source and split only after the checked-in benchmark
-  artifact resolves.
+- Data adapters may target this exact source and split only after the checked-in benchmark artifact
+  resolves. This consequence was written against the superseded phase numbering; see
+  [ADR 0013](0013-state-first-roadmap-reordering.md).
 - The first biological backend must expose the lack of pre-cutoff molecular evidence and must not
   label condition lookup as a learned cellular belief.
 - A later complete Vertical A benchmark needs a replicated source with admissible pre-cutoff state,

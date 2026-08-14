@@ -1,5 +1,11 @@
 # Changelog
 
+This file records what happened, in the order it happened. Entries are never rewritten or removed.
+Some of the work recorded below was later reclassified, suspended, or retired by
+[ADR 0013](docs/adr/0013-state-first-roadmap-reordering.md); an entry that reads as in progress
+describes the state of that work when it was written, not the current plan.
+[`docs/roadmap.md`](docs/roadmap.md) is the sole authority for what is active.
+
 ## 0.2.0 - Unreleased
 
 - Move the active public runtime to schema v2 while preserving immutable v1 JSON Schemas and
@@ -99,7 +105,8 @@
   Gamma--Poisson model without `q`/capture, with fixed `r_theta=0.1`, deterministic row-local inner
   equilibration, and proposed unseen-plate context formed by uniformly selecting one complete
   observed `p1` `rho` row. Predeclare the future p2 calibration grid
-  `tau_j=exp(j/20)`, `j=-20,...,6`, without opening p2 or selecting a value. The exact reference
+  `tau_j=exp(j/20)`, `j=-20,...,6`, without reading p2 calibration values or selecting a value. The
+  exact reference
   runtime remains single-thread Linux `x86_64`, CPython 3.11.15, NumPy 2.4.6, SciPy 1.17.1, and
   `scipy-openblas` 0.3.31.188.0.
 - Record the audited v4 executions without issuing an artifact. The first report,
@@ -180,17 +187,117 @@
   `0400`/`0700` host binds without broadening their permissions.
   The parent accounts its 3,600-second budget before public staging and actively bounds every
   Docker command and wait; any returned staging overrun fails before container creation. An
-  independent 3,540-second in-container watchdog begins before protected-source open and covers
-  snapshot, fit, and close-reauthentication. Docker's memory and total-memory-plus-swap limits are
-  both 4 GiB, disabling additional swap. Source-free live probes pass for success, timeout with
-  descendants, cgroup OOM, supervisor death/watchdog recovery, anonymous-volume cleanup, no
-  canonical publication, and parent re-inventory and sealing of the exact worker stage.
+  independent 3,540-second TERM-first in-container watchdog begins before protected-source open and
+  covers snapshot, fit, and close-reauthentication. Exact status `124` identifies that watchdog.
+  Docker's memory and total-memory-plus-swap limits are both 4 GiB, disabling additional swap.
+  Source-free live probes pass for success, timeout with descendants, positive cgroup OOM evidence,
+  fail-closed ambiguous status `137`, supervisor death/watchdog recovery, anonymous-volume cleanup,
+  no canonical publication, and parent re-inventory and sealing of the exact worker stage.
+- Advance the contained execution, contained-training success, and contained-training terminal
+  observation schemas from `1.1.0` to `1.2.0`: Docker wait and cgroup OOM reporting can race, so the
+  parent boundedly accepts a late positive OOM flag but never treats a negative flag as proof.
+  Unresolved exit `137` is a worker failure, while the TERM-first watchdog is exactly exit `124`.
+  No migration is defined because no canonical `1.1.0` protected-run observation was issued and no
+  Item 12.3 execution was authorized or run.
 - Keep this completion strictly software-only. Item 12.2 opened no protected source, ran no real-
   `p1` fit, and issued no candidate artifact, plan, observation, evidence, materialization, or
-  lifecycle result; sci-Plex3 remains `SCAFFOLD`. A separately authorized, version-bound,
-  nonissuing real-`p1` v5 execution is proposed as Item 12.3 but is not authorized or run. The exact
-  OCI layout must still be loaded locally and is not claimed to be remotely published; durable
-  distribution of the locked archive is an Item 12.3 prerequisite.
+  lifecycle result; sci-Plex3 remains `SCAFFOLD`. The version-bound, nonissuing Item 12.3 protected
+  execution remains unauthorized and unrun. Its exact OCI layout is durably published as the
+  immutable, attested
+  `sciplex3-v5-runtime-20260811-locked` GitHub Release; reauthenticating that release under an exact
+  one-use authorization remains a pre-source execution gate.
+- Assemble the source-free **Item 12.3 authorization and execution-control plane** without creating
+  an authorization. Canonical proposal bytes bind a clean execution commit `C`; proposal-only child
+  `D` may add only those bytes. Manual dispatch from trusted `refs/heads/main` at exact `C` supplies
+  both the proposal SHA-256 and `D` commit. The workflow authenticates `D` only as inert object data
+  and the immutable asset-free attempt-release target, never checks it out or executes it, and remains
+  on `C`. A private one-use ledger and execution-start receipt, exact runtime preparation, a fixed
+  protected-source path, and no-retry/no-resume stop policy fail closed before source execution.
+- Record the complete source scope honestly. The 2,526,631,614-byte monolithic H5AD must transfer and
+  snapshot whole, and full-axis selector metadata including held-out selectors must be decoded to
+  resolve `p1`. Expression/raw-count decoding remains `p1-train`-only; held-out values, endpoints,
+  outcomes, scoring, emission, and lifecycle authority remain unavailable.
+- Separate three evidence roles: the asset-bearing immutable runtime release is provenance and
+  distribution only; the future immutable asset-free attempt release would globally consume one
+  proposal and permanently retain only a generic fallback; and the actual at-most-4,096-byte
+  sanitized terminal uses 90-day Actions artifact transport followed by exact reviewed repository
+  persistence. Source, stage, model, and canonical publication remain runner-confined and
+  nonissuing. No canonical pending proposal, approved digest, protected Item 12.3 run, or terminal
+  report currently exists.
+
+- Reorder the project around cell state as the primary object
+  ([ADR 0013](docs/adr/0013-state-first-roadmap-reordering.md)). Adopt a state-capability ledger
+  `S1`-`S10` as the sole measure of progress; a purpose test requiring every queue item to name the
+  capabilities it advances; a rule that authorization lands as its own merged change before the work
+  it authorizes; and a single `Q`-prefixed ordered queue that does not reuse the historical Item
+  1-12 numbering, which is bound into content-addressed manifests. Make Phase 1 the implementation
+  of the faithfulness tests and the measurement of the observational floor, add Phase 2 to freeze a
+  state-bearing estimand, and renumber the remaining phases. Reclassify the sci-Plex3 K562 24-hour
+  component off the state path to data, split, and metric-proving infrastructure: its estimand has
+  no admissible pre-cutoff observation and one horizon, so it cannot carry a sufficiency verdict.
+  Suspend the protected-execution control plane, enforced by a fail-closed first step in its
+  dispatch workflow. Retire the rank-16 continuous admixture candidate family for the state path,
+  carrying its corrected objective mathematics, equal-unit normalization constant, and
+  effective-context diagnostic into the Phase 4 model guidance. Enforce program rules 1 and 3 with
+  `tests/test_roadmap_queue_contract.py`; rules 2 and 4 remain conventions with no mechanical check.
+- Rewrite the README, the concept and validation documents, the architecture and component
+  documents, and the guides so that each states the object the project computes and defers to the
+  roadmap for status; mark the retired and suspended work historical wherever it was written in the
+  present tense.
+- Repair the Phase 1 completion condition
+  ([ADR 0014](docs/adr/0014-phase-1-completion-condition.md)). As written by ADR 0013, queue item
+  `Q1` and the first bullet of the Phase 1 graduation gate quantified over metric suites frozen under
+  the current roadmap, of which there are none and will be none before `Q5`; both were satisfied by
+  construction with no metric implementation written. Bind the condition instead to the frozen
+  sci-Plex3 metric-suite specification, to be enforced by a conformance test that resolves every
+  declared `metric_id`. Move the multiway clustered bootstrap the suite declares into `Q1`, where
+  both faithfulness harnesses can take their intervals from one estimator. Leave the frozen benchmark
+  artifact unchanged and defer the decision to re-version it with executable bindings to `Q3`, the
+  first item that would run the implementations against the frozen partitions. Correct the count of
+  the frozen suite: three `family` values across ten metrics, not "five metric families."
+- Implement the metric suite and its interval estimator (queue item `Q1`). Add
+  `cellstate.evaluation.metrics` with sample CRPS, the multivariate energy score, central predictive
+  intervals, marginal coverage error, marginal interval width, effect-profile RMSE, and the
+  equal-group mean, plus a differential-expression-weighted error and a rank-based score for suites
+  frozen from here on; every one of the ten `metric_id` entries the frozen sci-Plex3 suite declares
+  now resolves through `METRIC_IMPLEMENTATIONS`. Add `cellstate.evaluation.bootstrap` with the
+  multiway clustered bootstrap every metric in that suite binds. Fix the unbiased pairwise term at
+  `2 / (m (m - 1))`: the biased form rewards under-dispersion, which is the opposite of what a
+  posterior is asked to earn. References are closed forms and hand arithmetic, not recorded outputs.
+- Scale bootstrap interval endpoints by `t(min(K) - 1, 1 - alpha/2) / z(1 - alpha/2)`, and report the
+  unscaled percentile endpoints beside them. The multinomial pigeonhole bootstrap understates spread
+  when a dimension has few clusters, and the frozen benchmark's untouched-test partition has four
+  plates. Measured over 300 simulated two-way designs per seed at that shape, the unscaled interval
+  covers about 0.82 to 0.86 against a nominal 0.95 and the scaled interval about 0.96. Removing the
+  scale fails the recorded coverage reference.
+- Record two measured facts about the proving ground: its untouched-test partition holds 384 wells
+  across 95 compounds and four plates, computed from the membership arrays; and four clusters is at
+  the edge of what a bootstrap over that dimension can support. Both bear on `Q3` and on the
+  independent-replicate requirement Phase 2 places on a state-bearing estimand.
+- Make both faithfulness tests executable (queue item `Q2`). Add `evaluate_predictive_sufficiency`,
+  which takes one held-out loss per independent experimental unit from each of a paired `M1`/`M2`,
+  refuses to run unless the two declare equal capacity, bootstraps the paired per-unit difference
+  grouped at the declared dependence units, and reports the gain with its interval. Add
+  `fit_paired_ridge_losses`, a capacity-matched reference pair in which `M1` receives a permuted
+  history block where `M2` receives the real one, so equal capacity holds by construction and the
+  null comes with it. Add `evaluate_marginal_calibration`, reporting empirical coverage, its
+  absolute error, and a one-sided upper confidence bound on that error.
+- Carry the sampling distribution on both reports and enforce it
+  ([ADR 0015](docs/adr/0015-faithfulness-reports-carry-their-sampling-distribution.md)).
+  `SufficiencyReport` gains a grouped bootstrap interval and rejects an evaluated report without
+  one; the interval must describe the reported gain. `CalibrationReport` gains a coverage-error
+  upper bound and **gates its outcome on the bound rather than the point estimate**, so a point
+  estimate inside the threshold with a bound outside it now fails. Move `BootstrapInterval` from
+  `cellstate.evaluation.bootstrap` to `cellstate.domain.common`, since a serialized contract belongs
+  to the layer that owns serialization; the public import path is unchanged.
+- Keep the runtime `SchemaVersion` at `"2.0"`. Advancing the global literal would relabel the frozen,
+  hash-pinned `state-query.json` input contract on account of an output-side change that does not
+  touch it, and no stored artifact contains either report. The regenerated `schemas/v2/` diff is 429
+  insertions and no deletions, with no version string altered.
+- Record the harnesses' measured behaviour on two synthetic designs, 200 replications each: where the
+  target is generated from the state alone the interval covers zero 200 times out of 200 with a mean
+  gain of `-0.00003`; where the history also drives the target it covers zero 0 times out of 200 with
+  a mean gain of `+4.27`.
 
 ## 0.1.0 - Unreleased
 

@@ -1,5 +1,12 @@
 # Architecture overview
 
+The object this architecture exists to compute is a query-conditioned posterior over hidden cellular
+state, together with the evidence that the posterior is faithful. Every module below is instrumental
+to that: the contracts constrain what a state claim may assert, and the evaluation code decides
+whether the claim is supported. No biological backend is registered, so nothing described here has
+computed a state. [`../roadmap.md`](../roadmap.md) is the sole authority for implementation order and
+status.
+
 The framework uses a functional core and replaceable model backends.
 
 - `domain/` owns strict, deeply immutable, schema-versioned boundary objects. Nested mappings and
@@ -11,7 +18,11 @@ The framework uses a functional core and replaceable model backends.
 - `backends/` contains experimental content-addressed biological-bundle admission contracts and
   fail-closed biological component scaffolds; its presence never implies runtime admission.
 - `reference/` contains an opt-in linear-Gaussian vertical slice for contract testing.
-- `evaluation/` contains backend-independent calibration and sufficiency diagnostics.
+- `evaluation/` owns the two tests that define faithfulness — calibration and predictive
+  sufficiency — alongside the metric suite and clustered bootstrap they report through, and the
+  retained sci-Plex3 baseline and candidate harnesses. Both tests are executable and return a
+  verdict with a grouped interval; neither has a caller outside `tests/`, and the frozen suite's own
+  metric bindings remain `specification_only`. Pointing them at biology is the remainder of Phase 1.
 - `training/` names the composable intervention-focused training objective.
 
 The four top-level operations are deliberately distinct:
@@ -43,7 +54,10 @@ unavailable prediction when it lacks an output decoder. Planning objectives name
 query targets, and planners evaluate those output distributions—not backend-private latent
 coordinates.
 
-Measurement selection is not an optional annotation embedded in `CellStateBelief`. A
+Measurement selection is scheduled last, in Phase 8, because it consumes a calibrated state
+representation and cannot substitute for one; no backend implements it. Its contract is nevertheless
+kept separate from the belief, so that a future planner cannot read a number that was never computed:
+measurement selection is not an optional annotation embedded in `CellStateBelief`. A
 `MeasurementDecisionRequest` binds the parent belief to one intervention objective, at least two
 semantically distinct ordered candidate regimes, candidate assays, collection time, decision
 deadline, utility scale, and
@@ -52,17 +66,14 @@ each assay exactly once and either selects one, abstains below threshold, report
 when calculation was not performed, or reports `UNSUPPORTED` for a failed/out-of-support decision.
 Unavailable outcomes never use numeric sentinels.
 
-A supported numeric assay value is intervention-decision EVSI. Computing it requires all four of:
-
-1. a calibrated predictive distribution for each possible assay outcome;
-2. a valid hypothetical belief update conditional on each outcome;
-3. counterfactual replanning over the same bounded intervention candidates; and
-4. a declared decision utility on query targets at the objective horizon.
-
-Numeric EVSI is tied to the exact ordered decision-set fingerprint rather than a loose union of
-intervention labels. Thus different doses, schedules, and environment trajectories remain distinct,
-and a one-option or duplicated decision set cannot manufacture value. Transported EVSI additionally
-requires query permission and matching causal and transport domains.
+A supported numeric assay value is intervention-decision EVSI, which requires four independently
+auditable capabilities and is defined once, in
+[the planning section of the full-build architecture](full-buildout.md#planning-is-a-gated-downstream-capability).
+Posterior covariance reduction is not EVSI. Numeric EVSI is tied to the exact ordered decision-set
+fingerprint rather than a loose union of intervention labels, so different doses, schedules, and
+environment trajectories remain distinct and a one-option or duplicated decision set cannot
+manufacture value. Transported EVSI additionally requires query permission and matching causal and
+transport domains.
 
 Each assay evaluation stores one content-addressed evidence trace for each of those four criteria,
 with the exact request-scope fingerprint and a typed outcome. These traces are model-validation
@@ -93,14 +104,17 @@ counterfactual replanning model, or decision utility. It therefore returns a com
 `NOT_EVALUATED` recommendation with explicit reasons and no numeric value fields. It never labels
 generic covariance reduction as assay value of information.
 
-Direct endpoint response is not automatically a fifth cell-state operation. The first sci-Plex3
-task maps static K562 well context and intended compound-dose assignment directly to a future
-recovered-nucleus RNA distribution. Because it has no pre-cutoff molecular state observation, it
-implements the separate `PopulationAssayResponseModel` component protocol and may not return a
-`CellStateBelief`. Its biological-bundle contract classifies every proposed model stage, binds exact
-artifacts, and derives a lifecycle from training through locked evaluation. The checked-in scaffold
-has no weights and rejects execution; even a future admitted component would authorize only that
-exact assay-response surface, not estimation, evolution, planning, or measurement selection.
+Direct endpoint response is not a fifth cell-state operation. The sci-Plex3 K562 24-hour task maps
+static well context and intended compound-dose assignment directly to a future recovered-nucleus RNA
+distribution. Because it has no admissible pre-cutoff molecular observation, it implements the
+separate `PopulationAssayResponseModel` component protocol and may not return a `CellStateBelief`;
+[ADR 0013](../adr/0013-state-first-roadmap-reordering.md) reclassifies it off the state path, and it
+is retained as data, split, and metric-proving infrastructure. Its biological-bundle contract
+classifies every proposed model stage, binds exact artifacts, and derives a lifecycle from training
+through locked evaluation. The checked-in scaffold has no weights and rejects execution, its
+candidate family is retired for the state path and the control plane that would dispatch a fit is
+suspended, and even an admitted component would authorize only that exact assay-response surface —
+never estimation, evolution, planning, or measurement selection.
 
 The reference backend requires complete past intervention, environment, lineage, and
 neighborhood/contact records. It rejects input features its synthetic likelihood/dynamics do not

@@ -2,13 +2,21 @@
 
 ## Mission
 
-`cellstate` estimates a query-conditioned probability distribution over hidden, causally relevant
-cellular state. It is a belief-state and forecasting system, not a cell-labeler, embedding service,
-or claim that one universal minimal cellular state exists.
+This project builds one thing: a system that computes a faithful and accurate representation of
+hidden cellular state. `cellstate` estimates a query-conditioned probability distribution over
+hidden, causally relevant cellular state and forecasts its future under declared interventions. It
+is not a cell-labeler, an embedding service, or a claim that one universal minimal cellular state
+exists.
 
-The repository currently contains backend-neutral contracts and a deliberately narrow
-linear-Gaussian reference backend. That backend is for software and contract validation only. It is
-not a biologically or clinically validated cell model.
+Everything else here — contracts, schemas, manifests, admission machinery, benchmark tooling,
+containment, runtime infrastructure — is instrumental. None of it is an end, and work that advances
+no state capability is not scheduled. A change that presents instrumental work as the project's
+substance is misaligned regardless of how well it is engineered.
+
+The repository currently contains backend-neutral contracts, dataset and benchmark admission
+machinery, and a deliberately narrow linear-Gaussian reference backend. That backend is for
+software and contract validation only. It is not a biologically or clinically validated cell
+model.
 
 ## Architectural invariants
 
@@ -55,65 +63,65 @@ not a biologically or clinically validated cell model.
 - Maintain frozen tests for held-out future times, doses, interventions/mechanisms, combinations,
   donors/cell lines, environments, lineages, modalities, and entire external studies.
 - Evaluate future-target proper scores, calibration, intervention effects, predictive sufficiency,
-  OOD risk/coverage, and decision regret. UMAP or cluster appearance is not core validation.
-- Compare against persistence, matched-control, perturbation-mean, nearest-condition, simple linear
-  or hierarchical models, and other query-appropriate baselines.
+  out-of-support risk-coverage, and decision regret. UMAP or cluster appearance is not core
+  validation.
+- Beat the observational floor: persistence, matched control, condition mean, nearest condition,
+  pseudobulk GLM, and simple hierarchical and low-rank baselines, each individually, with an
+  interval that excludes zero. The mandatory set is ledger entry `S9` in `docs/roadmap.md`; do not
+  restate a shorter list here.
 - Test predictive sufficiency by comparing equally capable predictors using belief-only versus
-  belief-plus-raw-history inputs. Narrow the query or expand the state when history still helps.
+  belief-plus-raw-history inputs. The gain must carry a bootstrap interval grouped at the declared
+  independent experimental unit; a gain reported without an interval is not a verdict. Narrow the
+  query or expand the state when history still helps.
 - Report causal status explicitly: associative, identified population effect, transported under
   stated assumptions, mechanistic extrapolation, or unsupported.
 
 ## Current milestone
 
-Phase 0 is active. The experimental public-data/claim manifest `0.3-experimental` supports
-canonical repeated claim assessments, exact loss/metric eligibility, layered permission
-resolution, content-addressed dataset slices, interval-valued evidence clocks, and machine-checked
-reviewed representability ledgers. Those ledgers validate bound declarations and attestations; the
-current verifier does not resolve source bytes or replay selectors. Schema v2 enforces typed
-subjects, destructive evidence, bounded query
-support, query-compiled state, perturbation realization, scientific readiness/abstention, causal
-status, and standalone decision-oriented measurement selection. The Replogle K562 destructive-
-population proof and the GSE141064 Live-seq individual functional-recorder proof passed on
-2026-08-09 without authorizing data use or admitting either source for model training. The first
-Vertical A component benchmark is now frozen around the corrected sci-Plex3 K562 24-hour endpoint,
-with exact well/plate partitions and an explicit `COMPONENT_BENCHMARK` result. Its assessment and
-permission gates pass, but its executable metric, leakage, baseline, and performance gates have not
-run, so it is not scientifically admitted. The experimental biological-bundle contract and first
-population assay-response scaffold are now in place. The scaffold exhaustively maps all original
-model stages, exposes no public cell-state operation, contains no trained weights, and rejects
-execution. Its direct context-and-assignment to 24-hour assay response is not a hidden-state belief.
-Contract v0.1 now implements the trusted admission boundary around those declarations. It streams
-exact-byte verification, accepts real-data execution sources only from an authenticated typed-
-workflow selection, authenticates isolated loader and semantic-evaluator observations against
-external nonserialized HMAC trust roots, checks loaded objects against an application-owned
-interface registry, distinguishes verified validation semantics from passed results, recompiles
-query-dependent prerequisites, and returns only just-in-time reverified runtime handles. Persisted
-receipts never authorize execution by themselves; one immutable code snapshot is both hashed and
-loaded by the registry-owned trusted JIT loader, so independently supplied objects cannot borrow
-admitted bytes. The sci-Plex3 artifact remains a non-executable `SCAFFOLD`. Item 11 completed its
-immutable `p1` loader, close-reauthenticated count scan, and six mandatory non-admissible baselines.
-Item 12 candidate revisions v1–v4 all failed closed without issuing a model, prediction, metric,
-calibration, or lifecycle result. Item 12.1a's exact harness, tests, parent driver, and historical
-reports are canonical under `audits/item12_1a`. A source-code audit subsequently confirmed that v4's
-dose objective omits the full ELBO's `94785/768` equal-well multiplier, so v4 is retired and the
-planned real-`p1` Item 12.1b replay must not run. Item 12.2 has now completed its source-free v5
-software scope: one exact equal-well objective and compatible all-well action/context M-step;
-independently checked derivatives and nondecrease; exact-positive, request-bounded sampling;
-immutable-generation atomic publication; exact executable/input/staged-output closure; reproducible
-Linux `amd64` OCI identities whose clean-final archive is byte-identical across three independent
-native and emulated builder environments under frozen inputs and toolchain; and parent-owned whole-
-container wall/memory containment with host-effective UID/GID filesystem isolation on native Linux.
-The final image excludes build-host caches, and its exact Buildx/BuildKit authority is frozen by the
-runtime lock and workflow. It opened no protected source, ran no real-`p1` fit, and issued no
-candidate artifact, plan, observation, evidence, or lifecycle result. The component therefore
-remains `SCAFFOLD`. The next proposed milestone, Item 12.3, is a separately authorized, version-
-bound, nonissuing real-`p1` v5 execution; it is not authorized and has not run. Durable distribution
-of the exact locally loaded OCI archive is a
-prerequisite to any such authorization; the image is not claimed to be remotely published.
-Protected `p2`, `p3`, and `p4` raw UMI count-matrix/endpoint bytes, outcomes, and lifecycle scoring
-authority remain sealed; their frozen split membership and benchmark-design metadata are public and
-are not an access grant. No biological runtime or validated belief may be registered
-before its separate operation-specific admission and scientific gates pass.
+Phase 1 is active: make the faithfulness tests executable and measure the observational floor.
+
+Phase 0 is complete. Schema v2 enforces typed subjects, destructive evidence, bounded query support,
+query-compiled state, perturbation realization, scientific readiness and abstention, causal status,
+and standalone decision-oriented measurement selection. Manifest `0.3-experimental` carries
+claim-specific eligibility, content-addressed slices, interval-valued evidence clocks, and
+machine-checked reviewed representability ledgers, which validate bound declarations and attestations
+without resolving source bytes or replaying selectors.
+
+A biological backend **is** registered and beliefs **have** been emitted from real cells. The
+`gse274113` RNA observation model fits on CRISPRi-perturbed human CD34+ progenitors — 14 libraries,
+137,604 cells, a 100-gene panel declared a priori — and `estimate_arm("rep1", "GATA1")` returns a
+typed `CellStateBelief` from a bare checkout in under a second. Its capability measurements are
+computed, reproduce from committed bytes, and are pinned by tests. The three sentences that stood
+here previously ("no biological backend is registered", "no belief has been emitted by a biological
+model", "the repository has produced no scientific number") were true when written and have been
+false since PR #27; the README retracted them in PR #34 and this file did not.
+
+What remains true: **no benchmark is scientifically admitted, and the eligibility ledger is 0 of 10.**
+No metric implementation exists in any frozen suite, `evaluate_marginal_calibration` and the
+sufficiency functions still have no caller outside tests, and the observational floor is unmeasured.
+
+The negative capability measurements are largely verdicts on the **deposit** rather than on the
+model. GSE274113's CRISPRi arm is a measured null — mean on-target knockdown is about −0.06 log₂
+fold-change with 6 of 19 targets moving the wrong way — so S2, S4 and S5 divide by a between-target
+biology variance that the perturbation never created. The matrix the biology basis is fitted on has
+the same singular-value profile as the placebo contrast. **Hardening the instrument cannot move the
+ledger on this substrate**; a source selection can. Screen a candidate corpus for on-target effect
+before spending bytes on it (`scripts/explore.py knockdown` and `spectrum` are that screen).
+
+The sci-Plex3 K562 24-hour component remains a non-executable `SCAFFOLD` and its benchmark remains
+`COMPONENT_BENCHMARK`, not admitted. Its estimand has no admissible pre-cutoff observation and one
+horizon, so it cannot carry a sufficiency verdict. It is retained as data and split infrastructure and
+as the Phase 1 metric proving ground, not as a step toward the purpose. Its `p2`, `p3`, and `p4`
+endpoint values, outcomes, and scoring authority remain hard sealed; public split and design metadata
+are not an access grant.
+
+The Item 12.3 protected-execution control plane is suspended by the roadmap and fails closed on
+dispatch. No proposal is to be approved and no protected execution is to be dispatched. The rank-16
+continuous admixture candidate family is retired for the state path. Historical Item 11 and 12.x bytes
+under `audits/`, `benchmarks/`, and `containers/`, and ADRs 0011 and 0012, are frozen evidence, not
+executable work. See ADR 0013 for the reordering and its rationale.
+
+Next work is the implementation queue in `docs/roadmap.md`, in order.
 
 `docs/roadmap.md` is the sole authority for sequence and status. The full target architecture lives
 in `docs/architecture/full-buildout.md`; accepted rationale lives in ADRs. The sanitized local audit
@@ -130,5 +138,14 @@ model.
   before changing subject or sampling semantics.
 - Preserve user changes in a dirty worktree. Keep changes focused and add acceptance tests in
   proportion to scientific and software risk.
+- Name the ledger capabilities a change advances. A change that advances none is not scheduled.
+  A commit that amends the roadmap may not also implement the work it authorizes. A change to phase
+  order, to the ledger, or to a graduation gate requires a contemporaneous ADR.
+- Cite artifacts and ADRs, never roadmap queue IDs, in any document other than `docs/roadmap.md`.
+  Queue IDs are ordinals in the current queue and are not stable identifiers; the historical
+  Item 1-12 numbering is bound into content-addressed manifests and must never be reused.
+- Treat `audits/`, `benchmarks/`, `data_manifests/`, and `containers/` as frozen evidence, and
+  accepted ADRs and `CHANGELOG.md` entries as historical records. Amend an ADR's Status line;
+  never rewrite its body or its decision.
 - Prefer manifest-driven, reproducible workflows. Record assumptions and support limits in model
   and dataset cards rather than leaving them implicit in notebooks.

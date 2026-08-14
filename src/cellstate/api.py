@@ -850,6 +850,9 @@ def estimate_cell_state(
 ) -> CellStateBelief:
     """Estimate a query-conditioned belief only after exact compilation and preflight."""
 
+    # Called for its refusals, not its value: it rejects an invalid descriptor and disables
+    # biological runtime execution.  The causal gate below no longer reads the descriptor at all,
+    # which is the point of that change.
     _validated_public_model_descriptor(estimator)
     resolved_options = options or InferenceOptions()
     state_specification = _compile_query(estimator, request.query)
@@ -942,6 +945,35 @@ def estimate_cell_state(
         raise ContractViolationError(
             "belief cannot claim causal/control readiness while required historical "
             f"intervention-realization evidence is unresolved: {realization_gaps}"
+        )
+
+    # The identification gate is on the ARTIFACT'S STANDING, never on its label.  It read
+    # `descriptor.artifact_kind is EMPIRICAL_OBSERVATION_MODEL` until this was measured: the same
+    # estimator, the same bytes and the same belief, relabelled `synthetic_test_model`, were
+    # ACCEPTED with `identified_population_effect` while the empirical label was refused.  A
+    # denylist keyed on the kind hands the strongest claim to whichever kind nobody enumerated,
+    # and here it had inverted the ordering outright -- the label with the weakest provenance
+    # carried the most privilege.  ADR 0021 decision 3 required the opposite in as many words: the
+    # new kind "cannot be used as a route around the admission registry", enforced in code "because
+    # a convention that nothing checks is a guard that cannot fire".
+    #
+    # Standing means admission through the content-addressed registry.  No descriptor can carry that
+    # today -- there is no field for it, and the registry is not executable (ADR 0021 decision 4) --
+    # so the refusal is currently unconditional, which is the fail-closed reading.  When the
+    # registry becomes executable this gains `and not descriptor.admission_receipt`; no artifact
+    # kind is named here then either.
+    #
+    # It sits BELOW the specific checks above deliberately.  Placed before them it fired first and
+    # shadowed "intervention-realization evidence is unresolved" with a generic refusal, which is a
+    # worse diagnostic for the same rejection.  This is the backstop, not the first responder.
+    if belief.diagnostics.causal_support.causal_status in {
+        CausalStatus.IDENTIFIED_POPULATION_EFFECT,
+        CausalStatus.TRANSPORTED_UNDER_ASSUMPTIONS,
+    }:
+        raise CapabilityError(
+            "no estimator may return an identified or transported population effect; "
+            "identification is gated by the content-addressed admission registry, which admits "
+            "nothing yet, and no artifact kind is exempt"
         )
     for realization in belief.intervention_realizations:
         intervention = events_by_id.get(realization.intervention_event_id)

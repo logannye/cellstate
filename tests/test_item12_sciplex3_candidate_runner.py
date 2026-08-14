@@ -227,6 +227,7 @@ def test_contained_runtime_lock_binds_builder_archive_and_layer_closure() -> Non
     policy, code_closure, _, image_lock = runner.contained_training_contracts(REPOSITORY_ROOT)
 
     assert image_lock.runtime_image == policy.runtime_image
+    assert policy.worker_command[:3] == ("--signal=TERM", "--kill-after=5s", "3540")
     assert image_lock.training_code_closure_sha256 == code_closure.fingerprint
     assert image_lock.archive_sha256 == (
         "37c2fa5846acfbd8357476859bd7f8f0ac6591261d79c2f6f46f0aa22fb76454"

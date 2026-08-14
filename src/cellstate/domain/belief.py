@@ -12,6 +12,7 @@ from pydantic import Field, JsonValue, field_validator, model_validator
 
 from .common import (
     SCHEMA_VERSION,
+    BootstrapInterval,
     CausalStatus,
     CriterionOutcome,
     EvidenceStatus,
@@ -257,6 +258,13 @@ class SufficiencyReport(SchemaModel):
     history_information_gain: float | None = None
     markov_sufficiency_score: float | None = Field(default=None, ge=0, le=1)
     maximum_history_information_gain: float = Field(ge=0)
+    history_information_gain_interval: BootstrapInterval | None = None
+    # The share of offered units that carried an admissible pre-cutoff observation and therefore
+    # entered the paired comparison.  Required when evaluated, because a gain averaged over units on
+    # which the question was never asked is diluted toward zero -- and zero is the sufficient
+    # direction -- while those units contribute no spread, so the interval narrows at the same time.
+    # Bias and false precision from one cause.  See ADR 0017.
+    retained_unit_fraction: float | None = Field(default=None, gt=0, le=1)
     metric: str | None = None
     residual_predictive_history_features: tuple[str, ...] = ()
     suspected_missing_state_variables: tuple[str, ...] = ()
@@ -281,7 +289,31 @@ class SufficiencyReport(SchemaModel):
             value is not None for value in values
         ):
             raise ValueError("an unevaluated sufficiency report must not contain numeric sentinels")
+        if self.evaluation_status is not EvaluationStatus.EVALUATED and (
+            self.history_information_gain_interval is not None
+            or self.retained_unit_fraction is not None
+        ):
+            raise ValueError(
+                "an unevaluated sufficiency report cannot carry an interval or a retained fraction"
+            )
         if self.evaluation_status is EvaluationStatus.EVALUATED:
+            # A gain without a sampling distribution grouped at the independent experimental unit
+            # is a number, not a verdict.  See ADR 0015.
+            if self.history_information_gain_interval is None:
+                raise ValueError(
+                    "an evaluated sufficiency report requires a grouped bootstrap interval on the "
+                    "history information gain"
+                )
+            # A comparison in which no unit carried a pre-cutoff observation is inapplicable, not
+            # sufficient.  Measured: with every history block absent the harness returned gain
+            # 0.0000 over the interval [0.0000, 0.0000] and PASSED -- the strongest certificate the
+            # contract can express, earned by the absence of evidence.  ``gt=0`` on the field makes
+            # the zero case unrepresentable; this makes omitting it unrepresentable too.  ADR 0017.
+            if self.retained_unit_fraction is None:
+                raise ValueError(
+                    "an evaluated sufficiency report requires the fraction of offered units that "
+                    "carried an admissible pre-cutoff observation"
+                )
             state_only = require_finite(cast(float, self.state_only_loss), name="state-only loss")
             state_plus_history = require_finite(
                 cast(float, self.state_plus_history_loss), name="state-plus-history loss"
@@ -297,9 +329,23 @@ class SufficiencyReport(SchemaModel):
                     "history information gain must equal state-only loss minus "
                     "state-plus-history loss"
                 )
-            expected = CriterionOutcome.PASSED if gain <= threshold else CriterionOutcome.FAILED
+            interval = self.history_information_gain_interval
+            if not math.isclose(interval.point_estimate, gain, rel_tol=1e-9, abs_tol=1e-12):
+                raise ValueError(
+                    "the interval must be the sampling distribution of the reported gain"
+                )
+            # The verdict gates on the upper end of the interval, not the point estimate: a gain
+            # inside the tolerance whose interval reaches past it is an underpowered comparison,
+            # not evidence of sufficiency.  ADR 0015 made this argument for calibration; ADR 0016
+            # applies it to the sufficiency test it was written alongside.
+            expected = (
+                CriterionOutcome.PASSED if interval.upper <= threshold else CriterionOutcome.FAILED
+            )
             if self.outcome is not expected:
-                raise ValueError("sufficiency outcome must agree with its declared threshold")
+                raise ValueError(
+                    "sufficiency outcome must agree with its declared threshold, which is applied "
+                    "to the upper end of the gain interval"
+                )
         return self
 
 
@@ -482,7 +528,9 @@ class CalibrationReport(SchemaModel):
     empirical_coverage: float | None = Field(default=None, ge=0, le=1)
     minimum_coverage: float = Field(ge=0, le=1)
     calibration_error: float | None = Field(default=None, ge=0)
+    calibration_error_upper_bound: float | None = Field(default=None, ge=0)
     maximum_calibration_error: float = Field(ge=0)
+    coverage_interval: BootstrapInterval | None = None
     metric: str | None = None
     notes: tuple[str, ...] = ()
 
@@ -492,22 +540,75 @@ class CalibrationReport(SchemaModel):
         values = (
             self.empirical_coverage,
             self.calibration_error,
+            self.calibration_error_upper_bound,
         )
         if self.evaluation_status is EvaluationStatus.EVALUATED and any(
             value is None for value in values
         ):
-            raise ValueError("evaluated calibration requires coverage and its threshold")
+            raise ValueError(
+                "evaluated calibration requires coverage, its error, and an upper confidence "
+                "bound on that error"
+            )
         if self.evaluation_status is not EvaluationStatus.EVALUATED and any(
             value is not None for value in values
         ):
             raise ValueError("unevaluated calibration cannot use numeric sentinels")
+        if (
+            self.evaluation_status is not EvaluationStatus.EVALUATED
+            and self.coverage_interval is not None
+        ):
+            raise ValueError("an unevaluated calibration report cannot carry an interval")
         if self.evaluation_status is EvaluationStatus.EVALUATED:
+            error = require_finite(cast(float, self.calibration_error), name="calibration error")
+            bound = require_finite(
+                cast(float, self.calibration_error_upper_bound),
+                name="calibration error upper bound",
+            )
+            if bound < error:
+                raise ValueError("an upper confidence bound cannot lie below the error it bounds")
+            # The bound is the quantity the outcome gates on, so it has to be *checkable*.  A
+            # bound the caller types by hand is a certificate that is filed and never presented:
+            # the gate would be defeated by writing a small number.  ADR 0016 therefore requires
+            # the interval and rebuilds the bound from it.
+            if self.coverage_interval is None:
+                raise ValueError(
+                    "an evaluated calibration report requires the grouped bootstrap interval its "
+                    "upper confidence bound is derived from"
+                )
+            coverage = require_finite(
+                cast(float, self.empirical_coverage), name="empirical coverage"
+            )
+            if not math.isclose(
+                self.coverage_interval.point_estimate, coverage, rel_tol=1e-9, abs_tol=1e-12
+            ):
+                raise ValueError(
+                    "the interval must be the sampling distribution of the reported coverage"
+                )
+            # ``nominal`` is not carried on the report, but it is recoverable: the error is the
+            # absolute deviation of coverage from nominal, so nominal is one of two values.  The
+            # bound must be the one this interval implies for one of them.
+            if not any(
+                math.isclose(
+                    bound,
+                    max(
+                        abs(self.coverage_interval.lower - nominal),
+                        abs(self.coverage_interval.upper - nominal),
+                        error,
+                    ),
+                    rel_tol=1e-9,
+                    abs_tol=1e-12,
+                )
+                for nominal in (coverage - error, coverage + error)
+            ):
+                raise ValueError(
+                    "the upper confidence bound must be the larger absolute deviation of the "
+                    "coverage interval's endpoints from nominal"
+                )
+            # S6 asks whether the coverage error is within threshold as an upper bound.  A point
+            # estimate inside the threshold with a bound outside it is not a pass.  See ADR 0015.
             expected = (
                 CriterionOutcome.PASSED
-                if (
-                    cast(float, self.empirical_coverage) >= self.minimum_coverage
-                    and cast(float, self.calibration_error) <= self.maximum_calibration_error
-                )
+                if (coverage >= self.minimum_coverage and bound <= self.maximum_calibration_error)
                 else CriterionOutcome.FAILED
             )
             if self.outcome is not expected:
