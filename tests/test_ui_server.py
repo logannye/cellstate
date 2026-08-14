@@ -13,9 +13,16 @@ every test a repository has unless one is written to catch it.
 
 from __future__ import annotations
 
+import os
+
 import pytest
 
-pytest.importorskip("fastapi", reason="the web UI needs the 'ui' extra")
+if os.environ.get("CELLSTATE_REQUIRE_UI") == "1":
+    # CI sets this. A suite that skips itself is a lane that cannot report, so where the extra is
+    # supposed to be installed, its absence has to be a failure rather than a silent pass.
+    import fastapi  # noqa: F401
+else:
+    pytest.importorskip("fastapi", reason="the web UI needs the 'ui' extra")
 
 from fastapi.testclient import TestClient
 
