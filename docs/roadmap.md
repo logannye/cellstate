@@ -542,9 +542,10 @@ required before any operational biological claim.
   `cellstate.evaluation` and nothing outside that package calls it, so the delegate exists but the
   production path to it does not yet.
 
-  What the project has not done at all is apply the tests to biology: no baseline has been scored
-  against any other, no observational floor is measured, and no belief has been emitted by a
-  biological model.
+  What the project has not done is apply the *faithfulness tests* to biology: no baseline has been
+  scored against any other and no observational floor is measured. A belief **has** been emitted by
+  a biological model since `Q5`/`Q7` — the sentence here said otherwise until it was corrected, and
+  the two capability measurements those items delivered are negative.
 
   Two results from `Q1` bear on later items. First, the frozen benchmark's untouched-test partition
   contains **four plates** and 95 compounds across 384 wells, computed from its membership arrays.
@@ -570,8 +571,9 @@ required before any operational biological claim.
   experiment that already happened, so the next milestone is source selection against criteria
   fixed before a source is named.
 - **Phases 3–8:** not started.
-- **Biological backends registered:** none. No belief has been emitted by a biological model.
-- **Benchmarks scientifically admitted:** none.
+- **Biological backends registered:** one, `gse274113` (RNA observation model, human CD34+
+  progenitors). Beliefs have been emitted from real cells since `Q5`/`Q7`.
+- **Benchmarks scientifically admitted:** none. The eligibility ledger is 0 of 10.
 
 The cultured-cell population-response component frozen against a single-timepoint destructive drug
 screen remains at `SCAFFOLD`, and its benchmark remains `COMPONENT_BENCHMARK`, not admitted. Its
@@ -760,8 +762,8 @@ not yet decomposed into items and must not be started from prose.
    `estimate_cell_state` for every arm of a held-out library, under the
    `empirical_observation_model` kind authorized by
    [ADR 0021](adr/0021-an-admissible-kind-for-a-fitted-observation-model.md). The S4 contrast is
-   measured in shared biology coordinates with both halves reported — placebo `NT_B − NT_A` at 2.90
-   [1.95, 4.03] against perturbed `target − NT` at 3.08 [2.30, 3.87] — and the bands **overlap**, so
+   measured in shared biology coordinates with both halves reported — placebo `NT_B − NT_A` at 2.03
+   [1.44, 2.67] against perturbed `target − NT` at 2.09 [1.62, 2.56] — and the bands **overlap**, so
    the `do` operator does not discriminate a perturbation from a placebo and **S4 is not advanced**.
    The S2 spread ratio is 0.84 [0.71, 0.98] against a requirement of >1, so **S2 is not advanced**.
 
