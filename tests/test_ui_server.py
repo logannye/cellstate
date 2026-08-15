@@ -210,3 +210,50 @@ def test_the_placebo_halves_are_not_answerable_as_arms() -> None:
     """NT_A and NT_B are in the counts but are not targets; asking for one is a 404, not a crash."""
 
     assert client.get("/api/arm/rep1/NT_A").status_code == 404
+
+
+# --------------------------------------------------------------------- S6 calibration
+
+
+def test_the_calibration_endpoint_serves_the_published_s6() -> None:
+    """The values ADR 0024 quotes, through HTTP."""
+
+    payload = client.get("/api/calibration").json()
+    assert payload["nominal_probability"] == 0.90
+    assert payload["empirical_coverage"] == pytest.approx(0.8836, abs=5e-4)
+    assert payload["calibration_error_upper_bound"] == pytest.approx(0.0548, abs=5e-4)
+    assert payload["maximum_calibration_error"] == 0.05
+    assert payload["outcome"] == "failed"
+    assert payload["unit_count"] == 14
+    assert len(payload["by_library"]) == 14
+
+
+def test_the_calibration_endpoint_carries_both_decompositions() -> None:
+    """A single coverage number invites two wrong readings; both correctives ship with it."""
+
+    payload = client.get("/api/calibration").json()
+    assert payload["standard_deviation"] == pytest.approx(1.2848, abs=5e-4)
+    assert payload["trimmed_standard_deviation"] == pytest.approx(1.0045, abs=5e-4)
+    assert payload["depth_coverage_correlation"] == pytest.approx(-0.8573, abs=5e-3)
+    depths = [row["depth"] for row in payload["by_library"]]
+    assert min(depths) > 0 and max(depths) > 5 * min(depths)
+
+
+def test_the_calibration_endpoint_takes_no_rank_arguments() -> None:
+    """S6's estimand is fixed at the fitted configuration, so the route offers no knob.
+
+    FastAPI ignores unknown query parameters, so the check that matters is that the value does not
+    move -- not that the request is refused.
+    """
+
+    baseline = client.get("/api/calibration").json()["empirical_coverage"]
+    off = client.get("/api/calibration", params={"biology_rank": 7}).json()["empirical_coverage"]
+    assert off == baseline
+
+
+def test_the_arm_abstention_names_the_calibration_failure() -> None:
+    """The belief's reasons are reprinted, not summarized, so S6 reaches the page that shows it."""
+
+    reasons = client.get("/api/arm/rep1/GATA1").json()["reasons"]
+    assert any(reason.startswith("S6 calibration FAILED") for reason in reasons)
+    assert any("criteria not met:" in reason for reason in reasons)

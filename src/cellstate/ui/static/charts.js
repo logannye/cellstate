@@ -378,4 +378,110 @@ export function panelStrip(genes, { width = 1180, height = 150 } = {}) {
   return node;
 }
 
+/* ------------------------------------------------------------------ S6: the trimmed tail
+ *
+ * Two bars against a reference line at 1.0, which is where a calibrated spread sits. The whole
+ * point is the distance between them: untrimmed the standardized residuals spread 1.28, and
+ * removing 2% of the outcomes brings that to 1.00. A ratio reports only the first and reads as a
+ * uniform scale error; these two together say it is a tail.
+ */
+export function trimmedTail(data, { width = 460, height = 190 } = {}) {
+  const node = svg(width, height, 'Spread of standardized residuals, before and after trimming');
+  const pad = { l: 140, r: 58, t: 22, b: 34 };
+  const bars = [
+    { label: 'all 1,400', value: data.standard_deviation, colour: 'var(--series-b)' },
+    {
+      label: `trimming ${Math.round(data.trimmed_fraction * 100)}%`,
+      value: data.trimmed_standard_deviation,
+      colour: 'var(--series-a)',
+    },
+  ];
+  const hi = Math.max(...bars.map((b) => b.value), 1.0) * 1.12;
+  const X = (v) => pad.l + (v / hi) * (width - pad.l - pad.r);
+  const rowHeight = (height - pad.t - pad.b) / bars.length;
+
+  const one = X(1.0);
+  node.appendChild(el('line', {
+    x1: one, y1: pad.t - 6, x2: one, y2: height - pad.b, stroke: 'var(--ink-3)',
+    'stroke-width': 1.5, 'stroke-dasharray': '4 3',
+  }));
+  node.appendChild(el('text', {
+    x: one, y: pad.t - 10, 'text-anchor': 'middle', class: 'num', fill: 'var(--ink-3)',
+  }, 'calibrated = 1.00'));
+
+  bars.forEach((bar, index) => {
+    const y = pad.t + index * rowHeight + rowHeight * 0.22;
+    const barHeight = rowHeight * 0.46;
+    const rect = el('rect', {
+      x: pad.l, y, width: Math.max(X(bar.value) - pad.l, 1), height: barHeight,
+      fill: bar.colour, rx: 3,
+    });
+    rect.appendChild(el('title', {}, `${bar.label}: sd ${fmt(bar.value, 4)}`));
+    node.appendChild(rect);
+    node.appendChild(el('text', {
+      x: pad.l - 10, y: y + barHeight / 2 + 4, 'text-anchor': 'end', class: 'lbl',
+      fill: 'var(--ink-2)',
+    }, bar.label));
+    node.appendChild(el('text', {
+      x: X(bar.value) + 8, y: y + barHeight / 2 + 4, class: 'num', fill: 'var(--ink)',
+      'font-weight': 600,
+    }, fmt(bar.value, 4)));
+  });
+  node.appendChild(el('text', {
+    x: pad.l, y: height - 8, class: 'ax', fill: 'var(--ink-3)',
+  }, `sd of z · largest |z| = ${fmt(data.largest_absolute_score, 2)}`));
+  return node;
+}
+
+/* ------------------------------------------------------------------ S6: coverage against depth
+ *
+ * One point per library, coverage against log panel depth, with the nominal drawn across. The
+ * pooled number is a single value; this is the thing it averages over, and it is not flat.
+ */
+export function coverageByDepth(rows, nominal, { width = 460, height = 250 } = {}) {
+  const node = svg(width, height, 'Per-library coverage against panel depth');
+  const pad = { l: 52, r: 20, t: 18, b: 46 };
+  const logs = rows.map((r) => Math.log10(r.depth));
+  const lo = Math.min(...logs);
+  const hi = Math.max(...logs);
+  const covers = rows.map((r) => r.coverage);
+  const cLo = Math.min(...covers, nominal) - 0.04;
+  const cHi = Math.max(...covers, nominal) + 0.03;
+  const X = (d) => pad.l + ((Math.log10(d) - lo) / (hi - lo || 1)) * (width - pad.l - pad.r);
+  const Y = (c) => height - pad.b - ((c - cLo) / (cHi - cLo || 1)) * (height - pad.t - pad.b);
+
+  for (let g = 0; g <= 4; g += 1) {
+    const value = cLo + ((cHi - cLo) * g) / 4;
+    node.appendChild(el('line', {
+      x1: pad.l, y1: Y(value), x2: width - pad.r, y2: Y(value), stroke: 'var(--rule)',
+    }));
+    node.appendChild(el('text', {
+      x: pad.l - 8, y: Y(value) + 4, 'text-anchor': 'end', class: 'num', fill: 'var(--ink-3)',
+    }, value.toFixed(2)));
+  }
+  node.appendChild(el('line', {
+    x1: pad.l, y1: Y(nominal), x2: width - pad.r, y2: Y(nominal), stroke: 'var(--warn)',
+    'stroke-width': 1.5, 'stroke-dasharray': '5 3',
+  }));
+  node.appendChild(el('text', {
+    x: width - pad.r, y: Y(nominal) - 6, 'text-anchor': 'end', class: 'num', fill: 'var(--warn)',
+  }, `nominal ${nominal.toFixed(2)}`));
+
+  rows.forEach((row) => {
+    const dot = el('circle', {
+      cx: X(row.depth), cy: Y(row.coverage), r: 5,
+      fill: row.coverage >= nominal ? 'var(--series-a)' : 'var(--series-b)',
+      stroke: 'var(--surface)', 'stroke-width': 2,
+    });
+    dot.appendChild(el('title', {},
+      `${row.library}: coverage ${fmt(row.coverage, 3)} at depth ${Math.round(row.depth).toLocaleString()}`));
+    node.appendChild(dot);
+  });
+  node.appendChild(el('text', {
+    x: (pad.l + width - pad.r) / 2, y: height - 8, 'text-anchor': 'middle', class: 'ax',
+    fill: 'var(--ink-3)',
+  }, 'replicate panel depth (log₁₀)'));
+  return node;
+}
+
 export { fmt };

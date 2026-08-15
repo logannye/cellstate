@@ -220,6 +220,38 @@ in the nuisance block. S5 fails because its **denominator** is near zero. ADR 00
 five-fold (3.07 → 0.609), a large real improvement in exactly what S5 names, and S5 barely moved
 because the signal fell with it (0.257 → 0.109).
 
+### 9. `calibration` — S6, and why a ratio was hiding the diagnosis
+
+```bash
+uv run python scripts/explore.py calibration
+```
+
+The only readiness criterion this backend evaluates. It scores the *same* evidence S2 does — ADR
+0023's split-half replicate — but counts coverage instead of aggregating into a ratio, and the two
+disagree:
+
+```
+  empirical coverage          :     0.8836
+  cluster bootstrap interval  : [0.8452, 0.9220]   K=14
+  calibration error           :     0.0164
+  UPPER BOUND on that error   :     0.0548   <- the gate reads THIS
+  predeclared maximum         :     0.0500
+```
+
+**The point estimate passes both thresholds. The bound does not.** A criterion reporting its point
+estimate would have called this calibrated; ADR 0015 says gate on the bound, and that is the whole
+difference between a pass and a fail here.
+
+Two decompositions ship with the number because a single coverage figure invites two wrong readings:
+
+- **The failure is a tail, not a scale error.** Trim the worst 2% of the 1,400 gene-library outcomes
+  and the standardized spread goes 1.2848 → 1.0045 — the spread is exactly earned. S2's 0.8415 reads
+  as "uniformly 16% too narrow" and implies inflating ψ². That would push the already-conservative
+  98% into over-coverage and still miss a 9.5σ outlier. **The two statistics point opposite ways.**
+- **Coverage runs against depth**, 0.94 in the shallowest library to 0.76 in the deepest,
+  `corr = −0.857`. That is the failure ψ² exists to prevent. ⚠️ Depth and differentiation day are
+  collinear here and this design cannot separate them.
+
 ## What to do from here
 
 The system is functional, runs on real data, and is iterable — the bar it was built to. What it is

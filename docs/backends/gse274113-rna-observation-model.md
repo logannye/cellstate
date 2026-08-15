@@ -122,8 +122,8 @@ half unfailable, which is the inert-`do` defect ADR 0019 names explicitly.
 
 **Advanced, on held evidence: none.**
 
-S5, S2 and S4 were measured on held-out libraries after this card was first written, with intervals
-grouped at the library, and **all three failed**. The measurements are computed by
+S5, S2, S4 and S6 were measured on held-out libraries after this card was first written, with
+intervals grouped at the library, and **all four failed**. The measurements are computed by
 `evaluation/gse274113_reports.py` and reproduce from the committed slice.
 
 | | Measured | Interval | Required | |
@@ -132,6 +132,13 @@ grouped at the library, and **all three failed**. The measurements are computed 
 | S2 earned spread | 0.84 | [0.71, 0.98] | > 1 | fails |
 | S4 null half (placebo) | 2.03 | [1.44, 2.67] | below the perturbed band | fails |
 | S4 non-null half | 2.09 | [1.62, 2.56] | above the null band | fails |
+| S6 calibration coverage | 0.8836 | [0.8452, 0.9220] | \|error\| bound ≤ 0.05 | fails |
+
+S6 was added by [ADR 0024](../adr/0024-s6-is-measured-and-readiness-is-derived.md) and is the first
+readiness criterion this backend evaluates rather than declares. **It fails on the bound alone**:
+the point estimate clears the 0.85 floor and its error of 0.0164 sits well inside 0.05, but the
+interval reaches 0.8452 so the error could plausibly be 0.0548. Per ADR 0015 the gate reads the
+bound. Across eight bootstrap seeds the bound ranges 0.0532–0.0565 and the verdict does not move.
 
 These are the values **after** [ADR 0022](../adr/0022-the-technical-variance-is-evaluated-at-a-pooled-rate.md),
 measured against bounds that decision fixed before the run. The pre-ADR values were 19.22, 0.22,
@@ -238,6 +245,39 @@ This is user-visible on the advertised readout. `describe_state` prints `rep1/NT
 `biology_0 +1.227, MPO+0.33 CD79A−0.31` and `rep16/NT` as `biology_0 −1.285, CD79A+0.34 MPO−0.33` —
 the same direction of haematopoietic biology, printed with opposite sign, with nothing saying so.
 
+**S6's shortfall is a tail, not a scale error, and S2 cannot tell the difference.**
+S2 reports 0.8415 — an RMS ratio of claimed spread to realized error — which reads as *"the
+interval is uniformly about 16 percent too narrow"*, and the repair that reading implies is a larger
+`psi²`. Standardizing the same residuals and trimming says otherwise:
+
+| outcomes removed | sd of z | implied S2-style ratio |
+| --- | --- | --- |
+| none (1,400) | 1.2848 | 0.7784 |
+| worst 1% (14) | 1.1121 | 0.8992 |
+| **worst 2% (28)** | **1.0045** | **0.9955** |
+| worst 5% (70) | 0.8178 | 1.2228 |
+
+**Twenty-eight of 1,400 gene-library outcomes carry the entire shortfall.** With them removed the
+spread is exactly earned. The bulk of the panel is *better* than the interval claims — coverage at
+nominal 0.50 is 0.66, where a uniform 1.28× inflation predicts 0.43 — and a handful of genes sit far
+outside it, the largest at 9.47 standard deviations. Inflating `psi²` would push the
+already-conservative 98% into over-coverage while still falling far short of a 9.5σ outlier. The two
+statistics imply opposite repairs; the ratio is the misleading one. Neither repair is made here.
+
+**Coverage is not homogeneous across the deposit, and it runs against depth.** Per-library coverage
+falls from 0.94 in the shallowest library to 0.76 in the deepest, with
+`corr(log depth, coverage) = −0.857` over 14 libraries. This is the failure `likelihood.py` names
+`psi²` as the defence against — *"more sequencing depth is mistaken for more knowledge about the
+biology"*. ADR 0022 stopped `psi²` being clamped in all fourteen folds; it did not stop this. The
+technical share of the observation variance falls from 0.55 to 0.35 across the depth range while
+`psi²` stays near 0.055.
+
+⚠️ **Depth and differentiation day are collinear in this deposit and cannot be separated.** Panel
+depth rises with day by construction, and within a day the depth range is too narrow to resolve
+anything — the three day-11 libraries span 720k–768k counts and their coverages span 0.83–0.85. The
+gradient is real; which of the two drives it is **not identified here**, and no re-analysis of this
+deposit will identify it.
+
 Aligning the bases by orthogonal Procrustes moves **S5 from 10.36 to 9.23** (−11%) and the
 between-target signal from **0.109 to 0.129** (+18%); sign-alignment alone — the minimum
 unarguable correction, since \|cos\| ≈ 0.99 means the same axis — gives 9.84 and 0.121. Recomputed
@@ -255,7 +295,7 @@ is 3 × 81.30 against 4 × 0.609, or 100×. In gene space, where the question is
 denominator is what fails — is unaffected at any of these values. But 134 is not the number the
 sentence claims.
 
-**Reachable but not yet reported with intervals:** S6, S8.
+**Reachable but not yet reported with intervals:** S8.
 
 **Structurally unreachable on this evidence, and not claimed:**
 

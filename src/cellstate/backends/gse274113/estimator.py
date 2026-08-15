@@ -74,6 +74,7 @@ from ...ports.models import (
     QueryCompilerDescriptor,
     estimation_capability_scope_fingerprint,
 )
+from .arm_request import S6_NOMINAL_PROBABILITY
 from .fit import FittedFold
 from .likelihood import posterior
 
@@ -108,7 +109,14 @@ class GSE274113ObservationEstimator:
         query: StateQuery,
         slice_fingerprint: str,
         panel_fingerprint: str,
+        calibration: CalibrationReport,
     ) -> None:
+        # `calibration` is required and has no default on purpose.  A default would have let a
+        # construction site forget it and silently emit a belief whose calibration read
+        # NOT_EVALUATED again -- which is precisely the state this argument exists to end, and a
+        # failure mode that leaves no trace at the call site.  Making it required moves the
+        # omission from a silent runtime downgrade to a type error.
+        self._calibration = calibration
         self._fold = fold
         self._query = query
         self._slice_fingerprint = slice_fingerprint
@@ -360,6 +368,10 @@ class GSE274113ObservationEstimator:
         state_specification = self.compile(request.query)
         evidence_ids = (observation.event_id,)
         descriptor = self.descriptor
+        # Built once and handed to `_readiness`, so the criteria the belief reports and the
+        # diagnostics `coherent_contract` checks them against are the same object rather than two
+        # constructions that agree today.
+        diagnostics = self._diagnostics()
 
         return CellStateBelief(
             subject=request.history.subject,
@@ -401,8 +413,8 @@ class GSE274113ObservationEstimator:
             ),
             dynamics=self._dynamics(),
             uncertainty=self._uncertainty(counts, panel_total, target, covariance),
-            diagnostics=self._diagnostics(),
-            readiness=self._readiness(),
+            diagnostics=diagnostics,
+            readiness=self._readiness(diagnostics),
             provenance=ProvenanceRecord(
                 support_envelope_id=descriptor.support_envelope_id,
                 support_envelope_fingerprint=descriptor.support_envelope_fingerprint,
@@ -596,15 +608,14 @@ class GSE274113ObservationEstimator:
                 ),
                 notes=("no decision is requested of an observation model",),
             ),
-            calibration=CalibrationReport(
-                evaluation_status=EvaluationStatus.NOT_EVALUATED,
-                outcome=CriterionOutcome.NOT_EVALUATED,
-                minimum_coverage=self._query.acceptance_thresholds.minimum_calibration_coverage,
-                maximum_calibration_error=(
-                    self._query.acceptance_thresholds.maximum_calibration_error
-                ),
-                notes=("calibration is reported by the fold's held-out report, not per arm",),
-            ),
+            # S6, measured. The note this replaced read "calibration is reported by the fold's
+            # held-out report, not per arm" -- a forward reference to a report that existed
+            # nowhere in the repository, so the criterion had been NOT_EVALUATED since the backend
+            # shipped while appearing to defer to something.  It is a deposit-level quantity, not
+            # a per-arm one, and that part of the note was right: every arm's belief carries the
+            # same S6, because the split-half replicate the estimand is built on exists only on
+            # `NT`.  See `measure_calibration_coverage`.
+            calibration=self._calibration,
             causal_support=CausalSupportReport(
                 evaluation_status=EvaluationStatus.NOT_EVALUATED,
                 outcome=CriterionOutcome.NOT_EVALUATED,
@@ -616,33 +627,64 @@ class GSE274113ObservationEstimator:
             ),
         )
 
-    def _readiness(self) -> QueryReadinessReport:
+    def _readiness(self, diagnostics: BeliefDiagnostics) -> QueryReadinessReport:
+        """Derive the readiness criteria; do not declare them.
+
+        **`abstention_required` used to be the literal `True`.**  It was the right answer, and it
+        was not a measurement: nothing computed it, so nothing could ever have computed it
+        differently, and a reader had no way to tell a belief that abstains from a belief that
+        cannot do anything else.  A criterion that cannot come out the other way is the defect this
+        repository keeps naming, and it was sitting in the field the whole contract turns on.
+
+        It is now derived.  Abstention is required unless **every** criterion PASSED, so today it
+        is still `True` -- six criteria remain NOT_EVALUATED and the seventh, calibration, is
+        measured and FAILED.  The difference is that the belief now says which, in
+        `reasons`, and the field would change on its own if the criteria ever did.
+        """
+
+        # Every criterion is stated exactly once, here, and read from the diagnostics report that
+        # `coherent_contract` cross-checks it against.  `measurement_model` is the exception and
+        # says so: it read PASSED once, and it is the one criterion `coherent_contract` cannot
+        # contradict, because the other six have a `BeliefDiagnostics` counterpart and it has none.
+        # So it asserted itself.  The result was a belief reading "not valid for prediction, not
+        # valid for control, abstention required -- but valid for measurement selection", from a
+        # query declaring `available_assays=()`.  Until a measurement-model report exists to be
+        # checked against, NOT_EVALUATED is the only claim this backend can support.
+        criteria = {
+            "support": diagnostics.support.outcome,
+            "sufficiency": diagnostics.sufficiency.outcome,
+            "identifiability": diagnostics.identifiability.outcome,
+            "decision_uncertainty": diagnostics.decision_uncertainty.outcome,
+            "calibration": diagnostics.calibration.outcome,
+            "causal": diagnostics.causal_support.outcome,
+            "measurement_model": CriterionOutcome.NOT_EVALUATED,
+        }
+        reasons = [
+            "predictive sufficiency is inapplicable: no library spans the inference cutoff",
+            "this belief is a snapshot state estimate, not a faithfulness verdict",
+        ]
+        if criteria["calibration"] is CriterionOutcome.FAILED:
+            reasons.append(
+                f"S6 calibration FAILED: the predictive interval covers "
+                f"{self._calibration.empirical_coverage:.4f} of the split-half replicate at a "
+                f"nominal {S6_NOMINAL_PROBABILITY:.2f}, and the upper confidence bound on the "
+                f"error is {self._calibration.calibration_error_upper_bound:.4f} against a "
+                f"predeclared {self._query.acceptance_thresholds.maximum_calibration_error:.2f}"
+            )
+        unmet = sorted(
+            name for name, outcome in criteria.items() if outcome is not CriterionOutcome.PASSED
+        )
+        if unmet:
+            reasons.append("criteria not met: " + ", ".join(unmet))
         return QueryReadinessReport(
-            support=CriterionOutcome.NOT_EVALUATED,
-            sufficiency=CriterionOutcome.NOT_EVALUATED,
-            identifiability=CriterionOutcome.NOT_EVALUATED,
-            decision_uncertainty=CriterionOutcome.NOT_EVALUATED,
-            calibration=CriterionOutcome.NOT_EVALUATED,
-            causal=CriterionOutcome.NOT_EVALUATED,
-            # `measurement_model` read PASSED, and it is the one criterion `coherent_contract`
-            # cannot contradict: the other six are cross-checked against a `BeliefDiagnostics`
-            # report and this one has no counterpart to check against.  So it asserted itself.
-            # The result was a belief reading "not valid for prediction, not valid for control,
-            # abstention required -- but valid for measurement selection", from a query declaring
-            # `available_assays=()`.  The reference estimator shows what earning it looks like:
-            # `linear_gaussian.py` derives each criterion from `diagnostics.*.outcome` and reports
-            # this one UNSUPPORTED.  Until a measurement-model report exists to be checked against,
-            # NOT_EVALUATED is the only claim this backend can support.
-            measurement_model=CriterionOutcome.NOT_EVALUATED,
+            **criteria,
             control_requested=True,
             valid_for_prediction=False,
             valid_for_control=False,
             valid_for_measurement_selection=False,
             # Abstention is the honest result, not a failure: the sufficiency test this project
-            # defines faithfulness by is inapplicable on evidence with no spanning unit.
-            abstention_required=True,
-            reasons=(
-                "predictive sufficiency is inapplicable: no library spans the inference cutoff",
-                "this belief is a snapshot state estimate, not a faithfulness verdict",
-            ),
+            # defines faithfulness by is inapplicable on evidence with no spanning unit.  What is
+            # new is that it is computed from the criteria above rather than asserted beside them.
+            abstention_required=bool(unmet),
+            reasons=tuple(reasons),
         )

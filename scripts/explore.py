@@ -713,6 +713,82 @@ def _block_coefficients(
 # --------------------------------------------------------------------------------------------
 
 
+def cmd_calibration(_: argparse.Namespace) -> None:
+    """S6: does the predictive interval contain the replicate at the rate it claims? (ADR 0024)"""
+
+    from cellstate.backends.gse274113.arm_request import S6_NOMINAL_PROBABILITY, arm_query
+    from cellstate.evaluation.gse274113_reports import (
+        calibration_shape_diagnostics,
+        measure_calibration_coverage,
+    )
+
+    slice_data = _slice()
+    thresholds = arm_query(slice_data.targets, model_fingerprint="0" * 64).acceptance_thresholds
+    print("fitting 14 leave-one-library-out folds ...", flush=True)
+    report = measure_calibration_coverage(
+        slice_data,
+        minimum_coverage=thresholds.minimum_calibration_coverage,
+        maximum_calibration_error=thresholds.maximum_calibration_error,
+    )
+    shape = calibration_shape_diagnostics(slice_data)
+
+    verdict = "PASS" if report.outcome.value == "passed" else "FAIL"
+    print()
+    print(RULE)
+    print(f"S6 CALIBRATION COVERAGE -- nominal {S6_NOMINAL_PROBABILITY:.2f}   [{verdict}]")
+    print(RULE)
+    print(f"  empirical coverage          : {report.empirical_coverage:10.4f}")
+    print(
+        f"  cluster bootstrap interval  : "
+        f"[{report.coverage_interval.lower:.4f}, {report.coverage_interval.upper:.4f}]   K=14"
+    )
+    print(f"  calibration error           : {report.calibration_error:10.4f}")
+    print(
+        f"  UPPER BOUND on that error   : {report.calibration_error_upper_bound:10.4f}"
+        f"   <- the gate reads THIS"
+    )
+    print(f"  predeclared maximum         : {thresholds.maximum_calibration_error:10.4f}")
+    print(f"  predeclared coverage floor  : {thresholds.minimum_calibration_coverage:10.4f}")
+    print(
+        "\n  The point estimate PASSES both thresholds. The bound does not. A criterion that\n"
+        "  reported its point estimate would have called this calibrated (ADR 0015)."
+    )
+
+    print()
+    print(RULE)
+    print("WHERE THE FAILURE LIVES -- S2 says 'uniformly too narrow'; it is not")
+    print(RULE)
+    print(f"  sd of standardized residuals        : {shape.standard_deviation:8.4f}")
+    print(
+        f"  ... trimming the worst {shape.trimmed_fraction:.0%} (28/1400) : "
+        f"{shape.trimmed_standard_deviation:8.4f}   <- the spread is EARNED"
+    )
+    print(f"  largest standardized residual       : {shape.largest_absolute_score:8.2f}")
+    print(
+        "\n  2% of the outcomes carry the whole S2 failure. The bulk of the panel is BETTER than\n"
+        "  the interval claims (coverage at nominal 0.50 is 0.66). Inflating psi^2 -- the repair\n"
+        "  S2's ratio implies -- would push 98% into over-coverage and still miss a 9.5-sigma\n"
+        "  outlier. The two readings point opposite ways; the ratio is the misleading one."
+    )
+
+    print()
+    print(RULE)
+    print("COVERAGE BY LIBRARY -- the gradient the pooled number hides")
+    print(RULE)
+    print(f"  {'library':<10}{'coverage':>10}")
+    for library, coverage in shape.coverage_by_library:
+        flag = "  <- deepest" if coverage == min(v for _, v in shape.coverage_by_library) else ""
+        print(f"  {library:<10}{coverage:>10.3f}{flag}")
+    print(f"\n  corr(log depth, coverage) = {shape.depth_coverage_correlation:+.4f}   (n=14)")
+    print(
+        "\n  likelihood.py names psi^2 as the defence against 'more sequencing depth mistaken for\n"
+        "  more knowledge about the biology'. On this evidence it does not hold: the technical\n"
+        "  share falls 0.55 -> 0.35 across the depth range while psi^2 stays near 0.055.\n"
+        "\n  WARNING: depth and differentiation day are collinear here and CANNOT be separated --\n"
+        "  depth rises with day, and within a day the range is too narrow to resolve anything."
+    )
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="explore.py",
@@ -758,6 +834,8 @@ def build_parser() -> argparse.ArgumentParser:
     add("knockdown", cmd_knockdown, "did the perturbation reach the readout? (positive control)")
     add("day", cmd_day, "the differentiation readout: does the panel see real biology?")
     add("spectrum", cmd_spectrum, "is there structure for the biology basis to find?")
+
+    add("calibration", cmd_calibration, "S6: does the interval cover at the rate it claims?")
 
     measure = add("measure", cmd_measure, "the shipped capability measurements S2, S4, S5")
     measure.add_argument(
