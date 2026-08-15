@@ -15,8 +15,8 @@ evaluation design, including the formal estimand and the belief-subject semantic
 implementation order and graduation gates, and is the sole authority for both.
 
 **If you are starting work:** the active phase is Phase 1 and the next action is item `Q6` of the
-[implementation queue](#implementation-queue). `Q1` is delivered; `Q2` is delivered in substance but
-incomplete against its own done-when; `Q3` is delivered and the sufficiency verdict now fails
+[implementation queue](#implementation-queue). `Q1` is delivered; `Q2` is delivered, its
+non-test-caller clause closed by ADR 0024; `Q3` is delivered and the sufficiency verdict now fails
 closed; `Q4` is decided, with a negative result, and owes a reviewed manifest. **`Q5` and `Q7` are
 delivered, and their measurements are negative** — see below. `Q5`'s predeclaration clause, unmet on
 its first run, is satisfied for the re-run by
@@ -519,16 +519,26 @@ required before any operational biological claim.
 - **Phase 0:** complete.
 - **Phase 1:** active. `Q1` is delivered: every `metric_id` the frozen sci-Plex3 suite declares
   resolves to an implementation, and the multiway clustered bootstrap those metrics bind is
-  implemented and its coverage measured. `Q2` is **incomplete against its own done-when**. Both
-  faithfulness tests execute, return an interval, and are enforced by their serialized contracts, and
-  the clause requiring non-test callers is now **fully** met. `evaluate_predictive_sufficiency` got
-  one from `Q3`: `src/cellstate/evaluation/query_sufficiency.py` computes the applicability judgment
-  from the request and calls the harness. `evaluate_marginal_calibration` got one from
-  [ADR 0024](adr/0024-s6-is-measured-and-readiness-is-derived.md):
-  `src/cellstate/evaluation/gse274113_reports.py` calls it to measure S6 on the committed GSE274113
-  slice, reached from `backends/gse274113/usage.py` on every belief and from `ui/server.py`, and it
-  returns **FAILED** — so the caller is a live one whose verdict a shipped path depends on, not a
-  formality. `Q2`'s done-when is met.
+  implemented and its coverage measured. `Q2` is **delivered**, and all three clauses of its
+  done-when were checked rather than assumed:
+
+  1. *both functions have non-test callers.* `evaluate_predictive_sufficiency` got one from `Q3` —
+     `src/cellstate/evaluation/query_sufficiency.py` computes the applicability judgment from the
+     request and calls the harness. `evaluate_marginal_calibration` got one from
+     [ADR 0024](adr/0024-s6-is-measured-and-readiness-is-derived.md):
+     `src/cellstate/evaluation/gse274113_reports.py` calls it to measure S6 on the committed
+     GSE274113 slice, reached from `backends/gse274113/usage.py` on **every belief** and from
+     `ui/server.py`, and it returns **FAILED** — a live caller whose verdict a shipped path depends
+     on, not a formality.
+  2. *both reports carry intervals.* `SufficiencyReport.history_information_gain_interval` and
+     `CalibrationReport.coverage_interval`.
+  3. *the harness returns the correct verdict on a sufficient and an insufficient synthetic design.*
+     `tests/test_q2_faithfulness_harnesses.py`, both directions, for both harnesses.
+
+  ⚠️ **This does not revive the claim withdrawn below.** `Q2` delivered means its three done-when
+  clauses are met. It does not mean the project can recognize a faithful representation — that
+  claim stays withdrawn, for the reason given in the next paragraph, and S6's first real verdict
+  being FAILED is not an argument against it either way.
 
   This paragraph read "`evaluate_marginal_calibration` still has none — it is called from no file in
   `src/`, `scripts/`, or `examples/` — and that, not the sufficiency harness, is `Q2`'s remaining
@@ -657,7 +667,8 @@ not yet decomposed into items and must not be started from prose.
    where history demonstrably drives the target — so a query with no admissible pre-cutoff evidence
    receives the strongest certificate of sufficiency the contract can express. `sufficiency.py`
    delegates that applicability judgment to the query and its benchmark; no caller exists to make it,
-   which is also why `Q2`'s "non-test callers" clause is unmet. Authorized by
+   which is also why `Q2`'s "non-test callers" clause is unmet *(as scheduled; both callers now
+   exist — this item supplied the sufficiency one and ADR 0024 the calibration one)*. Authorized by
    [ADR 0017](adr/0017-the-sufficiency-verdict-must-fail-closed.md): the module refuses an
    inapplicable design rather than passing it; units lacking a pre-cutoff observation are excluded
    from the paired comparison; the retained fraction becomes a required report field and a retained
