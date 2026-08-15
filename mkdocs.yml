@@ -36,7 +36,9 @@ nav:
       - The web UI: guides/the-web-ui.md
       - Add a backend: guides/add-a-backend.md
       - Migrate v1 to v2: guides/migrate-v1-to-v2.md
-  - Validation: validation/scientific-validation.md
+  - Validation:
+      - Doctrine: validation/scientific-validation.md
+      - Scoring path, first run on real cells: validation/sciplex3-scoring-path-first-run.md
   - Decisions:
       - Belief distributions: adr/0001-belief-state.md
       - Event histories: adr/0002-event-history.md
