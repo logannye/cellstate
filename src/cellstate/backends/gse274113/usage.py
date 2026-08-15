@@ -39,7 +39,7 @@ from pathlib import Path
 import numpy as np
 
 from ...api import estimate_cell_state
-from ...domain.belief import CellStateBelief, StateFactor
+from ...domain.belief import CalibrationReport, CellStateBelief, StateFactor
 from ...domain.distributions import ParametricDistribution
 from .arm_request import arm_query, arm_request
 from .estimator import GSE274113ObservationEstimator
@@ -103,6 +103,33 @@ def load_arm_slice(directory: Path | None = None) -> ArmSlice:
     return ArmSlice.from_payload(json.loads((resolved / "arms.json").read_text(encoding="utf-8")))
 
 
+@lru_cache(maxsize=4)
+def _calibration(
+    directory: Path, minimum_coverage: float, maximum_calibration_error: float
+) -> CalibrationReport:
+    """S6 for the whole deposit, computed once and shared by every fold's estimator.
+
+    **It is computed, never stored.**  Fitting all fourteen folds and bootstrapping the coverage
+    takes about a fifth of a second on the committed slice, which is cheap enough that there is no
+    reason to commit the number as an artifact -- and committing it would recreate the failure mode
+    this project keeps finding, where a recorded claim and the code that would check it drift apart
+    without anything going red.  There is nothing here to drift: the belief reports whatever the
+    slice currently measures.
+    """
+
+    # Imported here, not at module scope: `evaluation` measures `backends`, so the module-level
+    # import would close a cycle through `backends/gse274113/__init__.py`.  It did, and the whole
+    # suite stayed green -- 34 tests passed while `import cellstate.evaluation.gse274113_reports`
+    # as a program's FIRST import raised ImportError, because no test ever imported in that order.
+    from ...evaluation.gse274113_reports import measure_calibration_coverage
+
+    return measure_calibration_coverage(
+        load_arm_slice(directory),
+        minimum_coverage=minimum_coverage,
+        maximum_calibration_error=maximum_calibration_error,
+    )
+
+
 @lru_cache(maxsize=32)
 def _fold_and_estimator(
     library: str, directory: Path | None = None
@@ -127,14 +154,23 @@ def _fold_and_estimator(
         "slice_fingerprint": _digest(resolved / "arms.json"),
         "panel_fingerprint": _digest(resolved / "panel.json"),
     }
+    placeholder = arm_query(slice_data.targets, model_fingerprint=_PLACEHOLDER_FINGERPRINT)
+    # The two thresholds are read off the query rather than restated, so the pair the report is
+    # scored against cannot drift from the pair the belief validates against.  `CellStateBelief`
+    # rejects a mismatch outright, so a restated constant would turn a silent divergence into a
+    # loud one -- but reading them here means there is nothing to diverge.
+    calibration = _calibration(
+        resolved,
+        placeholder.acceptance_thresholds.minimum_calibration_coverage,
+        placeholder.acceptance_thresholds.maximum_calibration_error,
+    )
     seed = GSE274113ObservationEstimator(
-        fold,
-        query=arm_query(slice_data.targets, model_fingerprint=_PLACEHOLDER_FINGERPRINT),
-        **digests,
+        fold, query=placeholder, calibration=calibration, **digests
     )
     estimator = GSE274113ObservationEstimator(
         fold,
         query=arm_query(slice_data.targets, model_fingerprint=seed.model_fingerprint),
+        calibration=calibration,
         **digests,
     )
     return fold, estimator

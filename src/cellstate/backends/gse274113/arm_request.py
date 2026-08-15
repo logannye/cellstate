@@ -84,9 +84,31 @@ MODALITY = OntologyTerm(label="RNA-seq")
 SPECIES = OntologyTerm(label="Homo sapiens")
 SYSTEM = OntologyTerm(label="cultured human CD34-positive haematopoietic progenitor")
 
+S6_NOMINAL_PROBABILITY = 0.90
+"""The nominal probability S6's predictive intervals are scored at.
+
+**It is read off the two thresholds below, not chosen.**  ``minimum_calibration_coverage=0.85`` and
+``maximum_calibration_error=0.05`` were written into ``arm_query`` before any coverage number
+existed.  Together they require the coverage to lie in ``[nominal - 0.05, nominal + 0.05]`` *and* to
+clear 0.85, and the two constraints coincide at exactly one nominal:
+
+    nominal - 0.05 >= 0.85   =>   nominal = 0.90
+
+It lives here, beside the pair that forces it, rather than in the evaluation module that uses it --
+partly because that is where its justification is, and partly because the other direction is a
+**circular import**: ``evaluation`` measures ``backends``, so nothing under ``backends`` may import
+``evaluation`` at module scope.  See ``test_every_module_imports_first``.
+
+Fixing the nominal from an earlier declaration is the point.  This repository already carries two
+thresholds a correct computation could not fail -- ``maximum_ood_score=0.99`` here, and
+``maximum_calibration_error=1`` in ``examples/estimate_state.py`` -- and picking the nominal that
+made the coverage pass would have quietly added a third.
+"""
+
 __all__ = [
     "HARVEST_SECONDS",
     "HORIZON_NAME",
+    "S6_NOMINAL_PROBABILITY",
     "arm_history",
     "arm_query",
     "arm_request",

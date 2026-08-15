@@ -37,6 +37,7 @@ from cellstate.backends.gse274113.likelihood import (
     technical_variance,
 )
 from cellstate.domain.belief import (
+    CalibrationReport,
     CausalStatus,
     CellStateBelief,
     CriterionOutcome,
@@ -44,6 +45,9 @@ from cellstate.domain.belief import (
 )
 from cellstate.domain.distributions import UnavailableDistribution
 from cellstate.errors import CapabilityError
+from cellstate.evaluation.gse274113_reports import (
+    measure_calibration_coverage,
+)
 from cellstate.ports.models import ModelArtifactKind
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -78,7 +82,19 @@ def fold(arm_slice: ArmSlice) -> FittedFold:
 
 
 @pytest.fixture(scope="module")
-def estimator(fold: FittedFold, arm_slice: ArmSlice) -> GSE274113ObservationEstimator:
+def calibration(arm_slice: ArmSlice) -> CalibrationReport:
+    thresholds = arm_query(arm_slice.targets, model_fingerprint="0" * 64).acceptance_thresholds
+    return measure_calibration_coverage(
+        arm_slice,
+        minimum_coverage=thresholds.minimum_calibration_coverage,
+        maximum_calibration_error=thresholds.maximum_calibration_error,
+    )
+
+
+@pytest.fixture(scope="module")
+def estimator(
+    fold: FittedFold, arm_slice: ArmSlice, calibration: CalibrationReport
+) -> GSE274113ObservationEstimator:
     panel_fingerprint = _sha256(PANEL_PATH)
     slice_fingerprint = _sha256(SLICE_PATH)
     seed = GSE274113ObservationEstimator(
@@ -86,6 +102,7 @@ def estimator(fold: FittedFold, arm_slice: ArmSlice) -> GSE274113ObservationEsti
         query=arm_query(arm_slice.targets, model_fingerprint="0" * 64),
         slice_fingerprint=slice_fingerprint,
         panel_fingerprint=panel_fingerprint,
+        calibration=calibration,
     )
     query = arm_query(arm_slice.targets, model_fingerprint=seed.model_fingerprint)
     return GSE274113ObservationEstimator(
@@ -93,6 +110,7 @@ def estimator(fold: FittedFold, arm_slice: ArmSlice) -> GSE274113ObservationEsti
         query=query,
         slice_fingerprint=slice_fingerprint,
         panel_fingerprint=panel_fingerprint,
+        calibration=calibration,
     )
 
 
@@ -537,6 +555,7 @@ def test_the_causal_gate_refuses_an_identified_claim(
         query=estimator._query,
         slice_fingerprint=estimator._slice_fingerprint,
         panel_fingerprint=estimator._panel_fingerprint,
+        calibration=estimator._calibration,
     )
     request = _request(arm_slice, overclaiming, HELD_OUT, "GATA1")
     with pytest.raises(CapabilityError, match="identified or transported"):

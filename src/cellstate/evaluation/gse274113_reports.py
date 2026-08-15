@@ -38,10 +38,12 @@ evidence, and no combination of the measurements below substitutes for them.
 from __future__ import annotations
 
 from dataclasses import dataclass
+from statistics import NormalDist
 
 import numpy as np
 from numpy.typing import NDArray
 
+from ..backends.gse274113.arm_request import S6_NOMINAL_PROBABILITY
 from ..backends.gse274113.fit import (
     NULL_TARGET,
     PLACEBO_TARGETS,
@@ -50,20 +52,28 @@ from ..backends.gse274113.fit import (
     fit_fold,
 )
 from ..backends.gse274113.likelihood import posterior
+from ..domain.belief import CalibrationReport
 from .bootstrap import BootstrapInterval, multiway_clustered_bootstrap
+from .calibration import evaluate_marginal_calibration
 
 FloatArray = NDArray[np.float64]
 
 DEFAULT_SEED = 20260813
 
 __all__ = [
+    "S6_NOMINAL_PROBABILITY",
     "ArmState",
+    "CalibrationShape",
     "CapabilityMeasurement",
+    "ReplicateStandardScores",
+    "calibration_shape_diagnostics",
     "held_out_states",
+    "measure_calibration_coverage",
     "measure_earned_spread",
     "measure_intervention_response",
     "measure_nuisance_separation",
     "measure_point_predictor_spread",
+    "replicate_standard_scores",
 ]
 
 
@@ -258,6 +268,167 @@ def measure_earned_spread(
             if passed
             else "the posterior claims a spread NARROWER than the error it makes on a held-out "
             "replicate; on this evidence the spread is not earned"
+        ),
+    )
+
+
+@dataclass(frozen=True)
+class ReplicateStandardScores:
+    """One library's standardized predictive residuals on the ADR 0023 split-half replicate.
+
+    ``scores[j]`` is ``(observed - predicted) / predictive_sd`` for panel gene ``j``, where the
+    prediction is formed from ``NT_A`` and the observation is ``NT_B``.  Under the observation
+    model these are standard normal.  Whether they are is the whole of S6.
+    """
+
+    library: str
+    replicate_depth: float
+    scores: FloatArray
+
+
+def replicate_standard_scores(slice_data: ArmSlice) -> tuple[ReplicateStandardScores, ...]:
+    """Standardize the S2 replicate residuals, one vector of panel genes per library.
+
+    This is deliberately the *same* construction [ADR 0023] decided for S2 -- state inferred from
+    ``NT_A``, predictive distribution formed for ``NT_B`` at ``NT_B``'s own depth -- so that S2 and
+    S6 are two readings of one evidence set rather than two estimands whose disagreement could be
+    blamed on the setup.  S2 aggregates these into a root-mean-square ratio; S6 counts how many
+    land inside their interval.  Those are different questions, and on this evidence they give
+    materially different answers.
+
+    [ADR 0023]: ../../../docs/adr/0023-the-s2-estimand-is-a-split-half-replicate.md
+    """
+
+    scores: list[ReplicateStandardScores] = []
+    for library in slice_data.libraries:
+        fold = fit_fold(slice_data, library)
+        design = fold.design(NULL_TARGET)
+        inferred_from, inferred_depth = slice_data.log_composition(library, PLACEBO_TARGETS[0])
+        predicted_for, predicted_depth = slice_data.log_composition(library, PLACEBO_TARGETS[1])
+        mean, covariance = posterior(
+            inferred_from,
+            intercept=fold.intercept,
+            design=design,
+            prior_precision=fold.prior_precision(),
+            observation_variance_diagonal=fold.observation_variance(inferred_depth),
+        )
+        predictive_variance = np.einsum(
+            "gi,ij,gj->g", design, covariance, design
+        ) + fold.observation_variance(predicted_depth)
+        residual = predicted_for - fold.intercept - design @ mean
+        scores.append(
+            ReplicateStandardScores(
+                library=library,
+                replicate_depth=predicted_depth,
+                scores=np.asarray(residual / np.sqrt(predictive_variance), dtype=np.float64),
+            )
+        )
+    return tuple(scores)
+
+
+def measure_calibration_coverage(
+    slice_data: ArmSlice,
+    *,
+    minimum_coverage: float,
+    maximum_calibration_error: float,
+    nominal_probability: float = S6_NOMINAL_PROBABILITY,
+    seed: int = DEFAULT_SEED,
+) -> CalibrationReport:
+    """S6: does the predictive interval contain the replicate at the rate it claims?
+
+    The independent experimental unit is the **library**, as it is everywhere else here.  Coverage
+    is counted over the 100 panel genes *within* a library and only libraries are resampled, which
+    is what keeps the compositional dependence between genes out of the interval: genes in one
+    panel are emphatically not 100 independent trials, and pooling them into one fraction and
+    bootstrapping *that* would claim a precision this design cannot buy.
+
+    **S6 is not a restatement of S2, and on this evidence it disagrees with it.**  S2 reports a
+    root-mean-square ratio of claimed spread to realized error, which reads as "the interval is
+    uniformly ~16 percent too narrow".  Coverage says otherwise -- see
+    ``calibration_shape_diagnostics``, whose trimmed spreads show that removing **2 percent** of
+    the 1,400 gene-library outcomes moves the S2-style ratio from 0.7784 to 0.9955.  The bulk of
+    the panel is *better* than the interval claims; a small number of genes are far outside it.
+    A ratio cannot tell those two situations apart and a coverage count can, which is the reason
+    to have both rather than either.
+
+    ⚠️ **Scope, inherited from [ADR 0023] unchanged: null biology only, 14 libraries.**  ``NT`` is
+    the only arm in this design carrying a replicate.  S6 does not establish calibration on a
+    perturbed arm, and the reason is a property of the deposit rather than of this code.
+
+    [ADR 0023]: ../../../docs/adr/0023-the-s2-estimand-is-a-split-half-replicate.md
+    """
+
+    critical = NormalDist().inv_cdf(0.5 + nominal_probability / 2.0)
+    per_library = replicate_standard_scores(slice_data)
+    outcomes = [entry.scores.tolist() for entry in per_library]
+    lower = [(-critical * np.ones_like(entry.scores)).tolist() for entry in per_library]
+    upper = [(critical * np.ones_like(entry.scores)).tolist() for entry in per_library]
+    return evaluate_marginal_calibration(
+        unit_outcomes=outcomes,
+        unit_lower_bounds=lower,
+        unit_upper_bounds=upper,
+        cluster_labels={"library": [entry.library for entry in per_library]},
+        nominal_probability=nominal_probability,
+        maximum_calibration_error=maximum_calibration_error,
+        minimum_coverage=minimum_coverage,
+        seed=seed,
+        metric="panel log-composition, split-half replicate (ADR 0023 estimand)",
+    )
+
+
+@dataclass(frozen=True)
+class CalibrationShape:
+    """Why S6 and S2 disagree: the tail, and a coverage gradient S6 alone would hide."""
+
+    standard_deviation: float
+    trimmed_standard_deviation: float
+    trimmed_fraction: float
+    largest_absolute_score: float
+    coverage_by_library: tuple[tuple[str, float], ...]
+    depth_coverage_correlation: float
+
+
+def calibration_shape_diagnostics(
+    slice_data: ArmSlice,
+    *,
+    nominal_probability: float = S6_NOMINAL_PROBABILITY,
+    trimmed_fraction: float = 0.02,
+) -> CalibrationShape:
+    """Decompose S6's shortfall into a tail term and a depth gradient.
+
+    **A failing ratio names two suspects.**  S2's 0.8415 is consistent with an interval that is
+    uniformly too narrow *and* with an interval that is right for most genes and hopeless for a
+    few, and the two diagnoses call for opposite repairs: the first says inflate ``psi^2``, the
+    second says that inflating it would push an already-conservative bulk into over-coverage while
+    still not reaching the outliers.  Trimming separates them.
+
+    The second diagnostic is a gradient S6's single pooled number cannot show.  Coverage falls
+    monotonically with the library's panel depth, which is the exact failure ``likelihood.py``
+    names ``psi^2`` as the defence against -- "more sequencing depth is mistaken for more knowledge
+    about the biology".  ADR 0022 stopped ``psi^2`` from being clamped; it did not stop this.
+
+    ⚠️ **Depth and differentiation day are collinear in this deposit and cannot be separated.**
+    Panel depth rises with day by construction, and within a day the depth range is too narrow to
+    resolve anything.  The gradient is real; which of the two drives it is not identified here.
+    """
+
+    critical = NormalDist().inv_cdf(0.5 + nominal_probability / 2.0)
+    per_library = replicate_standard_scores(slice_data)
+    stacked = np.concatenate([entry.scores for entry in per_library])
+    keep = round(trimmed_fraction * stacked.size)
+    trimmed = np.delete(stacked, np.argsort(-np.abs(stacked))[:keep])
+    coverage = [
+        (entry.library, float(np.mean(np.abs(entry.scores) <= critical))) for entry in per_library
+    ]
+    depths = np.log([entry.replicate_depth for entry in per_library])
+    return CalibrationShape(
+        standard_deviation=float(stacked.std(ddof=1)),
+        trimmed_standard_deviation=float(trimmed.std(ddof=1)),
+        trimmed_fraction=trimmed_fraction,
+        largest_absolute_score=float(np.abs(stacked).max()),
+        coverage_by_library=tuple(coverage),
+        depth_coverage_correlation=float(
+            np.corrcoef(depths, [value for _, value in coverage])[0, 1]
         ),
     )
 

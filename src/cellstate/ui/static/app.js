@@ -7,7 +7,7 @@
 
 import {
   loadingBars, stateScatter, spectrumChart, divergingBars,
-  cosineHeatmap, responseCurve, panelStrip, fmt,
+  cosineHeatmap, responseCurve, panelStrip, trimmedTail, coverageByDepth, fmt,
 } from './charts.js';
 
 const state = {
@@ -263,6 +263,27 @@ async function renderSubstrate() {
       { __class: 'dim', cells: [`${day.tracking_gene_count} of 100 genes track day at |r| > 0.7`, '', ''] },
     ]));
   } catch (error) { fail($('sub-tiles'), error); }
+
+  try {
+    const cal = await api('/api/calibration');
+    const failed = cal.outcome !== 'passed';
+    const chip = $('cal-chip');
+    chip.textContent = `S6 ${failed ? 'FAIL' : 'PASS'}`;
+    chip.className = `chip ${failed ? 'fail' : 'pass'}`;
+    $('cal-tiles').replaceChildren(
+      tile('coverage @ 0.90', fmt(cal.empirical_coverage, 4),
+           `[${fmt(cal.interval.lower, 4)}, ${fmt(cal.interval.upper, 4)}] · K=${cal.unit_count}`),
+      tile('calibration error', fmt(cal.calibration_error, 4),
+           `floor ${cal.minimum_coverage} · max ${cal.maximum_calibration_error}`, 'good'),
+      tile('upper bound', fmt(cal.calibration_error_upper_bound, 4),
+           `the gate reads this · max ${cal.maximum_calibration_error}`, failed ? 'bad' : 'good'),
+      tile('sd of z', fmt(cal.standard_deviation, 4),
+           `trimmed ${fmt(cal.trimmed_standard_deviation, 4)} · max |z| ${fmt(cal.largest_absolute_score, 2)}`, 'warn'),
+      tile('depth ↔ coverage', fmt(cal.depth_coverage_correlation, 4), 'corr over 14 libraries', 'bad'),
+    );
+    put($('cal-tail'), trimmedTail(cal));
+    put($('cal-depth'), coverageByDepth(cal.by_library, cal.nominal_probability));
+  } catch (error) { fail($('cal-tiles'), error); }
 
   try {
     const ranksTable = await api('/api/ranks', ranks());

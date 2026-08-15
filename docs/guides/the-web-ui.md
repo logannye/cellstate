@@ -44,7 +44,8 @@ Beside it, every arm of that library plotted in two of its shared coordinates wi
 ellipses**. Expect them to overlap heavily. That is the substrate finding, not a rendering problem.
 
 The abstention travels with the coordinates rather than sitting behind a disclosure. Every belief
-this backend emits abstains.
+this backend emits abstains — and since ADR 0024 it says *why*: the reasons now carry S6's measured
+coverage and bound, and an explicit list of the six criteria still unevaluated.
 
 > One library at a time, by construction. A belief about library *L* comes from the fold that
 > excluded *L*, so arms in different libraries are expressed in different fitted bases and their
@@ -52,9 +53,15 @@ this backend emits abstains.
 
 ## Substrate
 
-The three independent statements that this deposit carries no perturbation signal — `knockdown` as a
-sorted diverging bar, the `spectrum` decay chart, the `day` readout — plus the cross-library rank
-table and the panel's expression profile.
+**S6 leads the view**, because it is the only readiness criterion this backend evaluates: the
+coverage headline with its bound against the predeclared 0.05, the trimmed-tail bars against a
+reference line at 1.00, and per-library coverage plotted against panel depth with the nominal drawn
+across. It takes no rank arguments and the panel says so — S6's estimand is fixed at the fitted
+configuration, so a knob there would imply a measurement that does not exist.
+
+Below it, the three independent statements that this deposit carries no perturbation signal —
+`knockdown` as a sorted diverging bar, the `spectrum` decay chart, the `day` readout — plus the
+cross-library rank table and the panel's expression profile.
 
 ## Fold / basis
 

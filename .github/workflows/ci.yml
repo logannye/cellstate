@@ -53,6 +53,7 @@ jobs:
         run: |
           uv run python scripts/explore.py knockdown
           uv run python scripts/explore.py spectrum
+          uv run python scripts/explore.py calibration
       - run: uv build
 
   docs:

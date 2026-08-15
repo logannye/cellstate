@@ -216,6 +216,32 @@ class MeasureOut(BaseModel):
     decomposition: DecompositionOut
 
 
+class LibraryCoverageOut(BaseModel):
+    library: str
+    depth: float
+    coverage: float
+
+
+class CalibrationOut(BaseModel):
+    """S6, and the two decompositions that keep its single number from being read wrong."""
+
+    nominal_probability: float
+    empirical_coverage: float
+    interval: IntervalOut
+    calibration_error: float
+    calibration_error_upper_bound: float
+    minimum_coverage: float
+    maximum_calibration_error: float
+    outcome: str
+    unit_count: int
+    standard_deviation: float
+    trimmed_standard_deviation: float
+    trimmed_fraction: float
+    largest_absolute_score: float
+    depth_coverage_correlation: float
+    by_library: list[LibraryCoverageOut]
+
+
 class RankResponsePointOut(BaseModel):
     rank: int
     s5: float
@@ -787,6 +813,64 @@ def measure(
         bound=bound,
         measurements=measurements,
         decomposition=_decomposition(biology_rank, nuisance_rank),
+    )
+
+
+@app.get("/api/calibration", response_model=CalibrationOut)
+def calibration() -> CalibrationOut:
+    """S6: does the predictive interval contain the replicate at the rate it claims? (ADR 0024)
+
+    **It takes no rank arguments, and that is deliberate.**  S6's estimand is ADR 0023's split-half
+    replicate at the fitted configuration; recomputing it at another rank would be a different
+    measurement that no decision authorizes, exactly as for S2 and S4.  So this endpoint reports one
+    value rather than offering a knob that would imply otherwise.
+    """
+
+    from ..backends.gse274113.arm_request import S6_NOMINAL_PROBABILITY, arm_query
+    from ..evaluation.gse274113_reports import (
+        calibration_shape_diagnostics,
+        measure_calibration_coverage,
+        replicate_standard_scores,
+    )
+
+    slice_data = _slice()
+    thresholds = arm_query(slice_data.targets, model_fingerprint="0" * 64).acceptance_thresholds
+    report = measure_calibration_coverage(
+        slice_data,
+        minimum_coverage=thresholds.minimum_calibration_coverage,
+        maximum_calibration_error=thresholds.maximum_calibration_error,
+    )
+    shape = calibration_shape_diagnostics(slice_data)
+    depths = {
+        entry.library: entry.replicate_depth for entry in replicate_standard_scores(slice_data)
+    }
+    assert report.empirical_coverage is not None
+    assert report.calibration_error is not None
+    assert report.calibration_error_upper_bound is not None
+    assert report.coverage_interval is not None
+    return CalibrationOut(
+        nominal_probability=S6_NOMINAL_PROBABILITY,
+        empirical_coverage=report.empirical_coverage,
+        interval=IntervalOut(
+            value=report.empirical_coverage,
+            lower=report.coverage_interval.lower,
+            upper=report.coverage_interval.upper,
+        ),
+        calibration_error=report.calibration_error,
+        calibration_error_upper_bound=report.calibration_error_upper_bound,
+        minimum_coverage=thresholds.minimum_calibration_coverage,
+        maximum_calibration_error=thresholds.maximum_calibration_error,
+        outcome=report.outcome.value,
+        unit_count=len(slice_data.libraries),
+        standard_deviation=shape.standard_deviation,
+        trimmed_standard_deviation=shape.trimmed_standard_deviation,
+        trimmed_fraction=shape.trimmed_fraction,
+        largest_absolute_score=shape.largest_absolute_score,
+        depth_coverage_correlation=shape.depth_coverage_correlation,
+        by_library=[
+            LibraryCoverageOut(library=library, depth=depths[library], coverage=coverage)
+            for library, coverage in shape.coverage_by_library
+        ],
     )
 
 

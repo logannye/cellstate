@@ -154,6 +154,40 @@
     <section class="view" id="view-substrate" role="tabpanel">
       <div class="tiles" id="sub-tiles"><div class="loading">…</div></div>
 
+      <div class="panel">
+        <div class="head">
+          <h3>Does the interval cover at the rate it claims?</h3>
+          <span class="chip" id="cal-chip"></span>
+          <span class="eyebrow">S6 · ADR 0024</span>
+        </div>
+        <p class="note">
+          The state is inferred from <code>NT_A</code> and the predictive distribution it implies is
+          scored against <code>NT_B</code> — ADR 0023's estimand, counted as coverage rather than
+          aggregated into a ratio. One value per library, bootstrapped over the 14 libraries.
+          <strong>This does not vary with rank:</strong> the estimand is fixed at the fitted
+          configuration, so there is no knob here that would imply otherwise.
+        </p>
+        <div class="tiles" id="cal-tiles"><div class="loading">…</div></div>
+        <div class="grid two">
+          <div>
+            <p class="note"><strong>Where the failure lives.</strong> S2's ratio reads as
+              “uniformly ~16% too narrow”. Trim the worst 2% of the 1,400 gene-library outcomes and
+              the spread is exactly earned — so the bulk is <em>better</em> than the interval
+              claims and a handful of genes are far outside it. The two readings imply opposite
+              repairs.</p>
+            <div class="scroller" id="cal-tail"><div class="loading">…</div></div>
+          </div>
+          <div>
+            <p class="note"><strong>The gradient the pooled number hides.</strong> Coverage against
+              the library's panel depth. <code>likelihood.py</code> names <code>psi²</code> as the
+              defence against “more sequencing depth mistaken for more knowledge about the
+              biology”; on this evidence it does not hold. ⚠️ Depth and differentiation day are
+              collinear here and this design cannot separate them.</p>
+            <div class="scroller" id="cal-depth"><div class="loading">…</div></div>
+          </div>
+        </div>
+      </div>
+
       <div class="grid two">
         <div class="panel">
           <div class="head"><h3>Is there structure for the model to find?</h3></div>
