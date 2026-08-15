@@ -14,12 +14,14 @@ from __future__ import annotations
 import hashlib
 import json
 import math
+import tomllib
 from pathlib import Path
 
 import numpy as np
 import pytest
 
 from cellstate.api import estimate_cell_state
+from cellstate.backends.gse274113 import usage as usage_module
 from cellstate.backends.gse274113.arm_request import arm_query, arm_request
 from cellstate.backends.gse274113.estimator import GSE274113ObservationEstimator
 from cellstate.backends.gse274113.fit import (
@@ -36,6 +38,7 @@ from cellstate.backends.gse274113.likelihood import (
     stabilize,
     technical_variance,
 )
+from cellstate.backends.gse274113.usage import artifact_directory
 from cellstate.domain.belief import (
     CalibrationReport,
     CausalStatus,
@@ -136,6 +139,48 @@ def test_frozen_artifacts_match_their_pinned_digests() -> None:
 
     assert _sha256(PANEL_PATH) == PANEL_SHA256
     assert _sha256(SLICE_PATH) == SLICE_SHA256
+
+
+def test_the_wheel_ships_the_slice_outside_the_package() -> None:
+    """The build's force-include destination must be a SIBLING of `cellstate`, never inside it.
+
+    Two defects meet at this one line of `pyproject.toml` and they pull in opposite directions:
+
+    * Ship nothing, and an installed `cellstate` imports cleanly and then answers nothing --
+      `artifact_directory` has no `backends/` tree to resolve. That was true of every wheel until
+      the force-include was added.
+    * Ship it *inside* the package, and **editable** installs break. Hatchling applies
+      `force-include` to editable installs too, where the modules live in `src/`, so the slice's two
+      JSON files became the only occupants of `site-packages/cellstate` -- turning
+      `cellstate.backends` into a namespace package that shadowed the source tree.
+      `from cellstate.backends import X` failed with `(unknown location)` while `import cellstate`
+      still worked, and CI never saw it because CI syncs `--no-editable`.
+
+    A sibling destination satisfies both. This test pins the *contract between the declaration and
+    the code*: `pyproject.toml` says where the build puts it, `artifact_directory` says where the
+    runtime looks, and nothing else made those two agree.
+    """
+
+    manifest = tomllib.loads((ROOT / "pyproject.toml").read_text(encoding="utf-8"))
+    force_include = manifest["tool"]["hatch"]["build"]["targets"]["wheel"]["force-include"]
+    sources = list(force_include)
+    assert sources == ["backends/vertical-a/gse274113-rna-obs-v1"], (
+        "the slice is the only thing force-included; a new entry needs its own reasoning"
+    )
+    destination = force_include[sources[0]]
+
+    assert not destination.startswith("cellstate/"), (
+        f"force-include destination {destination!r} sits inside the package and will shadow the "
+        "source tree in editable installs"
+    )
+    assert "/" not in destination, "a nested destination re-creates the namespace-package problem"
+
+    # And the runtime looks exactly where the build writes. `artifact_directory`'s packaged branch
+    # is `<dir containing the package>/<destination>`; recompute it here rather than trusting it.
+    package_root = Path(usage_module.__file__).resolve().parents[3]
+    assert (package_root / destination).name == destination
+    assert artifact_directory().is_dir()
+    assert (artifact_directory() / "arms.json").is_file()
 
 
 def test_the_panel_carries_every_perturbed_target(panel: dict[str, object]) -> None:

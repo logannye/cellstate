@@ -520,12 +520,22 @@ required before any operational biological claim.
 - **Phase 1:** active. `Q1` is delivered: every `metric_id` the frozen sci-Plex3 suite declares
   resolves to an implementation, and the multiway clustered bootstrap those metrics bind is
   implemented and its coverage measured. `Q2` is **incomplete against its own done-when**. Both
-  faithfulness tests execute, return an interval, and are enforced by their serialized contracts, but
-  the clause requiring non-test callers is **half** met. `evaluate_predictive_sufficiency` now has
-  one, supplied by `Q3`: `src/cellstate/evaluation/query_sufficiency.py` computes the applicability
-  judgment from the request and calls the harness. `evaluate_marginal_calibration` still has none —
-  it is called from no file in `src/`, `scripts/`, or `examples/` — and that, not the sufficiency
-  harness, is `Q2`'s remaining unmet clause.
+  faithfulness tests execute, return an interval, and are enforced by their serialized contracts, and
+  the clause requiring non-test callers is now **fully** met. `evaluate_predictive_sufficiency` got
+  one from `Q3`: `src/cellstate/evaluation/query_sufficiency.py` computes the applicability judgment
+  from the request and calls the harness. `evaluate_marginal_calibration` got one from
+  [ADR 0024](adr/0024-s6-is-measured-and-readiness-is-derived.md):
+  `src/cellstate/evaluation/gse274113_reports.py` calls it to measure S6 on the committed GSE274113
+  slice, reached from `backends/gse274113/usage.py` on every belief and from `ui/server.py`, and it
+  returns **FAILED** — so the caller is a live one whose verdict a shipped path depends on, not a
+  formality. `Q2`'s done-when is met.
+
+  This paragraph read "`evaluate_marginal_calibration` still has none — it is called from no file in
+  `src/`, `scripts/`, or `examples/` — and that, not the sufficiency harness, is `Q2`'s remaining
+  unmet clause." That was true when written and was falsified by ADR 0024 without anything going
+  red, because no gate checks the roadmap's prose against the tree. It is corrected here rather than
+  left, and the general defect — a recorded claim nothing re-checks — is the one this repository
+  keeps finding in its own work.
 
   An earlier revision of this section recorded `Q2` delivered and claimed that **the project can
   recognize a faithful representation**. That claim was withdrawn and stays withdrawn. What has

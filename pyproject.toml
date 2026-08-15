@@ -57,8 +57,18 @@ packages = ["src/cellstate"]
 # The committed GSE274113 slice travels with the wheel (336 KB).  Without this the flagship
 # backend imports cleanly and then cannot answer a single question, because `artifact_directory`
 # has no `backends/` tree to resolve -- which is the state every installed-package consumer was in.
+#
+# ⚠️ **The destination is deliberately NOT under `cellstate/`, and moving it back breaks editable
+# installs.**  Hatchling applies `force-include` to editable installs too, where the package's own
+# modules live in `src/` and only the force-included files land in `site-packages`.  A destination
+# of `cellstate/backends/gse274113/_slice` therefore left exactly two JSON files there, which made
+# `cellstate`, `cellstate.backends` and `cellstate.backends.gse274113` **namespace packages that
+# shadow the source tree** -- `from cellstate.backends import X` then failed with
+# `(unknown location)` while `import cellstate` still worked, and which entry points broke flipped
+# between runs because `uv run` re-syncs.  A sibling destination carries the same bytes to the same
+# consumers and cannot shadow a module path.  See `test_the_wheel_ships_the_slice_outside_the_package`.
 [tool.hatch.build.targets.wheel.force-include]
-"backends/vertical-a/gse274113-rna-obs-v1" = "cellstate/backends/gse274113/_slice"
+"backends/vertical-a/gse274113-rna-obs-v1" = "cellstate_gse274113_slice"
 
 [tool.pytest.ini_options]
 addopts = "-ra --strict-config --strict-markers --cov=cellstate --cov-report=term-missing --cov-fail-under=85"

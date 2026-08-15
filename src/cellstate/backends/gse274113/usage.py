@@ -66,19 +66,29 @@ def artifact_directory() -> Path:
 
     Two locations are tried, in this order, because both are real and neither can be assumed:
 
-    1. ``cellstate/backends/gse274113/_slice`` -- where the wheel puts it.  The build
-       force-includes the 336 KB slice so that an *installed* ``cellstate`` can answer a question.
-       It could not before: the backend imported cleanly and then raised here, which made the
-       flagship path dead in every ``--no-editable`` install, including the mode every Makefile
-       target uses.
+    1. ``cellstate_gse274113_slice`` -- a directory **beside** the installed package, where the
+       wheel puts it.  The build force-includes the 336 KB slice so that an *installed*
+       ``cellstate`` can answer a question.  It could not before: the backend imported cleanly and
+       then raised here, which made the flagship path dead in every ``--no-editable`` install.
     2. ``<repo>/backends/vertical-a/gse274113-rna-obs-v1`` -- where a source checkout keeps it,
        and the only copy that exists when running straight from ``src/``.
+
+    ⚠️ **The packaged copy is a sibling of the package, not a child, and that is load-bearing.**
+    It used to land at ``cellstate/backends/gse274113/_slice``.  Hatchling applies ``force-include``
+    to *editable* installs too, where the modules themselves live in ``src/`` -- so those two JSON
+    files were the only things in ``site-packages/cellstate``, which turned ``cellstate.backends``
+    into a **namespace package shadowing the source tree**.  ``from cellstate.backends import X``
+    failed with ``(unknown location)`` while ``import cellstate`` still worked, and which entry
+    points broke changed between runs because ``uv run`` re-syncs.  A sibling directory carries the
+    same bytes to the same consumers and cannot shadow a module path.
 
     Resolved rather than assumed, and every entry point below still accepts an explicit directory.
     Failing loudly here beats a confusing error four frames deeper.
     """
 
-    packaged = Path(__file__).resolve().parent / "_slice"
+    # parents[3] is the directory the package itself sits in -- `site-packages` for an installed
+    # wheel, `<repo>/src` for a checkout.  The slice is a sibling of `cellstate`, never inside it.
+    packaged = Path(__file__).resolve().parents[3] / "cellstate_gse274113_slice"
     checkout = (
         Path(__file__).resolve().parents[4] / "backends" / "vertical-a" / "gse274113-rna-obs-v1"
     )
