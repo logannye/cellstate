@@ -257,3 +257,39 @@ def test_the_arm_abstention_names_the_calibration_failure() -> None:
     reasons = client.get("/api/arm/rep1/GATA1").json()["reasons"]
     assert any(reason.startswith("S6 calibration FAILED") for reason in reasons)
     assert any("criteria not met:" in reason for reason in reasons)
+
+
+def test_the_calibration_endpoint_serves_every_gated_level() -> None:
+    """The page cannot show a verdict without what produced it (ADR 0025)."""
+
+    payload = client.get("/api/calibration").json()
+    assert payload["nominal_interval"] == [0.90, 0.95]
+    assert payload["reference_nominal"] == 0.90
+    assert [level["nominal_probability"] for level in payload["levels"]] == [
+        0.90,
+        0.91,
+        0.92,
+        0.93,
+        0.94,
+        0.95,
+    ]
+    assert [level["outcome"] for level in payload["levels"]] == ["failed"] * 6
+    assert payload["failing_nominals"] == [0.90, 0.91, 0.92, 0.93, 0.94, 0.95]
+    reference = [level for level in payload["levels"] if level["is_reference"]]
+    assert len(reference) == 1
+    assert reference[0]["nominal_probability"] == 0.90
+
+
+def test_the_served_outcome_is_the_conjunction_not_the_reference_level() -> None:
+    """The headline figures are the reference level's; the verdict is over all six.
+
+    The bound rises monotonically across the interval, so the reference level is the loosest of the
+    six -- the endpoint would understate the failure if `outcome` were read off it.
+    """
+
+    payload = client.get("/api/calibration").json()
+    bounds = [level["calibration_error_upper_bound"] for level in payload["levels"]]
+    assert bounds == sorted(bounds)
+    assert payload["calibration_error_upper_bound"] == pytest.approx(bounds[0], abs=1e-9)
+    assert payload["outcome"] == "failed"
+    assert len(payload["failing_nominals"]) == len(payload["levels"])

@@ -74,7 +74,7 @@ from ...ports.models import (
     QueryCompilerDescriptor,
     estimation_capability_scope_fingerprint,
 )
-from .arm_request import S6_NOMINAL_PROBABILITY
+from .arm_request import S6_NOMINAL_PROBABILITIES, S6_REFERENCE_NOMINAL
 from .fit import FittedFold
 from .likelihood import posterior
 
@@ -664,12 +664,17 @@ class GSE274113ObservationEstimator:
             "this belief is a snapshot state estimate, not a faithfulness verdict",
         ]
         if criteria["calibration"] is CriterionOutcome.FAILED:
+            # The reported figures are the REFERENCE level's; the verdict is the conjunction over
+            # every level in `S6_NOMINAL_PROBABILITIES`. Naming both keeps a reader from taking
+            # 0.90 for the gate, which is the mistake ADR 0024 made and this reason exists to undo.
+            levels = ", ".join(f"{level:.2f}" for level in S6_NOMINAL_PROBABILITIES)
             reasons.append(
-                f"S6 calibration FAILED: the predictive interval covers "
-                f"{self._calibration.empirical_coverage:.4f} of the split-half replicate at a "
-                f"nominal {S6_NOMINAL_PROBABILITY:.2f}, and the upper confidence bound on the "
-                f"error is {self._calibration.calibration_error_upper_bound:.4f} against a "
-                f"predeclared {self._query.acceptance_thresholds.maximum_calibration_error:.2f}"
+                f"S6 calibration FAILED: gated at {len(S6_NOMINAL_PROBABILITIES)} nominal levels "
+                f"({levels}); at the reference level {S6_REFERENCE_NOMINAL:.2f} the predictive "
+                f"interval covers {self._calibration.empirical_coverage:.4f} of the split-half "
+                f"replicate and the upper confidence bound on the error is "
+                f"{self._calibration.calibration_error_upper_bound:.4f} against a predeclared "
+                f"{self._query.acceptance_thresholds.maximum_calibration_error:.2f}"
             )
         unmet = sorted(
             name for name, outcome in criteria.items() if outcome is not CriterionOutcome.PASSED

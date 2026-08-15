@@ -1,7 +1,37 @@
 # ADR 0024: S6 is measured, and readiness is derived from the criteria rather than declared
 
-- **Status:** Accepted.
+- **Status:** Accepted. **Decision 3 is factually wrong and is superseded by
+  [ADR 0025](0025-s6-is-gated-on-the-whole-coherent-nominal-interval.md); decisions 1, 2, 4 and 5
+  stand.** The body is left as written, per the rule that an accepted ADR's body is a historical
+  record.
 - **Date:** 2026-08-15
+
+> **Correction (decision 3, "the nominal probability is 0.90, and it is forced rather than
+> chosen").** The predeclared pair does **not** admit exactly one nominal. It is coherent on the
+> closed interval **[0.90, 0.95]**, and 0.90 is that interval's *minimum*, not its only member.
+>
+> The error was a `>=` read as an `=`. The derivation in the body — "coverage within 0.05 of nominal
+> *and* at least 0.85, satisfiable at exactly one nominal" — establishes only that at 0.90 the floor
+> and the error bound's lower edge **coincide**. Below 0.90 the error bound admits a coverage the
+> floor rejects; above 0.95 the bound's upper half asks for a coverage above 1. Between them the
+> pair is coherent throughout.
+>
+> **The direction of the error is the part that matters.** The bound rises monotonically across the
+> interval on the committed slice — 0.0548 at 0.90 to 0.0767 at 0.95 — so 0.90 is the **loosest**
+> admissible level, and the ADR gated there while asserting it had no choice. The body's supporting
+> illustration is wrong for the same reason: "at 0.95 the measured coverage fails the floor
+> outright" is false — coverage at nominal 0.95 is 0.9093, which clears the 0.85 floor comfortably.
+> What fails at 0.95 is the error bound.
+>
+> The repository's own guard knew and did not say so. `test_the_nominal_is_forced_by_the_predeclared_pair`
+> built the six-element admissible set and then asserted `min(consistent) == 0.90` — **a test named
+> for uniqueness that asserted a minimum**, so the overclaim lived in the name and in this ADR while
+> the code beneath was quietly weaker. It now asserts set equality.
+>
+> **Nothing in the measurement changes.** All six levels fail, the reference level's published
+> figures (0.8836, bound 0.0548) are untouched, and S6's outcome is FAILED before and after. What
+> changes is that the outcome is now the conjunction over six levels rather than a reading at one —
+> and, per ADR 0025, that a gate at one level was clearable by a constant.
 
 ## Context
 

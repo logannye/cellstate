@@ -228,19 +228,27 @@ uv run python scripts/explore.py calibration
 
 The only readiness criterion this backend evaluates. It scores the *same* evidence S2 does — ADR
 0023's split-half replicate — but counts coverage instead of aggregating into a ratio, and the two
-disagree:
+disagree. Per [ADR 0025](../adr/0025-s6-is-gated-on-the-whole-coherent-nominal-interval.md) it is
+gated at **every** nominal the predeclared pair is coherent on, not one:
 
 ```
-  empirical coverage          :     0.8836
-  cluster bootstrap interval  : [0.8452, 0.9220]   K=14
-  calibration error           :     0.0164
-  UPPER BOUND on that error   :     0.0548   <- the gate reads THIS
-  predeclared maximum         :     0.0500
+    nominal  coverage    error    BOUND   verdict
+       0.90    0.8836   0.0164   0.0548   failed  <- reference; the belief publishes this row
+       0.91    0.8886   0.0214   0.0590   failed
+        ...
+       0.95    0.9093   0.0407   0.0767   failed
 ```
 
-**The point estimate passes both thresholds. The bound does not.** A criterion reporting its point
-estimate would have called this calibrated; ADR 0015 says gate on the bound, and that is the whole
-difference between a pass and a fail here.
+**The verdict is the conjunction; the reference row is only what the belief publishes.** At that row
+the point estimate passes both thresholds and the bound does not — a criterion reporting its point
+estimate would have called this calibrated (ADR 0015).
+
+**Why six and not one.** ADR 0024 gated at 0.90 believing the thresholds forced it. They do not:
+they are coherent on [0.90, 0.95], and 0.90 is the *loosest* member since the bound rises
+monotonically. That matters because **a one-level gate is clearable by a constant** — multiplying
+every predictive sd by any factor in [1.04, 1.21] clears 0.90, and 1.11 lands coverage on exactly
+0.9000 with a bound of 0.0368, better than the shipped 0.0548. Across all six, one scalar clears
+every level. One level tests scale; scale is free. Six test shape.
 
 Two decompositions ship with the number because a single coverage figure invites two wrong readings:
 

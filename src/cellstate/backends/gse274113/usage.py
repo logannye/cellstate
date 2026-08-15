@@ -121,13 +121,16 @@ def _calibration(
     # import would close a cycle through `backends/gse274113/__init__.py`.  It did, and the whole
     # suite stayed green -- 34 tests passed while `import cellstate.evaluation.gse274113_reports`
     # as a program's FIRST import raised ImportError, because no test ever imported in that order.
-    from ...evaluation.gse274113_reports import measure_calibration_coverage
+    from ...evaluation.gse274113_reports import measure_calibration_level_set
 
-    return measure_calibration_coverage(
+    # The GATE is the level set, not one level.  This calls the conjunction and takes its reference
+    # report, so every belief runs the full six-level gate and the disagreement guard inside it --
+    # rather than reading the single level whose numbers it happens to publish.
+    return measure_calibration_level_set(
         load_arm_slice(directory),
         minimum_coverage=minimum_coverage,
         maximum_calibration_error=maximum_calibration_error,
-    )
+    ).reference
 
 
 @lru_cache(maxsize=32)

@@ -158,7 +158,7 @@
         <div class="head">
           <h3>Does the interval cover at the rate it claims?</h3>
           <span class="chip" id="cal-chip"></span>
-          <span class="eyebrow">S6 · ADR 0024</span>
+          <span class="eyebrow">S6 · ADR 0024 + 0025</span>
         </div>
         <p class="note">
           The state is inferred from <code>NT_A</code> and the predictive distribution it implies is
@@ -168,6 +168,16 @@
           configuration, so there is no knob here that would imply otherwise.
         </p>
         <div class="tiles" id="cal-tiles"><div class="loading">…</div></div>
+        <p class="note">
+          <strong>The verdict is the conjunction over every level below, never the reference row
+          alone.</strong> The predeclared pair is coherent on the whole interval — below it the
+          error bound would admit a coverage the floor rejects, above it the bound would ask for
+          coverage over 1. ADR 0024 read that as a single point and gated at the interval's
+          <em>loosest</em> member. A one-level gate is clearable by a constant: multiplying every
+          predictive sd by 1.11 clears 0.90 with a bound of 0.0368, better than the shipped 0.0548.
+          One level tests scale; scale is free.
+        </p>
+        <div class="scroller" id="cal-levels"></div>
         <div class="grid two">
           <div>
             <p class="note"><strong>Where the failure lives.</strong> S2's ratio reads as

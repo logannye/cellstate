@@ -716,42 +716,67 @@ def _block_coefficients(
 def cmd_calibration(_: argparse.Namespace) -> None:
     """S6: does the predictive interval contain the replicate at the rate it claims? (ADR 0024)"""
 
-    from cellstate.backends.gse274113.arm_request import S6_NOMINAL_PROBABILITY, arm_query
+    from cellstate.backends.gse274113.arm_request import (
+        S6_NOMINAL_INTERVAL,
+        S6_REFERENCE_NOMINAL,
+        arm_query,
+    )
     from cellstate.evaluation.gse274113_reports import (
         calibration_shape_diagnostics,
-        measure_calibration_coverage,
+        measure_calibration_level_set,
     )
 
     slice_data = _slice()
     thresholds = arm_query(slice_data.targets, model_fingerprint="0" * 64).acceptance_thresholds
     print("fitting 14 leave-one-library-out folds ...", flush=True)
-    report = measure_calibration_coverage(
+    levels = measure_calibration_level_set(
         slice_data,
         minimum_coverage=thresholds.minimum_calibration_coverage,
         maximum_calibration_error=thresholds.maximum_calibration_error,
     )
+    report = levels.reference
     shape = calibration_shape_diagnostics(slice_data)
 
-    verdict = "PASS" if report.outcome.value == "passed" else "FAIL"
+    verdict = "PASS" if levels.outcome.value == "passed" else "FAIL"
+    low, high = S6_NOMINAL_INTERVAL
     print()
     print(RULE)
-    print(f"S6 CALIBRATION COVERAGE -- nominal {S6_NOMINAL_PROBABILITY:.2f}   [{verdict}]")
+    print(
+        f"S6 CALIBRATION COVERAGE -- gated at {len(levels.nominals)} levels "
+        f"on [{low:.2f}, {high:.2f}]   [{verdict}]"
+    )
     print(RULE)
-    print(f"  empirical coverage          : {report.empirical_coverage:10.4f}")
-    print(
-        f"  cluster bootstrap interval  : "
-        f"[{report.coverage_interval.lower:.4f}, {report.coverage_interval.upper:.4f}]   K=14"
-    )
-    print(f"  calibration error           : {report.calibration_error:10.4f}")
-    print(
-        f"  UPPER BOUND on that error   : {report.calibration_error_upper_bound:10.4f}"
-        f"   <- the gate reads THIS"
-    )
-    print(f"  predeclared maximum         : {thresholds.maximum_calibration_error:10.4f}")
+    print(f"  {'nominal':>9}{'coverage':>10}{'error':>9}{'BOUND':>9}   verdict")
+    for nominal, entry in zip(levels.nominals, levels.reports, strict=True):
+        mark = (
+            "  <- reference; the belief publishes this row"
+            if nominal == S6_REFERENCE_NOMINAL
+            else ""
+        )
+        print(
+            f"  {nominal:>9.2f}{entry.empirical_coverage:>10.4f}{entry.calibration_error:>9.4f}"
+            f"{entry.calibration_error_upper_bound:>9.4f}   {entry.outcome.value}{mark}"
+        )
+    print(f"\n  predeclared maximum error   : {thresholds.maximum_calibration_error:10.4f}")
     print(f"  predeclared coverage floor  : {thresholds.minimum_calibration_coverage:10.4f}")
     print(
-        "\n  The point estimate PASSES both thresholds. The bound does not. A criterion that\n"
-        "  reported its point estimate would have called this calibrated (ADR 0015)."
+        f"  reference interval          : "
+        f"[{report.coverage_interval.lower:.4f}, {report.coverage_interval.upper:.4f}]   K=14"
+    )
+    print(
+        "\n  The verdict is the CONJUNCTION over every level, never the reference row alone.\n"
+        "\n  Why six and not one. The predeclared pair (floor 0.85, max error 0.05) is coherent\n"
+        "  on the whole interval above -- below 0.90 the error bound would admit a coverage the\n"
+        "  floor rejects, above 0.95 it would ask for coverage over 1. ADR 0024 read that as a\n"
+        "  single point and gated at 0.90, its LOOSEST member: the bound rises monotonically.\n"
+        "  A one-level gate is clearable by a CONSTANT -- multiplying every predictive sd by any\n"
+        "  factor in [1.04, 1.21] clears 0.90, and 1.11 lands coverage on exactly 0.9000 with a\n"
+        "  bound of 0.0368, better than the shipped 0.0548. One level tests scale; scale is free.\n"
+        "  Across all six, only a narrow band of scalars clears every level, so the widened gate\n"
+        "  is a statement about the residuals' SHAPE.\n"
+        "\n  At the reference level the point estimate PASSES both thresholds and the bound does\n"
+        "  not. A criterion that reported its point estimate would have called this calibrated\n"
+        "  (ADR 0015)."
     )
 
     print()

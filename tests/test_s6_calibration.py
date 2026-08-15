@@ -16,7 +16,13 @@ from pathlib import Path
 
 import pytest
 
-from cellstate.backends.gse274113.arm_request import S6_NOMINAL_PROBABILITY, arm_query
+from cellstate.backends.gse274113.arm_request import (
+    S6_NOMINAL_GRID_STEP,
+    S6_NOMINAL_INTERVAL,
+    S6_NOMINAL_PROBABILITIES,
+    S6_REFERENCE_NOMINAL,
+    arm_query,
+)
 from cellstate.backends.gse274113.estimator import GSE274113ObservationEstimator
 from cellstate.backends.gse274113.fit import ArmSlice, fit_fold
 from cellstate.backends.gse274113.usage import estimate_arm
@@ -24,6 +30,7 @@ from cellstate.domain.common import CriterionOutcome
 from cellstate.evaluation.gse274113_reports import (
     calibration_shape_diagnostics,
     measure_calibration_coverage,
+    measure_calibration_level_set,
     replicate_standard_scores,
 )
 
@@ -97,27 +104,281 @@ def test_the_verdict_does_not_depend_on_the_bootstrap_seed(arm_slice: ArmSlice) 
     assert max(bounds) - min(bounds) < 0.005
 
 
-def test_the_nominal_is_forced_by_the_predeclared_pair() -> None:
-    """0.90 is the only nominal at which the two shipped thresholds are mutually consistent.
+def test_the_predeclared_pair_is_coherent_on_an_interval_not_a_point() -> None:
+    """The correction to ADR 0024 decision 3, recomputed from the shipped thresholds.
 
-    This is what keeps S6 from being a bound supplied by the query -- the failure mode already
-    present in `maximum_ood_score=0.99`.  Had the nominal been free, 0.95 would have made the
-    measured 0.8836 fail the floor outright and 0.85 would have made it pass, and either could have
-    been justified after the fact.
+    The superseded claim was that the pair coincides at *exactly one* nominal.  It does not: it is
+    coherent on a closed interval, and 0.90 is that interval's minimum.  What is unique about 0.90
+    is narrower -- it is the single point where the floor and the error bound's lower edge coincide,
+    which is the fact the superseded claim had hold of.
+
+    The previous version of this test asserted ``min(consistent) == 0.90`` under the name
+    ``test_the_nominal_is_forced_by_the_predeclared_pair``.  **A test named for uniqueness that
+    asserted a minimum**: it computed the six-element set and then checked only its first element,
+    so the overclaim was in the name and in the ADR while the code beneath was quietly weaker.
+    Asserting set equality is what makes the two agree.
     """
 
     thresholds = arm_query(("GATA1",), model_fingerprint="0" * 64).acceptance_thresholds
     assert thresholds.minimum_calibration_coverage == MINIMUM_COVERAGE
     assert thresholds.maximum_calibration_error == MAXIMUM_CALIBRATION_ERROR
-    consistent = [
+
+    # Below the interval the error bound admits a coverage the floor rejects; above it, the bound's
+    # upper half asks for a coverage above one.  Both are recomputed, not asserted.
+    coherent = [
         candidate / 100
-        for candidate in range(1, 100)
+        for candidate in range(1, 101)
         if candidate / 100 - thresholds.maximum_calibration_error
         >= thresholds.minimum_calibration_coverage - 1e-12
         and candidate / 100 + thresholds.maximum_calibration_error <= 1.0 + 1e-12
     ]
-    assert min(consistent) == pytest.approx(S6_NOMINAL_PROBABILITY)
-    assert S6_NOMINAL_PROBABILITY == 0.90
+    assert min(coherent) == pytest.approx(S6_NOMINAL_INTERVAL[0])
+    assert max(coherent) == pytest.approx(S6_NOMINAL_INTERVAL[1])
+    assert S6_NOMINAL_INTERVAL == (0.90, 0.95)
+
+    # 0.90's actual distinction: floor and error-bound lower edge coincide there, and only there.
+    coinciding = [
+        candidate / 100
+        for candidate in range(1, 101)
+        if abs(
+            (candidate / 100 - thresholds.maximum_calibration_error)
+            - thresholds.minimum_calibration_coverage
+        )
+        < 1e-12
+    ]
+    assert coinciding == [pytest.approx(S6_REFERENCE_NOMINAL)]
+
+
+def test_the_declared_levels_are_the_grid_on_the_derived_interval() -> None:
+    """The gated levels are the interval on the declared step -- set equality, not a minimum.
+
+    The interval is derived; the 0.01 step is a choice.  Recomputing the tuple from both keeps the
+    declaration from drifting away from what it claims to be.
+    """
+
+    low, high = S6_NOMINAL_INTERVAL
+    steps = round((high - low) / S6_NOMINAL_GRID_STEP)
+    expected = tuple(round(low + index * S6_NOMINAL_GRID_STEP, 10) for index in range(steps + 1))
+    assert set(S6_NOMINAL_PROBABILITIES) == set(expected)
+    assert S6_NOMINAL_PROBABILITIES == (0.90, 0.91, 0.92, 0.93, 0.94, 0.95)
+    assert S6_REFERENCE_NOMINAL in S6_NOMINAL_PROBABILITIES
+
+
+def test_the_gate_is_the_conjunction_and_every_level_fails(arm_slice: ArmSlice) -> None:
+    """All six, with the reference level's published figures unchanged by the widening."""
+
+    levels = measure_calibration_level_set(
+        arm_slice,
+        minimum_coverage=MINIMUM_COVERAGE,
+        maximum_calibration_error=MAXIMUM_CALIBRATION_ERROR,
+    )
+    assert levels.outcome is CriterionOutcome.FAILED
+    assert levels.failing_nominals == S6_NOMINAL_PROBABILITIES
+    assert levels.reference.empirical_coverage == pytest.approx(0.8836, abs=5e-4)
+    assert levels.reference.calibration_error_upper_bound == pytest.approx(0.0548, abs=5e-4)
+
+    # The bound rises monotonically across the interval, so the reference level is the LOOSEST of
+    # the six -- which is why gating there alone was the easiest reading of the predeclaration.
+    bounds = [report.calibration_error_upper_bound for report in levels.reports]
+    assert bounds == sorted(bounds)
+    assert bounds[0] == pytest.approx(0.0548, abs=5e-4)
+    assert bounds[-1] == pytest.approx(0.0767, abs=5e-4)
+
+
+# ------------------------------------------------------------------ a gate a WRONG answer passes
+
+
+def _rescaled(monkeypatch: pytest.MonkeyPatch, arm_slice: ArmSlice, factor: float) -> None:
+    """Multiply every predictive standard deviation by ``factor`` -- and change nothing else.
+
+    Dividing the standardized residuals is exactly equivalent to inflating the predictive sd, and
+    it is the crudest possible "repair": no mechanism, no fitted quantity, no claim about the
+    biology. If a gate can be cleared this way then passing it is not evidence the model improved.
+    """
+
+    from cellstate.evaluation import gse274113_reports as reports
+
+    original = reports.replicate_standard_scores(arm_slice)
+    scaled = tuple(
+        reports.ReplicateStandardScores(
+            library=entry.library,
+            replicate_depth=entry.replicate_depth,
+            scores=entry.scores / factor,
+        )
+        for entry in original
+    )
+    monkeypatch.setattr(reports, "replicate_standard_scores", lambda _slice: scaled)
+
+
+def test_a_constant_rescaling_clears_the_single_level_gate(
+    monkeypatch: pytest.MonkeyPatch, arm_slice: ArmSlice
+) -> None:
+    """**The reason the gate is six levels and not one.**
+
+    This repository keeps finding checks a correct computation cannot fail. This is the mirror: a
+    check a *wrong* computation passes. Multiplying every predictive standard deviation by 1.11 --
+    no modelling of any kind -- takes the reference level from FAILED to PASSED with a bound of
+    0.0368, better than the shipped 0.0548 and better than any mechanism-based repair measured so
+    far. A one-level gate tests the residuals' scale, and scale is free.
+    """
+
+    _rescaled(monkeypatch, arm_slice, 1.11)
+    cheated = measure_calibration_coverage(
+        arm_slice,
+        minimum_coverage=MINIMUM_COVERAGE,
+        maximum_calibration_error=MAXIMUM_CALIBRATION_ERROR,
+        nominal_probability=S6_REFERENCE_NOMINAL,
+    )
+    assert cheated.outcome is CriterionOutcome.PASSED
+    assert cheated.empirical_coverage == pytest.approx(0.9000, abs=1e-3)
+    assert cheated.calibration_error_upper_bound == pytest.approx(0.0368, abs=5e-3)
+    assert cheated.calibration_error_upper_bound < 0.0548
+
+
+def test_the_same_constant_does_not_clear_the_six_level_gate(
+    monkeypatch: pytest.MonkeyPatch, arm_slice: ArmSlice
+) -> None:
+    """And the reason six levels is a real gate: the same free trick fails it.
+
+    At 1.11 the upper half of the interval still fails, so the conjunction fails. Across the whole
+    interval only a narrow band of scalars clears every level, which is what makes the widened gate
+    a statement about the residuals' *shape* rather than their scale.
+    """
+
+    _rescaled(monkeypatch, arm_slice, 1.11)
+    with pytest.raises(ValueError, match="reference level"):
+        measure_calibration_level_set(
+            arm_slice,
+            minimum_coverage=MINIMUM_COVERAGE,
+            maximum_calibration_error=MAXIMUM_CALIBRATION_ERROR,
+        )
+
+
+def test_the_six_level_gate_can_be_passed(
+    monkeypatch: pytest.MonkeyPatch, arm_slice: ArmSlice
+) -> None:
+    """The conjunction's PASSED branch, taken.
+
+    A gate that has only ever been observed failing is not yet known to be a gate. Exactly one
+    scalar in ``[1.00, 1.80]`` clears all six levels: 1.20 leaves 0.95 failing, 1.22 puts 0.90 back
+    over, and 1.21 threads them. That the passing window is one step wide is the substance of ADR
+    0025 -- across six levels a rescaling has nowhere to hide, where at one level eighteen scalars
+    work.
+    """
+
+    _rescaled(monkeypatch, arm_slice, 1.21)
+    levels = measure_calibration_level_set(
+        arm_slice,
+        minimum_coverage=MINIMUM_COVERAGE,
+        maximum_calibration_error=MAXIMUM_CALIBRATION_ERROR,
+    )
+    assert levels.outcome is CriterionOutcome.PASSED
+    assert levels.failing_nominals == ()
+    assert all(report.outcome is CriterionOutcome.PASSED for report in levels.reports)
+
+
+def test_the_passing_window_is_one_grid_step_wide(
+    monkeypatch: pytest.MonkeyPatch, arm_slice: ArmSlice
+) -> None:
+    """Either side of 1.21 the six-level gate closes again, from opposite ends.
+
+    Below it the upper levels still fail; above it the reference level fails. Neither neighbour
+    reaches the gate, so the constant that clears it is not a range a repair could stumble into.
+    """
+
+    for factor, expected_failure in ((1.20, 0.95), (1.22, 0.90)):
+        with monkeypatch.context() as patched:
+            _rescaled(patched, arm_slice, factor)
+            try:
+                levels = measure_calibration_level_set(
+                    arm_slice,
+                    minimum_coverage=MINIMUM_COVERAGE,
+                    maximum_calibration_error=MAXIMUM_CALIBRATION_ERROR,
+                )
+            except ValueError as raised:
+                # 1.20 clears the reference level but not the top of the interval, so the
+                # disagreement guard fires before a level set is returned. That IS the gate closing.
+                assert "reference level" in str(raised)
+                assert expected_failure == 0.95
+                continue
+            assert levels.outcome is CriterionOutcome.FAILED
+            assert expected_failure in levels.failing_nominals
+
+
+def test_the_reference_level_may_not_disagree_with_the_conjunction(
+    monkeypatch: pytest.MonkeyPatch, arm_slice: ArmSlice
+) -> None:
+    """The disagreement guard, exercised from the side that fires.
+
+    It cannot fire on the committed slice -- all six levels fail together -- so without a
+    constructed case it would be a branch nobody has ever seen taken. Rescaling by 1.11 builds one:
+    the reference level PASSES while the conjunction FAILS, and the code refuses to publish either
+    verdict rather than picking the convenient one.
+    """
+
+    _rescaled(monkeypatch, arm_slice, 1.11)
+
+    reference = measure_calibration_coverage(
+        arm_slice,
+        minimum_coverage=MINIMUM_COVERAGE,
+        maximum_calibration_error=MAXIMUM_CALIBRATION_ERROR,
+        nominal_probability=S6_REFERENCE_NOMINAL,
+    )
+    upper = measure_calibration_coverage(
+        arm_slice,
+        minimum_coverage=MINIMUM_COVERAGE,
+        maximum_calibration_error=MAXIMUM_CALIBRATION_ERROR,
+        nominal_probability=S6_NOMINAL_PROBABILITIES[-1],
+    )
+    assert reference.outcome is CriterionOutcome.PASSED
+    assert upper.outcome is CriterionOutcome.FAILED
+
+    with pytest.raises(ValueError) as raised:
+        measure_calibration_level_set(
+            arm_slice,
+            minimum_coverage=MINIMUM_COVERAGE,
+            maximum_calibration_error=MAXIMUM_CALIBRATION_ERROR,
+        )
+    message = str(raised.value)
+    assert "reference level 0.9" in message
+    assert "passed" in message and "failed" in message
+    assert "ADR" in message
+
+
+def test_a_reference_level_outside_the_gated_set_is_refused(arm_slice: ArmSlice) -> None:
+    """A belief may not publish a level the gate never evaluated."""
+
+    with pytest.raises(ValueError, match="not one of the gated levels"):
+        measure_calibration_level_set(
+            arm_slice,
+            minimum_coverage=MINIMUM_COVERAGE,
+            maximum_calibration_error=MAXIMUM_CALIBRATION_ERROR,
+            reference_nominal=0.80,
+        )
+
+
+def test_the_result_reports_the_levels_it_measured_not_the_declared_ones(
+    arm_slice: ArmSlice,
+) -> None:
+    """``nominals`` describes the measurement, never the module constant.
+
+    It was briefly a property returning ``S6_NOMINAL_PROBABILITIES``, which would have labelled a
+    result measured at any other set with the default levels -- a field describing the declaration
+    rather than what was computed.
+    """
+
+    custom = (0.92, 0.93)
+    levels = measure_calibration_level_set(
+        arm_slice,
+        minimum_coverage=MINIMUM_COVERAGE,
+        maximum_calibration_error=MAXIMUM_CALIBRATION_ERROR,
+        nominals=custom,
+        reference_nominal=0.92,
+    )
+    assert levels.nominals == custom
+    assert levels.nominals != S6_NOMINAL_PROBABILITIES
+    assert len(levels.reports) == 2
+    assert levels.reference.empirical_coverage == pytest.approx(0.8943, abs=5e-4)
 
 
 # ------------------------------------------------------------------ S6 is not S2 restated
@@ -161,7 +422,7 @@ def test_the_measured_coverage_is_not_what_a_uniform_rescaling_would_give(
 
     from statistics import NormalDist
 
-    critical = NormalDist().inv_cdf(0.5 + S6_NOMINAL_PROBABILITY / 2.0)
+    critical = NormalDist().inv_cdf(0.5 + S6_REFERENCE_NOMINAL / 2.0)
     shape = calibration_shape_diagnostics(arm_slice)
     uniform = 2 * NormalDist().cdf(critical / shape.standard_deviation) - 1
     s2_aggregated = 2 * NormalDist().cdf(critical * 0.8415) - 1

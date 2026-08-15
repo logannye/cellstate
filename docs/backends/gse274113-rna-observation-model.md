@@ -140,6 +140,25 @@ the point estimate clears the 0.85 floor and its error of 0.0164 sits well insid
 interval reaches 0.8452 so the error could plausibly be 0.0548. Per ADR 0015 the gate reads the
 bound. Across eight bootstrap seeds the bound ranges 0.0532–0.0565 and the verdict does not move.
 
+**The row above is the reference level. The gate is the conjunction over six.**
+[ADR 0025](../adr/0025-s6-is-gated-on-the-whole-coherent-nominal-interval.md) supersedes ADR 0024
+decision 3: the predeclared pair is coherent on the whole interval [0.90, 0.95], not at one point,
+and 0.90 is its minimum — and its **loosest** member, since the bound rises monotonically.
+
+| nominal | 0.90 | 0.91 | 0.92 | 0.93 | 0.94 | 0.95 |
+| --- | --- | --- | --- | --- | --- | --- |
+| coverage | 0.8836 | 0.8886 | 0.8943 | 0.9000 | 0.9043 | 0.9093 |
+| bound | 0.0548 | 0.0590 | 0.0641 | 0.0660 | 0.0725 | 0.0767 |
+| outcome | fails | fails | fails | fails | fails | fails |
+
+The reason the width matters: **a one-level gate is clearable by a constant.** Multiplying every
+predictive standard deviation by any factor in [1.04, 1.21] clears 0.90, and 1.11 lands the coverage
+on exactly 0.9000 with a bound of 0.0368 — better than the shipped 0.0548 and better than any
+mechanism-based repair measured here. Across all six levels exactly one scalar in [1.00, 1.80]
+clears every one. One level tests the residuals' scale; six test their shape. Since the queued
+`psi²` and Student-t repairs both act on this evidence as near-uniform rescalings, that distinction
+decides whether either would have earned a PASS. See `test_a_constant_rescaling_clears_the_single_level_gate`.
+
 These are the values **after** [ADR 0022](../adr/0022-the-technical-variance-is-evaluated-at-a-pooled-rate.md),
 measured against bounds that decision fixed before the run. The pre-ADR values were 19.22, 0.22,
 2.90 and 3.08, measured against a bound introduced in the same commit as its own result.
