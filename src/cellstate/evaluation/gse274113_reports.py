@@ -37,13 +37,17 @@ evidence, and no combination of the measurements below substitutes for them.
 
 from __future__ import annotations
 
+from collections.abc import Sequence
 from dataclasses import dataclass
 from statistics import NormalDist
 
 import numpy as np
 from numpy.typing import NDArray
 
-from ..backends.gse274113.arm_request import S6_NOMINAL_PROBABILITY
+from ..backends.gse274113.arm_request import (
+    S6_NOMINAL_PROBABILITIES,
+    S6_REFERENCE_NOMINAL,
+)
 from ..backends.gse274113.fit import (
     NULL_TARGET,
     PLACEBO_TARGETS,
@@ -53,6 +57,7 @@ from ..backends.gse274113.fit import (
 )
 from ..backends.gse274113.likelihood import posterior
 from ..domain.belief import CalibrationReport
+from ..domain.common import CriterionOutcome
 from .bootstrap import BootstrapInterval, multiway_clustered_bootstrap
 from .calibration import evaluate_marginal_calibration
 
@@ -61,14 +66,15 @@ FloatArray = NDArray[np.float64]
 DEFAULT_SEED = 20260813
 
 __all__ = [
-    "S6_NOMINAL_PROBABILITY",
     "ArmState",
+    "CalibrationLevelSet",
     "CalibrationShape",
     "CapabilityMeasurement",
     "ReplicateStandardScores",
     "calibration_shape_diagnostics",
     "held_out_states",
     "measure_calibration_coverage",
+    "measure_calibration_level_set",
     "measure_earned_spread",
     "measure_intervention_response",
     "measure_nuisance_separation",
@@ -331,10 +337,11 @@ def measure_calibration_coverage(
     *,
     minimum_coverage: float,
     maximum_calibration_error: float,
-    nominal_probability: float = S6_NOMINAL_PROBABILITY,
+    nominal_probability: float = S6_REFERENCE_NOMINAL,
     seed: int = DEFAULT_SEED,
 ) -> CalibrationReport:
-    """S6: does the predictive interval contain the replicate at the rate it claims?
+    """Coverage at ONE nominal level.  **This is not the S6 gate** -- see
+    ``measure_calibration_level_set``, which is.
 
     The independent experimental unit is the **library**, as it is everywhere else here.  Coverage
     is counted over the 100 panel genes *within* a library and only libraries are resampled, which
@@ -354,6 +361,12 @@ def measure_calibration_coverage(
     ⚠️ **Scope, inherited from [ADR 0023] unchanged: null biology only, 14 libraries.**  ``NT`` is
     the only arm in this design carrying a replicate.  S6 does not establish calibration on a
     perturbed arm, and the reason is a property of the deposit rather than of this code.
+
+    ⚠️ **One level is clearable by a constant.**  Multiplying every predictive standard deviation
+    by a scalar -- no modelling at all -- clears the reference level for any factor in
+    ``[1.04, 1.21]``.
+    That is why the gate is the conjunction over ``S6_NOMINAL_PROBABILITIES``, not this function.
+    Call this one to read a level; call ``measure_calibration_level_set`` to judge the model.
 
     [ADR 0023]: ../../../docs/adr/0023-the-s2-estimand-is-a-split-half-replicate.md
     """
@@ -377,6 +390,95 @@ def measure_calibration_coverage(
 
 
 @dataclass(frozen=True)
+class CalibrationLevelSet:
+    """S6's verdict: coverage at every declared nominal, and the conjunction over them.
+
+    ``reference`` is the one report whose numbers travel with a belief, because a
+    ``CalibrationReport`` holds a single coverage.  ``outcome`` is the gate, and it is the AND over
+    ``reports`` -- never the reference alone.
+    """
+
+    # `nominals` is stored, not read back off the module constant.  A property returning
+    # `S6_NOMINAL_PROBABILITIES` would have reported the default levels for a result measured at
+    # any other set -- a value that describes the declaration rather than the measurement, which is
+    # the shape of every "recorded claim nothing checks" this repository keeps finding.
+    nominals: tuple[float, ...]
+    reports: tuple[CalibrationReport, ...]
+    reference: CalibrationReport
+    outcome: CriterionOutcome
+    failing_nominals: tuple[float, ...]
+
+
+def measure_calibration_level_set(
+    slice_data: ArmSlice,
+    *,
+    minimum_coverage: float,
+    maximum_calibration_error: float,
+    nominals: Sequence[float] = S6_NOMINAL_PROBABILITIES,
+    reference_nominal: float = S6_REFERENCE_NOMINAL,
+    seed: int = DEFAULT_SEED,
+) -> CalibrationLevelSet:
+    """**The S6 gate.**  Coverage at every level the predeclared pair is coherent on.
+
+    [ADR 0024] gated at one nominal, on the reasoning that the predeclared thresholds forced it.
+    They do not: they are coherent on the closed interval ``S6_NOMINAL_INTERVAL``, and 0.90 is its
+    minimum -- also, on this evidence, its **loosest** point.  The correction matters because a
+    single-level gate is passable by a constant: rescaling every predictive standard deviation by
+    any factor in ``[1.04, 1.21]`` clears 0.90, and exactly one factor clears all six.  A gate a
+    *wrong* computation can pass is the mirror of the gate a right one cannot fail, and this
+    repository has already found the second kind twice (``maximum_ood_score=0.99``;
+    ``maximum_calibration_error=1`` in ``examples/estimate_state.py``).
+
+    **The reference report is a reporting choice and is never the verdict.**  If the level whose
+    numbers a belief carries ever disagrees with the conjunction, this raises rather than reporting
+    the more convenient of the two -- which level a belief should then report is a decision for an
+    ADR, not for whichever branch happens to run.  It cannot fire on the committed slice, where all
+    six fail together, so it is exercised from the failing side by
+    ``test_the_reference_level_may_not_disagree_with_the_conjunction``.
+
+    [ADR 0024]: ../../../docs/adr/0024-s6-is-measured-and-readiness-is-derived.md
+    """
+
+    if reference_nominal not in tuple(nominals):
+        raise ValueError(
+            f"the reference nominal {reference_nominal} is not one of the gated levels "
+            f"{tuple(nominals)}; a belief cannot report a level the gate does not evaluate"
+        )
+    reports = tuple(
+        measure_calibration_coverage(
+            slice_data,
+            minimum_coverage=minimum_coverage,
+            maximum_calibration_error=maximum_calibration_error,
+            nominal_probability=nominal,
+            seed=seed,
+        )
+        for nominal in nominals
+    )
+    failing = tuple(
+        nominal
+        for nominal, report in zip(nominals, reports, strict=True)
+        if report.outcome is not CriterionOutcome.PASSED
+    )
+    outcome = CriterionOutcome.PASSED if not failing else CriterionOutcome.FAILED
+    reference = reports[tuple(nominals).index(reference_nominal)]
+    if reference.outcome is not outcome:
+        raise ValueError(
+            f"S6's reference level {reference_nominal} reports {reference.outcome.value} while the "
+            f"conjunction over {list(nominals)} is {outcome.value} (failing at {list(failing)}). "
+            "A belief carries one CalibrationReport, so it would have to publish one of these two "
+            "and suppress the other. Which level a belief reports once the levels disagree is an "
+            "ADR's decision; it is not this function's to pick."
+        )
+    return CalibrationLevelSet(
+        nominals=tuple(nominals),
+        reports=reports,
+        reference=reference,
+        outcome=outcome,
+        failing_nominals=failing,
+    )
+
+
+@dataclass(frozen=True)
 class CalibrationShape:
     """Why S6 and S2 disagree: the tail, and a coverage gradient S6 alone would hide."""
 
@@ -391,7 +493,7 @@ class CalibrationShape:
 def calibration_shape_diagnostics(
     slice_data: ArmSlice,
     *,
-    nominal_probability: float = S6_NOMINAL_PROBABILITY,
+    nominal_probability: float = S6_REFERENCE_NOMINAL,
     trimmed_fraction: float = 0.02,
 ) -> CalibrationShape:
     """Decompose S6's shortfall into a tail term and a depth gradient.

@@ -222,9 +222,24 @@ class LibraryCoverageOut(BaseModel):
     coverage: float
 
 
+class LevelOut(BaseModel):
+    """One nominal level of the S6 gate."""
+
+    nominal_probability: float
+    empirical_coverage: float
+    calibration_error: float
+    calibration_error_upper_bound: float
+    outcome: str
+    is_reference: bool
+
+
 class CalibrationOut(BaseModel):
     """S6, and the two decompositions that keep its single number from being read wrong."""
 
+    levels: list[LevelOut]
+    failing_nominals: list[float]
+    reference_nominal: float
+    nominal_interval: list[float]
     nominal_probability: float
     empirical_coverage: float
     interval: IntervalOut
@@ -824,22 +839,32 @@ def calibration() -> CalibrationOut:
     replicate at the fitted configuration; recomputing it at another rank would be a different
     measurement that no decision authorizes, exactly as for S2 and S4.  So this endpoint reports one
     value rather than offering a knob that would imply otherwise.
+
+    ``outcome`` is the conjunction over ``levels``, never the reference level alone.  The headline
+    coverage and interval are the reference level's, because that is the level whose numbers the
+    belief publishes; ``levels`` carries all six so the page cannot show a verdict without showing
+    what produced it.
     """
 
-    from ..backends.gse274113.arm_request import S6_NOMINAL_PROBABILITY, arm_query
+    from ..backends.gse274113.arm_request import (
+        S6_NOMINAL_INTERVAL,
+        S6_REFERENCE_NOMINAL,
+        arm_query,
+    )
     from ..evaluation.gse274113_reports import (
         calibration_shape_diagnostics,
-        measure_calibration_coverage,
+        measure_calibration_level_set,
         replicate_standard_scores,
     )
 
     slice_data = _slice()
     thresholds = arm_query(slice_data.targets, model_fingerprint="0" * 64).acceptance_thresholds
-    report = measure_calibration_coverage(
+    level_set = measure_calibration_level_set(
         slice_data,
         minimum_coverage=thresholds.minimum_calibration_coverage,
         maximum_calibration_error=thresholds.maximum_calibration_error,
     )
+    report = level_set.reference
     shape = calibration_shape_diagnostics(slice_data)
     depths = {
         entry.library: entry.replicate_depth for entry in replicate_standard_scores(slice_data)
@@ -849,7 +874,21 @@ def calibration() -> CalibrationOut:
     assert report.calibration_error_upper_bound is not None
     assert report.coverage_interval is not None
     return CalibrationOut(
-        nominal_probability=S6_NOMINAL_PROBABILITY,
+        levels=[
+            LevelOut(
+                nominal_probability=nominal,
+                empirical_coverage=entry.empirical_coverage or 0.0,
+                calibration_error=entry.calibration_error or 0.0,
+                calibration_error_upper_bound=entry.calibration_error_upper_bound or 0.0,
+                outcome=entry.outcome.value,
+                is_reference=nominal == S6_REFERENCE_NOMINAL,
+            )
+            for nominal, entry in zip(level_set.nominals, level_set.reports, strict=True)
+        ],
+        failing_nominals=list(level_set.failing_nominals),
+        reference_nominal=S6_REFERENCE_NOMINAL,
+        nominal_interval=list(S6_NOMINAL_INTERVAL),
+        nominal_probability=S6_REFERENCE_NOMINAL,
         empirical_coverage=report.empirical_coverage,
         interval=IntervalOut(
             value=report.empirical_coverage,
@@ -860,7 +899,7 @@ def calibration() -> CalibrationOut:
         calibration_error_upper_bound=report.calibration_error_upper_bound,
         minimum_coverage=thresholds.minimum_calibration_coverage,
         maximum_calibration_error=thresholds.maximum_calibration_error,
-        outcome=report.outcome.value,
+        outcome=level_set.outcome.value,
         unit_count=len(slice_data.libraries),
         standard_deviation=shape.standard_deviation,
         trimmed_standard_deviation=shape.trimmed_standard_deviation,

@@ -84,31 +84,77 @@ MODALITY = OntologyTerm(label="RNA-seq")
 SPECIES = OntologyTerm(label="Homo sapiens")
 SYSTEM = OntologyTerm(label="cultured human CD34-positive haematopoietic progenitor")
 
-S6_NOMINAL_PROBABILITY = 0.90
-"""The nominal probability S6's predictive intervals are scored at.
+S6_NOMINAL_INTERVAL = (0.90, 0.95)
+"""The closed interval of nominal probabilities the predeclared threshold pair is coherent on.
 
-**It is read off the two thresholds below, not chosen.**  ``minimum_calibration_coverage=0.85`` and
-``maximum_calibration_error=0.05`` were written into ``arm_query`` before any coverage number
-existed.  Together they require the coverage to lie in ``[nominal - 0.05, nominal + 0.05]`` *and* to
-clear 0.85, and the two constraints coincide at exactly one nominal:
+**[ADR 0024] said "exactly one nominal". That was wrong**, and the error was a `>=` read as an `=`.
+The pair `minimum_calibration_coverage=0.85` and `maximum_calibration_error=0.05` was written into
+``arm_query`` before any coverage number existed, and it constrains a nominal ``q`` two ways:
 
-    nominal - 0.05 >= 0.85   =>   nominal = 0.90
+* **below 0.90** the error bound admits a coverage the floor rejects -- ``q - 0.05 < 0.85`` means a
+  result can satisfy the error criterion and still fail the floor, so the two thresholds disagree
+  about what passes;
+* **above 0.95** the error bound's upper half is unreachable -- ``q + 0.05 > 1`` asks for a coverage
+  above one.
 
-It lives here, beside the pair that forces it, rather than in the evaluation module that uses it --
-partly because that is where its justification is, and partly because the other direction is a
+Between them the pair is coherent, and at **exactly 0.90** the floor and the error bound's lower
+edge coincide. That single coincidence is what the superseded claim had hold of; it does not make
+0.90 the only admissible level, and 0.90 is in fact the **loosest** of them: the upper confidence
+bound rises monotonically across the interval on the committed slice (0.0548 at 0.90 to 0.0767 at
+0.95), so gating there alone is the easiest reading of the predeclaration it claims to be forced by.
+
+Why that matters more than a wording correction: **a single-level gate is clearable by a constant.**
+Multiplying every predictive standard deviation by a scalar -- no modelling of any kind -- clears
+0.90 for any factor in ``[1.04, 1.21]``, and ``1.11`` lands the coverage on exactly 0.9000. Across
+the whole grid below, exactly one scalar in ``[1.00, 1.80]`` clears every level. A one-level gate
+tests the residuals' *scale*; the grid tests their *shape*. See
+``test_a_constant_rescaling_clears_the_single_level_gate``.
+
+It lives here, beside the pair it is derived from, rather than in the evaluation module that uses it
+-- partly because that is where its justification is, and partly because the other direction is a
 **circular import**: ``evaluation`` measures ``backends``, so nothing under ``backends`` may import
 ``evaluation`` at module scope.  See ``test_every_module_imports_first``.
 
-Fixing the nominal from an earlier declaration is the point.  This repository already carries two
-thresholds a correct computation could not fail -- ``maximum_ood_score=0.99`` here, and
-``maximum_calibration_error=1`` in ``examples/estimate_state.py`` -- and picking the nominal that
-made the coverage pass would have quietly added a third.
+[ADR 0024]: ../../../../docs/adr/0024-s6-is-measured-and-readiness-is-derived.md
+"""
+
+S6_NOMINAL_GRID_STEP = 0.01
+"""Spacing of the grid S6 evaluates ``S6_NOMINAL_INTERVAL`` on.
+
+**This is a declared choice, and the interval is not.**  The endpoints follow from thresholds
+written earlier; how finely to sample between them does not follow from anything, so it is named
+here as a decision rather than folded into the derivation.  Nothing about the verdict turns on it at
+present -- every level fails -- but a future reader must be able to tell which half was derived.
+"""
+
+S6_NOMINAL_PROBABILITIES = (0.90, 0.91, 0.92, 0.93, 0.94, 0.95)
+"""``S6_NOMINAL_INTERVAL`` on the declared grid: the levels S6 is gated at, all of them.
+
+S6's outcome is the **conjunction** over these six.  Recomputed rather than trusted by
+``test_the_declared_levels_are_the_grid_on_the_derived_interval``, so the tuple cannot drift from
+the interval and step above.
+"""
+
+S6_REFERENCE_NOMINAL = 0.90
+"""The single level whose numbers the belief reports, out of the six it is gated at.
+
+A ``CalibrationReport`` carries one coverage and one interval, so a six-level gate still has to
+choose which level's *numbers* travel with the belief.  This is 0.90 because that is where the floor
+and the error bound coincide -- the one distinguished point in the interval -- and because it keeps
+the published figures stable across this change.
+
+**It is a reporting choice, not the gate.**  ``measure_calibration_level_set`` refuses to return a
+reference report whose outcome disagrees with the conjunction over all six, so this constant can
+never quietly become the gate again.
 """
 
 __all__ = [
     "HARVEST_SECONDS",
     "HORIZON_NAME",
-    "S6_NOMINAL_PROBABILITY",
+    "S6_NOMINAL_GRID_STEP",
+    "S6_NOMINAL_INTERVAL",
+    "S6_NOMINAL_PROBABILITIES",
+    "S6_REFERENCE_NOMINAL",
     "arm_history",
     "arm_query",
     "arm_request",

@@ -54,10 +54,16 @@ coverage and bound, and an explicit list of the six criteria still unevaluated.
 ## Substrate
 
 **S6 leads the view**, because it is the only readiness criterion this backend evaluates: the
-coverage headline with its bound against the predeclared 0.05, the trimmed-tail bars against a
-reference line at 1.00, and per-library coverage plotted against panel depth with the nominal drawn
-across. It takes no rank arguments and the panel says so — S6's estimand is fixed at the fitted
-configuration, so a knob there would imply a measurement that does not exist.
+coverage headline with its bound against the predeclared 0.05, **the table of all six gated nominal
+levels**, the trimmed-tail bars against a reference line at 1.00, and per-library coverage plotted
+against panel depth with the nominal drawn across. It takes no rank arguments and the panel says so
+— S6's estimand is fixed at the fitted configuration, so a knob there would imply a measurement that
+does not exist.
+
+The verdict shown is the **conjunction over the six levels**, never the headline row alone; the page
+cannot display a pass or fail without displaying what produced it. Per
+[ADR 0025](../adr/0025-s6-is-gated-on-the-whole-coherent-nominal-interval.md), gating at one level
+would have been clearable by a constant.
 
 Below it, the three independent statements that this deposit carries no perturbation signal —
 `knockdown` as a sorted diverging bar, the `spectrum` decay chart, the `day` readout — plus the

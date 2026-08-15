@@ -271,16 +271,29 @@ async function renderSubstrate() {
     chip.textContent = `S6 ${failed ? 'FAIL' : 'PASS'}`;
     chip.className = `chip ${failed ? 'fail' : 'pass'}`;
     $('cal-tiles').replaceChildren(
-      tile('coverage @ 0.90', fmt(cal.empirical_coverage, 4),
+      tile(`coverage @ ${cal.reference_nominal.toFixed(2)}`, fmt(cal.empirical_coverage, 4),
            `[${fmt(cal.interval.lower, 4)}, ${fmt(cal.interval.upper, 4)}] · K=${cal.unit_count}`),
       tile('calibration error', fmt(cal.calibration_error, 4),
            `floor ${cal.minimum_coverage} · max ${cal.maximum_calibration_error}`, 'good'),
       tile('upper bound', fmt(cal.calibration_error_upper_bound, 4),
-           `the gate reads this · max ${cal.maximum_calibration_error}`, failed ? 'bad' : 'good'),
+           `at the reference level · max ${cal.maximum_calibration_error}`, failed ? 'bad' : 'good'),
+      tile('levels failing', `${cal.failing_nominals.length} of ${cal.levels.length}`,
+           `gated on [${cal.nominal_interval.map((v) => v.toFixed(2)).join(', ')}]`, failed ? 'bad' : 'good'),
       tile('sd of z', fmt(cal.standard_deviation, 4),
            `trimmed ${fmt(cal.trimmed_standard_deviation, 4)} · max |z| ${fmt(cal.largest_absolute_score, 2)}`, 'warn'),
       tile('depth ↔ coverage', fmt(cal.depth_coverage_correlation, 4), 'corr over 14 libraries', 'bad'),
     );
+    put($('cal-levels'), table(['nominal', 'coverage', 'error', 'bound', 'verdict'],
+      cal.levels.map((l) => ({
+        __class: l.is_reference ? '' : 'dim',
+        cells: [
+          l.is_reference ? `${l.nominal_probability.toFixed(2)}  · reference` : l.nominal_probability.toFixed(2),
+          fmt(l.empirical_coverage, 4),
+          fmt(l.calibration_error, 4),
+          fmt(l.calibration_error_upper_bound, 4),
+          l.outcome,
+        ],
+      }))));
     put($('cal-tail'), trimmedTail(cal));
     put($('cal-depth'), coverageByDepth(cal.by_library, cal.nominal_probability));
   } catch (error) { fail($('cal-tiles'), error); }
