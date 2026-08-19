@@ -46,6 +46,7 @@ from .sufficiency import (
     fit_paired_ridge_losses,
     inapplicable_sufficiency_report,
 )
+from .target_consistency import PermutationScreen, screen_target_consistency
 
 __all__ = [
     "FROZEN_SCIPLEX3_PROJECTION_RANK",
@@ -53,6 +54,7 @@ __all__ = [
     "BootstrapInterval",
     "EvaluationCaseInputs",
     "MetricImplementation",
+    "PermutationScreen",
     "PredictorCapacity",
     "QuerySufficiencyEvaluator",
     "ScoredCase",
@@ -83,6 +85,7 @@ __all__ = [
     "request_carries_pre_cutoff_evidence",
     "sample_crps",
     "score_case",
+    "screen_target_consistency",
     "small_cluster_scale",
     "weighted_mean",
 ]

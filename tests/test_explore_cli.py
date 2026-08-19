@@ -26,6 +26,7 @@ COMMANDS = [
     ["inventory"],
     ["panel"],
     ["knockdown"],
+    ["consistency", "--draws", "100"],
     ["day"],
     ["spectrum"],
     ["ranks"],
@@ -53,7 +54,7 @@ def _run(*arguments: str) -> str:
 
 @pytest.mark.parametrize("command", COMMANDS, ids=lambda c: "-".join(c))
 def test_every_command_runs(command: list[str]) -> None:
-    """Eleven commands, each exercised from the entry point a reader actually types."""
+    """Every command, each exercised from the entry point a reader actually types."""
 
     assert _run(*command).strip()
 
@@ -90,6 +91,23 @@ def test_the_knockdown_screen_prints_the_figures_the_model_card_quotes() -> None
     # screen must not assert one. What it may still assert is that it reports its own withdrawal.
     assert "WITHDRAWN" in output
     assert "not a validity" in output.lower() or "does NOT say whether" in output
+
+
+def test_the_consistency_screen_reports_a_null_and_no_verdict() -> None:
+    """The screen prints what it compared against, and does not print a pass.
+
+    The null is the load-bearing half: an observed share means nothing without the distribution it
+    is being read against, and this repository has published a spectral comparison against a
+    reference class that was not a null.
+    """
+
+    output = _run("consistency", "--draws", "200")
+    assert "permutation null" in output
+    assert "ratio to null" in output
+    assert "p " in output
+    # No verdict vocabulary. The screen has no witnessed threshold, so it must not imply one.
+    for forbidden in ("PASSED", "FAILED", "passes", "fails"):
+        assert forbidden not in output, f"the screen must not emit a verdict; found {forbidden!r}"
 
 
 def test_the_knockdown_screen_looks_the_modality_up_rather_than_asserting_it() -> None:

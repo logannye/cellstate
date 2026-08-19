@@ -69,6 +69,9 @@ from cellstate.data.modality_registry import (  # noqa: E402
     on_target_expression_is_a_validity_control,
     perturbation_modality_for,
 )
+from cellstate.evaluation.target_consistency import (  # noqa: E402
+    screen_target_consistency,
+)
 
 RULE = "-" * 78
 
@@ -847,6 +850,50 @@ def cmd_calibration(_: argparse.Namespace) -> None:
     )
 
 
+def cmd_consistency(args: argparse.Namespace) -> None:
+    """Do arms sharing a target agree more than relabelling explains?
+
+    Model-free: no fold, no fitted basis, no observation-variance model, no bound.  The library
+    effect is removed by differencing against that library's own ``NT`` arm, and the null permutes
+    target labels WITHIN each library -- so the null and the observation differ in exactly one
+    respect, which arm is called which target.
+
+    This is the prior question the ledger cannot answer about itself.  A criterion can fail because
+    the substrate is empty or because the estimator cannot see what is there, and `measure` alone
+    does not distinguish them.
+
+    ⚠️ Reports no verdict, on purpose.  There is no threshold here that has ever been witnessed.
+    """
+
+    screen = screen_target_consistency(_slice(), draws=args.draws, seed=args.seed)
+
+    print("TARGET CONSISTENCY -- within-library label permutation, no model\n")
+    print(f"{'statistic':<34} {screen.statistic}")
+    print(f"{'independent units':<34} {screen.unit_count} libraries")
+    print(f"{'permutation draws':<34} {screen.draws}   (seed {screen.seed})")
+    print(RULE)
+    print(f"{'observed':<34} {screen.observed:>8.4f}")
+    print(
+        f"{'permutation null':<34} {screen.null_mean:>8.4f}   "
+        f"[{screen.null_lower:.4f}, {screen.null_upper:.4f}]"
+    )
+    print(f"{'ratio to null':<34} {screen.ratio_to_null:>8.2f}x")
+    print(f"{'draws at or above observed':<34} {screen.exceedances:>8} of {screen.draws}")
+    print(f"{'p':<34} {screen.p_value:>8.5f}")
+    print(RULE)
+    print(
+        "\nThe null sits at about 1/K for K libraries, which is what any arbitrary grouping\n"
+        "captures by chance; a null elsewhere would mean this statistic is not measuring what\n"
+        "it claims, and a test asserts it.\n"
+        "\nWhat this does and does not license. It is evidence that arms sharing a target agree\n"
+        "more than relabelling explains. It is NOT a capability, not an effect size in any\n"
+        "interpretable unit, and not transportable -- every arm comes from one donor's culture\n"
+        "(ADR 0018 finding 4), so it is evidence about the substrate and the instrument, never a\n"
+        "biological claim.\n"
+        "\nIt reports no verdict because no threshold on it has ever been witnessed."
+    )
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="explore.py",
@@ -866,6 +913,12 @@ def build_parser() -> argparse.ArgumentParser:
         return sub
 
     add("inventory", cmd_inventory, "what the committed slice contains")
+
+    consistency = add(
+        "consistency", cmd_consistency, "do targets agree more than relabelling explains?"
+    )
+    consistency.add_argument("--draws", type=int, default=2000)
+    consistency.add_argument("--seed", type=int, default=20260819)
 
     panel = add("panel", cmd_panel, "the 100-gene panel and what it expresses")
     panel.add_argument("--all", action="store_true", help="print all 100 genes")

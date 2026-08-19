@@ -109,11 +109,23 @@ that escape NMD give zero or positive fold change. On-target mRNA is therefore n
 control for this source, and the number carries no information about whether the perturbation
 worked.
 
-What follows from that: **it is not currently known whether the negative capability measurements are
-verdicts on the deposit or on the model**, and no claim in either direction is supported. A
-modality-appropriate screen — guide-level replication, expression-dependence of effect size, and the
-cutting-versus-non-cutting contrast — has not yet been run. Do not cite the withdrawn verdict, and
-do not select a new corpus on the strength of it.
+**The deposit is not empty, and that is now measured rather than assumed either way.**
+`scripts/explore.py consistency` runs a within-library target-label permutation screen on the
+committed slice — no fold, no fitted basis, no observation-variance model, no bound. Arms sharing a
+target carry **0.1897** of the within-library sum of squares against a permutation null of
+**0.0714 [0.0615, 0.0821]**, a ratio of **2.66×**, with **0 of 2000** draws reaching the observed
+value (p = 5.0e-4, the floor that many draws can resolve). The null sits at 1/K for K = 14
+libraries, exactly where label exchangeability puts it, and a test asserts that.
+
+So "the substrate is empty" is no longer available as a complete explanation for the failing
+ledger. **What that does not establish is the converse.** The signal is real and it is small, which
+is consistent with the negative capability measurements being verdicts on the estimator — but
+consistency is not evidence, and nothing here measures the estimator. The honest state is: the
+deposit carries target-consistent structure; whether the model can see it is untested.
+
+Do not cite the withdrawn verdict, and do not select a new corpus on the strength of it. The
+modality-appropriate controls — guide-level replication, expression-dependence of effect size, and
+the cutting-versus-non-cutting contrast against the AAVS1 arm — remain unrun.
 
 The sci-Plex3 K562 24-hour component remains a non-executable `SCAFFOLD` and its benchmark remains
 `COMPONENT_BENCHMARK`, not admitted. Its estimand has no admissible pre-cutoff observation and one
