@@ -1,5 +1,5 @@
 {
-  "description": "Declared RNA panel for the GSE274113 observation model: the 19 CRISPRi target transcription factors, haematopoietic lineage markers, and housekeeping depth anchors. Chosen from biology and from the experiment's design, never from the response.",
+  "description": "Declared RNA panel for the GSE274113 observation model: the 19 knockout target transcription factors, haematopoietic lineage markers, and housekeeping depth anchors. Chosen from biology and from the experiment's design, never from the response.",
   "gene_axis_sha256": "a64d2adbd4ab2f0cbe0fe3062f38137472f4a346ec6937a12c2250c302f86244",
   "gene_count": 100,
   "genes": [

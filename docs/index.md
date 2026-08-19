@@ -31,9 +31,11 @@ selectors.
 
 The `gse274113` RNA observation model **is** registered and beliefs **have** been emitted from real
 human CD34+ cells; see [the exploration guide](guides/explore-the-system.md). **No benchmark is
-scientifically admitted and the eligibility ledger is 0 of 10**, and on this substrate it will stay
-there: the deposit's CRISPRi arm is a measured null, so the capability tests divide by a
-perturbation signal that was never created.
+scientifically admitted and the eligibility ledger is 0 of 10**. The explanation this page used to
+give for that — that the deposit's perturbation arm is a measured null — is **withdrawn**: it rested
+on an on-target-mRNA criterion that belongs to CRISPRi, and GSE274113 is Cas9 nuclease knockout,
+where the transcript need not move. Whether the negative measurements are verdicts on the deposit or
+on the model is currently unknown.
 
 Every `metric_id` the frozen sci-Plex3 suite declares now resolves to an executable implementation,
 and both faithfulness tests execute and return a verdict with a grouped bootstrap interval. What has

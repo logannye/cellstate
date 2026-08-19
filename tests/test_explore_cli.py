@@ -81,7 +81,15 @@ def test_the_knockdown_screen_prints_the_figures_the_model_card_quotes() -> None
     assert mean == pytest.approx(-0.058, abs=0.001)
     assert (wrong.group(1), wrong.group(2)) == ("6", "19")
     assert restricted == pytest.approx(-0.097, abs=0.001)
-    assert mean > -0.5, "a working CRISPRi screen would give roughly -1 to -2; this one is a null"
+
+    # The figures are pinned; the VERDICT they used to carry is withdrawn. This assertion
+    # previously required the mean to sit above a threshold taken from a CRISPRi screen, which
+    # compared a Cas9 nuclease knockout against a dCas9-KRAB expectation.
+    # Cutting destroys the protein and leaves the transcript largely intact, so there is no
+    # threshold on this statistic that separates a working screen from a failed one, and the
+    # screen must not assert one. What it may still assert is that it reports its own withdrawal.
+    assert "WITHDRAWN" in output
+    assert "not a validity" in output.lower() or "does NOT say whether" in output
 
 
 def test_the_differentiation_readout_prints_the_ratio_the_readme_quotes() -> None:

@@ -239,8 +239,12 @@ async function renderSubstrate() {
     const placebo = spectrum.series[1];
     const diff = spectrum.series[2];
     $('sub-tiles').replaceChildren(
-      tile('on-target log2FC', fmt(knock.mean_log2_fold_change, 3), `over ${knock.target_count} targets`, 'bad'),
-      tile('wrong-signed', `${knock.wrong_signed} of ${knock.target_count}`, 'a working screen: −1 to −2', 'bad'),
+      // Tone deliberately omitted. These were scored 'bad', which rendered them red and read as
+      // "this deposit failed" -- on a criterion that does not apply to a Cas9 nuclease knockout,
+      // where the transcript need not move. There is no .neutral class; the default is untoned,
+      // which is the honest rendering for a measurement that carries no verdict.
+      tile('on-target log2FC', fmt(knock.mean_log2_fold_change, 3), `over ${knock.target_count} targets`),
+      tile('wrong-signed', `${knock.wrong_signed} of ${knock.target_count}`, 'NMD escape, not a verdict'),
       tile('perturbation s1/s0', fmt(perturbation.s1_over_s0, 2), `placebo ${fmt(placebo.s1_over_s0, 2)}`, 'bad'),
       tile('differentiation s1/s0', fmt(diff.s1_over_s0, 2), `PC1 ${(diff.pc1_variance_share * 100).toFixed(1)}%`, 'good'),
       tile('differentiation', `${fmt(day.differentiation_over_placebo, 2)}×`, `perturbed ${fmt(day.perturbed_over_placebo, 2)}× placebo`, 'good'),

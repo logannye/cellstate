@@ -59,7 +59,9 @@ PANEL_PATH = ARTIFACTS / "panel.json"
 SLICE_PATH = ARTIFACTS / "arms.json"
 
 # Pinned so a regenerated artifact is a deliberate, visible act rather than a silent drift.
-PANEL_SHA256 = "710ed885667d8bff2f3803ab12762899116722c20cce1668b7808d223ddc127d"
+# Re-pinned when the panel description was corrected to name the real modality, Cas9 nuclease
+# knockout; the gene axis is untouched (`gene_axis_sha256` is over the Ensembl ids alone).
+PANEL_SHA256 = "ba5ea7bad5e048f862bd599a4f4576c3351602ed970d56a3eb4ba806576fa2db"
 SLICE_SHA256 = "3de8ee39ba5dbf30aa383d1ae49193d2b818a031dff40098fdda4084d3cc6cfb"
 
 HELD_OUT = "rep1"
@@ -561,7 +563,7 @@ def test_the_causal_gate_refuses_an_identified_claim(
                 evaluation_status=EvaluationStatus.EVALUATED,
                 outcome=CriterionOutcome.PASSED,
                 causal_status=CausalStatus.IDENTIFIED_POPULATION_EFFECT,
-                identification_basis="pooled CRISPRi transduction",
+                identification_basis="pooled lentiviral guide transduction with Cas9 protein",
                 identification_design=AssignmentMechanism.RANDOMIZED,
                 source_scope=f"GSE274113 {HELD_OUT}",
                 target_scope=f"GSE274113 {HELD_OUT}",

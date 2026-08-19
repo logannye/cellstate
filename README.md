@@ -268,7 +268,7 @@ A sufficiency test that fails, reported with its interval, is a result. Suppress
 **A belief is emitted from real cells, and the state-capability ledger stands at 0 of 10.** Both
 halves of that sentence are the status.
 
-The `gse274113` backend fits an RNA observation model on CRISPRi-perturbed human CD34+ haematopoietic
+The `gse274113` backend fits an RNA observation model on Cas9-knockout human CD34+ haematopoietic
 progenitors — 308 arms across 14 libraries, 137,604 cells, a 100-gene panel declared a priori — and
 `estimate_arm("rep1", "GATA1")` returns a typed `CellStateBelief` from a bare checkout in under a
 second. The fitted biology axes are recognisable haematopoietic lineage contrasts. See
@@ -321,9 +321,11 @@ For a browser instead of a terminal — with sliders on the model's rank paramet
 refit — `make ui` serves a local explorer at `127.0.0.1:8000`; see
 [the guide](docs/guides/the-web-ui.md).
 
-Run `knockdown` and `spectrum` before reading anything else. They are the two screens that say
-whether this deposit carries an effect at all, and on GSE274113's CRISPRi arm the answer is no —
-which is what the negative capability measurements below are mostly measuring.
+⚠️ `knockdown` reports mean on-target log₂ fold-change, which **is not a validity control for this
+deposit**: GSE274113 is Cas9 nuclease knockout, where the transcript need not move at all. Its
+number is retained as a measurement of NMD escape and reads on nothing else. The verdict it once
+supported — that this deposit carries no effect — is withdrawn, and no replacement screen has been
+run yet, so the negative capability measurements below are currently unattributed.
 
 ```python
 from cellstate.backends.gse274113 import estimate_arm, describe_state, compare_arms

@@ -27,7 +27,7 @@ that work is held to, not work.
 
 **The state of the object: it exists, and it does not yet work.**
 
-`CellStateBelief` is now constructed from real cells. A population of CRISPRi-perturbed human CD34+
+`CellStateBelief` is now constructed from real cells. A population of Cas9-knockout human CD34+
 progenitors goes through `estimate_cell_state` and comes back as a typed belief carrying a
 posterior, under the `empirical_observation_model` kind
 ([ADR 0021](adr/0021-an-admissible-kind-for-a-fitted-observation-model.md)). That is the first time

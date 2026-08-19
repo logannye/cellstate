@@ -13,7 +13,7 @@ that say what the model **cannot** do are the load-bearing ones.
 ## What it claims
 
 A **snapshot state estimate with a posterior**, for one `(library, target)` population of
-CRISPRi-perturbed human CD34+ haematopoietic progenitors at its own harvest instant.
+Cas9-knockout human CD34+ haematopoietic progenitors at its own harvest instant.
 
 It claims nothing else. In particular it is **not** a sufficiency result, **not** a faithfulness
 verdict, and **not** evidence that the state is complete. ADR 0021 decision 5 governs, and the
@@ -30,7 +30,7 @@ belief enforces it in its own fields rather than in prose: `causal_support` is `
 | Licence | **Unresolved at source, recorded**: no terms asserted by submitter or journal, owner-authorized for internal method development, **not cleared for any published biological claim** (ADR 0020 decision 4) |
 | Cells | 137,604 annotated, 0 dropped for a zero panel total |
 | Arms | 280 real `(library, target)`, all populated; plus 28 NT placebo arms |
-| Panel | 100 genes: 19 CRISPRi target TFs, haematopoietic lineage markers, housekeeping depth anchors |
+| Panel | 100 genes: 19 knockout target TFs, haematopoietic lineage markers, housekeeping depth anchors |
 | Depth per arm | 192k to 3.0M panel counts, median 584k |
 | Experimental unit | the **library** (program rule 8) |
 
@@ -208,13 +208,24 @@ Two qualifications, so that these failures are not read as more than they are:
   variance of **0.1213**. The misfit alone exceeds everything the posterior claims. Under the old
   construction that diagnosis was unavailable, because its failure was equally consistent with a
   predictor that had simply been handicapped.
-- **The substrate carries almost no perturbation signal**, so S2, S4 and S5 are verdicts on
-  `GSE274113`'s CRISPRi arm before they are verdicts on this model. Mean on-target knockdown across
-  the 19 targets is **−0.058** log2 fold-change and 6 of 19 move the **wrong way**; restricted to the
-  15 targets detected above 200 panel-CPM it is **−0.097**. SNAI2 (0.6 CPM) and PRDM16 (3.5 CPM) are
-  not expressed at all, so two targets are unmeasurable in this readout. A working CRISPRi knockdown
-  is roughly −1 to −2. All three capabilities divide by or compare against a between-target biology
-  variance of **0.109**.
+- **On-target mRNA is not a validity control for this deposit, and the verdict it supported is
+  withdrawn.** The perturbation is Cas9 nuclease knockout — lentiviral sgRNA at low multiplicity of
+  infection with Cas9 protein
+  ([Science 10.1126/science.ads7951](https://doi.org/10.1126/science.ads7951)). A frameshift
+  destroys the protein; the transcript falls only through nonsense-mediated decay, and edits that
+  escape NMD — or that de-repress an autoregulatory promoter, as a transcriptional repressor's own
+  knockout does — give zero or positive fold change. The measured figures stand as measurements of
+  NMD escape and editing mosaicism: mean on-target **−0.058** log2 fold-change over 19 targets with
+  6 moving the wrong way, **−0.097** over the 15 detected above 200 panel-CPM, and SNAI2 (0.6 CPM)
+  and PRDM16 (3.5 CPM) not expressed at all. What no longer follows from them is that the substrate
+  carries no perturbation signal. **Whether S2, S4 and S5 are verdicts on the deposit or on this
+  model is currently unknown**, and all three still divide by or compare against a between-target
+  biology variance of **0.109**.
+
+  Controls that *are* valid for this modality — guide-level replication across the three sgRNAs per
+  target, expression-dependence of effect size, and the cutting-versus-non-cutting contrast against
+  the AAVS1 safe-harbour arm — have not been run. Until they are, this row is an open question and
+  not a finding.
 
   ✅ `scripts/explore.py knockdown` now computes these figures from the committed slice; they were
   previously a recorded claim that no committed runner checked. The earlier card reported **−0.043**

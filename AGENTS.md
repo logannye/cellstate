@@ -88,7 +88,7 @@ machine-checked reviewed representability ledgers, which validate bound declarat
 without resolving source bytes or replaying selectors.
 
 A biological backend **is** registered and beliefs **have** been emitted from real cells. The
-`gse274113` RNA observation model fits on CRISPRi-perturbed human CD34+ progenitors — 14 libraries,
+`gse274113` RNA observation model fits on Cas9-knockout human CD34+ progenitors — 14 libraries,
 137,604 cells, a 100-gene panel declared a priori — and `estimate_arm("rep1", "GATA1")` returns a
 typed `CellStateBelief` from a bare checkout in under a second. Its capability measurements are
 computed, reproduce from committed bytes, and are pinned by tests. The three sentences that stood
@@ -100,13 +100,20 @@ What remains true: **no benchmark is scientifically admitted, and the eligibilit
 No metric implementation exists in any frozen suite, `evaluate_marginal_calibration` and the
 sufficiency functions still have no caller outside tests, and the observational floor is unmeasured.
 
-The negative capability measurements are largely verdicts on the **deposit** rather than on the
-model. GSE274113's CRISPRi arm is a measured null — mean on-target knockdown is about −0.06 log₂
-fold-change with 6 of 19 targets moving the wrong way — so S2, S4 and S5 divide by a between-target
-biology variance that the perturbation never created. The matrix the biology basis is fitted on has
-the same singular-value profile as the placebo contrast. **Hardening the instrument cannot move the
-ledger on this substrate**; a source selection can. Screen a candidate corpus for on-target effect
-before spending bytes on it (`scripts/explore.py knockdown` and `spectrum` are that screen).
+**The "measured null" verdict on this deposit is WITHDRAWN.** It rested on a mean on-target
+log₂ fold-change of about −0.06, read against a CRISPRi expectation of −1 to −2 — a threshold that
+belongs to dCas9-KRAB, where repression forces the transcript down. GSE274113 is **Cas9
+nuclease knockout** ([Science 10.1126/science.ads7951](https://doi.org/10.1126/science.ads7951)):
+cutting destroys the protein, the transcript falls only through nonsense-mediated decay, and edits
+that escape NMD give zero or positive fold change. On-target mRNA is therefore not a validity
+control for this source, and the number carries no information about whether the perturbation
+worked.
+
+What follows from that: **it is not currently known whether the negative capability measurements are
+verdicts on the deposit or on the model**, and no claim in either direction is supported. A
+modality-appropriate screen — guide-level replication, expression-dependence of effect size, and the
+cutting-versus-non-cutting contrast — has not yet been run. Do not cite the withdrawn verdict, and
+do not select a new corpus on the strength of it.
 
 The sci-Plex3 K562 24-hour component remains a non-executable `SCAFFOLD` and its benchmark remains
 `COMPONENT_BENCHMARK`, not admitted. Its estimand has no admissible pre-cutoff observation and one

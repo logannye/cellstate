@@ -66,10 +66,11 @@ Three things this surface does **not** establish:
 - **Every belief here abstains**, and `describe_state` reprints the reasons. A coordinate is not an
   answer to a predictive question.
 
-The honest summary is that this dataset's CRISPRi arm carries almost no perturbation signal — mean
-on-target knockdown is −0.043 log₂ fold-change — while the same panel and pipeline resolve the
-day 7 → day 14 differentiation contrast at **7.97×** the placebo contrast. The representation works
-on the biology this deposit contains. See
+The honest summary is that the same panel and pipeline resolve the day 7 → day 14 differentiation
+contrast at **7.97×** the placebo contrast, while the perturbation contrast moves it far less. What
+this repository used to conclude from that — that the deposit's perturbation arm carries almost no
+signal — is **withdrawn**: it rested on an on-target-mRNA criterion that belongs to CRISPRi, and
+this deposit is Cas9 nuclease knockout, where the transcript need not move. See
 [the model card](../backends/gse274113-rna-observation-model.md) for what that does and does not
 license.
 

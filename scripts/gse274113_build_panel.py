@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Freeze the GSE274113 RNA observation panel.
 
-The panel is declared from biology and from the experiment's own design -- the nineteen CRISPRi
+The panel is declared from biology and from the experiment's own design -- the nineteen knockout
 target transcription factors, lineage markers spanning the haematopoietic tree this culture
 differentiates through, and housekeeping depth anchors.  **It is never chosen from the response.**
 Selecting genes by how they behave across arms would leak the very contrast the estimator is fitted
@@ -168,7 +168,7 @@ def main() -> int:
     payload = {
         "panel_id": "gse274113-rna-panel-v1",
         "description": (
-            "Declared RNA panel for the GSE274113 observation model: the 19 CRISPRi target "
+            "Declared RNA panel for the GSE274113 observation model: the 19 knockout target "
             "transcription factors, haematopoietic lineage markers, and housekeeping depth "
             "anchors. Chosen from biology and from the experiment's design, never from the "
             "response."
