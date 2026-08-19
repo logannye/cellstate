@@ -371,7 +371,7 @@ export function panelStrip(genes, { width = 1180, height = 150 } = {}) {
       x1: X(i), y1: height - pad.b, x2: X(i), y2: Y(gene.mean_nt_cpm),
       stroke: colour, 'stroke-width': gene.is_target || !gene.is_expressed ? 2.4 : 1.4,
     });
-    bar.appendChild(el('title', {}, `${gene.symbol}: ${gene.mean_nt_cpm.toFixed(1)} CPM${gene.is_target ? ' — CRISPRi target' : ''}${gene.is_expressed ? '' : ' — not expressed'}`));
+    bar.appendChild(el('title', {}, `${gene.symbol}: ${gene.mean_nt_cpm.toFixed(1)} CPM${gene.is_target ? ' — knockout target' : ''}${gene.is_expressed ? '' : ' — not expressed'}`));
     node.appendChild(bar);
   });
   node.appendChild(el('text', { x: pad.l, y: height - 10, class: 'ax', fill: 'var(--ink-3)' }, '100 panel genes, mean NT CPM (log)'));

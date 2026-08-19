@@ -210,11 +210,13 @@
         </div>
 
         <div class="panel">
-          <div class="head"><h3>Did the perturbation reach the readout?</h3></div>
+          <div class="head"><h3>How much on-target transcript survives the edit?</h3></div>
           <p class="note">
             Per target, the mean over libraries of
             <code>log2( CPM(arm target) / CPM(arm NT) )</code>, computed from the committed counts.
-            A working CRISPRi screen gives roughly −1 to −2.
+            <strong>This is not a validity screen.</strong> GSE274113 is Cas9 nuclease knockout, so
+            cutting destroys the protein and the transcript need not move; the figure measures
+            nonsense-mediated-decay escape, not whether the perturbation worked.
           </p>
           <div class="scroller" id="sub-knockdown"><div class="loading">…</div></div>
         </div>
@@ -245,7 +247,7 @@
         <div class="head"><h3>The panel</h3></div>
         <div class="scroller" id="sub-panel"><div class="loading">…</div></div>
         <div class="legend">
-          <span><i style="border-color: var(--series-b)"></i>CRISPRi target</span>
+          <span><i style="border-color: var(--series-b)"></i>knockout target</span>
           <span><i style="border-color: var(--neg-pole)"></i>below 10 CPM — not expressed</span>
         </div>
       </div>

@@ -182,10 +182,15 @@ def arm_subject(library: str, target: str) -> BeliefSubject:
 
 def _intervention_spec(target: str) -> InterventionSpec:
     return InterventionSpec(
-        spec_id=f"crispri-{target}",
-        kind=OntologyTerm(label="CRISPRi guide"),
+        spec_id=f"knockout-{target}",
+        kind=OntologyTerm(label="Cas9 nuclease knockout guide"),
         target=OntologyTerm(label=target),
-        mechanisms=(OntologyTerm(label="transcriptional repression"),),
+        # Cas9 cuts; the break is repaired imprecisely, and the frameshift removes the protein --
+        # which is why the transcript need not move. This field previously read "transcriptional
+        # repression", which is the CRISPRi mechanism and was asserted alongside the CRISPRi
+        # label. Correcting the label and leaving this would have kept the same false claim in
+        # the same contract, one field over.
+        mechanisms=(OntologyTerm(label="nuclease cleavage and frameshift knockout"),),
         dose_domain=NumericDomain(minimum=0, maximum=1, units="guide_set"),
         duration_seconds=ScalarRange(minimum=0, maximum=1_209_600),
         schedule=ScheduleDomain(
@@ -349,10 +354,10 @@ def arm_history(
         event_id=f"{library}:{target}:guide",
         subject=subject,
         time_seconds=HARVEST_SECONDS,
-        intervention_spec_id=f"crispri-{target}",
-        intervention_type=OntologyTerm(label="CRISPRi guide"),
+        intervention_spec_id=f"knockout-{target}",
+        intervention_type=OntologyTerm(label="Cas9 nuclease knockout guide"),
         target=OntologyTerm(label=target),
-        mechanism=OntologyTerm(label="transcriptional repression"),
+        mechanism=OntologyTerm(label="nuclease cleavage and frameshift knockout"),
         dose=Quantity(value=1, units="guide_set"),
         duration_seconds=0,
         schedule=InterventionSchedule(

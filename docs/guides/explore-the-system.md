@@ -41,23 +41,27 @@ Fourteen libraries, twenty targets, 137,604 cells, a 100-gene panel, and the day
 harvested. `NT` is the non-targeting control; `NT_A` / `NT_B` are a deterministic within-library
 split of the `NT` cells whose contrast is the placebo floor every other contrast is read against.
 
-### 2. `knockdown` — screen the substrate before you test the model
+### 2. `knockdown` — how much on-target transcript survives the edit
 
 ```bash
 uv run python scripts/explore.py knockdown
 ```
 
-**Run this before believing anything downstream.** For each CRISPRi target that is itself a panel
-gene, it prints the mean over libraries of `log2( CPM_target(arm target) / CPM_target(arm NT) )` —
-did the perturbation reach the readout at all?
+For each knockout target that is itself a panel gene, it prints the mean over libraries of
+`log2( CPM_target(arm target) / CPM_target(arm NT) )`.
 
-A working CRISPRi screen gives roughly −1 to −2. This one gives **−0.058** with **6 of 19 targets
-moving the wrong way**, and two of the targets (`SNAI2` at 0.6 CPM, `PRDM16` at 3.5 CPM) are not
-expressed in the panel at all. That is a *measured null*. Nothing downstream can recover a
-perturbation that never landed, and it is why `measure` divides by a between-target biology variance
-of 0.109 — it is dividing by approximately zero.
+⚠️ **This screen does not say whether the perturbation worked, and it never did.** It gives
+**−0.058** with **6 of 19 targets moving the wrong way**, and two targets (`SNAI2` at 0.6 CPM,
+`PRDM16` at 3.5 CPM) are not expressed in the panel at all. That was read as a *measured null*
+against an expectation of −1 to −2 — which is a CRISPRi number. GSE274113 is **Cas9 nuclease
+knockout**: cutting destroys the protein and leaves the transcript largely intact, so a fully
+working screen is entirely consistent with these figures. The verdict is **withdrawn**; the
+measurement stands, as a measurement of nonsense-mediated-decay escape.
 
-The verdict is on the **deposit**, not on the model.
+The controls that would settle it — guide-level replication, expression-dependence of effect size,
+and the cutting-versus-non-cutting contrast — are not yet implemented. Until they are, treat the
+between-target biology variance of 0.109 that `measure` divides by as unexplained rather than as
+explained by a dead substrate.
 
 ### 3. `day` — does the panel see biology that is actually there?
 
@@ -75,7 +79,7 @@ the raw log-composition of the `NT` arms, day 7 against day 14:
 | placebo `NT_A` vs `NT_B` (mean) | 5.046 | 1.00× |
 
 92 of 100 panel genes track day at \|r\| > 0.7. **The instrument works.** Differentiation moves this
-panel eight times the placebo contrast; the CRISPRi perturbation moves it 1.07× — which *is* the
+panel eight times the placebo contrast; the knockout perturbation moves it 1.07× — which *is* the
 placebo floor.
 
 > ⚠️ This is a **readout**, deliberately not a measurement. `library_day` is nested inside `library`
@@ -101,8 +105,10 @@ does the matrix the biology basis `W` is *fitted on* — the within-library cont
 
 Real biology *concentrates*: differentiation puts 92% of its variance on one direction. The
 perturbation contrast — the matrix `W` is actually fitted on — has the spectral shape of the
-**placebo**. Same verdict as `knockdown`, reached independently, and without needing the
-perturbation targets to be panel genes at all.
+**placebo**. ⚠️ This was read as the same verdict `knockdown` reached, independently. It is
+not independent corroboration of anything: the placebo contrast is not a noise reference, and
+`s1/s0` is not invariant to row count, so the comparison as drawn cannot support a verdict.
+That defect is separate from the modality correction and is not yet repaired.
 
 Two consequences for the design:
 
@@ -269,10 +275,14 @@ perturbation arm is a measured null.
 Two consequences worth internalising before proposing work:
 
 - **Hardening the instrument cannot move the ledger.** ψ², the S2 estimand and the admission gates
-  have all been repaired, and none of it moved a capability measurement — none of it can. A better
-  instrument aimed at no signal returns a better-characterised zero.
-- **Screen the substrate first.** `knockdown` is the shape of a pre-download gate: before spending
-  bytes on a new corpus, check that the perturbation reaches the readout for a few targets.
+  have all been repaired, and none of it moved a capability measurement. The claim that none of
+  it *can* — that a better instrument aimed at no signal returns a better-characterised zero —
+  rested on the withdrawn null verdict and no longer stands on its own.
+- **Screen the substrate first — but not with this screen.** `knockdown` has the *shape* of a
+  pre-download gate, and that is exactly how it misled: on-target transcript is a valid check
+  only for a modality that acts on transcription. Record the perturbation modality before
+  choosing the screen, and prefer controls that hold across modalities: guide-level
+  replication, expression-dependence of effect size, and cutting-versus-non-cutting.
 
 ## Interactive use
 

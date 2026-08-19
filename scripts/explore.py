@@ -153,7 +153,7 @@ def cmd_panel(args: argparse.Namespace) -> None:
         if not args.all and position == 20:
             print(f"{'...':12} {'':>12}  ({len(order) - 30} genes omitted; --all to see them)")
         symbol = slice_data.gene_symbols[index]
-        role = "CRISPRi target" if symbol in targets else ""
+        role = "knockout target" if symbol in targets else ""
         print(f"{symbol:12} {mean_cpm[index]:>12,.1f}  {role:<16}")
 
     not_expressed = [slice_data.gene_symbols[i] for i in range(len(mean_cpm)) if mean_cpm[i] < 10.0]
@@ -359,11 +359,17 @@ def cmd_ranks(_: argparse.Namespace) -> None:
 
 
 def cmd_knockdown(_: argparse.Namespace) -> None:
-    """Did the perturbation reach the readout at all?  Screen the substrate before the model.
+    """How much of the on-target transcript survives the edit?
 
-    Plain observational statistic, no model: for each CRISPRi target g that is itself a panel gene,
-    the mean over libraries of ``log2( CPM_g(arm g) / CPM_g(arm NT) )``.  A working CRISPRi screen
-    gives roughly -1 to -2.  Nothing downstream can recover a perturbation that never landed.
+    Plain observational statistic, no model: for each knockout target g that is itself a panel gene,
+    the mean over libraries of ``log2( CPM_g(arm g) / CPM_g(arm NT) )``.
+
+    ⚠️ **This is not a validity screen for this deposit, and reading it as one produced a verdict
+    that has since been withdrawn.**  GSE274113 is Cas9 nuclease knockout, not CRISPRi: cutting
+    destroys the protein, the transcript falls only through nonsense-mediated decay, and an edit
+    that escapes NMD -- or that removes a repressor from its own promoter -- leaves the transcript
+    flat or raises it.  A fully working screen is consistent with the figures printed below.  What
+    the statistic measures is NMD escape and editing mosaicism, and nothing else.
     """
 
     slice_data = _slice()
@@ -409,10 +415,14 @@ def cmd_knockdown(_: argparse.Namespace) -> None:
         f"({len(well)} targets, {sum(1 for r in well if r[1] > 0)} wrong-signed)"
     )
     print(
-        "\nA working CRISPRi screen gives about -1 to -2. This one is a MEASURED NULL.\n"
-        "That is a verdict on the dataset, not on the model: S2/S4/S5 all divide by a\n"
-        "between-target biology variance the perturbation never created. Run `day` next --\n"
-        "the same panel and the same pipeline do resolve real biology on this slice."
+        "\nThis figure does NOT say whether the perturbation worked. GSE274113 is Cas9\n"
+        "nuclease knockout: cutting destroys the protein and leaves the transcript largely\n"
+        "intact, so a fully working screen is consistent with these numbers. The 'measured\n"
+        "null' verdict this screen once supported is WITHDRAWN: it compared these figures\n"
+        "against a CRISPRi threshold, and Cas9 nuclease knockout has no such threshold.\n"
+        "\nThe controls that would settle it are guide-level replication, expression-dependence\n"
+        "of effect size, and the cutting-versus-non-cutting contrast against AAVS1. None is\n"
+        "implemented yet. Run `day` next -- the same panel and pipeline resolve differentiation."
     )
 
 
@@ -501,7 +511,7 @@ def cmd_day(_: argparse.Namespace) -> None:
     print(
         f"\nThe instrument works. Differentiation moves the panel "
         f"{differentiation / placebo:.2f}x the\n"
-        f"placebo contrast; the CRISPRi perturbation moves it {perturbed / placebo:.2f}x --\n"
+        f"placebo contrast; the knockout perturbation moves it {perturbed / placebo:.2f}x --\n"
         "which is the placebo floor. The negative capability measurements are a verdict on the\n"
         "PERTURBATION arm of this dataset, not on the representation.\n"
         "\nNOTE: day is nested in library (no library spans two days), so this is deliberately a\n"

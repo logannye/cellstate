@@ -9,8 +9,8 @@ spans a timepoint -- and the belief says so in its own fields rather than only i
 The eight-dimensional state maps onto the belief's own structure rather than being flattened into
 one opaque vector:
 
-* the four biology dimensions become a ``REGULATORY`` factor -- the perturbations are CRISPRi
-  knockdowns of transcription factors;
+* the four biology dimensions become a ``REGULATORY`` factor -- the perturbations are Cas9
+  nuclease knockouts of transcription factors;
 * the three nuisance dimensions become the ``nuisance`` block, which is what that field is for;
 * the single realization coefficient becomes an ``InterventionRealizationBelief`` for the guide.
 
@@ -214,8 +214,8 @@ class GSE274113ObservationEstimator:
                 timescales=frozenset({Timescale.SLOW}),
                 required_for_outputs=target_keys,
                 rationale=(
-                    "The perturbations are CRISPRi knockdowns of transcription factors, so the "
-                    "biology subspace fitted from within-library contrasts is regulatory."
+                    "The perturbations are Cas9 nuclease knockouts of transcription factors, so "
+                    "the biology subspace fitted from within-library contrasts is regulatory."
                 ),
             ),
         )
@@ -292,7 +292,9 @@ class GSE274113ObservationEstimator:
 
         target = self._arm_target(request)
         if target is None:
-            blockers.append("exactly one active CRISPRi guide is required to identify the arm")
+            blockers.append(
+                "exactly one active Cas9 nuclease knockout guide is required to identify the arm"
+            )
         elif target not in self._fold.target_directions:
             blockers.append(f"target {target} has no fitted direction in this fold")
 
