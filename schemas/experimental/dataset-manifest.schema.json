@@ -985,6 +985,17 @@
           "title": "Matched Controls Present",
           "type": "boolean"
         },
+        "perturbation_modality": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/PerturbationModality"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
         "realization_evidence": {
           "$ref": "#/$defs/RealizationEvidence",
           "default": "none"
@@ -1486,6 +1497,23 @@
         "unknown"
       ],
       "title": "PermissionStatus",
+      "type": "string"
+    },
+    "PerturbationModality": {
+      "description": "The technology that produced a perturbation, and whether it acts on transcription.\n\nThis exists because its absence cost this project a wrong verdict. ``GSE274113`` was assumed to\nbe CRISPRi and screened with an on-target-mRNA control calibrated to dCas9-KRAB; it is Cas9\nnuclease knockout, where cutting destroys the protein and the transcript falls only through\nnonsense-mediated decay. The screen reported a \"measured null\" on a criterion that does not\napply to the assay, and that verdict then explained away every failing capability measurement.\n\nModality is not derivable from the deposited bytes -- a CRISPRi and a Cas9-nuclease deposit\nare byte-identical in shape -- so it can only be read from the methods and recorded.",
+      "enum": [
+        "crispri",
+        "crispra",
+        "cas9_nuclease_knockout",
+        "base_editing",
+        "prime_editing",
+        "rnai",
+        "small_molecule",
+        "targeted_protein_degradation",
+        "overexpression",
+        "ligand_or_cytokine"
+      ],
+      "title": "PerturbationModality",
       "type": "string"
     },
     "PublicRealDataOrigin": {

@@ -17,6 +17,30 @@ inference cutoff the source fails S1 and must be redesigned or rejected.
 
 Every number below is computed from the bytes. Nothing is taken from the publication.
 
+## Perturbation modality — the one fact this census could not compute
+
+**Cas9 nuclease knockout.** A lentiviral library of guide RNAs targeting 18 haematopoietic master
+regulator transcription factors, introduced into adult CD34+ HSPCs at a low multiplicity of
+infection **with Cas9 protein**
+([*Science* 10.1126/science.ads7951](https://doi.org/10.1126/science.ads7951)). Recorded in
+`cellstate.data.modality_registry.REGISTERED_MODALITIES` and consulted by every modality-dependent
+screen.
+
+⚠️ **This entry exists because the rule stated one line above made the omission structural.** A
+census computed from the bytes cannot recover the perturbation technology: a CRISPRi and a
+Cas9-nuclease deposit are byte-identical in shape, and the modality lives only in the methods. Nothing
+in the census, the manifest schema, or the representability proof asked for it, so the project
+carried the assumption "CRISPRi" for weeks — and screened this source with an on-target-mRNA
+control calibrated to dCas9-KRAB, where transcriptional repression forces the transcript down.
+Under nuclease knockout the cut destroys the protein and the transcript falls only through
+nonsense-mediated decay, so the resulting figures were read as a "measured null" that the assay
+never supported, and that verdict was then cited as the reason every capability measurement came
+back negative.
+
+**The rule is therefore amended, not abandoned:** every number here is still computed from the
+bytes, and the modality is the declared exception — read from the publication, cited, and recorded
+where a screen can consult it rather than left to a reader's assumption.
+
 ## What the census found
 
 ### The intended design is not realizable: timepoint is perfectly aliased with library

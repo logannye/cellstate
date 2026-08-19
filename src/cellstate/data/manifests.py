@@ -926,6 +926,48 @@ class RealizationEvidence(StrEnum):
     MEASURED = "measured"
 
 
+class PerturbationModality(StrEnum):
+    """The technology that produced a perturbation, and whether it acts on transcription.
+
+    This exists because its absence cost this project a wrong verdict. ``GSE274113`` was assumed to
+    be CRISPRi and screened with an on-target-mRNA control calibrated to dCas9-KRAB; it is Cas9
+    nuclease knockout, where cutting destroys the protein and the transcript falls only through
+    nonsense-mediated decay. The screen reported a "measured null" on a criterion that does not
+    apply to the assay, and that verdict then explained away every failing capability measurement.
+
+    Modality is not derivable from the deposited bytes -- a CRISPRi and a Cas9-nuclease deposit
+    are byte-identical in shape -- so it can only be read from the methods and recorded.
+    """
+
+    CRISPRI = "crispri"
+    CRISPRA = "crispra"
+    CAS9_NUCLEASE_KNOCKOUT = "cas9_nuclease_knockout"
+    BASE_EDITING = "base_editing"
+    PRIME_EDITING = "prime_editing"
+    RNAI = "rnai"
+    SMALL_MOLECULE = "small_molecule"
+    TARGETED_PROTEIN_DEGRADATION = "targeted_protein_degradation"
+    OVEREXPRESSION = "overexpression"
+    LIGAND_OR_CYTOKINE = "ligand_or_cytokine"
+
+    @property
+    def acts_on_transcription(self) -> bool:
+        """Whether a change in the target's own mRNA is expected when the perturbation works.
+
+        True only where the mechanism operates on transcription or transcript stability. For the
+        rest, the target transcript is not what the perturbation acts on, so its fold change is a
+        measurement of something else -- nonsense-mediated-decay escape, editing mosaicism, or
+        nothing at all -- and is not a validity control.
+        """
+
+        return self in {
+            PerturbationModality.CRISPRI,
+            PerturbationModality.CRISPRA,
+            PerturbationModality.RNAI,
+            PerturbationModality.OVEREXPRESSION,
+        }
+
+
 class InterventionCapability(ManifestModel):
     source_ids: tuple[str, ...] = ()
     assignment: AssignmentMechanism = AssignmentMechanism.NONE
@@ -939,6 +981,10 @@ class InterventionCapability(ManifestModel):
     assignment_probabilities_recorded: bool = False
     matched_controls_present: bool = False
     realization_evidence: RealizationEvidence = RealizationEvidence.NONE
+    # Optional so the three reviewed 0.3 manifests keep their content-addressed
+    # fingerprints; `canonical_payload` pops it when unset, the same incremental
+    # migration the 0.3-compatible identity and permission fields use.
+    perturbation_modality: PerturbationModality | None = None
 
     @model_validator(mode="after")
     def intervention_metadata_matches_assignment(self) -> InterventionCapability:
@@ -958,7 +1004,7 @@ class InterventionCapability(ManifestModel):
             )
         )
         if self.assignment is AssignmentMechanism.NONE:
-            if metadata_present or self.source_ids:
+            if metadata_present or self.source_ids or self.perturbation_modality is not None:
                 raise ValueError("a dataset without interventions cannot declare intervention data")
         elif not self.kinds or not self.source_ids:
             raise ValueError("intervention support requires kinds and source artifacts")
@@ -1943,6 +1989,8 @@ class DatasetManifest(ManifestModel):
             sampling.pop("subject_id_field")
         if payload["experimental_design"]["randomized_endpoint_contrast"] is None:
             payload["experimental_design"].pop("randomized_endpoint_contrast")
+        if payload["capabilities"]["interventions"]["perturbation_modality"] is None:
+            payload["capabilities"]["interventions"].pop("perturbation_modality")
         for modality in payload["capabilities"]["modalities"]:
             for field_name in ("alignment_unit", "alignment_identity"):
                 if modality[field_name] is None:

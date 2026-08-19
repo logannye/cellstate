@@ -52,6 +52,18 @@ SUFFIXES = {".py", ".md", ".html", ".js", ".json", ".toml", ".yml", ".yaml"}
 
 CRISPRI = re.compile(r"crispri", re.IGNORECASE)
 
+# CRISPRi is also a legitimate VOCABULARY term. `PerturbationModality.CRISPRI` is an enum member
+# naming a real technology, and the generated JSON schema carries its value; neither asserts
+# anything about GSE274113. These are syntactic forms rather than prose, so they are removed from a
+# line before the claim is looked for -- which keeps the predicate about the CLAIM instead of the
+# word, and means the modality vocabulary can grow without anyone editing this guard.
+VOCABULARY = re.compile(
+    r"PerturbationModality\.CRISPR[IA]"  # a qualified enum reference
+    r"|CRISPR[IA]\s*=\s*[\"']crispr[ia][\"']"  # the enum member's own definition
+    r"|[\"']crispr[ia][\"'],?",  # a bare quoted value, as in the exported schema
+    re.IGNORECASE,
+)
+
 # The retracted expectation. It only ever referred to GSE274113, so it is banned outright rather
 # than scoped -- there is no correct threshold to substitute, because on-target mRNA is not a
 # validity control for a nuclease knockout at all.
@@ -117,7 +129,11 @@ def _tracked_paths() -> list[Path]:
     """
 
     result = subprocess.run(
-        ["git", "ls-files", "-z"],
+        # --others --exclude-standard adds files that are new but not ignored. Without them the
+        # guard cannot fail in the commit that INTRODUCES an offence, only in the next run: a new
+        # file is invisible until it is tracked, which is exactly when review is over. Ignored
+        # paths stay out, so generated trees like mkdocs' site/ are still excluded.
+        ["git", "ls-files", "-z", "--cached", "--others", "--exclude-standard"],
         cwd=ROOT,
         capture_output=True,
         check=True,
@@ -165,7 +181,9 @@ def _offences(pattern: re.Pattern[str], markers: tuple[str, ...]) -> list[str]:
             continue
         lines = text.splitlines()
         for index, line in enumerate(lines):
-            if not pattern.search(line):
+            # Vocabulary is removed BEFORE the claim is looked for, so a line that only names the
+            # technology -- an enum member, its exported schema value -- carries no claim to find.
+            if not pattern.search(VOCABULARY.sub("", line)):
                 continue
             low = max(0, index - MARKER_CONTEXT_LINES)
             high = min(len(lines), index + MARKER_CONTEXT_LINES + 1)
@@ -197,6 +215,23 @@ def test_no_live_file_carries_the_retracted_on_target_expectation() -> None:
         "on-target mRNA is not a validity control for a Cas9 nuclease knockout; the retracted "
         "expectation survives at:\n  " + "\n  ".join(offences)
     )
+
+
+def test_vocabulary_uses_are_not_claims_but_prose_still_is() -> None:
+    """Naming the technology is not asserting this deposit used it.
+
+    The distinction has to hold in both directions, or the exemption becomes a way to write the
+    claim: a quoted enum value is vocabulary, and a sentence about GSE274113 is not, even when the
+    two appear in the same file.
+    """
+
+    assert VOCABULARY.sub("", "PerturbationModality.CRISPRI,") == ","
+    assert VOCABULARY.sub("", '    "crispri",') == "    "
+    assert VOCABULARY.sub("", '    CRISPRI = "crispri"') == "    "
+
+    # Prose survives the strip, so the claim is still caught.
+    prose = "GSE274113's CRISPRi arm is a measured null."
+    assert CRISPRI.search(VOCABULARY.sub("", prose))
 
 
 def test_the_guard_looks_at_a_real_population() -> None:
