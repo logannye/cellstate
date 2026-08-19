@@ -65,4 +65,5 @@ nav:
       - The S2 estimand is a split-half replicate: adr/0023-the-s2-estimand-is-a-split-half-replicate.md
       - S6 is measured and readiness is derived: adr/0024-s6-is-measured-and-readiness-is-derived.md
       - S6 is gated on the whole coherent nominal interval: adr/0025-s6-is-gated-on-the-whole-coherent-nominal-interval.md
+      - A criterion carries its adversaries and witness: adr/0026-a-criterion-carries-its-adversaries-and-witness.md
 strict: true
