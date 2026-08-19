@@ -1,6 +1,6 @@
 # ADR 0026: A criterion carries the adversaries it must refuse and the witness it must pass
 
-- **Status:** Proposed
+- **Status:** Accepted
 - **Date:** 2026-08-19
 
 ## Context
@@ -65,7 +65,7 @@ cannot.
 One overridden method, no tuning parameter, no floor:
 
 ```python
-class Pseudobulk(ArmSlice):                       # "merge the replicate libraries per target"
+class Pseudobulk(ArmSlice):  # "merge the replicate libraries per target"
     def log_composition(self, library, target):
         libs = [l for l in self.libraries if (l, target) in self.counts]
         comp, _ = log_composition(np.sum([self.counts[(l, target)] for l in libs], axis=0))
@@ -120,23 +120,25 @@ one global scalar fitted across all arms (`fit.py`), which enters the numerator 
 `fold.observation_variance` and never the denominator. No change to the estimator is required — only
 noisier data elsewhere.
 
-### What the two families have in common
+### What the four families have in common
 
-Neither is a bug in an implementation. Both are properties of the criteria **as posed**, and neither
-was discovered by reading the code. Both were found by attempting to clear the gate with a
-construction chosen to be worthless, which is a thing no test in this repository does.
+None is a bug in an implementation. All four are properties of the criteria **as posed**, and none
+was discovered by reading the code. All four were found by attempting to clear a gate with a
+construction chosen to be worthless, which is a thing no test in this repository does. Two of them
+require no change to the estimator whatsoever -- only to the data it is handed.
 
 ## Decision
 
 1. **A criterion declares, in code, the adversaries it must refuse.** An adversary is an executable
    construction, chosen to be scientifically worthless, that the criterion must not report as
-   passing. The founding entries are the two families above; the list is expected to grow.
+   passing. The founding entries are the four families above; the list is expected to grow.
 
    **Each adversary is recorded with the value it produced while the criterion still accepted it.**
    Without that, "declares an adversary" is satisfiable by a construction the criterion was never in
    danger of passing, and the requirement becomes a formality that certifies nothing — which is the
    defect shape this record exists to close, reproduced inside its own remedy. The tables above are
-   that record for the founding two: S5 at 1.51e-08 passing, S2 at 1.3676 passing. An adversary that
+   that record for all four: the count split at S2 1.22737 and S4 0.64356/2.10127, pooling at S5
+   0.00042, the label function at S5 1.51e-08, and outside-estimand noise at S2 1.3676. An adversary that
    cannot be shown to have passed something is not evidence about a gate.
 
    **The list lives in code and not in this record, deliberately.** Accepted ADR bodies are never
@@ -152,24 +154,47 @@ construction chosen to be worthless, which is a thing no test in this repository
    biological evidence; no witness may be cited on the scoreboard, in a model card, or as support
    for any capability claim.
 
-3. **A criterion with no witness may not emit a verdict.** It reports `UNINTERPRETABLE`. This is a
-   property of the type rather than a column somebody maintains, so a criterion cannot be read as
-   negative merely because nobody has established that it could ever be positive.
+3. **A criterion without a witness keeps its verdict and carries its witness status beside it.**
+   The ledger row reads `fails (no witness)`, not `uninterpretable`.
 
-   This does not weaken rule 10. A negative result still graduates its phase; what changes is that a
-   result must first be *interpretable* to be negative.
+   An earlier draft of this decision replaced the verdict outright. That was worse, and the reason
+   is worth recording: the measured value and the interval are real, were expensive to obtain, and
+   are the only things that would let a future reader notice if a criterion started behaving
+   differently. Discarding a verdict because its interpretation is limited throws away the
+   measurement in order to express a caveat about it, when both fit on one line.
 
-4. **No absolute floor is adopted for S5.** Decision 1 supersedes the mechanism the earlier draft
-   proposed. Any future refusal threshold on a scale-invariant statistic must itself be
-   scale-invariant, and must be accompanied by an adversary demonstrating what it closes.
+   What the qualifier forbids is precise and is the thing that actually went wrong here: **a
+   `fails` without a witness may not be cited as evidence about the substrate, the deposit, or the
+   model.** It is a measurement whose attribution is unestablished. This project spent weeks citing
+   `0 of 10` as evidence that `GSE274113` carried no signal; the deposit is now measured to carry
+   target-consistent structure at 2.66x a permutation null, p = 5.0e-4. That inference is what this
+   clause bans, and banning the inference costs nothing that banning the verdict would have bought.
+
+   Rule 10 is untouched: a negative result still graduates its phase.
+
+4. **No absolute floor is adopted for S5, and no replacement is chosen here.** Decision 1 supersedes
+   the mechanism the earlier draft proposed, and deliberately does not name a successor.
+
+   Two candidates were considered and neither is adopted. A floor relative to `across_target` is
+   scale-invariant but amounts to refusing a state for looking *too* separated, which is a strange
+   thing to assert without knowing where the boundary lies. A floor relative to the estimator's own
+   claimed posterior variance is stricter and catches a real incoherence -- a state that claims
+   uncertainty it does not exhibit -- at the cost of coupling this criterion to the belief contract.
+
+   **Neither has been tested against an adversary, and that is the whole reason to defer.** The
+   `1e-9` floor in the earlier draft was also chosen by reasoning rather than measurement, and it
+   was defeated by the third row of the table above. Picking a second untested threshold in the
+   same record that documents the first one failing would be the same error with a different
+   number. Under decision 1 any successor must arrive with the adversary it closes; until one does,
+   S5 carries its adversaries and has no floor.
 
 5. **No published value changes.** S2, S4, S5 and S6 keep their measured numbers. What changes is
    what may be concluded from them, and which of them may be quoted as verdicts at all.
 
 ## Consequences
 
-Every existing criterion is `UNINTERPRETABLE` on adoption except S6, and stays so until it carries a
-witness. That is an accurate description of what this repository currently knows, and it is a
+Every existing criterion except S6 reads `fails (no witness)` on adoption, and stays so until it
+carries one. That is an accurate description of what this repository currently knows, and it is a
 temporary state whose exit is a day of work per criterion — the constructions for S4 (amplification)
 and S2 (a placebo blend that leaves `psi^2` unmoved) are already identified.
 
