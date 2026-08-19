@@ -16,7 +16,72 @@ measurement that separates them. This is not hypothetical: the substrate half of
 believed for weeks and has since been withdrawn (PR #41), and the deposit is now measured to carry
 target-consistent structure at 2.66x a within-library permutation null, p = 5.0e-4.
 
-Two criteria have been measured to be passable **by constructions that read no evidence**.
+Four families of construction have been measured to pass criteria they do not estimate. Two of
+them take **three ledger rows between them**, need no change to the estimator at all, and would
+plausibly be written by an implementer acting in good faith.
+
+### The founding adversary: split the count vector instead of the cells
+
+Three lines applied to the deposited payload, and **three ledger rows flip from FAIL to PASS**:
+
+```python
+for lib in payload["libraries"]:
+    nt = np.asarray(arms[(lib, "NT")]["counts"], dtype=np.int64)
+    arms[(lib, "NT_A")]["counts"] = (nt // 2).tolist()
+    arms[(lib, "NT_B")]["counts"] = (nt - nt // 2).tolist()
+```
+
+| measurement | as shipped | under the adversary |
+| --- | --- | --- |
+| S2 earned spread | 0.84148 [0.71437, 0.97593] FAILS | **1.22737 [1.03663, 1.43767] PASSES** |
+| S4 null half | 2.02578 [1.43838, 2.67070] FAILS | **0.64356 [0.47905, 0.80402] PASSES** |
+| S4 non-null half | 2.09008 [1.61546, 2.56195] FAILS | **2.10127 [1.63093, 2.56178] PASSES** |
+
+It is worthless because both halves are **the same cells counted twice**. A split-half replicate
+exists to expose a model to sampling variation it has not seen; halving a count vector produces two
+vectors with no replicate variance at all, whose entire difference is integer parity. S2 then
+measures how well an eight-column design fits one vector twice, and S4's null half measures the
+behaviour of integer division.
+
+**It is invisible to every check this repository ships.** `NT == NT_A + NT_B` still holds bitwise, so
+the integrity assertion at `tests/test_gse274113_observation_model.py:891` passes unchanged. The
+documented exact-2.00x depth shortfall still holds. There is no zero-width interval to notice. That
+assertion's own comment states the correct invariant -- *"splits the NT cells, it does not
+resample"* -- and then checks a weaker one the adversary satisfies, which is this repository's
+recurring defect in miniature: the claim was written somewhere that could not check it.
+
+**It is could-ship-by-accident, which is what makes it the founding entry.** "Split-half" is a
+natural thing to read as splitting the vector. Anyone reimplementing the placebo split under
+pressure to make S2 pass would very likely write exactly this, and every guard would agree.
+
+**The refusal it implies is available and cheap.** `ArmSlice` already carries `cells`, and on the
+real slice `cells[NT_A] + cells[NT_B] == cells[NT]` in all fourteen libraries with the halves
+genuinely unequal (484/472, 361/347). A count split says nothing about how many cells produced it,
+so asserting the partition at the **cell** level catches it where asserting it at the count level
+cannot.
+
+### The pooling family: discard the variable the criterion measures
+
+One overridden method, no tuning parameter, no floor:
+
+```python
+class Pseudobulk(ArmSlice):                       # "merge the replicate libraries per target"
+    def log_composition(self, library, target):
+        libs = [l for l in self.libraries if (l, target) in self.counts]
+        comp, _ = log_composition(np.sum([self.counts[(l, target)] for l in libs], axis=0))
+        return comp, float(self.counts[(library, target)].sum())
+```
+
+| measurement | as shipped | pooled |
+| --- | --- | --- |
+| S5 nuisance separation | 10.36468 [6.26717, 16.65935] FAILS | **0.00042 [0.00022, 0.00065] PASSES** |
+| S4 separation | null 2.026 vs perturbed 2.090, not separated | **null 1.013 [0.985, 1.044] vs perturbed 1.667 [1.660, 1.675], separated** |
+
+S5 clears its bound by a factor of eight hundred. It is worthless because after pooling,
+`log_composition` is a function of the **target alone** -- library identity is discarded before the
+model sees it -- and S5's estimand *is* across-library spread at fixed target. The criterion is
+cleared by deleting the quantity it exists to measure. It also silently breaks leave-one-library-out:
+the pooled vector handed to the fold that excluded `rep1` contains `rep1`.
 
 ### S5 — the label-function family
 
