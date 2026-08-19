@@ -201,6 +201,17 @@ def cmd_axes(args: argparse.Namespace) -> None:
         f"clamped={fold.dispersion_is_clamped})\n"
     )
 
+    if fold.day_axis_in_nuisance_basis is not None:
+        assert fold.day_axis_in_biology_basis is not None
+        print(
+            f"day axis absorbed: nuisance V {fold.day_axis_in_nuisance_basis:.4f}, "
+            f"biology W {fold.day_axis_in_biology_basis:.4f}\n"
+            "  V is fitted on the across-library NT residual, and the fourteen libraries sit at\n"
+            "  four differentiation days -- so it absorbs the culture's clock, not just the\n"
+            "  library. W is orthogonalized against V, which is why biology keeps almost none of\n"
+            "  it. A random 3-of-100 subspace would take about 0.03.\n"
+        )
+
     for name, basis, count in (
         ("biology  W", fold.biology_basis, BIOLOGY_RANK),
         ("nuisance V", fold.nuisance_basis, NUISANCE_RANK),

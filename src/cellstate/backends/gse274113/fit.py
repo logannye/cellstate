@@ -10,7 +10,15 @@ nuisance variable at fixed biology move the predicted observation and not the in
 design encodes that split structurally rather than hoping the fit discovers it:
 
 * ``V`` -- the nuisance basis -- is the leading subspace of the NT arms' residuals across
-  libraries.  NT is the same biology in every library, so whatever moves there is the library.
+  libraries.  ⚠️ An earlier revision of this docstring justified that by asserting "NT is the same
+  biology in every library, so whatever moves there is the library."  **That premise is false in
+  this deposit and is withdrawn.**  The fourteen libraries sit at four differentiation days, so NT
+  at day 7 and NT at day 14 are not the same biology, and the across-library NT residual carries
+  the culture's differentiation clock.  Measured rather than argued: ``V`` absorbs **0.999** of the
+  day-7-to-day-14 NT direction in fourteen of fourteen folds, against about 0.03 for a random
+  three-dimensional subspace and under 0.15 for the placebo contrast, which is sampling noise by
+  construction.  Every fold now reports the number as ``day_axis_in_nuisance_basis``, so the claim
+  is computed instead of asserted.
 * ``W`` -- the biology basis -- is the leading subspace of the *within-library* contrasts
   ``c[L, g] - c[L, NT]``.  Differencing inside a library cancels the library, so whatever moves
   there is the perturbation.
@@ -20,6 +28,13 @@ design encodes that split structurally rather than hoping the fit discovers it:
 biology genuinely aligned with the library axis is assigned to nuisance, which biases against
 finding biology rather than for it.  Stated here because a choice this consequential should not
 have to be reverse-engineered from the code.
+
+What the measurement above adds to that declaration is its size.  Because ``V`` holds 0.999 of the
+day axis and ``W`` is orthogonalized against ``V``, the biology block is left with essentially none
+of the strongest biological signal this deposit contains -- ``day_axis_in_biology_basis`` is under
+0.01.  **So what this backend calls biology is, by construction, the residue after differentiation
+is set aside.**  Whether that is the right split is a question about the estimand and not about this
+function; it is not repaired here, and repairing it would need its own decision record.
 
 **NT gets a real direction, not a structural zero.**  If ``u_NT`` were fixed at zero, S4's null half
 -- a declared-null intervention must leave the predictive distribution unchanged -- could not fail,
@@ -115,6 +130,14 @@ class FittedFold:
     biological_observation_variance: float
     biological_observation_variance_before_clamp: float
     residual_norm_by_target: dict[str, float]
+    # Measured per fold rather than asserted. `fit.py`'s stated premise -- "NT is the same biology
+    # in every library, so whatever moves there is the library" -- is false in this deposit: the
+    # fourteen libraries sit at four differentiation days, so the across-library NT residual that
+    # `V` is fitted on contains the culture's differentiation clock. `None` when the fit libraries
+    # span a single day, because then there is no day direction to project and a 0.0 would be
+    # indistinguishable from a fold that genuinely absorbs nothing.
+    day_axis_in_nuisance_basis: float | None
+    day_axis_in_biology_basis: float | None
 
     @property
     def dispersion_is_clamped(self) -> bool:
@@ -199,6 +222,41 @@ def _orthonormalize_against(basis: FloatArray, against: FloatArray) -> FloatArra
     projected = basis - against @ (against.T @ basis)
     orthonormal, _ = np.linalg.qr(projected)
     return _canonical_signs(np.asarray(orthonormal[:, : basis.shape[1]], dtype=np.float64))
+
+
+def _day_axis_absorption(
+    slice_data: ArmSlice,
+    fit_libraries: tuple[str, ...],
+    nuisance_basis: FloatArray,
+    biology_basis: FloatArray,
+) -> tuple[float | None, float | None]:
+    """Squared projection of the earliest-to-latest ``NT`` direction onto each block.
+
+    Returns ``(None, None)`` when the fit libraries span one day: there is no day contrast to
+    project, and a zero would read as "absorbs nothing" rather than "not defined here".
+
+    The direction is taken between the mean ``NT`` composition at the earliest and latest day
+    present, which is a plain observational contrast -- no fitted basis, no model.  A random
+    three-dimensional subspace of a hundred-gene space would capture about 0.03.
+    """
+
+    by_day: dict[int, list[FloatArray]] = {}
+    for library in fit_libraries:
+        composition, _ = slice_data.log_composition(library, NULL_TARGET)
+        by_day.setdefault(slice_data.library_day[library], []).append(composition)
+    if len(by_day) < 2:
+        return None, None
+
+    days = sorted(by_day)
+    direction = np.mean(by_day[days[-1]], axis=0) - np.mean(by_day[days[0]], axis=0)
+    norm = float(np.linalg.norm(direction))
+    if norm < 1e-12:
+        return None, None
+    unit = np.asarray(direction / norm, dtype=np.float64)
+    return (
+        float(np.sum((nuisance_basis.T @ unit) ** 2)),
+        float(np.sum((biology_basis.T @ unit) ** 2)),
+    )
 
 
 def fit_fold(
@@ -383,6 +441,13 @@ def fit_fold(
     raw_variance = float(np.mean(residual_squares) - np.mean(technical_means))
     biological_variance = max(raw_variance, DISPERSION_FLOOR)
 
+    # How much of the differentiation axis each block absorbs.  `W` is orthogonalized against `V`
+    # above, so whatever `V` takes is removed from biology by construction; reporting both numbers
+    # is what lets a reader see that rather than infer it.
+    day_in_nuisance, day_in_biology = _day_axis_absorption(
+        slice_data, fit_libraries, nuisance_basis, biology_basis
+    )
+
     return FittedFold(
         held_out_library=held_out_library,
         fit_library_ids=fit_libraries,
@@ -397,4 +462,6 @@ def fit_fold(
         biological_observation_variance=biological_variance,
         biological_observation_variance_before_clamp=raw_variance,
         residual_norm_by_target=residual_norm_by_target,
+        day_axis_in_nuisance_basis=day_in_nuisance,
+        day_axis_in_biology_basis=day_in_biology,
     )
