@@ -92,6 +92,32 @@ def test_the_knockdown_screen_prints_the_figures_the_model_card_quotes() -> None
     assert "not a validity" in output.lower() or "does NOT say whether" in output
 
 
+def test_the_knockdown_screen_looks_the_modality_up_rather_than_asserting_it() -> None:
+    """The screen must not carry its own interpretation of the assay in a string.
+
+    That is exactly how the withdrawn verdict survived: the prose said "a working CRISPRi screen
+    gives roughly -1 to -2" and nothing could notice the string was wrong about the technology.
+    The modality is now resolved from the registry, and an unregistered source raises rather than
+    defaulting, so the screen cannot interpret output it has no basis to interpret.
+    """
+
+    output = _run("knockdown")
+    assert "perturbation modality          cas9_nuclease_knockout" in output
+    assert "is this a validity control?    NO" in output
+
+
+def test_an_unregistered_source_refuses_rather_than_defaulting() -> None:
+    """The refusal branch, taken. Without this the lookup's failure path is never exercised."""
+
+    from cellstate.data.modality_registry import (
+        UnrecordedModalityError,
+        on_target_expression_is_a_validity_control,
+    )
+
+    with pytest.raises(UnrecordedModalityError):
+        on_target_expression_is_a_validity_control("GSE000000")
+
+
 def test_the_differentiation_readout_prints_the_ratio_the_readme_quotes() -> None:
     """7.97x is the project's one positive capability figure. It is computed here."""
 

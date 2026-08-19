@@ -65,8 +65,16 @@ from cellstate.backends.gse274113.fit import (  # noqa: E402
     ArmSlice,
     fit_fold,
 )
+from cellstate.data.modality_registry import (  # noqa: E402
+    on_target_expression_is_a_validity_control,
+    perturbation_modality_for,
+)
 
 RULE = "-" * 78
+
+# The source this tool explores. Named once so the modality lookup below cannot drift from the
+# slice actually loaded, and so a second backend has an obvious place to declare its own.
+SOURCE_KEY = "GSE274113"
 
 
 def _slice() -> ArmSlice:
@@ -414,16 +422,31 @@ def cmd_knockdown(_: argparse.Namespace) -> None:
         f"restricted to >200 CPM         {np.mean([r[1] for r in well]):+.4f}   "
         f"({len(well)} targets, {sum(1 for r in well if r[1] > 0)} wrong-signed)"
     )
-    print(
-        "\nThis figure does NOT say whether the perturbation worked. GSE274113 is Cas9\n"
-        "nuclease knockout: cutting destroys the protein and leaves the transcript largely\n"
-        "intact, so a fully working screen is consistent with these numbers. The 'measured\n"
-        "null' verdict this screen once supported is WITHDRAWN: it compared these figures\n"
-        "against a CRISPRi threshold, and Cas9 nuclease knockout has no such threshold.\n"
-        "\nThe controls that would settle it are guide-level replication, expression-dependence\n"
-        "of effect size, and the cutting-versus-non-cutting contrast against AAVS1. None is\n"
-        "implemented yet. Run `day` next -- the same panel and pipeline resolve differentiation."
-    )
+    # The modality is LOOKED UP, not asserted in this prose. That is the whole repair: the screen
+    # used to state the interpretation in a string, so nothing could notice when the string was
+    # wrong about the assay. If the source is not registered the lookup raises rather than
+    # defaulting, and the screen refuses to interpret its own output.
+    modality = perturbation_modality_for(SOURCE_KEY)
+    valid = on_target_expression_is_a_validity_control(SOURCE_KEY)
+    print(f"\nperturbation modality          {modality.value}")
+    print(f"is this a validity control?    {'YES' if valid else 'NO'}")
+    if not valid:
+        print(
+            "\nThis figure does NOT say whether the perturbation worked, because the target\n"
+            "transcript is not what this modality acts on. Cutting destroys the protein and\n"
+            "leaves the transcript largely intact, so a fully working screen is consistent\n"
+            "with the numbers above. The 'measured null' verdict this screen once supported is\n"
+            "WITHDRAWN: it compared these figures against a CRISPRi threshold.\n"
+            "\nThe controls that would settle it are guide-level replication, expression-\n"
+            "dependence of effect size, and the cutting-versus-non-cutting contrast against\n"
+            "AAVS1. None is implemented yet. Run `day` next -- the same panel and pipeline\n"
+            "resolve differentiation."
+        )
+    else:
+        print(
+            "\nThis modality acts on transcription, so the figures above ARE a validity\n"
+            "control for this source and a working screen is expected to move them."
+        )
 
 
 # --------------------------------------------------------------------------------------------
