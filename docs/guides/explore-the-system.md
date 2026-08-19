@@ -63,6 +63,41 @@ and the cutting-versus-non-cutting contrast — are not yet implemented. Until t
 between-target biology variance of 0.109 that `measure` divides by as unexplained rather than as
 explained by a dead substrate.
 
+### 2b. `consistency` — do targets agree more than relabelling explains?
+
+```bash
+uv run python scripts/explore.py consistency
+```
+
+The prior question the ledger cannot answer about itself. A criterion can fail because the substrate
+is empty or because the estimator cannot see what is there, and `measure` alone does not distinguish
+them.
+
+Model-free: the library effect is removed by differencing each arm against that library's own `NT`,
+and the null permutes target labels **within** each library — so the null and the observation differ
+in exactly one respect, which arm is called which target.
+
+| quantity | value |
+|---|---:|
+| observed target share of within-library SS | **0.1897** |
+| permutation null (2000 draws) | 0.0714 [0.0615, 0.0821] |
+| ratio to null | **2.66×** |
+| draws at or above observed | **0 of 2000** |
+| p | 5.0e-4 |
+
+The null sits at 1/K for K = 14 libraries, exactly where within-library label exchangeability puts
+it. That is a positive control on the *screen*, not the data, and
+`test_the_permutation_null_lands_where_theory_says_it_must` asserts it: a null anywhere else means
+the statistic is not measuring what it claims.
+
+> ⚠️ **Reports no verdict, on purpose.** `PermutationScreen` has no `passed` field. No threshold on
+> this statistic has ever been witnessed, and nine of the ten ledger criteria have never been
+> observed passing on any substrate. A screen that emitted a pass against an unwitnessed threshold
+> would reproduce the defect it exists to help diagnose.
+
+It establishes that the deposit is **not empty**. It does not establish that the estimator is at
+fault, and it is not transportable — every arm comes from one donor's culture (ADR 0018 finding 4).
+
 ### 3. `day` — does the panel see biology that is actually there?
 
 ```bash

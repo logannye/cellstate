@@ -39,6 +39,7 @@ example-reference:
 
 explore:
 	uv run python scripts/explore.py knockdown
+	uv run python scripts/explore.py consistency
 	uv run python scripts/explore.py spectrum
 	uv run python scripts/explore.py day
 
