@@ -1,4 +1,10 @@
-"""GSE274113 is Cas9 nuclease knockout, not CRISPRi, and no live file may say otherwise.
+"""Claims this repository has retracted, and which no live file may still make.
+
+Two so far, and the module is named for the class rather than either one because there will be
+more: this repository has now found the second class SIX times, and a sixth one-off fix would have
+been the sixth thing that did not stop the seventh.
+
+## 1. GSE274113 is Cas9 nuclease knockout, not CRISPRi
 
 *Science* 10.1126/science.ads7951 ("Perturb-multiome") states the delivery: "a lentiviral library
 of guide RNAs targeting 18 hematopoietic master regulator transcription factors was introduced into
@@ -232,6 +238,63 @@ def test_vocabulary_uses_are_not_claims_but_prose_still_is() -> None:
     # Prose survives the strip, so the claim is still caught.
     prose = "GSE274113's CRISPRi arm is a measured null."
     assert CRISPRI.search(VOCABULARY.sub("", prose))
+
+
+# ------------------------------------------------------------------------------------------------
+# 2. The repository has produced scientific numbers, and its own documents kept denying it.
+#
+# S5, S2, both S4 halves and S6 are measured on real human CD34+ cells, each with an interval
+# grouped at the library. Six live documents still asserted the opposite -- including
+# `docs/validation/scientific-validation.md`, the file that DEFINES what counts as a scientific
+# number, and `CITATION.cff`, which is what an external citer reads. Nothing guarded this class, so
+# it was found and half-fixed five times.
+#
+# `AGENTS.md` quotes these sentences in order to retract them, which is why the retraction markers
+# apply here too.
+RETRACTED_ABSENCE = re.compile(
+    r"no biological backend is registered"
+    r"|produced no scientific number"
+    r"|no belief has been emitted by a biological",
+    re.IGNORECASE,
+)
+ABSENCE_RETRACTION_MARKERS = ("were true when written", *PAST_REFERENCE)
+
+
+def test_no_live_file_denies_that_the_backend_exists() -> None:
+    """The `gse274113` backend is registered and has emitted beliefs from real cells since PR #27.
+
+    A document may quote the retracted sentences in order to retract them -- `AGENTS.md` does -- and
+    the past-reference vocabulary exempts exactly that. It may not assert them.
+    """
+
+    offences = _offences(RETRACTED_ABSENCE, ABSENCE_RETRACTION_MARKERS)
+    assert offences == [], (
+        "one biological backend IS registered and has emitted beliefs from real cells. "
+        "Still denied at:\n  " + "\n  ".join(offences)
+    )
+
+
+def test_the_absence_pattern_matches_the_sentences_it_is_named_for() -> None:
+    """A predicate that matches nothing would pass this file for the wrong reason."""
+
+    assert RETRACTED_ABSENCE.search(
+        "No biological backend is registered, no benchmark is admitted."
+    )
+    assert RETRACTED_ABSENCE.search("the repository has produced no scientific numbers.")
+    assert RETRACTED_ABSENCE.search("it has still produced no scientific number about a cell")
+    assert not RETRACTED_ABSENCE.search("no benchmark is scientifically admitted")
+
+
+def test_citation_metadata_does_not_deny_the_backend() -> None:
+    """CITATION.cff is what an external citer reads, and it denied the repository's own backend.
+
+    Called out separately from the sweep because a guard over `docs/` would have missed it, and
+    because a wrong citation is the one instance of this class that leaves the repository.
+    """
+
+    citation = (ROOT / "CITATION.cff").read_text(encoding="utf-8")
+    assert not RETRACTED_ABSENCE.search(citation)
+    assert "0 of 10" in citation, "the citation must still state the ledger honestly"
 
 
 def test_the_guard_looks_at_a_real_population() -> None:

@@ -3,8 +3,8 @@
 The object this architecture exists to compute is a query-conditioned posterior over hidden cellular
 state, together with the evidence that the posterior is faithful. Every module below is instrumental
 to that: the contracts constrain what a state claim may assert, and the evaluation code decides
-whether the claim is supported. No biological backend is registered, so nothing described here has
-computed a state. [`../roadmap.md`](../roadmap.md) is the sole authority for implementation order and
+whether the claim is supported. The `gse274113` backend has computed states from real human CD34+
+cells; every belief it emits abstains, and the eligibility ledger stands at 0 of 10. [`../roadmap.md`](../roadmap.md) is the sole authority for implementation order and
 status.
 
 The framework uses a functional core and replaceable model backends.

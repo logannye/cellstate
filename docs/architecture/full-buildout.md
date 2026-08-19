@@ -18,9 +18,11 @@ belief** that meets predeclared predictive-sufficiency and calibration criteria 
 outcomes under named interventions, environments, and horizons — the two tests in
 [validation doctrine](#validation-doctrine).
 
-No biological backend is registered, no belief has been emitted by a biological model, and no
-benchmark is scientifically admitted. The existing linear-Gaussian backend remains a contract and
-software reference. Nothing in that backend is biological validation.
+One biological backend is registered and beliefs have been emitted from real cells: the
+`gse274113` RNA observation model. **No benchmark is scientifically admitted and the eligibility
+ledger stands at 0 of 10** — and nine of those ten criteria have never been observed passing on
+any substrate, real or synthetic, so that zero is not yet an attributable negative. The linear-Gaussian backend remains a contract and
+software reference; nothing in it is biological validation.
 
 ## Governing scientific conclusion
 

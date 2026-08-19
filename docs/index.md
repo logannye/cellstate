@@ -42,8 +42,10 @@ and both faithfulness tests execute and return a verdict with a grouped bootstra
 not happened is their application to biology: the frozen artifact's own metric bindings remain
 `specification_only`, nothing outside `tests/` invokes either harness, no baseline has been scored
 against any other, and the observational floor is unmeasured. **The repository can now recognize a
-faithful representation on supplied arrays; it has still produced no scientific number about a
-cell.**
+faithful representation on supplied arrays, and it has produced scientific numbers about real
+cells — S5, S2, both S4 halves and S6, each with an interval grouped at the library. Every one of
+them is negative. Nine of the ten ledger criteria have never been observed passing on any
+substrate, so most are not yet *attributable* negatives.**
 
 The sci-Plex3 K562 24-hour component remains a non-executable `SCAFFOLD` and its benchmark remains
 `COMPONENT_BENCHMARK`, not admitted. Its estimand has no admissible pre-cutoff observation and one

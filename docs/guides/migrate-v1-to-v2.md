@@ -1,7 +1,7 @@
 # Migrate schema v1 inputs to v2
 
 **Hypothetical.** No v1 artifact has ever been produced by this repository. Version 0.1.0 was never
-released, no biological backend is registered, and no belief has been emitted by a biological model.
+released, and the `gse274113` biological backend emits v2 beliefs from real cells.
 This guide exists because `schemas/v1/` is checked in as an immutable record and
 `cellstate.schema.inspect_v1_payload` is a live, tested code path. It describes what a migration
 would require if a v1 payload were ever presented; it is not work anyone currently has. The
