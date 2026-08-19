@@ -109,6 +109,7 @@ rejected at construction unless it carries all of:
 
 ## Status
 
-No biological backend is registered and no belief has been emitted by a biological model. The
-linear-Gaussian reference produces contract-shaped beliefs to exercise these rules in tests; its
-numbers are examples of contract behavior, not estimates of cellular state.
+The `gse274113` RNA observation model is registered and emits beliefs from real human CD34+ cells,
+and every one of them abstains. The linear-Gaussian reference also produces contract-shaped beliefs
+to exercise these rules in tests; its numbers are examples of contract behavior, never estimates of
+cellular state.

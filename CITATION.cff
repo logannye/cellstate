@@ -1,9 +1,10 @@
 cff-version: 1.2.0
 title: cellstate
 message: >-
-  If you use this software, cite the version and the scientific model backend you used. No
-  biological backend is registered and no benchmark is scientifically admitted; cite this software
-  as infrastructure and a specification, not as a validated cell-state model.
+  If you use this software, cite the version and the scientific model backend you used. One
+  biological backend is registered (gse274113) and no benchmark is scientifically admitted; the
+  eligibility ledger stands at 0 of 10. Cite this software as infrastructure and a specification,
+  never as a validated cell-state model.
 type: software
 version: 0.2.0
 abstract: >-

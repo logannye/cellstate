@@ -3,8 +3,10 @@
 Software correctness is necessary and insufficient. This document states the standard a biological
 backend must meet, aligned to the exact `StateQuery` it claims. [`../roadmap.md`](../roadmap.md) is
 the sole authority for the order in which that work happens and for what has been met so far. The
-answer today: no biological backend is registered, no benchmark is scientifically admitted, and the
-repository has produced no scientific numbers.
+answer today: one biological backend is registered and has emitted a `CellStateBelief` from real
+cells; no benchmark is scientifically admitted; and the eligibility ledger stands at 0 of 10, with
+the caveat that nine of those ten criteria have never been observed passing on any substrate,
+real or synthetic, so a `fails` among them is not yet an attributable negative.
 
 ## The rules that decide whether a number counts
 
