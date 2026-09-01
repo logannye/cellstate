@@ -48,7 +48,7 @@ sciplex3 = [
 # everyone who only wants an estimator.
 ui = [
   "fastapi>=0.115",
-  "uvicorn>=0.32",
+  "uvicorn>=0.52.4",
 ]
 
 [tool.hatch.build.targets.wheel]
