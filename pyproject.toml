@@ -47,7 +47,7 @@ sciplex3 = [
 # The local web UI. Optional, because a research package should not carry a web server for
 # everyone who only wants an estimator.
 ui = [
-  "fastapi>=0.115",
+  "fastapi>=0.141.1",
   "uvicorn>=0.32",
 ]
 
