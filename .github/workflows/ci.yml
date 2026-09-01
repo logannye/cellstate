@@ -75,7 +75,7 @@ jobs:
         with:
           python-version: "3.11"
           enable-cache: true
-      - uses: docker/setup-buildx-action@v3
+      - uses: docker/setup-buildx-action@v4
         with:
           version: v0.28.0
           driver-opts: >-
