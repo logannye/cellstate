@@ -20,7 +20,7 @@ classifiers = [
   "Typing :: Typed",
 ]
 dependencies = [
-  "numpy>=1.26",
+  "numpy>=2.4.6",
   "pydantic>=2.10,<3",
   "scipy>=1.17.1",
 ]
