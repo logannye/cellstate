@@ -127,7 +127,7 @@ jobs:
           --archive "${RUNNER_TEMP}/sciplex3-v5-runtime-a.oci.tar"
           --archive "${RUNNER_TEMP}/sciplex3-v5-runtime-b.oci.tar"
       - name: Upload verified native-amd64 OCI reproduction witness
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: sciplex3-v5-runtime-${{ github.sha }}
           path: ${{ runner.temp }}/sciplex3-v5-runtime-a.oci.tar
