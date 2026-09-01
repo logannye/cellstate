@@ -27,7 +27,7 @@ dependencies = [
 
 [project.optional-dependencies]
 dev = [
-  "build>=1.5.0",
+  "build>=1.6.0",
   # starlette's TestClient needs an HTTP client; it prefers httpx2 and only falls back to httpx
   # with a deprecation warning.
   "httpx2>=0.28",
