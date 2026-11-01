@@ -135,7 +135,7 @@ jobs:
           compression-level: 0
           retention-days: 30
       - name: Set up OCI-capable Docker runtime daemon
-        uses: docker/setup-docker-action@77e84dbf09b47d1e29270283c22f16145aa85ca1 # v5
+        uses: docker/setup-docker-action@7ec28a010822b4626af4874f9448a4b05ac6f3e5 # v5
         with:
           version: v29.7.2
           set-host: false
